@@ -21,7 +21,17 @@ const ClinicsPage = () => {
     try {
       const { data, error } = await supabase.from('clinics').select('*');
       if (error) throw error;
-      setClinics(data || []);
+      
+      // Sort to put Gopalganj Vet Care at the top
+      const sorted = (data || []).sort((a, b) => {
+        const aIsGopalganj = a.name?.toLowerCase().includes('gopalganj');
+        const bIsGopalganj = b.name?.toLowerCase().includes('gopalganj');
+        if (aIsGopalganj && !bIsGopalganj) return -1;
+        if (!aIsGopalganj && bIsGopalganj) return 1;
+        return 0;
+      });
+      
+      setClinics(sorted);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -67,7 +77,9 @@ const ClinicsPage = () => {
               <ClinicCard key={clinic.id} id={clinic.id} name={clinic.name}
                 rating={clinic.rating || 4.5} distance={clinic.distance || '2 km'}
                 services={clinic.services || []} image={clinic.image_url || 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=400'}
-                isOpen={clinic.is_open ?? true} onBook={() => navigate(`/book-appointment/${clinic.id}`)}
+                isOpen={clinic.is_open ?? true} 
+                onBook={() => navigate(`/book-appointment/${clinic.id}`)}
+                onViewDetails={() => navigate(`/clinic/${clinic.id}`)}
               />
             ))}
           </div>

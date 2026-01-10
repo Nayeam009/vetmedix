@@ -12,6 +12,7 @@ import CheckoutPage from "./pages/CheckoutPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import ShopPage from "./pages/ShopPage";
 import ClinicsPage from "./pages/ClinicsPage";
+import ClinicDetailPage from "./pages/ClinicDetailPage";
 import BookAppointmentPage from "./pages/BookAppointmentPage";
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
@@ -34,6 +35,7 @@ const App = () => (
               <Route path="/product/:id" element={<ProductDetailPage />} />
               <Route path="/shop" element={<ShopPage />} />
               <Route path="/clinics" element={<ClinicsPage />} />
+              <Route path="/clinic/:id" element={<ClinicDetailPage />} />
               <Route path="/book-appointment/:clinicId" element={<BookAppointmentPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="*" element={<NotFound />} />
