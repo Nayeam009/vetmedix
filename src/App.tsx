@@ -13,6 +13,7 @@ import ProductDetailPage from "./pages/ProductDetailPage";
 import ShopPage from "./pages/ShopPage";
 import ClinicsPage from "./pages/ClinicsPage";
 import BookAppointmentPage from "./pages/BookAppointmentPage";
+import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
               <Route path="/shop" element={<ShopPage />} />
               <Route path="/clinics" element={<ClinicsPage />} />
               <Route path="/book-appointment/:clinicId" element={<BookAppointmentPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
