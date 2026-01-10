@@ -1,7 +1,10 @@
 import { ShoppingCart, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import { useCart } from '@/contexts/CartContext';
 
 interface ProductCardProps {
+  id?: string;
   name: string;
   price: number;
   category: 'Pet' | 'Farm';
@@ -10,9 +13,22 @@ interface ProductCardProps {
   discount?: number;
 }
 
-const ProductCard = ({ name, price, category, image, badge, discount }: ProductCardProps) => {
+const ProductCard = ({ id, name, price, category, image, badge, discount }: ProductCardProps) => {
+  const navigate = useNavigate();
+  const { addItem } = useCart();
+  
+  const finalPrice = discount ? Math.round(price * (1 - discount / 100)) : price;
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    addItem({ id: id || name, name, price: finalPrice, image, category });
+  };
+
   return (
-    <div className="group bg-card rounded-2xl overflow-hidden shadow-card card-hover border border-border">
+    <div 
+      className="group bg-card rounded-2xl overflow-hidden shadow-card card-hover border border-border cursor-pointer"
+      onClick={() => id && navigate(`/product/${id}`)}
+    >
       {/* Image Container */}
       <div className="relative aspect-square overflow-hidden bg-muted">
         <img
@@ -60,7 +76,7 @@ const ProductCard = ({ name, price, category, image, badge, discount }: ProductC
             )}
           </div>
         </div>
-        <Button variant="accent" className="w-full group/btn">
+        <Button variant="accent" className="w-full group/btn" onClick={handleAddToCart}>
           <ShoppingCart className="h-4 w-4" />
           Add to Cart
         </Button>

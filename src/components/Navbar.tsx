@@ -1,10 +1,15 @@
 import { useState } from 'react';
-import { Search, ShoppingCart, User, Menu, X } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Search, ShoppingCart, User, Menu, X, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/contexts/CartContext';
 import logo from '@/assets/logo.jpeg';
-
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const { totalItems } = useCart();
+  const navigate = useNavigate();
 
   return (
     <nav className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border shadow-sm">
@@ -40,15 +45,23 @@ const Navbar = () => {
             <a href="#" className="text-sm font-medium text-foreground hover:text-primary transition-colors">Shop</a>
             <a href="#clinics" className="text-sm font-medium text-foreground hover:text-primary transition-colors">Clinics</a>
             <a href="#about" className="text-sm font-medium text-foreground hover:text-primary transition-colors">About</a>
-            <Button variant="ghost" size="icon" className="relative">
+            <Button variant="ghost" size="icon" className="relative" onClick={() => navigate('/cart')}>
               <ShoppingCart className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-accent text-accent-foreground text-xs flex items-center justify-center font-medium">
-                2
-              </span>
+              {totalItems > 0 && (
+                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-accent text-accent-foreground text-xs flex items-center justify-center font-medium">
+                  {totalItems}
+                </span>
+              )}
             </Button>
-            <Button variant="ghost" size="icon">
-              <User className="h-5 w-5" />
-            </Button>
+            {user ? (
+              <Button variant="ghost" size="icon" onClick={signOut}>
+                <LogOut className="h-5 w-5" />
+              </Button>
+            ) : (
+              <Button variant="ghost" size="icon" onClick={() => navigate('/auth')}>
+                <User className="h-5 w-5" />
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
