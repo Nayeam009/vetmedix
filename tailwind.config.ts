@@ -18,7 +18,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Poppins', 'system-ui', 'sans-serif'],
+        display: ['Playfair Display', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -54,19 +55,21 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        emerald: {
-          DEFAULT: "hsl(var(--emerald))",
-          light: "hsl(var(--emerald-light))",
-          dark: "hsl(var(--emerald-dark))",
+        cream: {
+          DEFAULT: "hsl(var(--cream))",
+          dark: "hsl(var(--cream-dark))",
         },
-        royal: {
-          DEFAULT: "hsl(var(--royal-blue))",
-          light: "hsl(var(--royal-blue-light))",
+        warm: {
+          DEFAULT: "hsl(var(--warm-brown))",
+          light: "hsl(var(--warm-brown-light))",
+          dark: "hsl(var(--warm-brown-dark))",
         },
-        orange: {
-          DEFAULT: "hsl(var(--orange))",
-          light: "hsl(var(--orange-light))",
+        sage: {
+          DEFAULT: "hsl(var(--sage))",
+          light: "hsl(var(--sage-light))",
         },
+        beige: "hsl(var(--beige))",
+        taupe: "hsl(var(--taupe))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -82,11 +85,15 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "calc(var(--radius) + 4px)",
+        "2xl": "calc(var(--radius) + 8px)",
+        "3xl": "calc(var(--radius) + 12px)",
       },
       boxShadow: {
         card: "var(--shadow-card)",
         hover: "var(--shadow-hover)",
         button: "var(--shadow-button)",
+        soft: "var(--shadow-soft)",
       },
       keyframes: {
         "accordion-down": {

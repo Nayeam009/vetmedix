@@ -10,6 +10,9 @@ import AuthPage from "./pages/AuthPage";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
+import ShopPage from "./pages/ShopPage";
+import ClinicsPage from "./pages/ClinicsPage";
+import BookAppointmentPage from "./pages/BookAppointmentPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +31,9 @@ const App = () => (
               <Route path="/cart" element={<CartPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/product/:id" element={<ProductDetailPage />} />
+              <Route path="/shop" element={<ShopPage />} />
+              <Route path="/clinics" element={<ClinicsPage />} />
+              <Route path="/book-appointment/:clinicId" element={<BookAppointmentPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
