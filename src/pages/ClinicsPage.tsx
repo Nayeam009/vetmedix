@@ -33,7 +33,10 @@ const ClinicsPage = () => {
       
       setClinics(sorted);
     } catch (error) {
-      console.error('Error:', error);
+      // Error logged only in development
+      if (import.meta.env.DEV) {
+        console.error('Error fetching clinics:', error);
+      }
     } finally {
       setLoading(false);
     }

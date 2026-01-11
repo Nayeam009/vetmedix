@@ -123,7 +123,10 @@ const ProfilePage = () => {
 
       setAppointments(appointmentsData as any || []);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      // Error logged only in development
+      if (import.meta.env.DEV) {
+        console.error('Error fetching data:', error);
+      }
     } finally {
       setLoading(false);
     }

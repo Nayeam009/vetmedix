@@ -94,7 +94,10 @@ const ClinicDetailPage = () => {
       if (error) throw error;
       setClinic(data);
     } catch (error) {
-      console.error('Error fetching clinic:', error);
+      // Error logged only in development
+      if (import.meta.env.DEV) {
+        console.error('Error fetching clinic:', error);
+      }
     } finally {
       setLoading(false);
     }
@@ -403,16 +406,15 @@ const ClinicDetailPage = () => {
                 </div>
               )}
 
-              {/* Map Placeholder */}
+              {/* Map - Using OpenStreetMap for privacy (no API key needed) */}
               <div className="mt-4 rounded-xl overflow-hidden h-40 bg-secondary">
                 <iframe
-                  src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(clinic.address || clinic.name + ' Bangladesh')}`}
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=89.5,23.0,91.0,24.5&layer=mapnik`}
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
-                  allowFullScreen
                   loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Clinic Location"
                 />
               </div>
             </div>

@@ -29,7 +29,10 @@ const ShopPage = () => {
       if (error) throw error;
       setProducts(data || []);
     } catch (error) {
-      console.error('Error:', error);
+      // Error logged only in development
+      if (import.meta.env.DEV) {
+        console.error('Error fetching products:', error);
+      }
     } finally {
       setLoading(false);
     }
