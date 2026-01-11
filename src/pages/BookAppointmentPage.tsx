@@ -9,6 +9,7 @@ import Footer from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { appointmentSchema } from '@/lib/validations';
 
 const BookAppointmentPage = () => {
   const { clinicId } = useParams();
@@ -16,6 +17,7 @@ const BookAppointmentPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     date: '', time: '', petName: '', petType: '', reason: ''
   });
@@ -25,18 +27,35 @@ const BookAppointmentPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) { navigate('/auth'); return; }
+    
+    // Validate form data
+    const validationResult = appointmentSchema.safeParse(formData);
+    if (!validationResult.success) {
+      const fieldErrors: Record<string, string> = {};
+      validationResult.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0] as string] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      toast({ title: 'Validation Error', description: 'Please check the form for errors.', variant: 'destructive' });
+      return;
+    }
+    
+    setErrors({});
     setLoading(true);
     try {
+      const validatedData = validationResult.data;
       const { error } = await supabase.from('appointments').insert([{
         user_id: user.id, clinic_id: clinicId,
-        appointment_date: formData.date, appointment_time: formData.time,
-        pet_name: formData.petName, pet_type: formData.petType, reason: formData.reason
+        appointment_date: validatedData.date, appointment_time: validatedData.time,
+        pet_name: validatedData.petName, pet_type: validatedData.petType, reason: validatedData.reason || ''
       }]);
       if (error) throw error;
       toast({ title: 'Appointment Booked!', description: 'You will receive a confirmation soon.' });
       navigate('/');
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: 'Failed to book appointment. Please try again.', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -65,7 +84,13 @@ const BookAppointmentPage = () => {
               </div>
             </div>
             <div><Label>Pet Name</Label>
-              <Input value={formData.petName} onChange={(e) => setFormData({...formData, petName: e.target.value})} required />
+              <Input 
+                value={formData.petName} 
+                onChange={(e) => setFormData({...formData, petName: e.target.value.slice(0, 100)})} 
+                maxLength={100}
+                required 
+              />
+              {errors.petName && <p className="text-sm text-red-500 mt-1">{errors.petName}</p>}
             </div>
             <div><Label>Pet Type</Label>
               <select value={formData.petType} onChange={(e) => setFormData({...formData, petType: e.target.value})}
@@ -76,8 +101,14 @@ const BookAppointmentPage = () => {
               </select>
             </div>
             <div><Label>Reason for Visit</Label>
-              <textarea value={formData.reason} onChange={(e) => setFormData({...formData, reason: e.target.value})}
-                className="w-full h-24 px-3 py-2 rounded-lg border border-border bg-background resize-none" />
+              <textarea 
+                value={formData.reason} 
+                onChange={(e) => setFormData({...formData, reason: e.target.value.slice(0, 500)})}
+                maxLength={500}
+                className="w-full h-24 px-3 py-2 rounded-lg border border-border bg-background resize-none" 
+              />
+              <p className="text-xs text-muted-foreground mt-1">{formData.reason.length}/500 characters</p>
+              {errors.reason && <p className="text-sm text-red-500 mt-1">{errors.reason}</p>}
             </div>
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm Booking'}

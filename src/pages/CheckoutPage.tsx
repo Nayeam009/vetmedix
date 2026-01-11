@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
 import { ArrowLeft, CheckCircle } from 'lucide-react';
+import { checkoutSchema } from '@/lib/validations';
 
 const CheckoutPage = () => {
   const { items, totalAmount, clearCart } = useCart();
@@ -19,6 +20,7 @@ const CheckoutPage = () => {
   
   const [loading, setLoading] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -42,10 +44,26 @@ const CheckoutPage = () => {
       return;
     }
 
+    // Validate form data
+    const validationResult = checkoutSchema.safeParse(formData);
+    if (!validationResult.success) {
+      const fieldErrors: Record<string, string> = {};
+      validationResult.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0] as string] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      toast({ title: 'Validation Error', description: 'Please check the form for errors.', variant: 'destructive' });
+      return;
+    }
+
+    setErrors({});
     setLoading(true);
 
     try {
-      const shippingAddress = `${formData.fullName}, ${formData.phone}, ${formData.address}, ${formData.thana}, ${formData.district}, ${formData.division}`;
+      const validatedData = validationResult.data;
+      const shippingAddress = `${validatedData.fullName}, ${validatedData.phone}, ${validatedData.address}, ${validatedData.thana}, ${validatedData.district}, ${validatedData.division}`;
       
       const { error } = await supabase.from('orders').insert([{
         user_id: user.id,
@@ -62,7 +80,7 @@ const CheckoutPage = () => {
     } catch (error: any) {
       toast({ 
         title: 'Error', 
-        description: error.message,
+        description: 'Failed to place order. Please try again.',
         variant: 'destructive'
       });
     } finally {
@@ -124,19 +142,23 @@ const CheckoutPage = () => {
                   <Input
                     id="fullName"
                     value={formData.fullName}
-                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value.slice(0, 100) })}
+                    maxLength={100}
                     required
                   />
+                  {errors.fullName && <p className="text-sm text-red-500">{errors.fullName}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
                   <Input
                     id="phone"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value.slice(0, 20) })}
                     placeholder="+880 1XXX-XXXXXX"
+                    maxLength={20}
                     required
                   />
+                  {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
                 </div>
               </div>
 
@@ -145,10 +167,13 @@ const CheckoutPage = () => {
                 <Textarea
                   id="address"
                   value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value.slice(0, 500) })}
                   placeholder="House #, Road #, Area"
+                  maxLength={500}
                   required
                 />
+                <p className="text-xs text-muted-foreground">{formData.address.length}/500 characters</p>
+                {errors.address && <p className="text-sm text-red-500">{errors.address}</p>}
               </div>
 
               <div className="grid sm:grid-cols-3 gap-4">
@@ -157,30 +182,36 @@ const CheckoutPage = () => {
                   <Input
                     id="division"
                     value={formData.division}
-                    onChange={(e) => setFormData({ ...formData, division: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, division: e.target.value.slice(0, 50) })}
                     placeholder="e.g. Dhaka"
+                    maxLength={50}
                     required
                   />
+                  {errors.division && <p className="text-sm text-red-500">{errors.division}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="district">District</Label>
                   <Input
                     id="district"
                     value={formData.district}
-                    onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, district: e.target.value.slice(0, 50) })}
                     placeholder="e.g. Dhaka"
+                    maxLength={50}
                     required
                   />
+                  {errors.district && <p className="text-sm text-red-500">{errors.district}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="thana">Thana</Label>
                   <Input
                     id="thana"
                     value={formData.thana}
-                    onChange={(e) => setFormData({ ...formData, thana: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, thana: e.target.value.slice(0, 50) })}
                     placeholder="e.g. Dhanmondi"
+                    maxLength={50}
                     required
                   />
+                  {errors.thana && <p className="text-sm text-red-500">{errors.thana}</p>}
                 </div>
               </div>
 
@@ -189,9 +220,12 @@ const CheckoutPage = () => {
                 <Textarea
                   id="notes"
                   value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value.slice(0, 1000) })}
                   placeholder="Any special instructions..."
+                  maxLength={1000}
                 />
+                <p className="text-xs text-muted-foreground">{formData.notes.length}/1000 characters</p>
+                {errors.notes && <p className="text-sm text-red-500">{errors.notes}</p>}
               </div>
 
               <Button type="submit" variant="accent" size="lg" className="w-full" disabled={loading}>
