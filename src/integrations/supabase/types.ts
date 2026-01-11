@@ -103,6 +103,129 @@ export type Database = {
         }
         Relationships: []
       }
+      comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          pet_id: string | null
+          post_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          pet_id?: string | null
+          post_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          pet_id?: string | null
+          post_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      follows: {
+        Row: {
+          created_at: string
+          follower_pet_id: string | null
+          follower_user_id: string
+          following_pet_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_pet_id?: string | null
+          follower_user_id: string
+          following_pet_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_pet_id?: string | null
+          follower_user_id?: string
+          following_pet_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follows_follower_pet_id_fkey"
+            columns: ["follower_pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follows_following_pet_id_fkey"
+            columns: ["following_pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      likes: {
+        Row: {
+          created_at: string
+          id: string
+          pet_id: string | null
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pet_id?: string | null
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pet_id?: string | null
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "likes_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           created_at: string
@@ -132,6 +255,98 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      pets: {
+        Row: {
+          age: string | null
+          avatar_url: string | null
+          bio: string | null
+          breed: string | null
+          cover_photo_url: string | null
+          created_at: string
+          id: string
+          name: string
+          species: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          breed?: string | null
+          cover_photo_url?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          species: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          breed?: string | null
+          cover_photo_url?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          species?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      posts: {
+        Row: {
+          comments_count: number | null
+          content: string | null
+          created_at: string
+          id: string
+          likes_count: number | null
+          media_type: string | null
+          media_urls: string[] | null
+          pet_id: string
+          shares_count: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comments_count?: number | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          likes_count?: number | null
+          media_type?: string | null
+          media_urls?: string[] | null
+          pet_id: string
+          shares_count?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comments_count?: number | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          likes_count?: number | null
+          media_type?: string | null
+          media_urls?: string[] | null
+          pet_id?: string
+          shares_count?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
