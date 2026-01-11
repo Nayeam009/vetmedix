@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, ShoppingCart, User, Menu, X, LogOut, Home, Users, Store, Stethoscope, PawPrint } from 'lucide-react';
+import { Search, ShoppingCart, User, Menu, X, LogOut, Home, Users, Store, Stethoscope, PawPrint, Compass, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { PetSwitcher } from '@/components/social/PetSwitcher';
+import { NotificationBell } from '@/components/social/NotificationBell';
 import logo from '@/assets/logo.jpeg';
 
 const Navbar = () => {
@@ -72,6 +73,16 @@ const Navbar = () => {
                 Feed
               </Button>
             </Link>
+            <Link to="/explore">
+              <Button 
+                variant={isActive('/explore') ? 'secondary' : 'ghost'} 
+                size="sm"
+                className="gap-2"
+              >
+                <Compass className="h-4 w-4" />
+                Explore
+              </Button>
+            </Link>
             <Link to="/shop">
               <Button 
                 variant={isActive('/shop') ? 'secondary' : 'ghost'} 
@@ -93,7 +104,17 @@ const Navbar = () => {
               </Button>
             </Link>
             
-            <div className="w-px h-6 bg-border mx-2" />
+            <div className="w-px h-6 bg-border mx-1" />
+
+            {user && (
+              <Link to="/messages">
+                <Button variant="ghost" size="icon">
+                  <MessageCircle className="h-5 w-5" />
+                </Button>
+              </Link>
+            )}
+
+            <NotificationBell />
 
             <Button variant="ghost" size="icon" className="relative" onClick={() => navigate('/cart')}>
               <ShoppingCart className="h-5 w-5" />
