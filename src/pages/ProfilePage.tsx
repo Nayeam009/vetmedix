@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { profileSchema } from '@/lib/validations';
 
 interface Profile {
   id: string;
@@ -131,16 +132,29 @@ const ProfilePage = () => {
   const handleSave = async () => {
     if (!user || !profile) return;
     
+    // Validate form data
+    const validationResult = profileSchema.safeParse(formData);
+    if (!validationResult.success) {
+      const errorMessages = validationResult.error.errors.map(err => err.message).join(', ');
+      toast({
+        title: "Validation Error",
+        description: errorMessages,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setSaving(true);
     try {
+      const validatedData = validationResult.data;
       const { error } = await supabase
         .from('profiles')
-        .update(formData)
+        .update(validatedData)
         .eq('user_id', user.id);
 
       if (error) throw error;
 
-      setProfile({ ...profile, ...formData });
+      setProfile({ ...profile, ...validatedData });
       setEditing(false);
       toast({
         title: "Profile Updated",
@@ -149,7 +163,7 @@ const ProfilePage = () => {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to update profile. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -247,8 +261,9 @@ const ProfilePage = () => {
                     {editing ? (
                       <Input
                         value={formData.full_name}
-                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value.slice(0, 100) })}
                         placeholder="Enter your full name"
+                        maxLength={100}
                       />
                     ) : (
                       <p className="text-foreground">{profile?.full_name || 'Not set'}</p>
@@ -259,8 +274,9 @@ const ProfilePage = () => {
                     {editing ? (
                       <Input
                         value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value.slice(0, 20) })}
                         placeholder="Enter your phone number"
+                        maxLength={20}
                       />
                     ) : (
                       <p className="text-foreground">{profile?.phone || 'Not set'}</p>
@@ -283,8 +299,9 @@ const ProfilePage = () => {
                     {editing ? (
                       <Input
                         value={formData.address}
-                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value.slice(0, 500) })}
                         placeholder="Enter your address"
+                        maxLength={500}
                       />
                     ) : (
                       <p className="text-foreground">{profile?.address || 'Not set'}</p>
@@ -296,8 +313,9 @@ const ProfilePage = () => {
                       {editing ? (
                         <Input
                           value={formData.division}
-                          onChange={(e) => setFormData({ ...formData, division: e.target.value })}
+                          onChange={(e) => setFormData({ ...formData, division: e.target.value.slice(0, 50) })}
                           placeholder="Division"
+                          maxLength={50}
                         />
                       ) : (
                         <p className="text-foreground">{profile?.division || '-'}</p>
@@ -308,8 +326,9 @@ const ProfilePage = () => {
                       {editing ? (
                         <Input
                           value={formData.district}
-                          onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                          onChange={(e) => setFormData({ ...formData, district: e.target.value.slice(0, 50) })}
                           placeholder="District"
+                          maxLength={50}
                         />
                       ) : (
                         <p className="text-foreground">{profile?.district || '-'}</p>
@@ -320,8 +339,9 @@ const ProfilePage = () => {
                       {editing ? (
                         <Input
                           value={formData.thana}
-                          onChange={(e) => setFormData({ ...formData, thana: e.target.value })}
+                          onChange={(e) => setFormData({ ...formData, thana: e.target.value.slice(0, 50) })}
                           placeholder="Thana"
+                          maxLength={50}
                         />
                       ) : (
                         <p className="text-foreground">{profile?.thana || '-'}</p>
