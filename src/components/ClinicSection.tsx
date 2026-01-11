@@ -35,7 +35,10 @@ const ClinicSection = () => {
       if (error) throw error;
       setClinics(data || []);
     } catch (error) {
-      console.error('Error fetching clinics:', error);
+      // Error logged only in development
+      if (import.meta.env.DEV) {
+        console.error('Error fetching clinics:', error);
+      }
     } finally {
       setLoading(false);
     }
