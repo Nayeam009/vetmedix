@@ -20,6 +20,9 @@ import FeedPage from "./pages/FeedPage";
 import PetProfilePage from "./pages/PetProfilePage";
 import CreatePetPage from "./pages/CreatePetPage";
 import EditPetPage from "./pages/EditPetPage";
+import ExplorePage from "./pages/ExplorePage";
+import MessagesPage from "./pages/MessagesPage";
+import ChatPage from "./pages/ChatPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +39,9 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/feed" element={<FeedPage />} />
+                <Route path="/explore" element={<ExplorePage />} />
+                <Route path="/messages" element={<MessagesPage />} />
+                <Route path="/chat/:conversationId" element={<ChatPage />} />
                 <Route path="/pet/:id" element={<PetProfilePage />} />
                 <Route path="/pets/new" element={<CreatePetPage />} />
                 <Route path="/pets/:id/edit" element={<EditPetPage />} />
