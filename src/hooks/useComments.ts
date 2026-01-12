@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePets } from '@/contexts/PetContext';
+import { createNotification, getPostOwnerUserId } from '@/lib/notifications';
 import type { Comment } from '@/types/social';
 
 export const useComments = (postId: string) => {
   const { user } = useAuth();
+  const { activePet } = usePets();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,7 +37,7 @@ export const useComments = (postId: string) => {
     fetchComments();
   }, [postId]);
 
-  const addComment = async (content: string, petId?: string) => {
+  const addComment = async (content: string, commenterPetId?: string) => {
     if (!user) return;
 
     try {
@@ -43,7 +46,7 @@ export const useComments = (postId: string) => {
         .insert({ 
           post_id: postId, 
           user_id: user.id, 
-          pet_id: petId,
+          pet_id: commenterPetId,
           content 
         })
         .select(`
@@ -54,6 +57,21 @@ export const useComments = (postId: string) => {
 
       if (error) throw error;
       setComments(prev => [...prev, data as Comment]);
+
+      // Create notification for post owner
+      const postOwnerId = await getPostOwnerUserId(postId);
+      if (postOwnerId && postOwnerId !== user.id) {
+        const actorPet = commenterPetId || activePet?.id;
+        const actorName = activePet?.name || 'Someone';
+        await createNotification({
+          userId: postOwnerId,
+          type: 'comment',
+          title: `${actorName} commented on your post`,
+          message: content.slice(0, 100),
+          actorPetId: actorPet,
+          targetPostId: postId,
+        });
+      }
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error adding comment:', error);

@@ -23,6 +23,7 @@ import EditPetPage from "./pages/EditPetPage";
 import ExplorePage from "./pages/ExplorePage";
 import MessagesPage from "./pages/MessagesPage";
 import ChatPage from "./pages/ChatPage";
+import NotificationsPage from "./pages/NotificationsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
                 <Route path="/feed" element={<FeedPage />} />
                 <Route path="/explore" element={<ExplorePage />} />
                 <Route path="/messages" element={<MessagesPage />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/chat/:conversationId" element={<ChatPage />} />
                 <Route path="/pet/:id" element={<PetProfilePage />} />
                 <Route path="/pets/new" element={<CreatePetPage />} />

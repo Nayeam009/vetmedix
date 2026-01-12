@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Camera, Settings, MapPin } from 'lucide-react';
+import { Camera, Settings, MapPin, MessageCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFollow } from '@/hooks/useFollow';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import type { Pet } from '@/types/social';
 
 interface PetProfileCardProps {
@@ -28,6 +29,45 @@ export const PetProfileCard = ({ pet, postsCount, isOwner }: PetProfileCardProps
       unfollow();
     } else {
       follow();
+    }
+  };
+
+  const handleMessage = async () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+
+    // Find or create conversation with pet owner
+    try {
+      // Check for existing conversation
+      const { data: existingConvo } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`and(participant_1_id.eq.${user.id},participant_2_id.eq.${pet.user_id}),and(participant_1_id.eq.${pet.user_id},participant_2_id.eq.${user.id})`)
+        .maybeSingle();
+
+      if (existingConvo) {
+        navigate(`/chat/${existingConvo.id}`);
+        return;
+      }
+
+      // Create new conversation
+      const { data: newConvo, error } = await supabase
+        .from('conversations')
+        .insert({
+          participant_1_id: user.id,
+          participant_2_id: pet.user_id,
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+      navigate(`/chat/${newConvo.id}`);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error starting conversation:', error);
+      }
     }
   };
 
@@ -83,12 +123,22 @@ export const PetProfileCard = ({ pet, postsCount, isOwner }: PetProfileCardProps
                   Edit Profile
                 </Button>
               ) : (
-                <Button 
-                  variant={isFollowing ? 'outline' : 'default'}
-                  onClick={handleFollowToggle}
-                >
-                  {isFollowing ? 'Following' : 'Follow'}
-                </Button>
+                <>
+                  <Button 
+                    variant={isFollowing ? 'outline' : 'default'}
+                    onClick={handleFollowToggle}
+                  >
+                    {isFollowing ? 'Following' : 'Follow'}
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    size="icon"
+                    onClick={handleMessage}
+                    title="Send message"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                  </Button>
+                </>
               )}
             </div>
           </div>
