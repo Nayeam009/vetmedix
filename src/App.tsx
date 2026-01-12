@@ -25,6 +25,12 @@ import MessagesPage from "./pages/MessagesPage";
 import ChatPage from "./pages/ChatPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import NotFound from "./pages/NotFound";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminProducts from "./pages/admin/AdminProducts";
+import AdminOrders from "./pages/admin/AdminOrders";
+import AdminCustomers from "./pages/admin/AdminCustomers";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminSettings from "./pages/admin/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +62,12 @@ const App = () => (
                 <Route path="/clinic/:id" element={<ClinicDetailPage />} />
                 <Route path="/book-appointment/:clinicId" element={<BookAppointmentPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/products" element={<AdminProducts />} />
+                <Route path="/admin/orders" element={<AdminOrders />} />
+                <Route path="/admin/customers" element={<AdminCustomers />} />
+                <Route path="/admin/analytics" element={<AdminAnalytics />} />
+                <Route path="/admin/settings" element={<AdminSettings />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

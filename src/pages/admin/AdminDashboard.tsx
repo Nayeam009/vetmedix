@@ -1,0 +1,192 @@
+import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { 
+  Package, 
+  ShoppingCart, 
+  Users, 
+  DollarSign, 
+  Clock,
+  TrendingUp,
+  AlertCircle,
+  Loader2
+} from 'lucide-react';
+import { AdminLayout } from '@/components/admin/AdminLayout';
+import { StatCard } from '@/components/admin/StatCard';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useAdmin, useAdminStats } from '@/hooks/useAdmin';
+import { useAuth } from '@/contexts/AuthContext';
+import { format } from 'date-fns';
+
+const AdminDashboard = () => {
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const { isAdmin, roleLoading } = useAdmin();
+  const { data: stats, isLoading: statsLoading } = useAdminStats();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    } else if (!authLoading && !roleLoading && !isAdmin) {
+      navigate('/');
+    }
+  }, [user, authLoading, isAdmin, roleLoading, navigate]);
+
+  if (authLoading || roleLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h1 className="text-xl font-bold mb-2">Access Denied</h1>
+          <p className="text-muted-foreground mb-4">You don't have permission to access this page.</p>
+          <Button onClick={() => navigate('/')}>Go Home</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'delivered':
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'processing':
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'shipped':
+        return 'bg-blue-100 text-blue-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  return (
+    <AdminLayout title="Dashboard" subtitle="Welcome back! Here's what's happening.">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+        <StatCard
+          title="Total Revenue"
+          value={`৳${stats?.totalRevenue?.toLocaleString() || 0}`}
+          icon={<DollarSign className="h-6 w-6 text-primary" />}
+          trend={{ value: 12.5, isPositive: true }}
+        />
+        <StatCard
+          title="Total Orders"
+          value={stats?.totalOrders || 0}
+          icon={<ShoppingCart className="h-6 w-6 text-primary" />}
+          trend={{ value: 8.2, isPositive: true }}
+        />
+        <StatCard
+          title="Total Products"
+          value={stats?.totalProducts || 0}
+          icon={<Package className="h-6 w-6 text-primary" />}
+        />
+        <StatCard
+          title="Total Customers"
+          value={stats?.totalUsers || 0}
+          icon={<Users className="h-6 w-6 text-primary" />}
+          trend={{ value: 5.1, isPositive: true }}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Orders */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-primary" />
+              Recent Orders
+            </CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/orders')}>
+              View All
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {statsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : stats?.recentOrders?.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No orders yet
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {stats?.recentOrders?.map((order: any) => (
+                  <div key={order.id} className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors">
+                    <div>
+                      <p className="font-medium">Order #{order.id.slice(0, 8)}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {format(new Date(order.created_at), 'PPp')}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge className={getStatusColor(order.status)}>
+                        {order.status}
+                      </Badge>
+                      <span className="font-bold text-primary">৳{order.total_amount}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Quick Stats */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Quick Stats
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Pending Orders</span>
+              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                {stats?.pendingOrders || 0}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Low Stock Items</span>
+              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                3
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">New Customers Today</span>
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                12
+              </Badge>
+            </div>
+            
+            <div className="pt-4 border-t border-border space-y-3">
+              <Button className="w-full" onClick={() => navigate('/admin/products')}>
+                <Package className="h-4 w-4 mr-2" />
+                Manage Products
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => navigate('/admin/orders')}>
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                View Orders
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </AdminLayout>
+  );
+};
+
+export default AdminDashboard;
