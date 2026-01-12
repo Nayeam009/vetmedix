@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { User, MapPin, ShoppingBag, Calendar, Edit2, Save, X, Loader2, Clock, Package } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { User, MapPin, ShoppingBag, Calendar, Edit2, Save, X, Loader2, Clock, Package, Shield } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdmin } from '@/hooks/useAdmin';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -52,6 +53,7 @@ interface Appointment {
 
 const ProfilePage = () => {
   const { user, loading: authLoading } = useAuth();
+  const { isAdmin } = useAdmin();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -206,9 +208,19 @@ const ProfilePage = () => {
       
       <main className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-display font-bold text-foreground mb-2">My Profile</h1>
-          <p className="text-muted-foreground">Manage your account, orders, and appointments</p>
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-display font-bold text-foreground mb-2">My Profile</h1>
+            <p className="text-muted-foreground">Manage your account, orders, and appointments</p>
+          </div>
+          {isAdmin && (
+            <Link to="/admin">
+              <Button variant="outline" className="gap-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+                <Shield className="h-4 w-4" />
+                Admin Panel
+              </Button>
+            </Link>
+          )}
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
