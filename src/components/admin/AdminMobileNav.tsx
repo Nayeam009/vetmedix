@@ -6,10 +6,10 @@ import {
   Users, 
   Settings, 
   ArrowLeft,
-  PawPrint,
   BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import logo from '@/assets/logo.jpeg';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
@@ -24,13 +24,15 @@ export const AdminMobileNav = () => {
   const location = useLocation();
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-card">
       {/* Logo */}
-      <div className="p-6 border-b border-border">
-        <Link to="/" className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <PawPrint className="h-5 w-5 text-primary-foreground" />
-          </div>
+      <div className="p-5 border-b border-border bg-gradient-to-r from-primary/5 to-accent/5">
+        <Link to="/admin" className="flex items-center gap-3">
+          <img 
+            src={logo} 
+            alt="PetConnect Admin" 
+            className="h-11 w-11 rounded-xl object-cover shadow-md"
+          />
           <div>
             <h1 className="font-display font-bold text-foreground">Admin Panel</h1>
             <p className="text-xs text-muted-foreground">PetConnect</p>

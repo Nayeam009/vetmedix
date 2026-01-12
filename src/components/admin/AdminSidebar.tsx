@@ -6,11 +6,10 @@ import {
   Users, 
   Settings, 
   ArrowLeft,
-  PawPrint,
-  BarChart3,
-  Tag
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import logo from '@/assets/logo.jpeg';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
@@ -25,15 +24,17 @@ export const AdminSidebar = () => {
   const location = useLocation();
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-card border-r border-border z-50 hidden lg:flex flex-col">
+    <aside className="fixed left-0 top-0 h-screen w-64 bg-card border-r border-border z-50 hidden lg:flex flex-col shadow-lg">
       {/* Logo */}
-      <div className="p-6 border-b border-border">
-        <Link to="/" className="flex items-center gap-3 group">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <PawPrint className="h-5 w-5 text-primary-foreground" />
-          </div>
+      <div className="p-4 xl:p-6 border-b border-border">
+        <Link to="/admin" className="flex items-center gap-3 group">
+          <img 
+            src={logo} 
+            alt="PetConnect Admin" 
+            className="h-10 w-10 xl:h-12 xl:w-12 rounded-xl object-cover shadow-md group-hover:shadow-lg transition-shadow"
+          />
           <div>
-            <h1 className="font-display font-bold text-foreground">Admin Panel</h1>
+            <h1 className="font-display font-bold text-foreground text-sm xl:text-base">Admin Panel</h1>
             <p className="text-xs text-muted-foreground">PetConnect</p>
           </div>
         </Link>
