@@ -1,20 +1,25 @@
-import { Home, Search, MessageCircle, Bell, User } from 'lucide-react';
+import { Home, Search, MessageCircle, Bell, User, Shield } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useAdmin } from '@/hooks/useAdmin';
 
 const MobileNav = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { unreadCount } = useNotifications();
+  const { isAdmin } = useAdmin();
 
-  const navItems = [
+  const baseItems = [
     { icon: Home, label: 'Home', path: '/', badge: 0 },
     { icon: Search, label: 'Explore', path: '/explore', badge: 0 },
     { icon: MessageCircle, label: 'Messages', path: '/messages', badge: 0 },
     { icon: Bell, label: 'Alerts', path: '/notifications', badge: unreadCount },
-    { icon: User, label: user ? 'Profile' : 'Login', path: user ? '/profile' : '/auth', badge: 0 },
   ];
+
+  const navItems = isAdmin 
+    ? [...baseItems, { icon: Shield, label: 'Admin', path: '/admin', badge: 0 }]
+    : [...baseItems, { icon: User, label: user ? 'Profile' : 'Login', path: user ? '/profile' : '/auth', badge: 0 }];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border md:hidden safe-area-pb">

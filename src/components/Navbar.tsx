@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, ShoppingCart, User, Menu, X, LogOut, Home, Users, Store, Stethoscope, PawPrint, Compass, MessageCircle } from 'lucide-react';
+import { Search, ShoppingCart, User, Menu, X, LogOut, Home, Users, Store, Stethoscope, PawPrint, Compass, MessageCircle, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
+import { useAdmin } from '@/hooks/useAdmin';
 import { PetSwitcher } from '@/components/social/PetSwitcher';
 import { NotificationBell } from '@/components/social/NotificationBell';
 import logo from '@/assets/logo.jpeg';
@@ -13,6 +14,7 @@ const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { user, signOut } = useAuth();
   const { totalItems } = useCart();
+  const { isAdmin } = useAdmin();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -127,6 +129,13 @@ const Navbar = () => {
 
             {user ? (
               <div className="flex items-center gap-1">
+                {isAdmin && (
+                  <Link to="/admin">
+                    <Button variant="ghost" size="icon" className="text-primary">
+                      <Shield className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                )}
                 <PetSwitcher />
                 <Link to="/profile">
                   <Button variant="ghost" size="icon">
@@ -216,6 +225,16 @@ const Navbar = () => {
               
               {user ? (
                 <>
+                  {isAdmin && (
+                    <Link 
+                      to="/admin" 
+                      className="px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors flex items-center gap-3"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Shield className="h-5 w-5" />
+                      Admin Panel
+                    </Link>
+                  )}
                   <Link 
                     to="/pets/new" 
                     className="px-4 py-3 text-sm font-medium text-foreground hover:bg-muted rounded-lg transition-colors flex items-center gap-3"
