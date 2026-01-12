@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { createNotification, getPostOwnerUserId } from '@/lib/notifications';
+import { usePets } from '@/contexts/PetContext';
 import type { Post, Pet } from '@/types/social';
 
 export const usePosts = (petId?: string, feedType: 'all' | 'following' | 'pet' = 'all') => {
   const { user } = useAuth();
+  const { activePet } = usePets();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -73,13 +76,13 @@ export const usePosts = (petId?: string, feedType: 'all' | 'following' | 'pet' =
     fetchPosts();
   }, [petId, feedType, user]);
 
-  const likePost = async (postId: string, petId?: string) => {
+  const likePost = async (postId: string, likerPetId?: string) => {
     if (!user) return;
 
     try {
       const { error } = await supabase
         .from('likes')
-        .insert({ post_id: postId, user_id: user.id, pet_id: petId });
+        .insert({ post_id: postId, user_id: user.id, pet_id: likerPetId });
 
       if (error) throw error;
       
@@ -88,6 +91,20 @@ export const usePosts = (petId?: string, feedType: 'all' | 'following' | 'pet' =
           ? { ...post, likes_count: post.likes_count + 1, liked_by_user: true }
           : post
       ));
+
+      // Create notification for post owner
+      const postOwnerId = await getPostOwnerUserId(postId);
+      if (postOwnerId && postOwnerId !== user.id) {
+        const actorPet = likerPetId || activePet?.id;
+        const actorName = activePet?.name || 'Someone';
+        await createNotification({
+          userId: postOwnerId,
+          type: 'like',
+          title: `${actorName} liked your post`,
+          actorPetId: actorPet,
+          targetPostId: postId,
+        });
+      }
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error liking post:', error);

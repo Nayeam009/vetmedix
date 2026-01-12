@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
+import { StoriesBar } from '@/components/social/StoriesBar';
 import { CreatePostCard } from '@/components/social/CreatePostCard';
 import { PostCard } from '@/components/social/PostCard';
 import FeaturedProducts from '@/components/FeaturedProducts';
@@ -124,7 +125,10 @@ const Index = () => {
 
         {/* Main Content Grid */}
         <div className="container mx-auto px-4 py-8">
-          <div className="grid lg:grid-cols-3 gap-8">
+          {/* Stories Bar */}
+          <StoriesBar />
+
+          <div className="grid lg:grid-cols-3 gap-8 mt-6">
             {/* Main Feed - 2 columns */}
             <div className="lg:col-span-2">
               <Tabs value={feedType} onValueChange={(v) => setFeedType(v as 'all' | 'following')}>

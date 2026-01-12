@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePets } from '@/contexts/PetContext';
+import { createNotification, getPetOwnerUserId } from '@/lib/notifications';
 
 export const useFollow = (petId: string) => {
   const { user } = useAuth();
+  const { activePet } = usePets();
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
@@ -76,6 +79,20 @@ export const useFollow = (petId: string) => {
       if (error) throw error;
       setIsFollowing(true);
       setFollowersCount(prev => prev + 1);
+
+      // Create notification for the pet owner being followed
+      const petOwnerId = await getPetOwnerUserId(petId);
+      if (petOwnerId && petOwnerId !== user.id) {
+        const actorPet = followerPetId || activePet?.id;
+        const actorName = activePet?.name || 'Someone';
+        await createNotification({
+          userId: petOwnerId,
+          type: 'follow',
+          title: `${actorName} started following your pet`,
+          actorPetId: actorPet,
+          targetPetId: petId,
+        });
+      }
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error following:', error);
