@@ -9,7 +9,8 @@ import {
   MoreHorizontal,
   Loader2,
   AlertCircle,
-  Package
+  Package,
+  FileSpreadsheet
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -51,6 +52,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { ImageUpload } from '@/components/admin/ImageUpload';
+import { CSVImportDialog } from '@/components/admin/CSVImportDialog';
 
 const AdminProducts = () => {
   const navigate = useNavigate();
@@ -64,6 +67,7 @@ const AdminProducts = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   
@@ -239,10 +243,16 @@ const AdminProducts = () => {
             className="pl-9"
           />
         </div>
-        <Button onClick={() => { resetForm(); setIsAddOpen(true); }}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Product
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsImportOpen(true)}>
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Import CSV
+          </Button>
+          <Button onClick={() => { resetForm(); setIsAddOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Product
+          </Button>
+        </div>
       </div>
 
       {/* Products Table */}
@@ -335,6 +345,15 @@ const AdminProducts = () => {
             <DialogDescription>Fill in the details to add a new product.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Image Upload */}
+            <div>
+              <Label>Product Image</Label>
+              <ImageUpload 
+                value={formData.image_url} 
+                onChange={(url) => setFormData({ ...formData, image_url: url })} 
+              />
+            </div>
+            
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
                 <Label>Name *</Label>
@@ -366,10 +385,6 @@ const AdminProducts = () => {
                 <Label>Product Type</Label>
                 <Input value={formData.product_type} onChange={(e) => setFormData({ ...formData, product_type: e.target.value })} placeholder="e.g., Food, Toys" />
               </div>
-              <div className="col-span-2">
-                <Label>Image URL</Label>
-                <Input value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })} placeholder="https://..." />
-              </div>
               <div>
                 <Label>Badge</Label>
                 <Input value={formData.badge} onChange={(e) => setFormData({ ...formData, badge: e.target.value })} placeholder="e.g., New, Sale" />
@@ -398,6 +413,15 @@ const AdminProducts = () => {
             <DialogDescription>Update the product details.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Image Upload */}
+            <div>
+              <Label>Product Image</Label>
+              <ImageUpload 
+                value={formData.image_url} 
+                onChange={(url) => setFormData({ ...formData, image_url: url })} 
+              />
+            </div>
+            
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
                 <Label>Name *</Label>
@@ -428,10 +452,6 @@ const AdminProducts = () => {
               <div>
                 <Label>Product Type</Label>
                 <Input value={formData.product_type} onChange={(e) => setFormData({ ...formData, product_type: e.target.value })} />
-              </div>
-              <div className="col-span-2">
-                <Label>Image URL</Label>
-                <Input value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })} />
               </div>
               <div>
                 <Label>Badge</Label>
@@ -471,6 +491,9 @@ const AdminProducts = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* CSV Import Dialog */}
+      <CSVImportDialog open={isImportOpen} onOpenChange={setIsImportOpen} />
     </AdminLayout>
   );
 };
