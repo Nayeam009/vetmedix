@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -29,6 +29,7 @@ export const PostCard = ({ post, onLike, onUnlike, onDelete }: PostCardProps) =>
   const navigate = useNavigate();
   const [showComments, setShowComments] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
 
   const handleLike = () => {
     if (!user) {
@@ -36,6 +37,9 @@ export const PostCard = ({ post, onLike, onUnlike, onDelete }: PostCardProps) =>
       navigate('/auth');
       return;
     }
+    setIsLiking(true);
+    setTimeout(() => setIsLiking(false), 300);
+    
     if (post.liked_by_user) {
       onUnlike(post.id);
     } else {
@@ -71,27 +75,33 @@ export const PostCard = ({ post, onLike, onUnlike, onDelete }: PostCardProps) =>
         url: window.location.origin + `/post/${post.id}`,
       });
     } catch {
-      // Fallback to copy link
       navigator.clipboard.writeText(window.location.origin + `/post/${post.id}`);
       toast.success('Link copied to clipboard');
     }
   };
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <Card className="overflow-hidden border-0 shadow-card hover:shadow-hover transition-all duration-300 animate-fade-in bg-card rounded-2xl">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 pt-4">
         <div 
-          className="flex items-center gap-3 cursor-pointer hover:opacity-80"
+          className="flex items-center gap-3 cursor-pointer group"
           onClick={() => navigate(`/pet/${post.pet_id}`)}
         >
-          <Avatar className="h-10 w-10 border-2 border-primary/20">
-            <AvatarImage src={post.pet?.avatar_url || ''} alt={post.pet?.name} />
-            <AvatarFallback className="bg-primary/10 text-primary">
-              {post.pet?.name?.charAt(0) || '?'}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <div className="p-0.5 rounded-full bg-gradient-to-br from-primary via-accent to-lavender">
+              <Avatar className="h-11 w-11 border-2 border-card">
+                <AvatarImage src={post.pet?.avatar_url || ''} alt={post.pet?.name} />
+                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary font-bold">
+                  {post.pet?.name?.charAt(0) || '?'}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          </div>
           <div>
-            <p className="font-semibold text-sm">{post.pet?.name}</p>
+            <p className="font-bold text-sm group-hover:text-primary transition-colors flex items-center gap-1">
+              {post.pet?.name}
+              <Sparkles className="h-3 w-3 text-sunshine" />
+            </p>
             <p className="text-xs text-muted-foreground">
               {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
             </p>
@@ -101,15 +111,15 @@ export const PostCard = ({ post, onLike, onUnlike, onDelete }: PostCardProps) =>
         {user?.id === post.user_id && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="bg-card border shadow-lg rounded-xl">
               <DropdownMenuItem 
                 onClick={handleDelete}
                 disabled={deleting}
-                className="text-destructive"
+                className="text-destructive focus:text-destructive rounded-lg"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete Post
@@ -119,13 +129,13 @@ export const PostCard = ({ post, onLike, onUnlike, onDelete }: PostCardProps) =>
         )}
       </CardHeader>
 
-      <CardContent className="pb-2">
+      <CardContent className="pb-3 px-4">
         {post.content && (
-          <p className="text-sm mb-3 whitespace-pre-wrap">{post.content}</p>
+          <p className="text-sm mb-4 whitespace-pre-wrap leading-relaxed">{post.content}</p>
         )}
         
         {post.media_urls && post.media_urls.length > 0 && (
-          <div className={`grid gap-1 rounded-xl overflow-hidden ${
+          <div className={`grid gap-1 rounded-2xl overflow-hidden ${
             post.media_urls.length === 1 ? 'grid-cols-1' : 
             post.media_urls.length === 2 ? 'grid-cols-2' :
             post.media_urls.length === 3 ? 'grid-cols-2' : 'grid-cols-2'
@@ -133,26 +143,26 @@ export const PostCard = ({ post, onLike, onUnlike, onDelete }: PostCardProps) =>
             {post.media_urls.slice(0, 4).map((url, index) => (
               <div 
                 key={index} 
-                className={`relative ${
+                className={`relative overflow-hidden ${
                   post.media_urls.length === 3 && index === 0 ? 'row-span-2' : ''
-                }`}
+                } ${post.media_urls.length === 1 ? 'aspect-[4/3]' : 'aspect-square'}`}
               >
                 {post.media_type === 'video' ? (
                   <video 
                     src={url} 
                     controls 
-                    className="w-full h-full object-cover max-h-96"
+                    className="w-full h-full object-cover"
                   />
                 ) : (
                   <img 
                     src={url} 
                     alt="" 
-                    className="w-full h-full object-cover max-h-96"
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                   />
                 )}
                 {index === 3 && post.media_urls.length > 4 && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <span className="text-white text-2xl font-bold">
+                  <div className="absolute inset-0 bg-foreground/60 backdrop-blur-sm flex items-center justify-center">
+                    <span className="text-card text-3xl font-bold">
                       +{post.media_urls.length - 4}
                     </span>
                   </div>
@@ -163,34 +173,50 @@ export const PostCard = ({ post, onLike, onUnlike, onDelete }: PostCardProps) =>
         )}
       </CardContent>
 
-      <CardFooter className="flex flex-col pt-2">
-        <div className="flex items-center justify-between w-full border-t pt-2">
+      <CardFooter className="flex flex-col pt-0 px-4 pb-4">
+        <div className="flex items-center justify-around w-full border-t border-border/50 pt-3">
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={handleLike}
-            className={post.liked_by_user ? 'text-red-500' : ''}
+            className={`flex-1 gap-2 rounded-xl transition-all duration-200 ${
+              post.liked_by_user 
+                ? 'text-destructive hover:text-destructive hover:bg-destructive/10' 
+                : 'hover:text-destructive hover:bg-destructive/5'
+            }`}
           >
-            <Heart className={`h-5 w-5 mr-1 ${post.liked_by_user ? 'fill-current' : ''}`} />
-            {post.likes_count > 0 && post.likes_count}
+            <Heart className={`h-5 w-5 transition-transform ${
+              post.liked_by_user ? 'fill-current' : ''
+            } ${isLiking ? 'scale-125' : ''}`} />
+            <span className="font-semibold">{post.likes_count > 0 ? post.likes_count : ''}</span>
           </Button>
           
           <Button 
             variant="ghost" 
             size="sm"
             onClick={() => setShowComments(!showComments)}
+            className={`flex-1 gap-2 rounded-xl transition-all duration-200 hover:text-sky hover:bg-sky/5 ${
+              showComments ? 'text-sky bg-sky/10' : ''
+            }`}
           >
-            <MessageCircle className="h-5 w-5 mr-1" />
-            {post.comments_count > 0 && post.comments_count}
+            <MessageCircle className="h-5 w-5" />
+            <span className="font-semibold">{post.comments_count > 0 ? post.comments_count : ''}</span>
           </Button>
           
-          <Button variant="ghost" size="sm" onClick={handleShare}>
-            <Share2 className="h-5 w-5 mr-1" />
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleShare}
+            className="flex-1 gap-2 rounded-xl transition-all duration-200 hover:text-accent hover:bg-accent/5"
+          >
+            <Share2 className="h-5 w-5" />
           </Button>
         </div>
 
         {showComments && (
-          <CommentsSection postId={post.id} />
+          <div className="w-full mt-4 animate-slide-up">
+            <CommentsSection postId={post.id} />
+          </div>
         )}
       </CardFooter>
     </Card>

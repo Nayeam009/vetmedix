@@ -18,8 +18,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Poppins', 'system-ui', 'sans-serif'],
-        display: ['Playfair Display', 'serif'],
+        sans: ['Nunito', 'system-ui', 'sans-serif'],
+        display: ['Fredoka', 'system-ui', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -55,21 +55,29 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        cream: {
-          DEFAULT: "hsl(var(--cream))",
-          dark: "hsl(var(--cream-dark))",
+        coral: {
+          DEFAULT: "hsl(var(--coral))",
+          light: "hsl(var(--coral-light))",
+          dark: "hsl(var(--coral-dark))",
         },
-        warm: {
-          DEFAULT: "hsl(var(--warm-brown))",
-          light: "hsl(var(--warm-brown-light))",
-          dark: "hsl(var(--warm-brown-dark))",
+        mint: {
+          DEFAULT: "hsl(var(--mint))",
+          light: "hsl(var(--mint-light))",
         },
-        sage: {
-          DEFAULT: "hsl(var(--sage))",
-          light: "hsl(var(--sage-light))",
+        sky: {
+          DEFAULT: "hsl(var(--sky))",
+          light: "hsl(var(--sky-light))",
         },
-        beige: "hsl(var(--beige))",
-        taupe: "hsl(var(--taupe))",
+        lavender: {
+          DEFAULT: "hsl(var(--lavender))",
+          light: "hsl(var(--lavender-light))",
+        },
+        sunshine: {
+          DEFAULT: "hsl(var(--sunshine))",
+          light: "hsl(var(--sunshine-light))",
+        },
+        peach: "hsl(var(--peach))",
+        cream: "hsl(var(--cream))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -87,13 +95,15 @@ export default {
         sm: "calc(var(--radius) - 4px)",
         xl: "calc(var(--radius) + 4px)",
         "2xl": "calc(var(--radius) + 8px)",
-        "3xl": "calc(var(--radius) + 12px)",
+        "3xl": "calc(var(--radius) + 16px)",
       },
       boxShadow: {
         card: "var(--shadow-card)",
         hover: "var(--shadow-hover)",
         button: "var(--shadow-button)",
         soft: "var(--shadow-soft)",
+        glow: "var(--shadow-glow)",
+        playful: "var(--shadow-playful)",
       },
       keyframes: {
         "accordion-down": {
@@ -104,10 +114,21 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "wiggle": {
+          "0%, 100%": { transform: "rotate(0deg)" },
+          "25%": { transform: "rotate(-5deg)" },
+          "75%": { transform: "rotate(5deg)" },
+        },
+        "bounce-gentle": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-5px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "wiggle": "wiggle 0.5s ease-in-out",
+        "bounce-gentle": "bounce-gentle 2s ease-in-out infinite",
       },
     },
   },
