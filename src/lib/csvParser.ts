@@ -1,18 +1,68 @@
-export interface ProductCSVRow {
-  name: string;
-  description?: string;
-  price: number;
-  category: 'Pet' | 'Farm';
-  product_type?: string;
-  stock?: number;
-  badge?: string;
-  discount?: number;
-}
+import { z } from 'zod';
+
+// Zod schema for product validation - prevents XSS and ensures data integrity
+export const productSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Name is required')
+    .max(200, 'Name must be less than 200 characters')
+    .regex(/^[^<>]*$/, 'Name cannot contain < or > characters'),
+  description: z
+    .string()
+    .max(2000, 'Description must be less than 2000 characters')
+    .regex(/^[^<>]*$/, 'Description cannot contain < or > characters')
+    .optional()
+    .nullable(),
+  price: z
+    .number()
+    .positive('Price must be positive')
+    .max(9999999, 'Price must be less than 10,000,000'),
+  category: z.enum(['Pet', 'Farm'], { 
+    errorMap: () => ({ message: 'Category must be "Pet" or "Farm"' }) 
+  }),
+  product_type: z
+    .string()
+    .max(100, 'Product type must be less than 100 characters')
+    .regex(/^[^<>]*$/, 'Product type cannot contain < or > characters')
+    .optional()
+    .nullable(),
+  stock: z
+    .number()
+    .int('Stock must be a whole number')
+    .min(0, 'Stock cannot be negative')
+    .max(999999, 'Stock must be less than 1,000,000')
+    .optional()
+    .default(100),
+  badge: z
+    .string()
+    .max(50, 'Badge must be less than 50 characters')
+    .regex(/^[^<>]*$/, 'Badge cannot contain < or > characters')
+    .optional()
+    .nullable(),
+  discount: z
+    .number()
+    .min(0, 'Discount cannot be negative')
+    .max(100, 'Discount cannot exceed 100%')
+    .optional()
+    .nullable(),
+});
+
+export type ProductCSVRow = z.infer<typeof productSchema>;
 
 export interface ParseResult {
   success: boolean;
   data: ProductCSVRow[];
   errors: { row: number; message: string }[];
+}
+
+// Sanitize string to prevent XSS - removes potential script injection
+function sanitizeString(value: string): string {
+  return value
+    .trim()
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+=/gi, '');
 }
 
 export function parseCSV(csvText: string): ParseResult {
@@ -22,6 +72,16 @@ export function parseCSV(csvText: string): ParseResult {
 
   if (lines.length < 2) {
     return { success: false, data: [], errors: [{ row: 0, message: 'CSV must have a header row and at least one data row' }] };
+  }
+
+  // Limit total rows to prevent DoS
+  const MAX_ROWS = 1000;
+  if (lines.length > MAX_ROWS + 1) {
+    return { 
+      success: false, 
+      data: [], 
+      errors: [{ row: 0, message: `CSV cannot have more than ${MAX_ROWS} rows` }] 
+    };
   }
 
   // Parse header
@@ -52,62 +112,28 @@ export function parseCSV(csvText: string): ParseResult {
       row[header] = values[index] || '';
     });
 
-    // Validate row
-    const rowErrors: string[] = [];
+    // Parse and sanitize values
+    const rawProduct = {
+      name: sanitizeString(row.name || ''),
+      description: row.description?.trim() ? sanitizeString(row.description) : undefined,
+      price: parseFloat(row.price) || 0,
+      category: row.category?.trim() as 'Pet' | 'Farm',
+      product_type: row.product_type?.trim() ? sanitizeString(row.product_type) : undefined,
+      stock: row.stock?.trim() ? parseInt(row.stock) : undefined,
+      badge: row.badge?.trim() ? sanitizeString(row.badge) : undefined,
+      discount: row.discount?.trim() ? parseFloat(row.discount) : undefined,
+    };
 
-    if (!row.name?.trim()) {
-      rowErrors.push('Name is required');
-    }
+    // Validate with Zod schema
+    const result = productSchema.safeParse(rawProduct);
 
-    const price = parseFloat(row.price);
-    if (isNaN(price) || price < 0) {
-      rowErrors.push('Price must be a valid positive number');
-    }
-
-    const category = row.category?.trim();
-    if (category !== 'Pet' && category !== 'Farm') {
-      rowErrors.push('Category must be "Pet" or "Farm"');
-    }
-
-    if (rowErrors.length > 0) {
-      errors.push({ row: i + 1, message: rowErrors.join('; ') });
+    if (!result.success) {
+      const errorMessages = result.error.errors.map(e => e.message).join('; ');
+      errors.push({ row: i + 1, message: errorMessages });
       continue;
     }
 
-    // Build product object
-    const product: ProductCSVRow = {
-      name: row.name.trim(),
-      price: price,
-      category: category as 'Pet' | 'Farm',
-    };
-
-    if (row.description?.trim()) {
-      product.description = row.description.trim();
-    }
-
-    if (row.product_type?.trim()) {
-      product.product_type = row.product_type.trim();
-    }
-
-    if (row.stock?.trim()) {
-      const stock = parseInt(row.stock);
-      if (!isNaN(stock) && stock >= 0) {
-        product.stock = stock;
-      }
-    }
-
-    if (row.badge?.trim()) {
-      product.badge = row.badge.trim();
-    }
-
-    if (row.discount?.trim()) {
-      const discount = parseFloat(row.discount);
-      if (!isNaN(discount) && discount >= 0 && discount <= 100) {
-        product.discount = discount;
-      }
-    }
-
-    data.push(product);
+    data.push(result.data);
   }
 
   return {
