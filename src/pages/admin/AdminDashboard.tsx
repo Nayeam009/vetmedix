@@ -74,68 +74,69 @@ const AdminDashboard = () => {
   return (
     <AdminLayout title="Dashboard" subtitle="Welcome back! Here's what's happening.">
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 lg:mb-8">
         <StatCard
           title="Total Revenue"
           value={`৳${stats?.totalRevenue?.toLocaleString() || 0}`}
-          icon={<DollarSign className="h-6 w-6 text-primary" />}
+          icon={<DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />}
           trend={{ value: 12.5, isPositive: true }}
         />
         <StatCard
           title="Total Orders"
           value={stats?.totalOrders || 0}
-          icon={<ShoppingCart className="h-6 w-6 text-primary" />}
+          icon={<ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />}
           trend={{ value: 8.2, isPositive: true }}
         />
         <StatCard
           title="Total Products"
           value={stats?.totalProducts || 0}
-          icon={<Package className="h-6 w-6 text-primary" />}
+          icon={<Package className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />}
         />
         <StatCard
           title="Total Customers"
           value={stats?.totalUsers || 0}
-          icon={<Users className="h-6 w-6 text-primary" />}
+          icon={<Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />}
           trend={{ value: 5.1, isPositive: true }}
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
         {/* Recent Orders */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
+        <Card className="xl:col-span-2 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Recent Orders
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/orders')}>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/admin/orders')} className="text-xs sm:text-sm">
               View All
             </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
             {statsLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : stats?.recentOrders?.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No orders yet
+                <ShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <p>No orders yet</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-2 sm:space-y-3">
                 {stats?.recentOrders?.map((order: any) => (
-                  <div key={order.id} className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors">
-                    <div>
-                      <p className="font-medium">Order #{order.id.slice(0, 8)}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {format(new Date(order.created_at), 'PPp')}
+                  <div key={order.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors gap-2 sm:gap-4">
+                    <div className="flex items-center justify-between sm:block">
+                      <p className="font-medium text-sm sm:text-base">#{order.id.slice(0, 8)}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
+                        {format(new Date(order.created_at), 'PP')}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Badge className={getStatusColor(order.status)}>
+                    <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3">
+                      <Badge className={`${getStatusColor(order.status)} text-xs`}>
                         {order.status}
                       </Badge>
-                      <span className="font-bold text-primary">৳{order.total_amount}</span>
+                      <span className="font-bold text-primary text-sm sm:text-base">৳{order.total_amount}</span>
                     </div>
                   </div>
                 ))}
@@ -145,39 +146,39 @@ const AdminDashboard = () => {
         </Card>
 
         {/* Quick Stats */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
+        <Card className="shadow-sm">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Quick Stats
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="p-4 sm:p-6 pt-0 space-y-4 sm:space-y-5">
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Pending Orders</span>
-              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+              <span className="text-sm text-muted-foreground">Pending Orders</span>
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800">
                 {stats?.pendingOrders || 0}
               </Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Low Stock Items</span>
-              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+              <span className="text-sm text-muted-foreground">Low Stock Items</span>
+              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800">
                 3
               </Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">New Customers Today</span>
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              <span className="text-sm text-muted-foreground">New Customers Today</span>
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800">
                 12
               </Badge>
             </div>
             
-            <div className="pt-4 border-t border-border space-y-3">
-              <Button className="w-full" onClick={() => navigate('/admin/products')}>
+            <div className="pt-4 border-t border-border space-y-2 sm:space-y-3">
+              <Button className="w-full text-sm" onClick={() => navigate('/admin/products')}>
                 <Package className="h-4 w-4 mr-2" />
                 Manage Products
               </Button>
-              <Button variant="outline" className="w-full" onClick={() => navigate('/admin/orders')}>
+              <Button variant="outline" className="w-full text-sm" onClick={() => navigate('/admin/orders')}>
                 <ShoppingCart className="h-4 w-4 mr-2" />
                 View Orders
               </Button>
