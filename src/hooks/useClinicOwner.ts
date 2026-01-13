@@ -1,0 +1,265 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { Clinic } from '@/types/database';
+
+export interface ClinicService {
+  id: string;
+  clinic_id: string;
+  name: string;
+  description: string | null;
+  price: number | null;
+  duration_minutes: number | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface ClinicDoctor {
+  id: string;
+  clinic_id: string;
+  doctor_id: string;
+  status: string;
+  joined_at: string;
+  doctor?: {
+    id: string;
+    name: string;
+    specialization: string | null;
+    avatar_url: string | null;
+    phone: string | null;
+    email: string | null;
+    is_available: boolean;
+  };
+}
+
+export const useClinicOwner = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const { data: ownedClinic, isLoading: clinicLoading } = useQuery({
+    queryKey: ['owned-clinic', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+
+      const { data, error } = await supabase
+        .from('clinics')
+        .select('*')
+        .eq('owner_user_id', user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as (Clinic & { 
+        owner_user_id: string | null;
+        description: string | null;
+        email: string | null;
+        is_verified: boolean;
+      }) | null;
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: clinicServices, isLoading: servicesLoading } = useQuery({
+    queryKey: ['clinic-services', ownedClinic?.id],
+    queryFn: async () => {
+      if (!ownedClinic?.id) return [];
+
+      const { data, error } = await supabase
+        .from('clinic_services')
+        .select('*')
+        .eq('clinic_id', ownedClinic.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as ClinicService[];
+    },
+    enabled: !!ownedClinic?.id,
+  });
+
+  const { data: clinicDoctors, isLoading: doctorsLoading } = useQuery({
+    queryKey: ['clinic-doctors-list', ownedClinic?.id],
+    queryFn: async () => {
+      if (!ownedClinic?.id) return [];
+
+      const { data, error } = await supabase
+        .from('clinic_doctors')
+        .select(`
+          *,
+          doctor:doctors(id, name, specialization, avatar_url, phone, email, is_available)
+        `)
+        .eq('clinic_id', ownedClinic.id);
+
+      if (error) throw error;
+      return data as ClinicDoctor[];
+    },
+    enabled: !!ownedClinic?.id,
+  });
+
+  const { data: clinicAppointments, isLoading: appointmentsLoading } = useQuery({
+    queryKey: ['clinic-appointments', ownedClinic?.id],
+    queryFn: async () => {
+      if (!ownedClinic?.id) return [];
+
+      const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+          *,
+          doctor:doctors(id, name, specialization, avatar_url)
+        `)
+        .eq('clinic_id', ownedClinic.id)
+        .order('appointment_date', { ascending: true });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!ownedClinic?.id,
+  });
+
+  const updateClinic = useMutation({
+    mutationFn: async (updates: Partial<Clinic>) => {
+      if (!ownedClinic?.id) throw new Error('No clinic');
+
+      const { data, error } = await supabase
+        .from('clinics')
+        .update(updates)
+        .eq('id', ownedClinic.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['owned-clinic'] });
+      toast.success('Clinic updated successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to update clinic');
+      console.error(error);
+    },
+  });
+
+  const addService = useMutation({
+    mutationFn: async (service: Omit<ClinicService, 'id' | 'created_at' | 'clinic_id'>) => {
+      if (!ownedClinic?.id) throw new Error('No clinic');
+
+      const { data, error } = await supabase
+        .from('clinic_services')
+        .insert({ ...service, clinic_id: ownedClinic.id })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clinic-services'] });
+      toast.success('Service added successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to add service');
+      console.error(error);
+    },
+  });
+
+  const updateService = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<ClinicService> }) => {
+      const { data, error } = await supabase
+        .from('clinic_services')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clinic-services'] });
+      toast.success('Service updated successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to update service');
+      console.error(error);
+    },
+  });
+
+  const deleteService = useMutation({
+    mutationFn: async (serviceId: string) => {
+      const { error } = await supabase
+        .from('clinic_services')
+        .delete()
+        .eq('id', serviceId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clinic-services'] });
+      toast.success('Service deleted successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to delete service');
+      console.error(error);
+    },
+  });
+
+  const updateDoctorStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { data, error } = await supabase
+        .from('clinic_doctors')
+        .update({ status })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clinic-doctors-list'] });
+      toast.success('Doctor status updated');
+    },
+    onError: (error) => {
+      toast.error('Failed to update doctor status');
+      console.error(error);
+    },
+  });
+
+  const updateAppointmentStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { data, error } = await supabase
+        .from('appointments')
+        .update({ status })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clinic-appointments'] });
+      toast.success('Appointment status updated');
+    },
+    onError: (error) => {
+      toast.error('Failed to update appointment');
+      console.error(error);
+    },
+  });
+
+  return {
+    ownedClinic,
+    clinicLoading,
+    clinicServices,
+    servicesLoading,
+    clinicDoctors,
+    doctorsLoading,
+    clinicAppointments,
+    appointmentsLoading,
+    updateClinic,
+    addService,
+    updateService,
+    deleteService,
+    updateDoctorStatus,
+    updateAppointmentStatus,
+  };
+};

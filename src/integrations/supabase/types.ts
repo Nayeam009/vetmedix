@@ -20,6 +20,7 @@ export type Database = {
           appointment_time: string
           clinic_id: string
           created_at: string
+          doctor_id: string | null
           id: string
           pet_name: string | null
           pet_type: string | null
@@ -32,6 +33,7 @@ export type Database = {
           appointment_time: string
           clinic_id: string
           created_at?: string
+          doctor_id?: string | null
           id?: string
           pet_name?: string | null
           pet_type?: string | null
@@ -44,6 +46,7 @@ export type Database = {
           appointment_time?: string
           clinic_id?: string
           created_at?: string
+          doctor_id?: string | null
           id?: string
           pet_name?: string | null
           pet_type?: string | null
@@ -59,18 +62,109 @@ export type Database = {
             referencedRelation: "clinics"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "appointments_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_doctors: {
+        Row: {
+          clinic_id: string
+          doctor_id: string
+          id: string
+          joined_at: string
+          status: string | null
+        }
+        Insert: {
+          clinic_id: string
+          doctor_id: string
+          id?: string
+          joined_at?: string
+          status?: string | null
+        }
+        Update: {
+          clinic_id?: string
+          doctor_id?: string
+          id?: string
+          joined_at?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_doctors_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_doctors_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_services: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          price: number | null
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          price?: number | null
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_services_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
         ]
       }
       clinics: {
         Row: {
           address: string | null
           created_at: string
+          description: string | null
           distance: string | null
+          email: string | null
           id: string
           image_url: string | null
           is_open: boolean | null
+          is_verified: boolean | null
           name: string
           opening_hours: string | null
+          owner_user_id: string | null
           phone: string | null
           rating: number | null
           services: string[] | null
@@ -78,12 +172,16 @@ export type Database = {
         Insert: {
           address?: string | null
           created_at?: string
+          description?: string | null
           distance?: string | null
+          email?: string | null
           id?: string
           image_url?: string | null
           is_open?: boolean | null
+          is_verified?: boolean | null
           name: string
           opening_hours?: string | null
+          owner_user_id?: string | null
           phone?: string | null
           rating?: number | null
           services?: string[] | null
@@ -91,12 +189,16 @@ export type Database = {
         Update: {
           address?: string | null
           created_at?: string
+          description?: string | null
           distance?: string | null
+          email?: string | null
           id?: string
           image_url?: string | null
           is_open?: boolean | null
+          is_verified?: boolean | null
           name?: string
           opening_hours?: string | null
+          owner_user_id?: string | null
           phone?: string | null
           rating?: number | null
           services?: string[] | null
@@ -169,6 +271,63 @@ export type Database = {
           last_message_at?: string | null
           participant_1_id?: string
           participant_2_id?: string
+        }
+        Relationships: []
+      }
+      doctors: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          consultation_fee: number | null
+          created_at: string
+          email: string | null
+          experience_years: number | null
+          id: string
+          is_available: boolean | null
+          is_verified: boolean | null
+          license_number: string | null
+          name: string
+          phone: string | null
+          qualifications: string[] | null
+          specialization: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          consultation_fee?: number | null
+          created_at?: string
+          email?: string | null
+          experience_years?: number | null
+          id?: string
+          is_available?: boolean | null
+          is_verified?: boolean | null
+          license_number?: string | null
+          name: string
+          phone?: string | null
+          qualifications?: string[] | null
+          specialization?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          consultation_fee?: number | null
+          created_at?: string
+          email?: string | null
+          experience_years?: number | null
+          id?: string
+          is_available?: boolean | null
+          is_verified?: boolean | null
+          license_number?: string | null
+          name?: string
+          phone?: string | null
+          qualifications?: string[] | null
+          specialization?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -698,6 +857,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_doctor_id: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -709,9 +869,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_clinic_owner: {
+        Args: { _clinic_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "doctor" | "clinic_owner"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -839,7 +1003,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "doctor", "clinic_owner"],
     },
   },
 } as const
