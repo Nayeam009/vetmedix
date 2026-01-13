@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, ShoppingCart, User, Menu, X, LogOut, Home, Users, Store, Stethoscope, PawPrint, Compass, MessageCircle, Shield } from 'lucide-react';
+import { Search, ShoppingCart, User, Menu, X, LogOut, Home, Store, Stethoscope, PawPrint, Compass, MessageCircle, Shield, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useAdmin } from '@/hooks/useAdmin';
+import { useUserRole } from '@/hooks/useUserRole';
 import { PetSwitcher } from '@/components/social/PetSwitcher';
 import { NotificationBell } from '@/components/social/NotificationBell';
 import logo from '@/assets/logo.jpeg';
@@ -15,6 +16,7 @@ const Navbar = () => {
   const { user, signOut } = useAuth();
   const { totalItems } = useCart();
   const { isAdmin } = useAdmin();
+  const { isDoctor, isClinicOwner } = useUserRole();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -25,26 +27,23 @@ const Navbar = () => {
     }
   };
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
 
   return (
     <nav className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 group">
+          <Link to="/" className="flex items-center gap-3 group flex-shrink-0">
             <div className="relative">
               <img 
                 src={logo} 
-                alt="PetConnect Logo" 
-                className="h-12 w-12 md:h-14 md:w-14 rounded-full object-cover shadow-soft border-2 border-primary/20 group-hover:border-primary/40 transition-colors"
+                alt="VET-MEDIX Logo" 
+                className="h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-xl object-cover shadow-soft border-2 border-primary/20 group-hover:border-primary/40 transition-colors"
               />
-              <div className="absolute -bottom-1 -right-1 h-5 w-5 bg-primary rounded-full flex items-center justify-center">
-                <PawPrint className="h-3 w-3 text-primary-foreground" />
-              </div>
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-lg md:text-xl font-display font-bold text-foreground">PetConnect</h1>
+              <h1 className="text-lg md:text-xl font-display font-bold text-foreground">VET-MEDIX</h1>
               <p className="text-xs text-muted-foreground">Social • Shop • Care</p>
             </div>
           </Link>
@@ -129,10 +128,33 @@ const Navbar = () => {
 
             {user ? (
               <div className="flex items-center gap-1">
+                {/* Role-based dashboard links */}
                 {isAdmin && (
                   <Link to="/admin">
                     <Button variant="ghost" size="icon" className="text-primary">
                       <Shield className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                )}
+                {isDoctor && (
+                  <Link to="/doctor/dashboard">
+                    <Button 
+                      variant={isActive('/doctor') ? 'secondary' : 'ghost'} 
+                      size="icon" 
+                      className="text-primary"
+                    >
+                      <Stethoscope className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                )}
+                {isClinicOwner && (
+                  <Link to="/clinic/dashboard">
+                    <Button 
+                      variant={isActive('/clinic') ? 'secondary' : 'ghost'} 
+                      size="icon" 
+                      className="text-primary"
+                    >
+                      <Building2 className="h-5 w-5" />
                     </Button>
                   </Link>
                 )}
@@ -225,6 +247,7 @@ const Navbar = () => {
               
               {user ? (
                 <>
+                  {/* Role-based dashboard links */}
                   {isAdmin && (
                     <Link 
                       to="/admin" 
@@ -233,6 +256,30 @@ const Navbar = () => {
                     >
                       <Shield className="h-5 w-5" />
                       Admin Panel
+                    </Link>
+                  )}
+                  {isDoctor && (
+                    <Link 
+                      to="/doctor/dashboard" 
+                      className={`px-4 py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-3 ${
+                        isActive('/doctor') ? 'bg-primary/10 text-primary' : 'text-primary hover:bg-primary/10'
+                      }`}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Stethoscope className="h-5 w-5" />
+                      Doctor Dashboard
+                    </Link>
+                  )}
+                  {isClinicOwner && (
+                    <Link 
+                      to="/clinic/dashboard" 
+                      className={`px-4 py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-3 ${
+                        isActive('/clinic') ? 'bg-primary/10 text-primary' : 'text-primary hover:bg-primary/10'
+                      }`}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Building2 className="h-5 w-5" />
+                      Clinic Dashboard
                     </Link>
                   )}
                   <Link 

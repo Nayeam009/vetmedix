@@ -31,6 +31,14 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AdminCustomers from "./pages/admin/AdminCustomers";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminSettings from "./pages/admin/AdminSettings";
+// Doctor pages
+import DoctorDashboard from "./pages/doctor/DoctorDashboard";
+import DoctorProfile from "./pages/doctor/DoctorProfile";
+// Clinic owner pages
+import ClinicDashboard from "./pages/clinic/ClinicDashboard";
+import ClinicProfile from "./pages/clinic/ClinicProfile";
+import ClinicServices from "./pages/clinic/ClinicServices";
+import ClinicDoctors from "./pages/clinic/ClinicDoctors";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +52,7 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <Routes>
+                {/* Public routes */}
                 <Route path="/" element={<Index />} />
                 <Route path="/feed" element={<FeedPage />} />
                 <Route path="/explore" element={<ExplorePage />} />
@@ -62,12 +71,26 @@ const App = () => (
                 <Route path="/clinic/:id" element={<ClinicDetailPage />} />
                 <Route path="/book-appointment/:clinicId" element={<BookAppointmentPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                
+                {/* Admin routes */}
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/products" element={<AdminProducts />} />
                 <Route path="/admin/orders" element={<AdminOrders />} />
                 <Route path="/admin/customers" element={<AdminCustomers />} />
                 <Route path="/admin/analytics" element={<AdminAnalytics />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
+                
+                {/* Doctor routes */}
+                <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+                <Route path="/doctor/profile" element={<DoctorProfile />} />
+                
+                {/* Clinic owner routes */}
+                <Route path="/clinic/dashboard" element={<ClinicDashboard />} />
+                <Route path="/clinic/profile" element={<ClinicProfile />} />
+                <Route path="/clinic/services" element={<ClinicServices />} />
+                <Route path="/clinic/doctors" element={<ClinicDoctors />} />
+                
+                {/* 404 */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
