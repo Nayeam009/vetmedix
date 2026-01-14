@@ -6,7 +6,9 @@ import {
   Users, 
   Settings, 
   ArrowLeft,
-  BarChart3
+  BarChart3,
+  Building2,
+  MessageSquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import logo from '@/assets/logo.jpeg';
@@ -16,6 +18,8 @@ const navItems = [
   { icon: Package, label: 'Products', path: '/admin/products' },
   { icon: ShoppingCart, label: 'Orders', path: '/admin/orders' },
   { icon: Users, label: 'Customers', path: '/admin/customers' },
+  { icon: Building2, label: 'Clinics', path: '/admin/clinics' },
+  { icon: MessageSquare, label: 'Social Media', path: '/admin/social' },
   { icon: BarChart3, label: 'Analytics', path: '/admin/analytics' },
   { icon: Settings, label: 'Settings', path: '/admin/settings' },
 ];
