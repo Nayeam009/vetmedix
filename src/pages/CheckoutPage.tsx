@@ -7,10 +7,43 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
-import { ArrowLeft, CheckCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Banknote, CreditCard, Smartphone } from 'lucide-react';
 import { checkoutSchema } from '@/lib/validations';
+
+const paymentMethods = [
+  {
+    id: 'cod',
+    name: 'Cash on Delivery',
+    description: 'Pay when you receive your order',
+    icon: Banknote,
+    available: true,
+  },
+  {
+    id: 'bkash',
+    name: 'bKash',
+    description: 'Pay with bKash mobile banking',
+    icon: Smartphone,
+    available: false,
+  },
+  {
+    id: 'nagad',
+    name: 'Nagad',
+    description: 'Pay with Nagad mobile banking',
+    icon: Smartphone,
+    available: false,
+  },
+  {
+    id: 'online',
+    name: 'Card Payment',
+    description: 'Pay with credit/debit card',
+    icon: CreditCard,
+    available: false,
+  },
+];
 
 const CheckoutPage = () => {
   const { items, totalAmount, clearCart } = useCart();
@@ -21,6 +54,7 @@ const CheckoutPage = () => {
   const [loading, setLoading] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [paymentMethod, setPaymentMethod] = useState('cod');
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -70,6 +104,7 @@ const CheckoutPage = () => {
         items: items as any,
         total_amount: totalAmount + 60,
         shipping_address: shippingAddress,
+        payment_method: paymentMethod,
       }]);
 
       if (error) throw error;
@@ -95,9 +130,14 @@ const CheckoutPage = () => {
         <div className="container mx-auto px-4 py-16 text-center">
           <CheckCircle className="h-24 w-24 text-primary mx-auto mb-6" />
           <h1 className="text-3xl font-bold text-foreground mb-4">Order Confirmed!</h1>
-          <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+          <p className="text-muted-foreground mb-2 max-w-md mx-auto">
             Thank you for your order. We'll deliver it to your Thana soon!
           </p>
+          {paymentMethod === 'cod' && (
+            <p className="text-sm text-muted-foreground mb-8 max-w-md mx-auto">
+              💵 Please keep <span className="font-semibold text-primary">৳{(totalAmount + 60).toLocaleString()}</span> ready for Cash on Delivery.
+            </p>
+          )}
           <div className="flex gap-4 justify-center">
             <Button onClick={() => navigate('/')} variant="hero">
               Continue Shopping
@@ -132,101 +172,166 @@ const CheckoutPage = () => {
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Shipping Form */}
-          <div className="lg:col-span-2">
-            <form onSubmit={handleSubmit} className="bg-card rounded-xl p-6 border border-border space-y-6">
-              <h2 className="text-xl font-semibold text-foreground">Shipping Information</h2>
-              
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    value={formData.fullName}
-                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value.slice(0, 100) })}
-                    maxLength={100}
-                    required
-                  />
-                  {errors.fullName && <p className="text-sm text-red-500">{errors.fullName}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value.slice(0, 20) })}
-                    placeholder="+880 1XXX-XXXXXX"
-                    maxLength={20}
-                    required
-                  />
-                  {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
-                </div>
-              </div>
+          <div className="lg:col-span-2 space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <Card>
+                <CardContent className="pt-6 space-y-6">
+                  <h2 className="text-xl font-semibold text-foreground">Shipping Information</h2>
+                  
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName">Full Name</Label>
+                      <Input
+                        id="fullName"
+                        value={formData.fullName}
+                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value.slice(0, 100) })}
+                        maxLength={100}
+                        required
+                      />
+                      {errors.fullName && <p className="text-sm text-red-500">{errors.fullName}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input
+                        id="phone"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value.slice(0, 20) })}
+                        placeholder="+880 1XXX-XXXXXX"
+                        maxLength={20}
+                        required
+                      />
+                      {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="address">Street Address</Label>
-                <Textarea
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value.slice(0, 500) })}
-                  placeholder="House #, Road #, Area"
-                  maxLength={500}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">{formData.address.length}/500 characters</p>
-                {errors.address && <p className="text-sm text-red-500">{errors.address}</p>}
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Street Address</Label>
+                    <Textarea
+                      id="address"
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value.slice(0, 500) })}
+                      placeholder="House #, Road #, Area"
+                      maxLength={500}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">{formData.address.length}/500 characters</p>
+                    {errors.address && <p className="text-sm text-red-500">{errors.address}</p>}
+                  </div>
 
-              <div className="grid sm:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="division">Division</Label>
-                  <Input
-                    id="division"
-                    value={formData.division}
-                    onChange={(e) => setFormData({ ...formData, division: e.target.value.slice(0, 50) })}
-                    placeholder="e.g. Dhaka"
-                    maxLength={50}
-                    required
-                  />
-                  {errors.division && <p className="text-sm text-red-500">{errors.division}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="district">District</Label>
-                  <Input
-                    id="district"
-                    value={formData.district}
-                    onChange={(e) => setFormData({ ...formData, district: e.target.value.slice(0, 50) })}
-                    placeholder="e.g. Dhaka"
-                    maxLength={50}
-                    required
-                  />
-                  {errors.district && <p className="text-sm text-red-500">{errors.district}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="thana">Thana</Label>
-                  <Input
-                    id="thana"
-                    value={formData.thana}
-                    onChange={(e) => setFormData({ ...formData, thana: e.target.value.slice(0, 50) })}
-                    placeholder="e.g. Dhanmondi"
-                    maxLength={50}
-                    required
-                  />
-                  {errors.thana && <p className="text-sm text-red-500">{errors.thana}</p>}
-                </div>
-              </div>
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="division">Division</Label>
+                      <Input
+                        id="division"
+                        value={formData.division}
+                        onChange={(e) => setFormData({ ...formData, division: e.target.value.slice(0, 50) })}
+                        placeholder="e.g. Dhaka"
+                        maxLength={50}
+                        required
+                      />
+                      {errors.division && <p className="text-sm text-red-500">{errors.division}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="district">District</Label>
+                      <Input
+                        id="district"
+                        value={formData.district}
+                        onChange={(e) => setFormData({ ...formData, district: e.target.value.slice(0, 50) })}
+                        placeholder="e.g. Dhaka"
+                        maxLength={50}
+                        required
+                      />
+                      {errors.district && <p className="text-sm text-red-500">{errors.district}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="thana">Thana</Label>
+                      <Input
+                        id="thana"
+                        value={formData.thana}
+                        onChange={(e) => setFormData({ ...formData, thana: e.target.value.slice(0, 50) })}
+                        placeholder="e.g. Dhanmondi"
+                        maxLength={50}
+                        required
+                      />
+                      {errors.thana && <p className="text-sm text-red-500">{errors.thana}</p>}
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="notes">Order Notes (Optional)</Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value.slice(0, 1000) })}
-                  placeholder="Any special instructions..."
-                  maxLength={1000}
-                />
-                <p className="text-xs text-muted-foreground">{formData.notes.length}/1000 characters</p>
-                {errors.notes && <p className="text-sm text-red-500">{errors.notes}</p>}
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Order Notes (Optional)</Label>
+                    <Textarea
+                      id="notes"
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value.slice(0, 1000) })}
+                      placeholder="Any special instructions..."
+                      maxLength={1000}
+                    />
+                    <p className="text-xs text-muted-foreground">{formData.notes.length}/1000 characters</p>
+                    {errors.notes && <p className="text-sm text-red-500">{errors.notes}</p>}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Payment Method Section */}
+              <Card>
+                <CardContent className="pt-6 space-y-4">
+                  <h2 className="text-xl font-semibold text-foreground">Payment Method</h2>
+                  
+                  <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3">
+                    {paymentMethods.map((method) => {
+                      const Icon = method.icon;
+                      return (
+                        <div
+                          key={method.id}
+                          className={`relative flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                            method.available 
+                              ? paymentMethod === method.id 
+                                ? 'border-primary bg-primary/5' 
+                                : 'border-border hover:border-primary/50 cursor-pointer'
+                              : 'border-border/50 bg-muted/30 opacity-60 cursor-not-allowed'
+                          }`}
+                          onClick={() => method.available && setPaymentMethod(method.id)}
+                        >
+                          <RadioGroupItem 
+                            value={method.id} 
+                            id={method.id} 
+                            disabled={!method.available}
+                            className="sr-only"
+                          />
+                          <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${
+                            paymentMethod === method.id && method.available
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-secondary'
+                          }`}>
+                            <Icon className="h-6 w-6" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{method.name}</span>
+                              {!method.available && (
+                                <span className="text-xs bg-muted px-2 py-0.5 rounded">Coming Soon</span>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">{method.description}</p>
+                          </div>
+                          {paymentMethod === method.id && method.available && (
+                            <CheckCircle className="h-5 w-5 text-primary" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </RadioGroup>
+
+                  {paymentMethod === 'cod' && (
+                    <div className="mt-4 p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                      <p className="text-sm text-amber-800 dark:text-amber-200">
+                        💵 <strong>Cash on Delivery:</strong> Please keep the exact amount ready when the delivery person arrives. 
+                        Our delivery partner will collect <strong>৳{(totalAmount + 60).toLocaleString()}</strong> at your doorstep.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
               <Button type="submit" variant="accent" size="lg" className="w-full" disabled={loading}>
                 {loading ? 'Placing Order...' : `Place Order - ৳${(totalAmount + 60).toLocaleString()}`}
@@ -270,6 +375,13 @@ const CheckoutPage = () => {
                   <span>৳{(totalAmount + 60).toLocaleString()}</span>
                 </div>
               </div>
+
+              {paymentMethod === 'cod' && (
+                <div className="mt-4 p-3 rounded-lg bg-primary/10 text-center">
+                  <Banknote className="h-6 w-6 text-primary mx-auto mb-1" />
+                  <p className="text-sm font-medium text-primary">Cash on Delivery</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
