@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
-interface StatCardProps {
+export interface StatCardProps {
   title: string;
   value: string | number;
   icon: ReactNode;
@@ -10,10 +10,11 @@ interface StatCardProps {
     value: number;
     isPositive: boolean;
   };
+  description?: string;
   className?: string;
 }
 
-export const StatCard = ({ title, value, icon, trend, className }: StatCardProps) => {
+export const StatCard = ({ title, value, icon, trend, description, className }: StatCardProps) => {
   return (
     <div className={cn(
       "bg-card rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 border border-border shadow-sm hover:shadow-md transition-all",
@@ -37,6 +38,10 @@ export const StatCard = ({ title, value, icon, trend, className }: StatCardProps
               <span>{Math.abs(trend.value)}%</span>
               <span className="text-muted-foreground font-normal hidden sm:inline">vs last month</span>
             </div>
+          )}
+          
+          {description && !trend && (
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">{description}</p>
           )}
         </div>
         

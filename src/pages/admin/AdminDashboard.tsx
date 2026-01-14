@@ -8,7 +8,11 @@ import {
   Clock,
   TrendingUp,
   AlertCircle,
-  Loader2
+  Loader2,
+  Building2,
+  MessageSquare,
+  CalendarDays,
+  CheckCircle
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { StatCard } from '@/components/admin/StatCard';
@@ -73,8 +77,8 @@ const AdminDashboard = () => {
 
   return (
     <AdminLayout title="Dashboard" subtitle="Welcome back! Here's what's happening.">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 lg:mb-8">
+      {/* E-Commerce Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6">
         <StatCard
           title="Total Revenue"
           value={`৳${stats?.totalRevenue?.toLocaleString() || 0}`}
@@ -97,6 +101,33 @@ const AdminDashboard = () => {
           value={stats?.totalUsers || 0}
           icon={<Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />}
           trend={{ value: 5.1, isPositive: true }}
+        />
+      </div>
+
+      {/* Platform Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6">
+        <StatCard
+          title="Total Clinics"
+          value={stats?.totalClinics || 0}
+          icon={<Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />}
+          description={`${stats?.verifiedClinics || 0} verified`}
+        />
+        <StatCard
+          title="Appointments"
+          value={stats?.totalAppointments || 0}
+          icon={<CalendarDays className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />}
+          description={`${stats?.appointmentsToday || 0} today`}
+        />
+        <StatCard
+          title="Social Posts"
+          value={stats?.totalPosts || 0}
+          icon={<MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />}
+          description={`${stats?.postsToday || 0} today`}
+        />
+        <StatCard
+          title="Pending Orders"
+          value={stats?.pendingOrders || 0}
+          icon={<Clock className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />}
         />
       </div>
 
@@ -145,12 +176,12 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Quick Stats */}
+        {/* Quick Stats & Actions */}
         <Card className="shadow-sm">
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
               <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              Quick Stats
+              Quick Actions
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0 space-y-4 sm:space-y-5">
@@ -161,26 +192,30 @@ const AdminDashboard = () => {
               </Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Low Stock Items</span>
-              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800">
-                3
+              <span className="text-sm text-muted-foreground">Verified Clinics</span>
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800">
+                {stats?.verifiedClinics || 0} / {stats?.totalClinics || 0}
               </Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">New Customers Today</span>
-              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800">
-                12
+              <span className="text-sm text-muted-foreground">Today's Appointments</span>
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
+                {stats?.appointmentsToday || 0}
               </Badge>
             </div>
             
             <div className="pt-4 border-t border-border space-y-2 sm:space-y-3">
-              <Button className="w-full text-sm" onClick={() => navigate('/admin/products')}>
+              <Button className="w-full text-sm" onClick={() => navigate('/admin/clinics')}>
+                <Building2 className="h-4 w-4 mr-2" />
+                Manage Clinics
+              </Button>
+              <Button variant="outline" className="w-full text-sm" onClick={() => navigate('/admin/social')}>
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Moderate Social
+              </Button>
+              <Button variant="outline" className="w-full text-sm" onClick={() => navigate('/admin/products')}>
                 <Package className="h-4 w-4 mr-2" />
                 Manage Products
-              </Button>
-              <Button variant="outline" className="w-full text-sm" onClick={() => navigate('/admin/orders')}>
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                View Orders
               </Button>
             </div>
           </CardContent>
