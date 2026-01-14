@@ -280,6 +280,7 @@ export type Database = {
           bio: string | null
           consultation_fee: number | null
           created_at: string
+          created_by_clinic_id: string | null
           email: string | null
           experience_years: number | null
           id: string
@@ -291,13 +292,14 @@ export type Database = {
           qualifications: string[] | null
           specialization: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
           consultation_fee?: number | null
           created_at?: string
+          created_by_clinic_id?: string | null
           email?: string | null
           experience_years?: number | null
           id?: string
@@ -309,13 +311,14 @@ export type Database = {
           qualifications?: string[] | null
           specialization?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
           consultation_fee?: number | null
           created_at?: string
+          created_by_clinic_id?: string | null
           email?: string | null
           experience_years?: number | null
           id?: string
@@ -327,9 +330,17 @@ export type Database = {
           qualifications?: string[] | null
           specialization?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "doctors_created_by_clinic_id_fkey"
+            columns: ["created_by_clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       follows: {
         Row: {

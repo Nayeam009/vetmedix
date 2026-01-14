@@ -20,10 +20,6 @@ const AuthPage = () => {
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<SignupRole>('user');
   
-  // Doctor-specific fields
-  const [specialization, setSpecialization] = useState('');
-  const [licenseNumber, setLicenseNumber] = useState('');
-  
   // Clinic owner fields
   const [clinicName, setClinicName] = useState('');
   const [clinicAddress, setClinicAddress] = useState('');
@@ -82,9 +78,6 @@ const AuthPage = () => {
           
           // Redirect based on role
           switch (role) {
-            case 'doctor':
-              navigate('/doctor/dashboard');
-              break;
             case 'clinic_owner':
               navigate('/clinic/dashboard');
               break;
@@ -112,19 +105,8 @@ const AuthPage = () => {
               role: selectedRole 
             });
 
-          // Create role-specific profile
-          if (selectedRole === 'doctor') {
-            await supabase
-              .from('doctors')
-              .insert({
-                user_id: user.id,
-                name: fullName,
-                specialization: specialization || null,
-                license_number: licenseNumber || null,
-                email: email,
-              });
-          } else if (selectedRole === 'clinic_owner') {
-            // Create clinic for owner
+          // Create clinic for clinic owner
+          if (selectedRole === 'clinic_owner') {
             await supabase
               .from('clinics')
               .insert({
@@ -144,9 +126,6 @@ const AuthPage = () => {
 
           // Redirect based on role
           switch (selectedRole) {
-            case 'doctor':
-              navigate('/doctor/dashboard');
-              break;
             case 'clinic_owner':
               navigate('/clinic/dashboard');
               break;
@@ -170,8 +149,6 @@ const AuthPage = () => {
     setEmail('');
     setPassword('');
     setFullName('');
-    setSpecialization('');
-    setLicenseNumber('');
     setClinicName('');
     setClinicAddress('');
     setClinicPhone('');
@@ -284,34 +261,6 @@ const AuthPage = () => {
                 </button>
               </div>
             </div>
-
-            {/* Doctor-specific fields */}
-            {!isLogin && selectedRole === 'doctor' && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="specialization">Specialization</Label>
-                  <Input
-                    id="specialization"
-                    type="text"
-                    placeholder="e.g., Small Animals, Surgery, Dermatology"
-                    value={specialization}
-                    onChange={(e) => setSpecialization(e.target.value)}
-                    className="h-11"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="licenseNumber">License Number</Label>
-                  <Input
-                    id="licenseNumber"
-                    type="text"
-                    placeholder="Your veterinary license number"
-                    value={licenseNumber}
-                    onChange={(e) => setLicenseNumber(e.target.value)}
-                    className="h-11"
-                  />
-                </div>
-              </>
-            )}
 
             {/* Clinic owner fields */}
             {!isLogin && selectedRole === 'clinic_owner' && (

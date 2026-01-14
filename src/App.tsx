@@ -31,6 +31,8 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AdminCustomers from "./pages/admin/AdminCustomers";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminClinics from "./pages/admin/AdminClinics";
+import AdminSocial from "./pages/admin/AdminSocial";
 // Doctor pages
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import DoctorProfile from "./pages/doctor/DoctorProfile";
@@ -39,6 +41,8 @@ import ClinicDashboard from "./pages/clinic/ClinicDashboard";
 import ClinicProfile from "./pages/clinic/ClinicProfile";
 import ClinicServices from "./pages/clinic/ClinicServices";
 import ClinicDoctors from "./pages/clinic/ClinicDoctors";
+// OAuth role selection
+import SelectRolePage from "./pages/SelectRolePage";
 
 const queryClient = new QueryClient();
 
@@ -77,8 +81,13 @@ const App = () => (
                 <Route path="/admin/products" element={<AdminProducts />} />
                 <Route path="/admin/orders" element={<AdminOrders />} />
                 <Route path="/admin/customers" element={<AdminCustomers />} />
+                <Route path="/admin/clinics" element={<AdminClinics />} />
+                <Route path="/admin/social" element={<AdminSocial />} />
                 <Route path="/admin/analytics" element={<AdminAnalytics />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
+                
+                {/* OAuth Role Selection */}
+                <Route path="/select-role" element={<SelectRolePage />} />
                 
                 {/* Doctor routes */}
                 <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
