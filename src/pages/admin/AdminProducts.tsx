@@ -54,6 +54,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { ImageUpload } from '@/components/admin/ImageUpload';
 import { CSVImportDialog } from '@/components/admin/CSVImportDialog';
+import { productFormSchema } from '@/lib/validations';
 
 const AdminProducts = () => {
   const navigate = useNavigate();
@@ -106,23 +107,37 @@ const AdminProducts = () => {
   };
 
   const handleAdd = async () => {
-    if (!formData.name || !formData.price) {
-      toast({ title: 'Error', description: 'Name and price are required', variant: 'destructive' });
+    // Validate with Zod schema
+    const validationResult = productFormSchema.safeParse({
+      name: formData.name,
+      description: formData.description || null,
+      price: formData.price ? parseFloat(formData.price) : 0,
+      category: formData.category,
+      product_type: formData.product_type || null,
+      image_url: formData.image_url || null,
+      stock: formData.stock ? parseInt(formData.stock) : 0,
+      badge: formData.badge || null,
+      discount: formData.discount ? parseFloat(formData.discount) : null,
+    });
+
+    if (!validationResult.success) {
+      const errorMessage = validationResult.error.errors.map(e => e.message).join(', ');
+      toast({ title: 'Validation Error', description: errorMessage, variant: 'destructive' });
       return;
     }
 
     setSaving(true);
     try {
       const { error } = await supabase.from('products').insert({
-        name: formData.name,
-        description: formData.description || null,
-        price: parseFloat(formData.price),
-        category: formData.category,
-        product_type: formData.product_type || null,
-        image_url: formData.image_url || null,
-        stock: parseInt(formData.stock) || 0,
-        badge: formData.badge || null,
-        discount: formData.discount ? parseFloat(formData.discount) : null,
+        name: validationResult.data.name,
+        description: validationResult.data.description || null,
+        price: validationResult.data.price,
+        category: validationResult.data.category,
+        product_type: validationResult.data.product_type || null,
+        image_url: validationResult.data.image_url || null,
+        stock: validationResult.data.stock,
+        badge: validationResult.data.badge || null,
+        discount: validationResult.data.discount,
       });
 
       if (error) throw error;
@@ -141,18 +156,37 @@ const AdminProducts = () => {
   const handleEdit = async () => {
     if (!selectedProduct) return;
 
+    // Validate with Zod schema
+    const validationResult = productFormSchema.safeParse({
+      name: formData.name,
+      description: formData.description || null,
+      price: formData.price ? parseFloat(formData.price) : 0,
+      category: formData.category,
+      product_type: formData.product_type || null,
+      image_url: formData.image_url || null,
+      stock: formData.stock ? parseInt(formData.stock) : 0,
+      badge: formData.badge || null,
+      discount: formData.discount ? parseFloat(formData.discount) : null,
+    });
+
+    if (!validationResult.success) {
+      const errorMessage = validationResult.error.errors.map(e => e.message).join(', ');
+      toast({ title: 'Validation Error', description: errorMessage, variant: 'destructive' });
+      return;
+    }
+
     setSaving(true);
     try {
       const { error } = await supabase.from('products').update({
-        name: formData.name,
-        description: formData.description || null,
-        price: parseFloat(formData.price),
-        category: formData.category,
-        product_type: formData.product_type || null,
-        image_url: formData.image_url || null,
-        stock: parseInt(formData.stock) || 0,
-        badge: formData.badge || null,
-        discount: formData.discount ? parseFloat(formData.discount) : null,
+        name: validationResult.data.name,
+        description: validationResult.data.description || null,
+        price: validationResult.data.price,
+        category: validationResult.data.category,
+        product_type: validationResult.data.product_type || null,
+        image_url: validationResult.data.image_url || null,
+        stock: validationResult.data.stock,
+        badge: validationResult.data.badge || null,
+        discount: validationResult.data.discount,
       }).eq('id', selectedProduct.id);
 
       if (error) throw error;

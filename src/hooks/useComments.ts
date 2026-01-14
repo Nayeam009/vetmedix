@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePets } from '@/contexts/PetContext';
 import { createNotification, getPostOwnerUserId } from '@/lib/notifications';
+import { commentSchema } from '@/lib/validations';
 import type { Comment } from '@/types/social';
 
 export const useComments = (postId: string) => {
@@ -38,7 +39,14 @@ export const useComments = (postId: string) => {
   }, [postId]);
 
   const addComment = async (content: string, commenterPetId?: string) => {
-    if (!user) return;
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    // Validate content with Zod schema
+    const validation = commentSchema.safeParse({ content });
+    if (!validation.success) {
+      const errorMessage = validation.error.errors[0]?.message || 'Invalid comment';
+      return { success: false, error: errorMessage };
+    }
 
     try {
       const { data, error } = await supabase
@@ -47,7 +55,7 @@ export const useComments = (postId: string) => {
           post_id: postId, 
           user_id: user.id, 
           pet_id: commenterPetId,
-          content 
+          content: validation.data.content 
         })
         .select(`
           *,
@@ -67,15 +75,17 @@ export const useComments = (postId: string) => {
           userId: postOwnerId,
           type: 'comment',
           title: `${actorName} commented on your post`,
-          message: content.slice(0, 100),
+          message: validation.data.content.slice(0, 100),
           actorPetId: actorPet,
           targetPostId: postId,
         });
       }
+      return { success: true };
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error adding comment:', error);
       }
+      return { success: false, error: 'Failed to add comment' };
     }
   };
 

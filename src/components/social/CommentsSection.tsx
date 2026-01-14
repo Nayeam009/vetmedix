@@ -32,7 +32,10 @@ export const CommentsSection = ({ postId }: CommentsSectionProps) => {
     if (!newComment.trim()) return;
 
     setSubmitting(true);
-    await addComment(newComment.trim(), activePet?.id);
+    const result = await addComment(newComment.trim(), activePet?.id);
+    if (result?.success === false && result?.error) {
+      toast.error(result.error);
+    }
     setNewComment('');
     setSubmitting(false);
   };
