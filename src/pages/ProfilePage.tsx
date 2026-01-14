@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { User, MapPin, ShoppingBag, Calendar, Edit2, Save, X, Loader2, Clock, Package, Shield } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { User, MapPin, ShoppingBag, Calendar, Edit2, Save, X, Loader2, Package, PawPrint, Plus } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
@@ -8,13 +8,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePets } from '@/contexts/PetContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
 import { profileSchema } from '@/lib/validations';
+import { getDivisions, getDistricts, getThanas } from '@/lib/bangladeshRegions';
+import ProfileHeader from '@/components/profile/ProfileHeader';
+import MyPetsSection from '@/components/profile/MyPetsSection';
+import OrderCard from '@/components/profile/OrderCard';
+import AppointmentCard from '@/components/profile/AppointmentCard';
 
 interface Profile {
   id: string;
@@ -24,6 +29,7 @@ interface Profile {
   division: string | null;
   district: string | null;
   thana: string | null;
+  avatar_url?: string | null;
 }
 
 interface Order {
@@ -53,6 +59,7 @@ interface Appointment {
 
 const ProfilePage = () => {
   const { user, loading: authLoading } = useAuth();
+  const { pets, loading: petsLoading } = usePets();
   const { isAdmin } = useAdmin();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -85,7 +92,6 @@ const ProfilePage = () => {
     if (!user) return;
     
     try {
-      // Fetch profile
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
@@ -104,7 +110,6 @@ const ProfilePage = () => {
         });
       }
 
-      // Fetch orders
       const { data: ordersData } = await supabase
         .from('orders')
         .select('*')
@@ -113,7 +118,6 @@ const ProfilePage = () => {
 
       setOrders(ordersData || []);
 
-      // Fetch appointments with clinic info
       const { data: appointmentsData } = await supabase
         .from('appointments')
         .select(`
@@ -125,7 +129,6 @@ const ProfilePage = () => {
 
       setAppointments(appointmentsData as any || []);
     } catch (error) {
-      // Error logged only in development
       if (import.meta.env.DEV) {
         console.error('Error fetching data:', error);
       }
@@ -137,7 +140,6 @@ const ProfilePage = () => {
   const handleSave = async () => {
     if (!user || !profile) return;
     
-    // Validate form data
     const validationResult = profileSchema.safeParse(formData);
     if (!validationResult.success) {
       const errorMessages = validationResult.error.errors.map(err => err.message).join(', ');
@@ -176,23 +178,15 @@ const ProfilePage = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'delivered':
-      case 'completed':
-      case 'confirmed':
-        return 'bg-green-100 text-green-800';
-      case 'processing':
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'shipped':
-        return 'bg-blue-100 text-blue-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  const handleAvatarUpdate = (url: string) => {
+    if (profile) {
+      setProfile({ ...profile, avatar_url: url });
     }
   };
+
+  const divisions = getDivisions();
+  const districts = formData.division ? getDistricts(formData.division) : [];
+  const thanas = formData.division && formData.district ? getThanas(formData.division, formData.district) : [];
 
   if (authLoading || loading) {
     return (
@@ -207,33 +201,33 @@ const ProfilePage = () => {
       <Navbar />
       
       <main className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-display font-bold text-foreground mb-2">My Profile</h1>
-            <p className="text-muted-foreground">Manage your account, orders, and appointments</p>
-          </div>
-          {isAdmin && (
-            <Link to="/admin">
-              <Button variant="outline" className="gap-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground">
-                <Shield className="h-4 w-4" />
-                Admin Panel
-              </Button>
-            </Link>
-          )}
-        </div>
+        {/* Profile Header */}
+        {user && (
+          <ProfileHeader
+            user={{ id: user.id, email: user.email, created_at: user.created_at }}
+            profile={profile}
+            petsCount={pets.length}
+            ordersCount={orders.length}
+            isAdmin={isAdmin}
+            onAvatarUpdate={handleAvatarUpdate}
+          />
+        )}
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
-            <TabsTrigger value="profile" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-4 lg:w-[500px] h-12">
+            <TabsTrigger value="profile" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <User className="h-4 w-4" />
               <span className="hidden sm:inline">Profile</span>
             </TabsTrigger>
-            <TabsTrigger value="orders" className="flex items-center gap-2">
+            <TabsTrigger value="pets" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <PawPrint className="h-4 w-4" />
+              <span className="hidden sm:inline">My Pets</span>
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <ShoppingBag className="h-4 w-4" />
               <span className="hidden sm:inline">Orders</span>
             </TabsTrigger>
-            <TabsTrigger value="appointments" className="flex items-center gap-2">
+            <TabsTrigger value="appointments" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Calendar className="h-4 w-4" />
               <span className="hidden sm:inline">Appointments</span>
             </TabsTrigger>
@@ -242,8 +236,7 @@ const ProfilePage = () => {
           {/* Profile Tab */}
           <TabsContent value="profile">
             <div className="grid gap-6 md:grid-cols-2">
-              {/* Account Info */}
-              <Card>
+              <Card className="shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <User className="h-5 w-5 text-primary" />
@@ -300,8 +293,7 @@ const ProfilePage = () => {
                 </CardContent>
               </Card>
 
-              {/* Address Info */}
-              <Card>
+              <Card className="shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-primary" />
@@ -322,16 +314,23 @@ const ProfilePage = () => {
                       <p className="text-foreground">{profile?.address || 'Not set'}</p>
                     )}
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 gap-3">
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">Division</label>
                       {editing ? (
-                        <Input
+                        <Select
                           value={formData.division}
-                          onChange={(e) => setFormData({ ...formData, division: e.target.value.slice(0, 50) })}
-                          placeholder="Division"
-                          maxLength={50}
-                        />
+                          onValueChange={(value) => setFormData({ ...formData, division: value, district: '', thana: '' })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Division" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {divisions.map((div) => (
+                              <SelectItem key={div} value={div}>{div}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       ) : (
                         <p className="text-foreground">{profile?.division || '-'}</p>
                       )}
@@ -339,12 +338,20 @@ const ProfilePage = () => {
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">District</label>
                       {editing ? (
-                        <Input
+                        <Select
                           value={formData.district}
-                          onChange={(e) => setFormData({ ...formData, district: e.target.value.slice(0, 50) })}
-                          placeholder="District"
-                          maxLength={50}
-                        />
+                          onValueChange={(value) => setFormData({ ...formData, district: value, thana: '' })}
+                          disabled={!formData.division}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select District" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {districts.map((dist) => (
+                              <SelectItem key={dist} value={dist}>{dist}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       ) : (
                         <p className="text-foreground">{profile?.district || '-'}</p>
                       )}
@@ -352,12 +359,20 @@ const ProfilePage = () => {
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">Thana</label>
                       {editing ? (
-                        <Input
+                        <Select
                           value={formData.thana}
-                          onChange={(e) => setFormData({ ...formData, thana: e.target.value.slice(0, 50) })}
-                          placeholder="Thana"
-                          maxLength={50}
-                        />
+                          onValueChange={(value) => setFormData({ ...formData, thana: value })}
+                          disabled={!formData.district}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Thana" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {thanas.map((thana) => (
+                              <SelectItem key={thana} value={thana}>{thana}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       ) : (
                         <p className="text-foreground">{profile?.thana || '-'}</p>
                       )}
@@ -368,9 +383,14 @@ const ProfilePage = () => {
             </div>
           </TabsContent>
 
+          {/* My Pets Tab */}
+          <TabsContent value="pets">
+            <MyPetsSection pets={pets} loading={petsLoading} />
+          </TabsContent>
+
           {/* Orders Tab */}
           <TabsContent value="orders">
-            <Card>
+            <Card className="shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Package className="h-5 w-5 text-primary" />
@@ -387,42 +407,9 @@ const ProfilePage = () => {
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
                     {orders.map((order) => (
-                      <div key={order.id} className="border rounded-xl p-4 hover:border-primary/30 transition-colors">
-                        <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
-                          <div>
-                            <p className="font-medium text-foreground">Order #{order.id.slice(0, 8)}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {format(new Date(order.created_at), 'PPP')}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <Badge className={getStatusColor(order.status || 'pending')}>
-                              {order.status || 'Pending'}
-                            </Badge>
-                            <span className="font-bold text-primary">৳{order.total_amount}</span>
-                          </div>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          <MapPin className="h-4 w-4 inline mr-1" />
-                          {order.shipping_address || 'No address provided'}
-                        </div>
-                        {order.items && Array.isArray(order.items) && (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {order.items.slice(0, 3).map((item: any, idx: number) => (
-                              <span key={idx} className="text-xs bg-muted px-2 py-1 rounded-full">
-                                {item.name} x{item.quantity}
-                              </span>
-                            ))}
-                            {order.items.length > 3 && (
-                              <span className="text-xs bg-muted px-2 py-1 rounded-full">
-                                +{order.items.length - 3} more
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                      <OrderCard key={order.id} order={order} />
                     ))}
                   </div>
                 )}
@@ -432,12 +419,16 @@ const ProfilePage = () => {
 
           {/* Appointments Tab */}
           <TabsContent value="appointments">
-            <Card>
-              <CardHeader>
+            <Card className="shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-primary" />
-                  Upcoming Appointments
+                  Appointments
                 </CardTitle>
+                <Button onClick={() => navigate('/clinics')} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Book New
+                </Button>
               </CardHeader>
               <CardContent>
                 {appointments.length === 0 ? (
@@ -449,54 +440,9 @@ const ProfilePage = () => {
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
                     {appointments.map((appointment) => (
-                      <div key={appointment.id} className="border rounded-xl p-4 hover:border-primary/30 transition-colors">
-                        <div className="flex flex-wrap items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-foreground">{appointment.clinic?.name}</h4>
-                            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                              <MapPin className="h-3 w-3" />
-                              {appointment.clinic?.address || 'Address not available'}
-                            </p>
-                          </div>
-                          <Badge className={getStatusColor(appointment.status || 'pending')}>
-                            {appointment.status || 'Pending'}
-                          </Badge>
-                        </div>
-                        
-                        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <p className="text-muted-foreground">Date</p>
-                            <p className="font-medium flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {format(new Date(appointment.appointment_date), 'PP')}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Time</p>
-                            <p className="font-medium flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {appointment.appointment_time}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Pet</p>
-                            <p className="font-medium">{appointment.pet_name || '-'}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Type</p>
-                            <p className="font-medium">{appointment.pet_type || '-'}</p>
-                          </div>
-                        </div>
-                        
-                        {appointment.reason && (
-                          <div className="mt-3 text-sm">
-                            <p className="text-muted-foreground">Reason</p>
-                            <p className="text-foreground">{appointment.reason}</p>
-                          </div>
-                        )}
-                      </div>
+                      <AppointmentCard key={appointment.id} appointment={appointment} />
                     ))}
                   </div>
                 )}
