@@ -10,7 +10,9 @@ import {
   Eye,
   CheckCircle,
   Truck,
-  XCircle
+  XCircle,
+  Package,
+  CreditCard
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -51,6 +53,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
+import { createOrderNotification } from '@/lib/notifications';
 
 const AdminOrders = () => {
   const navigate = useNavigate();
@@ -75,12 +78,31 @@ const AdminOrders = () => {
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
+      // Get order details first for notification
+      const { data: order, error: fetchError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
       const { error } = await supabase
         .from('orders')
         .update({ status })
         .eq('id', orderId);
 
       if (error) throw error;
+
+      // Send notification to user
+      if (order && ['processing', 'shipped', 'delivered', 'cancelled'].includes(status)) {
+        await createOrderNotification({
+          userId: order.user_id,
+          orderId: orderId,
+          status: status as 'processing' | 'shipped' | 'delivered' | 'cancelled',
+          orderTotal: order.total_amount,
+        });
+      }
 
       toast({ title: 'Success', description: `Order status updated to ${status}` });
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
@@ -93,17 +115,30 @@ const AdminOrders = () => {
     switch (status?.toLowerCase()) {
       case 'delivered':
       case 'completed':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
       case 'processing':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
       case 'shipped':
-        return 'bg-purple-100 text-purple-800';
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
       case 'cancelled':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
+    }
+  };
+
+  const getPaymentMethodBadge = (method: string) => {
+    switch (method?.toLowerCase()) {
+      case 'cod':
+        return <Badge variant="outline" className="gap-1"><CreditCard className="h-3 w-3" />COD</Badge>;
+      case 'bkash':
+        return <Badge variant="outline" className="text-pink-600 border-pink-300">bKash</Badge>;
+      case 'nagad':
+        return <Badge variant="outline" className="text-orange-600 border-orange-300">Nagad</Badge>;
+      default:
+        return <Badge variant="outline">Cash</Badge>;
     }
   };
 
@@ -183,6 +218,7 @@ const AdminOrders = () => {
                 <TableHead>Order ID</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Items</TableHead>
+                <TableHead>Payment</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
@@ -195,6 +231,9 @@ const AdminOrders = () => {
                   <TableCell>{format(new Date(order.created_at), 'PP')}</TableCell>
                   <TableCell>
                     {Array.isArray(order.items) ? order.items.length : 0} items
+                  </TableCell>
+                  <TableCell>
+                    {getPaymentMethodBadge((order as any).payment_method || 'cod')}
                   </TableCell>
                   <TableCell className="font-bold text-primary">৳{order.total_amount}</TableCell>
                   <TableCell>
@@ -216,7 +255,7 @@ const AdminOrders = () => {
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'processing')}>
-                          <CheckCircle className="h-4 w-4 mr-2" />
+                          <Package className="h-4 w-4 mr-2" />
                           Mark Processing
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'shipped')}>
@@ -261,6 +300,11 @@ const AdminOrders = () => {
                 <Badge className={getStatusColor(selectedOrder.status)}>
                   {selectedOrder.status}
                 </Badge>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Payment Method</span>
+                {getPaymentMethodBadge(selectedOrder.payment_method || 'cod')}
               </div>
               
               <div>

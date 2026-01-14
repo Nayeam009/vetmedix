@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Clinic } from '@/types/database';
+import { createAppointmentNotification } from '@/lib/notifications';
+import { format } from 'date-fns';
 
 export interface ClinicService {
   id: string;
@@ -336,6 +338,16 @@ export const useClinicOwner = () => {
 
   const updateAppointmentStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      // First get the appointment details for notification
+      const { data: appointment, error: fetchError } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Update the appointment status
       const { data, error } = await supabase
         .from('appointments')
         .update({ status })
@@ -344,6 +356,19 @@ export const useClinicOwner = () => {
         .single();
 
       if (error) throw error;
+
+      // Send notification to the user
+      if (appointment && ['confirmed', 'cancelled', 'completed'].includes(status)) {
+        await createAppointmentNotification({
+          userId: appointment.user_id,
+          appointmentId: id,
+          clinicName: ownedClinic?.name || 'the clinic',
+          status: status as 'confirmed' | 'cancelled' | 'completed',
+          appointmentDate: format(new Date(appointment.appointment_date), 'MMM d, yyyy'),
+          appointmentTime: appointment.appointment_time,
+        });
+      }
+
       return data;
     },
     onSuccess: () => {

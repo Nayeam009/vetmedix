@@ -468,6 +468,8 @@ export type Database = {
           id: string
           is_read: boolean | null
           message: string | null
+          target_appointment_id: string | null
+          target_order_id: string | null
           target_pet_id: string | null
           target_post_id: string | null
           title: string
@@ -480,6 +482,8 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           message?: string | null
+          target_appointment_id?: string | null
+          target_order_id?: string | null
           target_pet_id?: string | null
           target_post_id?: string | null
           title: string
@@ -492,6 +496,8 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           message?: string | null
+          target_appointment_id?: string | null
+          target_order_id?: string | null
           target_pet_id?: string | null
           target_post_id?: string | null
           title?: string
@@ -527,6 +533,7 @@ export type Database = {
           created_at: string
           id: string
           items: Json
+          payment_method: string | null
           shipping_address: string | null
           status: string | null
           total_amount: number
@@ -536,6 +543,7 @@ export type Database = {
           created_at?: string
           id?: string
           items: Json
+          payment_method?: string | null
           shipping_address?: string | null
           status?: string | null
           total_amount: number
@@ -545,6 +553,7 @@ export type Database = {
           created_at?: string
           id?: string
           items?: Json
+          payment_method?: string | null
           shipping_address?: string | null
           status?: string | null
           total_amount?: number

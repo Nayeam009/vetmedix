@@ -59,12 +59,14 @@ export interface Follow {
 export interface Notification {
   id: string;
   user_id: string;
-  type: 'like' | 'comment' | 'follow' | 'message';
+  type: 'like' | 'comment' | 'follow' | 'message' | 'appointment' | 'order';
   title: string;
   message: string | null;
   actor_pet_id: string | null;
   target_post_id: string | null;
   target_pet_id: string | null;
+  target_order_id: string | null;
+  target_appointment_id: string | null;
   is_read: boolean;
   created_at: string;
   actor_pet?: Pet;
