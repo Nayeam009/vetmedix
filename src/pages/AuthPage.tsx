@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ const AuthPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<SignupRole>('user');
+  const [checkingAuth, setCheckingAuth] = useState(true);
   
   // Clinic owner fields
   const [clinicName, setClinicName] = useState('');
@@ -27,9 +28,50 @@ const AuthPage = () => {
 
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Handle OAuth callback and check if user needs role selection
+  useEffect(() => {
+    const handleAuthCallback = async () => {
+      if (authLoading) return;
+      
+      if (user) {
+        // User is logged in, check if they have a role
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (!roleData?.role) {
+          // New user (likely OAuth), redirect to role selection
+          navigate('/select-role');
+        } else {
+          // Existing user with role, redirect to appropriate page
+          redirectBasedOnRole(roleData.role);
+        }
+      } else {
+        setCheckingAuth(false);
+      }
+    };
+
+    handleAuthCallback();
+  }, [user, authLoading, navigate]);
+
+  const redirectBasedOnRole = (role: string) => {
+    switch (role) {
+      case 'clinic_owner':
+        navigate('/clinic/dashboard');
+        break;
+      case 'admin':
+        navigate('/admin');
+        break;
+      default:
+        navigate('/');
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
@@ -93,30 +135,52 @@ const AuthPage = () => {
         const { error } = await signUp(email, password, fullName);
         if (error) throw error;
 
+        // Wait a moment for auth state to update
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         // Get the new user
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user: newUser } } = await supabase.auth.getUser();
         
-        if (user) {
-          // Create role entry
-          await supabase
+        if (newUser) {
+          // Create role entry with error handling
+          const { error: roleError } = await supabase
             .from('user_roles')
             .insert({ 
-              user_id: user.id, 
+              user_id: newUser.id, 
               role: selectedRole 
             });
 
+          if (roleError) {
+            console.error('Failed to assign role:', roleError);
+            toast({
+              title: "Account created",
+              description: "However, there was an issue setting up your profile. Please try logging in again.",
+              variant: "destructive",
+            });
+            navigate('/auth');
+            return;
+          }
+
           // Create clinic for clinic owner
           if (selectedRole === 'clinic_owner') {
-            await supabase
+            const { error: clinicError } = await supabase
               .from('clinics')
               .insert({
                 name: clinicName,
                 address: clinicAddress || null,
                 phone: clinicPhone || null,
-                owner_user_id: user.id,
+                owner_user_id: newUser.id,
                 is_open: true,
                 rating: 0,
               });
+
+            if (clinicError) {
+              console.error('Failed to create clinic:', clinicError);
+              toast({
+                title: "Account created",
+                description: "However, there was an issue creating your clinic. Please set it up in your dashboard.",
+              });
+            }
           }
 
           toast({
@@ -125,13 +189,7 @@ const AuthPage = () => {
           });
 
           // Redirect based on role
-          switch (selectedRole) {
-            case 'clinic_owner':
-              navigate('/clinic/dashboard');
-              break;
-            default:
-              navigate('/');
-          }
+          redirectBasedOnRole(selectedRole);
         }
       }
     } catch (error: any) {
@@ -154,6 +212,15 @@ const AuthPage = () => {
     setClinicPhone('');
     setSelectedRole('user');
   };
+
+  // Show loading while checking auth state
+  if (authLoading || checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">

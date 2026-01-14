@@ -93,6 +93,19 @@ const SelectRolePage = () => {
     setLoading(true);
 
     try {
+      // Check if user already has a role (prevent duplicate)
+      const { data: existingRole } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existingRole?.role) {
+        // User already has a role, just redirect
+        redirectBasedOnRole(existingRole.role);
+        return;
+      }
+
       // Create role entry
       const { error: roleError } = await supabase
         .from('user_roles')
@@ -101,7 +114,26 @@ const SelectRolePage = () => {
           role: selectedRole,
         });
 
-      if (roleError) throw roleError;
+      if (roleError) {
+        console.error('Failed to assign role:', roleError);
+        
+        // Check if it's a unique constraint violation (role already exists)
+        if (roleError.code === '23505') {
+          // Role already exists, fetch it and redirect
+          const { data: currentRole } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          if (currentRole?.role) {
+            redirectBasedOnRole(currentRole.role);
+            return;
+          }
+        }
+        
+        throw new Error('Failed to set up your account. Please try again.');
+      }
 
       // If clinic owner, create the clinic
       if (selectedRole === 'clinic_owner') {
@@ -120,7 +152,13 @@ const SelectRolePage = () => {
             rating: 0,
           });
 
-        if (clinicError) throw clinicError;
+        if (clinicError) {
+          console.error('Failed to create clinic:', clinicError);
+          toast({
+            title: 'Account created',
+            description: 'However, there was an issue creating your clinic. Please set it up in your dashboard.',
+          });
+        }
       }
 
       toast({
@@ -132,6 +170,7 @@ const SelectRolePage = () => {
 
       redirectBasedOnRole(selectedRole);
     } catch (error: any) {
+      console.error('Setup error:', error);
       toast({
         title: 'Error',
         description: error.message || 'Failed to complete setup',
