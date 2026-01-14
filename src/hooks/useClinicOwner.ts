@@ -29,7 +29,24 @@ export interface ClinicDoctor {
     phone: string | null;
     email: string | null;
     is_available: boolean;
+    qualifications: string[] | null;
+    experience_years: number | null;
+    consultation_fee: number | null;
+    license_number: string | null;
+    bio: string | null;
   };
+}
+
+export interface DoctorInput {
+  name: string;
+  email: string | null;
+  phone: string | null;
+  specialization: string | null;
+  license_number: string | null;
+  qualifications: string[] | null;
+  experience_years: number | null;
+  consultation_fee: number | null;
+  bio: string | null;
 }
 
 export const useClinicOwner = () => {
@@ -84,7 +101,7 @@ export const useClinicOwner = () => {
         .from('clinic_doctors')
         .select(`
           *,
-          doctor:doctors(id, name, specialization, avatar_url, phone, email, is_available)
+          doctor:doctors(id, name, specialization, avatar_url, phone, email, is_available, qualifications, experience_years, consultation_fee, license_number, bio)
         `)
         .eq('clinic_id', ownedClinic.id);
 
@@ -134,6 +151,99 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to update clinic');
+      console.error(error);
+    },
+  });
+
+  const addDoctor = useMutation({
+    mutationFn: async (doctor: DoctorInput) => {
+      if (!ownedClinic?.id) throw new Error('No clinic');
+
+      // First create the doctor
+      const { data: newDoctor, error: doctorError } = await supabase
+        .from('doctors')
+        .insert({
+          ...doctor,
+          created_by_clinic_id: ownedClinic.id,
+          is_available: true,
+          is_verified: false,
+        })
+        .select()
+        .single();
+
+      if (doctorError) throw doctorError;
+
+      // Then link doctor to clinic
+      const { error: linkError } = await supabase
+        .from('clinic_doctors')
+        .insert({
+          clinic_id: ownedClinic.id,
+          doctor_id: newDoctor.id,
+          status: 'active',
+        });
+
+      if (linkError) throw linkError;
+
+      return newDoctor;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clinic-doctors-list'] });
+      toast.success('Doctor added successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to add doctor');
+      console.error(error);
+    },
+  });
+
+  const updateDoctor = useMutation({
+    mutationFn: async ({ doctorId, updates }: { doctorId: string; updates: Partial<DoctorInput> }) => {
+      const { data, error } = await supabase
+        .from('doctors')
+        .update(updates)
+        .eq('id', doctorId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clinic-doctors-list'] });
+      toast.success('Doctor updated successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to update doctor');
+      console.error(error);
+    },
+  });
+
+  const removeDoctor = useMutation({
+    mutationFn: async (doctorId: string) => {
+      // First remove from clinic_doctors junction table
+      const { error: unlinkError } = await supabase
+        .from('clinic_doctors')
+        .delete()
+        .eq('doctor_id', doctorId)
+        .eq('clinic_id', ownedClinic?.id);
+
+      if (unlinkError) throw unlinkError;
+
+      // Then delete the doctor record if created by this clinic
+      const { error: deleteError } = await supabase
+        .from('doctors')
+        .delete()
+        .eq('id', doctorId)
+        .eq('created_by_clinic_id', ownedClinic?.id);
+
+      if (deleteError) throw deleteError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clinic-doctors-list'] });
+      toast.success('Doctor removed successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to remove doctor');
       console.error(error);
     },
   });
@@ -256,6 +366,9 @@ export const useClinicOwner = () => {
     clinicAppointments,
     appointmentsLoading,
     updateClinic,
+    addDoctor,
+    updateDoctor,
+    removeDoctor,
     addService,
     updateService,
     deleteService,
