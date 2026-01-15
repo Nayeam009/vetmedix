@@ -187,14 +187,14 @@ const BookAppointmentPage = () => {
                 <div className="space-y-2">
                   <Label className="text-sm">Select Doctor (Optional)</Label>
                   <Select 
-                    value={formData.doctorId} 
-                    onValueChange={(value) => setFormData({...formData, doctorId: value, time: ''})}
+                    value={formData.doctorId || "any"} 
+                    onValueChange={(value) => setFormData({...formData, doctorId: value === "any" ? "" : value, time: ''})}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Any available doctor" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Any available doctor</SelectItem>
+                      <SelectItem value="any">Any available doctor</SelectItem>
                       {doctorsWithSchedules.map((doctor: any) => (
                         <SelectItem key={doctor.id} value={doctor.id}>
                           <div className="flex items-center gap-2">
