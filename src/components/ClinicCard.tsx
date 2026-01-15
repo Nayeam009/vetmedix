@@ -18,10 +18,11 @@ const ClinicCard = ({ name, rating, distance, services, image, isOpen = true, on
   const isGopalganj = name?.toLowerCase().includes('gopalganj');
   
   return (
-    <div className="bg-card rounded-2xl overflow-hidden shadow-card hover:shadow-hover border border-border transition-all duration-300">
+    <div className="bg-card rounded-xl sm:rounded-2xl overflow-hidden shadow-card hover:shadow-hover border border-border transition-all duration-300 active:scale-[0.99]">
       <div className="flex flex-col sm:flex-row">
+        {/* Image */}
         <div 
-          className="sm:w-40 md:w-48 aspect-video sm:aspect-square flex-shrink-0 cursor-pointer"
+          className="sm:w-32 md:w-40 lg:w-48 aspect-[16/10] sm:aspect-square flex-shrink-0 cursor-pointer"
           onClick={onViewDetails}
         >
           {isGopalganj ? (
@@ -30,50 +31,67 @@ const ClinicCard = ({ name, rating, distance, services, image, isOpen = true, on
             <img src={image} alt={name} className="w-full h-full object-cover" />
           )}
         </div>
-        <div className="flex-1 p-4 md:p-5 flex flex-col">
-          <div className="flex items-start justify-between mb-3">
-            <div>
+        
+        {/* Content */}
+        <div className="flex-1 p-3 sm:p-4 md:p-5 flex flex-col min-w-0">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-2 mb-2 sm:mb-3">
+            <div className="min-w-0 flex-1">
               <h3 
-                className="font-semibold text-lg text-foreground hover:text-primary cursor-pointer transition-colors"
+                className="font-semibold text-base sm:text-lg text-foreground hover:text-primary cursor-pointer transition-colors truncate"
                 onClick={onViewDetails}
               >
                 {name}
               </h3>
-              <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 sm:gap-3 mt-1 text-xs sm:text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <Star className="h-4 w-4 text-primary fill-primary" />
+                  <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary fill-primary" />
                   {rating}
                 </span>
                 <span className="flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
+                  <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   {distance}
                 </span>
               </div>
             </div>
-            <span className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${
+            <span className={`flex items-center gap-1 text-[10px] sm:text-xs font-medium px-2 py-1 rounded-full shrink-0 ${
               isOpen ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'
             }`}>
-              <Clock className="h-3 w-3" />
-              {isOpen ? 'Open Now' : 'Closed'}
+              <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+              {isOpen ? 'Open' : 'Closed'}
             </span>
           </div>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {services.slice(0, 3).map((service, index) => (
-              <span key={index} className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-secondary text-secondary-foreground">
-                <Stethoscope className="h-3 w-3" />
+          
+          {/* Services */}
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4">
+            {services.slice(0, 2).map((service, index) => (
+              <span key={index} className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-medium px-2 py-0.5 sm:py-1 rounded-full bg-secondary text-secondary-foreground">
+                <Stethoscope className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                 {service}
               </span>
             ))}
-            {services.length > 3 && (
-              <span className="text-xs text-muted-foreground">+{services.length - 3} more</span>
+            {services.length > 2 && (
+              <span className="text-[10px] sm:text-xs text-muted-foreground">+{services.length - 2} more</span>
             )}
           </div>
-          <div className="flex gap-3 mt-auto">
-            <Button variant="outline" className="flex-1 sm:flex-none" onClick={onViewDetails}>
-              View Details
-              <ChevronRight className="h-4 w-4 ml-1" />
+          
+          {/* Actions */}
+          <div className="flex gap-2 sm:gap-3 mt-auto">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1 h-8 sm:h-9 text-xs sm:text-sm rounded-lg sm:rounded-xl" 
+              onClick={onViewDetails}
+            >
+              Details
+              <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-1" />
             </Button>
-            <Button variant="default" className="flex-1 sm:flex-none" onClick={onBook}>
+            <Button 
+              variant="default" 
+              size="sm" 
+              className="flex-1 h-8 sm:h-9 text-xs sm:text-sm rounded-lg sm:rounded-xl" 
+              onClick={onBook}
+            >
               Book Now
             </Button>
           </div>
