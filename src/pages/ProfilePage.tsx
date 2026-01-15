@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, MapPin, ShoppingBag, Calendar, Edit2, Save, X, Loader2, Package, PawPrint, Plus } from 'lucide-react';
+import { User, MapPin, ShoppingBag, Calendar, Edit2, Save, X, Loader2, Package, PawPrint, Plus, Clock } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
@@ -20,6 +20,8 @@ import ProfileHeader from '@/components/profile/ProfileHeader';
 import MyPetsSection from '@/components/profile/MyPetsSection';
 import OrderCard from '@/components/profile/OrderCard';
 import AppointmentCard from '@/components/profile/AppointmentCard';
+import WaitlistSection from '@/components/profile/WaitlistSection';
+import { useWaitlist } from '@/hooks/useWaitlist';
 
 interface Profile {
   id: string;
@@ -61,6 +63,7 @@ const ProfilePage = () => {
   const { user, loading: authLoading } = useAuth();
   const { pets, loading: petsLoading } = usePets();
   const { isAdmin } = useAdmin();
+  const { userWaitlist, loading: waitlistLoading } = useWaitlist();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -214,7 +217,7 @@ const ProfilePage = () => {
         )}
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-[500px] h-12">
+          <TabsList className="grid w-full grid-cols-5 lg:w-[600px] h-12">
             <TabsTrigger value="profile" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <User className="h-4 w-4" />
               <span className="hidden sm:inline">Profile</span>
@@ -230,6 +233,10 @@ const ProfilePage = () => {
             <TabsTrigger value="appointments" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Calendar className="h-4 w-4" />
               <span className="hidden sm:inline">Appointments</span>
+            </TabsTrigger>
+            <TabsTrigger value="waitlist" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Clock className="h-4 w-4" />
+              <span className="hidden sm:inline">Waitlist</span>
             </TabsTrigger>
           </TabsList>
 
@@ -448,6 +455,11 @@ const ProfilePage = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Waitlist Tab */}
+          <TabsContent value="waitlist">
+            <WaitlistSection entries={userWaitlist} loading={waitlistLoading} />
           </TabsContent>
         </Tabs>
       </main>
