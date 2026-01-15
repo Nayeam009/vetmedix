@@ -5,7 +5,7 @@ import {
   Calendar, Clock, Users, Star, TrendingUp, 
   CheckCircle, XCircle, AlertCircle, Settings,
   Building2, Stethoscope, Package, Plus, Edit, 
-  MapPin, Eye, User, Filter, Search, Menu
+  MapPin, Eye, User, Filter, Search, Menu, Home
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,7 +33,6 @@ import { useClinicOwner, ClinicService } from '@/hooks/useClinicOwner';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useToast } from '@/hooks/use-toast';
 import AppointmentDetailsDialog from '@/components/clinic/AppointmentDetailsDialog';
-import ClinicAnalyticsCharts from '@/components/clinic/ClinicAnalyticsCharts';
 import ServiceQuickActions from '@/components/clinic/ServiceQuickActions';
 import DoctorQuickActions from '@/components/clinic/DoctorQuickActions';
 import logo from '@/assets/logo.jpeg';
@@ -128,6 +127,30 @@ const ClinicDashboard = () => {
     }
   };
 
+  // Handle service toggle
+  const handleServiceToggle = (serviceId: string, isActive: boolean) => {
+    updateService.mutate({ 
+      id: serviceId, 
+      updates: { is_active: isActive } 
+    });
+  };
+
+  // Handle service edit - navigate to services page for editing
+  const handleServiceEdit = (service: ClinicService) => {
+    navigate('/clinic/services');
+  };
+
+  // Handle service delete
+  const handleServiceDelete = (serviceId: string) => {
+    deleteService.mutate(serviceId);
+  };
+
+  // Handle appointment status update
+  const handleAppointmentStatusUpdate = (id: string, status: string) => {
+    updateAppointmentStatus.mutate({ id, status });
+    setSelectedAppointment(null);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -140,26 +163,27 @@ const ClinicDashboard = () => {
             </Link>
             <Badge variant="secondary" className="hidden sm:flex shrink-0">
               <Building2 className="h-3 w-3 mr-1" />
-              Clinic Owner
+              Clinic Dashboard
             </Badge>
           </div>
           
           <div className="flex items-center gap-2">
             {/* Desktop buttons */}
             <Button variant="ghost" size="sm" asChild className="hidden lg:flex">
-              <Link to="/clinic/profile?tab=owner">
-                <User className="h-4 w-4 mr-2" />
-                My Profile
+              <Link to="/profile">
+                <Home className="h-4 w-4 mr-2" />
+                Personal Profile
               </Link>
             </Button>
             <Button variant="ghost" size="sm" asChild className="hidden md:flex">
               <Link to="/clinic/profile">
                 <Settings className="h-4 w-4 mr-2" />
-                Settings
+                Clinic Settings
               </Link>
             </Button>
-            <Button variant="outline" size="sm" onClick={() => signOut()} className="hidden sm:flex">
-              Sign Out
+            <Button variant="outline" size="sm" onClick={handleViewPublicPage} className="hidden sm:flex">
+              <Eye className="h-4 w-4 mr-2" />
+              View Public
             </Button>
             
             {/* Mobile dropdown menu */}
@@ -171,9 +195,9 @@ const ClinicDashboard = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem asChild>
-                  <Link to="/clinic/profile?tab=owner" className="flex items-center">
-                    <User className="h-4 w-4 mr-2" />
-                    My Profile
+                  <Link to="/profile" className="flex items-center">
+                    <Home className="h-4 w-4 mr-2" />
+                    Personal Profile
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -182,10 +206,21 @@ const ClinicDashboard = () => {
                     Clinic Settings
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleViewPublicPage} className="flex items-center">
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Public Page
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link to="/clinic/profile?tab=schedules" className="flex items-center">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Doctor Schedules
+                  <Link to="/clinic/doctors" className="flex items-center">
+                    <Stethoscope className="h-4 w-4 mr-2" />
+                    Manage Doctors
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/clinic/services" className="flex items-center">
+                    <Package className="h-4 w-4 mr-2" />
+                    Manage Services
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -238,6 +273,26 @@ const ClinicDashboard = () => {
                     )}
                   </div>
                 </div>
+              </div>
+              
+              {/* Quick Actions */}
+              <div className="flex flex-wrap gap-2 md:flex-col md:gap-2">
+                <Button variant="outline" size="sm" asChild className="flex-1 md:flex-none">
+                  <Link to="/clinic/profile">
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Clinic
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleViewPublicPage} className="flex-1 md:flex-none">
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Public
+                </Button>
+                <Button variant="outline" size="sm" asChild className="flex-1 md:flex-none">
+                  <Link to="/profile">
+                    <User className="h-4 w-4 mr-2" />
+                    My Profile
+                  </Link>
+                </Button>
               </div>
             </div>
           </div>
@@ -365,6 +420,7 @@ const ClinicDashboard = () => {
                         <SelectItem value="today">Today</SelectItem>
                         <SelectItem value="pending">Pending</SelectItem>
                         <SelectItem value="confirmed">Confirmed</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
                         <SelectItem value="cancelled">Cancelled</SelectItem>
                       </SelectContent>
                     </Select>
@@ -374,10 +430,11 @@ const ClinicDashboard = () => {
               <CardContent>
                 {filteredAppointments.length > 0 ? (
                   <div className="space-y-3 sm:space-y-4">
-                    {filteredAppointments.slice(0, 10).map((apt: any) => (
+                    {filteredAppointments.slice(0, 20).map((apt: any) => (
                       <div 
                         key={apt.id} 
-                        className="flex flex-col gap-3 p-3 sm:p-4 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all duration-200 hover:shadow-md"
+                        className="flex flex-col gap-3 p-3 sm:p-4 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all duration-200 hover:shadow-md cursor-pointer"
+                        onClick={() => setSelectedAppointment(apt)}
                       >
                         <div className="flex items-start gap-3 sm:gap-4">
                           <div className="h-10 w-10 sm:h-14 sm:w-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0">
@@ -416,7 +473,7 @@ const ClinicDashboard = () => {
                             {apt.status}
                           </Badge>
                           {apt.status === 'pending' && (
-                            <div className="flex gap-1.5">
+                            <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
                               <Button 
                                 size="sm" 
                                 variant="outline"
@@ -448,10 +505,13 @@ const ClinicDashboard = () => {
                               size="sm" 
                               variant="outline"
                               className="text-blue-600 hover:bg-blue-50 text-xs sm:text-sm h-8"
-                              onClick={() => updateAppointmentStatus.mutate({ 
-                                id: apt.id, 
-                                status: 'completed' 
-                              })}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateAppointmentStatus.mutate({ 
+                                  id: apt.id, 
+                                  status: 'completed' 
+                                });
+                              }}
                             >
                               <CheckCircle className="h-3.5 w-3.5 mr-1" />
                               Complete
@@ -506,69 +566,39 @@ const ClinicDashboard = () => {
             )}
           </TabsContent>
 
-
-
-          {/* Services Tab */}
+          {/* Services Tab - Now using ServiceQuickActions */}
           <TabsContent value="services" className="space-y-4">
-            <Card>
-              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4">
-                <div>
-                  <CardTitle className="text-base sm:text-lg">Clinic Services</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">Services offered at your clinic</CardDescription>
-                </div>
-                <Button asChild size="sm">
-                  <Link to="/clinic/services">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Service
-                  </Link>
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {clinicServices && clinicServices.length > 0 ? (
-                  <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
-                    {clinicServices.map((service) => (
-                      <div 
-                        key={service.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-xl border border-border bg-card hover:bg-secondary/30 transition-all"
-                      >
-                        <div className="flex items-center gap-3 sm:gap-4">
-                          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                            <Package className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-sm sm:text-base truncate">{service.name}</p>
-                            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
-                              {service.description || 'No description'}
-                            </p>
-                            {service.duration_minutes && (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                ⏱️ {service.duration_minutes} mins
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between sm:flex-col sm:items-end gap-2">
-                          {service.price && (
-                            <p className="font-bold text-base sm:text-lg text-primary">৳{service.price}</p>
-                          )}
-                          <Badge variant={service.is_active ? 'default' : 'secondary'} className="text-xs">
-                            {service.is_active ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground mb-4">No services added yet</p>
-                    <Button asChild size="sm">
-                      <Link to="/clinic/services">Add Your First Service</Link>
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div>
+                <h2 className="text-base sm:text-lg font-semibold">Clinic Services</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground">Services offered at your clinic</p>
+              </div>
+              <Button asChild size="sm">
+                <Link to="/clinic/services">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Service
+                </Link>
+              </Button>
+            </div>
+            {clinicServices && clinicServices.length > 0 ? (
+              <ServiceQuickActions
+                services={clinicServices}
+                onToggleActive={handleServiceToggle}
+                onEdit={handleServiceEdit}
+                onDelete={handleServiceDelete}
+                isUpdating={updateService.isPending || deleteService.isPending}
+              />
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-4">No services added yet</p>
+                  <Button asChild size="sm">
+                    <Link to="/clinic/services">Add Your First Service</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Analytics Tab */}
@@ -642,13 +672,85 @@ const ClinicDashboard = () => {
                         <p className="text-xs sm:text-sm text-muted-foreground">Active Services</p>
                       </div>
                     </div>
+
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                      <div className="text-center p-3 sm:p-4 rounded-lg bg-green-500/10">
+                        <p className="text-xl sm:text-2xl font-bold text-green-600">{todayAppointments.length}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Today's Appointments</p>
+                      </div>
+                      <div className="text-center p-3 sm:p-4 rounded-lg bg-blue-500/10">
+                        <p className="text-xl sm:text-2xl font-bold text-blue-600">
+                          {clinicAppointments?.filter((a: any) => a.status === 'completed').length || 0}
+                        </p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Total Completed</p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
+
+            {/* Monthly Stats Card */}
+            <Card>
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  This Month's Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                  {(() => {
+                    const thisMonth = new Date().getMonth();
+                    const thisYear = new Date().getFullYear();
+                    const monthlyAppointments = clinicAppointments?.filter((a: any) => {
+                      const date = new Date(a.appointment_date);
+                      return date.getMonth() === thisMonth && date.getFullYear() === thisYear;
+                    }) || [];
+
+                    return (
+                      <>
+                        <div className="text-center p-4 rounded-lg bg-primary/10">
+                          <p className="text-2xl sm:text-3xl font-bold text-primary">{monthlyAppointments.length}</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground">Total This Month</p>
+                        </div>
+                        <div className="text-center p-4 rounded-lg bg-green-500/10">
+                          <p className="text-2xl sm:text-3xl font-bold text-green-600">
+                            {monthlyAppointments.filter((a: any) => a.status === 'completed').length}
+                          </p>
+                          <p className="text-xs sm:text-sm text-muted-foreground">Completed</p>
+                        </div>
+                        <div className="text-center p-4 rounded-lg bg-amber-500/10">
+                          <p className="text-2xl sm:text-3xl font-bold text-amber-600">
+                            {monthlyAppointments.filter((a: any) => a.status === 'pending').length}
+                          </p>
+                          <p className="text-xs sm:text-sm text-muted-foreground">Pending</p>
+                        </div>
+                        <div className="text-center p-4 rounded-lg bg-red-500/10">
+                          <p className="text-2xl sm:text-3xl font-bold text-red-600">
+                            {monthlyAppointments.filter((a: any) => a.status === 'cancelled').length}
+                          </p>
+                          <p className="text-xs sm:text-sm text-muted-foreground">Cancelled</p>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Appointment Details Dialog */}
+      <AppointmentDetailsDialog
+        appointment={selectedAppointment}
+        open={!!selectedAppointment}
+        onOpenChange={(open) => !open && setSelectedAppointment(null)}
+        onUpdateStatus={handleAppointmentStatusUpdate}
+        isUpdating={updateAppointmentStatus.isPending}
+        clinicPhone={ownedClinic?.phone || undefined}
+      />
     </div>
   );
 };
