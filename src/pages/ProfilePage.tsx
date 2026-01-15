@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/contexts/AuthContext';
 import { usePets } from '@/contexts/PetContext';
 import { useAdmin } from '@/hooks/useAdmin';
+import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { profileSchema } from '@/lib/validations';
@@ -61,6 +62,7 @@ const ProfilePage = () => {
   const { user, loading: authLoading } = useAuth();
   const { pets, loading: petsLoading } = usePets();
   const { isAdmin } = useAdmin();
+  const { isClinicOwner } = useUserRole();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -209,6 +211,7 @@ const ProfilePage = () => {
             petsCount={pets.length}
             ordersCount={orders.length}
             isAdmin={isAdmin}
+            isClinicOwner={isClinicOwner}
             onAvatarUpdate={handleAvatarUpdate}
           />
         )}

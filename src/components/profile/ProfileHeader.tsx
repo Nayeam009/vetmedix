@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, Upload, Loader2, Shield, PawPrint, ShoppingBag, Heart } from 'lucide-react';
+import { Camera, Upload, Loader2, Shield, PawPrint, ShoppingBag, Heart, Building2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,10 +21,11 @@ interface ProfileHeaderProps {
   petsCount: number;
   ordersCount: number;
   isAdmin: boolean;
+  isClinicOwner: boolean;
   onAvatarUpdate: (url: string) => void;
 }
 
-const ProfileHeader = ({ user, profile, petsCount, ordersCount, isAdmin, onAvatarUpdate }: ProfileHeaderProps) => {
+const ProfileHeader = ({ user, profile, petsCount, ordersCount, isAdmin, isClinicOwner, onAvatarUpdate }: ProfileHeaderProps) => {
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -149,6 +150,14 @@ const ProfileHeader = ({ user, profile, petsCount, ordersCount, isAdmin, onAvata
                 Admin
               </Badge>
             )}
+            {isClinicOwner && (
+              <Badge variant="outline" className="w-fit mx-auto md:mx-0 border-accent text-accent md:hidden">
+                <Link to="/clinic/dashboard" className="flex items-center gap-1">
+                  <Building2 className="h-3 w-3" />
+                  My Clinic
+                </Link>
+              </Badge>
+            )}
           </div>
           <p className="text-muted-foreground mb-1">{user.email}</p>
           <p className="text-sm text-muted-foreground">
@@ -174,15 +183,25 @@ const ProfileHeader = ({ user, profile, petsCount, ordersCount, isAdmin, onAvata
           </div>
         </div>
 
-        {/* Admin Button */}
-        {isAdmin && (
-          <Link to="/admin" className="hidden md:block">
-            <Button variant="outline" className="gap-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground">
-              <Shield className="h-4 w-4" />
-              Admin Panel
-            </Button>
-          </Link>
-        )}
+        {/* Role-based Buttons */}
+        <div className="hidden md:flex flex-col gap-2">
+          {isAdmin && (
+            <Link to="/admin">
+              <Button variant="outline" className="w-full gap-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+                <Shield className="h-4 w-4" />
+                Admin Panel
+              </Button>
+            </Link>
+          )}
+          {isClinicOwner && (
+            <Link to="/clinic/dashboard">
+              <Button variant="outline" className="w-full gap-2 border-accent text-accent hover:bg-accent hover:text-accent-foreground">
+                <Building2 className="h-4 w-4" />
+                My Clinic
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );
