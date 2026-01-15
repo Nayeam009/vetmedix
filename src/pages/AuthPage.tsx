@@ -83,7 +83,7 @@ const AuthPage = () => {
         },
       });
       if (error) throw error;
-    } catch (error: any) {
+    } catch (error: Error) {
       toast({
         title: "Error",
         description: error.message || "Failed to sign in with Google",
@@ -192,7 +192,7 @@ const AuthPage = () => {
           redirectBasedOnRole(selectedRole);
         }
       }
-    } catch (error: any) {
+    } catch (error: Error) {
       toast({
         title: "Error",
         description: error.message || "Something went wrong",

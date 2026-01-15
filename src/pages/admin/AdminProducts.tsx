@@ -146,7 +146,7 @@ const AdminProducts = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setIsAddOpen(false);
       resetForm();
-    } catch (error: any) {
+    } catch (error: Error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
       setSaving(false);
@@ -196,7 +196,7 @@ const AdminProducts = () => {
       setIsEditOpen(false);
       setSelectedProduct(null);
       resetForm();
-    } catch (error: any) {
+    } catch (error: Error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
       setSaving(false);
@@ -216,7 +216,7 @@ const AdminProducts = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setIsDeleteOpen(false);
       setSelectedProduct(null);
-    } catch (error: any) {
+    } catch (error: Error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
       setSaving(false);

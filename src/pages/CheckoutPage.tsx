@@ -112,7 +112,7 @@ const CheckoutPage = () => {
       clearCart();
       setOrderPlaced(true);
       toast({ title: 'Order Placed!', description: 'Your order has been placed successfully.' });
-    } catch (error: any) {
+    } catch (error: Error) {
       toast({ 
         title: 'Error', 
         description: 'Failed to place order. Please try again.',

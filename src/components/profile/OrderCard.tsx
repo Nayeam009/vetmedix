@@ -14,7 +14,7 @@ interface OrderItem {
 interface OrderCardProps {
   order: {
     id: string;
-    items: any;
+    items: OrderItem[];
     total_amount: number;
     status: string;
     shipping_address: string | null;

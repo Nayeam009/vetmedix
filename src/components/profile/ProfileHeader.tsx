@@ -88,7 +88,7 @@ const ProfileHeader = ({ user, profile, petsCount, ordersCount, isAdmin, onAvata
         title: "Avatar updated",
         description: "Your profile picture has been updated successfully.",
       });
-    } catch (error: any) {
+    } catch (error: Error) {
       toast({
         title: "Upload failed",
         description: error.message || "Failed to upload avatar",

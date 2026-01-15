@@ -169,7 +169,7 @@ const SelectRolePage = () => {
       });
 
       redirectBasedOnRole(selectedRole);
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Setup error:', error);
       toast({
         title: 'Error',

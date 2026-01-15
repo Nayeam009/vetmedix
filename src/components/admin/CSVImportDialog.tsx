@@ -112,7 +112,7 @@ export function CSVImportDialog({ open, onOpenChange }: CSVImportDialogProps) {
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       onOpenChange(false);
       setParseResult(null);
-    } catch (error: any) {
+    } catch (error: Error) {
       toast({ 
         title: 'Import failed', 
         description: error.message || 'Failed to import products', 

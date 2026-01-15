@@ -43,7 +43,7 @@ const MyPetsSection = ({ pets, loading }: MyPetsSectionProps) => {
           <Card className="bg-gradient-to-br from-coral/5 to-coral/10 border-coral/20">
             <CardContent className="p-4 text-center">
               <p className="text-3xl font-bold text-coral">
-                {pets.reduce((sum, pet) => sum + ((pet as any).followers_count || 0), 0)}
+                {pets.reduce((sum, pet) => sum + ((pet as Pet & { followers_count?: number }).followers_count || 0), 0)}
               </p>
               <p className="text-sm text-muted-foreground">Total Followers</p>
             </CardContent>
@@ -51,7 +51,7 @@ const MyPetsSection = ({ pets, loading }: MyPetsSectionProps) => {
           <Card className="bg-gradient-to-br from-accent/5 to-accent/10 border-accent/20">
             <CardContent className="p-4 text-center">
               <p className="text-3xl font-bold text-accent">
-                {pets.reduce((sum, pet) => sum + ((pet as any).posts_count || 0), 0)}
+                {pets.reduce((sum, pet) => sum + ((pet as Pet & { posts_count?: number }).posts_count || 0), 0)}
               </p>
               <p className="text-sm text-muted-foreground">Total Posts</p>
             </CardContent>
@@ -94,10 +94,10 @@ const MyPetsSection = ({ pets, loading }: MyPetsSectionProps) => {
                 <div className="flex items-center gap-3 text-sm text-muted-foreground mb-4">
                   <span className="flex items-center gap-1">
                     <Users className="h-3 w-3" />
-                    {(pet as any).followers_count || 0}
+                    {(pet as Pet & { followers_count?: number }).followers_count || 0}
                   </span>
                   <span>•</span>
-                  <span>{(pet as any).posts_count || 0} posts</span>
+                  <span>{(pet as Pet & { posts_count?: number }).posts_count || 0} posts</span>
                 </div>
 
                 {/* Action Buttons */}

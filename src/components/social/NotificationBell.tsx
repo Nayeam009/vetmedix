@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow } from 'date-fns';
+import type { Notification } from '@/types/social';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/contexts/AuthContext';
@@ -58,7 +59,7 @@ export const NotificationBell = () => {
     }
   };
 
-  const handleClick = (notification: any) => {
+  const handleClick = (notification: Notification) => {
     markAsRead(notification.id);
     
     // Navigate based on notification type

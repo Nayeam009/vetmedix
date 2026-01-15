@@ -83,7 +83,7 @@ const AdminCustomers = () => {
 
       toast({ title: 'Success', description: `User role updated to ${role}` });
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-    } catch (error: any) {
+    } catch (error: Error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     }
   };

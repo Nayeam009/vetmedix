@@ -54,7 +54,7 @@ const BookAppointmentPage = () => {
       if (error) throw error;
       toast({ title: 'Appointment Booked!', description: 'You will receive a confirmation soon.' });
       navigate('/');
-    } catch (error: any) {
+    } catch (error: Error) {
       toast({ title: 'Error', description: 'Failed to book appointment. Please try again.', variant: 'destructive' });
     } finally {
       setLoading(false);
