@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Loader2, Camera, Building2, MapPin, Phone, Mail, Clock, CheckCircle, User, Calendar } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Save, Loader2, Camera, Building2, MapPin, Phone, Mail, Clock, CheckCircle, User, Calendar, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicOwner } from '@/hooks/useClinicOwner';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -35,13 +36,25 @@ const serviceCategories = [
 
 const ClinicProfile = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const { isClinicOwner, isLoading: roleLoading } = useUserRole();
   const { ownedClinic, clinicLoading, clinicDoctors, updateClinic } = useClinicOwner();
 
-  const [activeTab, setActiveTab] = useState('clinic');
+  // Get initial tab from URL params
+  const initialTab = searchParams.get('tab') || 'clinic';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingClinicImage, setIsUploadingClinicImage] = useState(false);
+
+  // Update tab when URL changes
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['clinic', 'owner', 'schedules'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
 
   // Clinic form data
   const [formData, setFormData] = useState({
@@ -166,12 +179,13 @@ const ClinicProfile = () => {
     setIsUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const fileName = `avatar-${Date.now()}.${fileExt}`;
+      // Use user.id as folder for RLS policy compliance
+      const filePath = `${user.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file);
+        .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
@@ -188,10 +202,58 @@ const ClinicProfile = () => {
 
       setOwnerData(prev => ({ ...prev, avatar_url: publicUrl }));
       toast({ title: 'Avatar updated successfully' });
-    } catch (error) {
-      toast({ title: 'Error uploading avatar', variant: 'destructive' });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to upload avatar';
+      toast({ title: 'Error uploading avatar', description: message, variant: 'destructive' });
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleClinicImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !ownedClinic?.id) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Please select an image file', variant: 'destructive' });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'Image must be less than 5MB', variant: 'destructive' });
+      return;
+    }
+
+    setIsUploadingClinicImage(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo-${Date.now()}.${fileExt}`;
+      // Use clinic id as folder for RLS policy compliance
+      const filePath = `${ownedClinic.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('clinic-images')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('clinic-images')
+        .getPublicUrl(filePath);
+
+      // Update clinic with new image URL
+      updateClinic.mutate({
+        image_url: publicUrl,
+      } as any, {
+        onSuccess: () => {
+          toast({ title: 'Clinic photo updated successfully' });
+        }
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to upload image';
+      toast({ title: 'Error uploading clinic photo', description: message, variant: 'destructive' });
+    } finally {
+      setIsUploadingClinicImage(false);
     }
   };
 
@@ -222,74 +284,98 @@ const ClinicProfile = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-lg border-b border-border">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" asChild>
+        <div className="container mx-auto px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <Button variant="ghost" size="icon" className="shrink-0" asChild>
               <Link to="/clinic/dashboard">
                 <ArrowLeft className="h-5 w-5" />
               </Link>
             </Button>
-            <Link to="/" className="flex items-center gap-2">
-              <img src={logo} alt="VET-MEDIX" className="h-10 w-10 rounded-lg object-cover" />
-              <span className="font-bold text-lg hidden sm:block">VET-MEDIX</span>
+            <Link to="/" className="flex items-center gap-2 min-w-0">
+              <img src={logo} alt="VET-MEDIX" className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg object-cover shrink-0" />
+              <span className="font-bold text-base sm:text-lg hidden sm:block truncate">VET-MEDIX</span>
             </Link>
           </div>
-          <Badge variant="secondary">
-            <Building2 className="h-3 w-3 mr-1" />
-            Clinic Settings
-          </Badge>
+          <div className="flex items-center gap-2">
+            {ownedClinic?.id && (
+              <Button variant="outline" size="sm" asChild className="hidden sm:flex">
+                <Link to={`/clinic/${ownedClinic.id}`}>
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Public Page
+                </Link>
+              </Button>
+            )}
+            <Badge variant="secondary" className="hidden xs:flex">
+              <Building2 className="h-3 w-3 mr-1" />
+              <span className="hidden sm:inline">Clinic Settings</span>
+              <span className="sm:hidden">Settings</span>
+            </Badge>
+          </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 max-w-3xl">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="clinic" className="flex items-center gap-2">
-              <Building2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Clinic Details</span>
-              <span className="sm:hidden">Clinic</span>
-            </TabsTrigger>
-            <TabsTrigger value="owner" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Owner Profile</span>
-              <span className="sm:hidden">Owner</span>
-            </TabsTrigger>
-            <TabsTrigger value="schedules" className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Doctor Schedules</span>
-              <span className="sm:hidden">Schedules</span>
-            </TabsTrigger>
-          </TabsList>
+      <main className="container mx-auto px-4 py-4 sm:py-6 max-w-3xl">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+          <ScrollArea className="w-full">
+            <TabsList className="w-full inline-flex h-auto p-1 gap-1">
+              <TabsTrigger value="clinic" className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs sm:text-sm">
+                <Building2 className="h-4 w-4 shrink-0" />
+                <span className="hidden xs:inline">Clinic Details</span>
+                <span className="xs:hidden">Clinic</span>
+              </TabsTrigger>
+              <TabsTrigger value="owner" className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs sm:text-sm">
+                <User className="h-4 w-4 shrink-0" />
+                <span className="hidden xs:inline">Owner Profile</span>
+                <span className="xs:hidden">Owner</span>
+              </TabsTrigger>
+              <TabsTrigger value="schedules" className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs sm:text-sm">
+                <Calendar className="h-4 w-4 shrink-0" />
+                <span className="hidden xs:inline">Doctor Schedules</span>
+                <span className="xs:hidden">Schedules</span>
+              </TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
 
           {/* Clinic Details Tab */}
           <TabsContent value="clinic">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               {/* Clinic Photo & Status */}
               <Card>
                 <CardContent className="pt-6">
-                  <div className="flex items-center gap-6">
-                    <div className="relative">
-                      <Avatar className="h-24 w-24">
+                  <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+                    <div className="relative shrink-0">
+                      <Avatar className="h-20 w-20 sm:h-24 sm:w-24">
                         <AvatarImage src={ownedClinic?.image_url || ''} />
                         <AvatarFallback className="text-2xl">
-                          <Building2 className="h-10 w-10" />
+                          <Building2 className="h-8 w-8 sm:h-10 sm:w-10" />
                         </AvatarFallback>
                       </Avatar>
-                      <button
-                        type="button"
-                        className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                      <label
+                        className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors"
                       >
-                        <Camera className="h-4 w-4" />
-                      </button>
+                        {isUploadingClinicImage ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Camera className="h-4 w-4" />
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleClinicImageUpload}
+                          disabled={isUploadingClinicImage}
+                        />
+                      </label>
                     </div>
-                    <div className="flex-1">
-                      <h2 className="text-xl font-semibold">{formData.name || 'My Clinic'}</h2>
-                      <p className="text-muted-foreground">{formData.address || 'Add your address'}</p>
-                      <div className="flex items-center gap-2 mt-2">
+                    <div className="flex-1 text-center sm:text-left min-w-0">
+                      <h2 className="text-lg sm:text-xl font-semibold truncate">{formData.name || 'My Clinic'}</h2>
+                      <p className="text-muted-foreground text-sm truncate">{formData.address || 'Add your address'}</p>
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-2">
                         {(ownedClinic as any)?.is_verified ? (
                           <Badge className="bg-emerald-500">
                             <CheckCircle className="h-3 w-3 mr-1" />
-                            Verified Clinic
+                            Verified
                           </Badge>
                         ) : (
                           <Badge variant="outline">Pending Verification</Badge>
@@ -305,9 +391,9 @@ const ClinicProfile = () => {
 
               {/* Basic Info */}
               <Card>
-                <CardHeader>
-                  <CardTitle>Basic Information</CardTitle>
-                  <CardDescription>Your clinic's public details visible to pet owners</CardDescription>
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base sm:text-lg">Basic Information</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Your clinic's public details visible to pet owners</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
@@ -336,9 +422,9 @@ const ClinicProfile = () => {
 
               {/* Contact & Location */}
               <Card>
-                <CardHeader>
-                  <CardTitle>Contact & Location</CardTitle>
-                  <CardDescription>How pet owners can reach and find your clinic</CardDescription>
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base sm:text-lg">Contact & Location</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">How pet owners can reach and find your clinic</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
@@ -398,9 +484,9 @@ const ClinicProfile = () => {
 
               {/* Services Offered */}
               <Card>
-                <CardHeader>
-                  <CardTitle>Services Offered</CardTitle>
-                  <CardDescription>Select all services your clinic provides</CardDescription>
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base sm:text-lg">Services Offered</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Select all services your clinic provides</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
@@ -408,14 +494,14 @@ const ClinicProfile = () => {
                       <Badge
                         key={service}
                         variant={formData.services.includes(service) ? 'default' : 'outline'}
-                        className="cursor-pointer transition-colors"
+                        className="cursor-pointer transition-colors text-xs sm:text-sm py-1.5 px-3"
                         onClick={() => toggleService(service)}
                       >
                         {service}
                       </Badge>
                     ))}
                   </div>
-                  <p className="text-sm text-muted-foreground mt-3">
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-3">
                     {formData.services.length} service(s) selected
                   </p>
                 </CardContent>
@@ -423,15 +509,15 @@ const ClinicProfile = () => {
 
               {/* Operating Hours */}
               <Card>
-                <CardHeader>
-                  <CardTitle>Operating Hours</CardTitle>
-                  <CardDescription>When is your clinic open for appointments?</CardDescription>
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base sm:text-lg">Operating Hours</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">When is your clinic open for appointments?</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/50">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg bg-secondary/50">
                     <div>
-                      <Label className="text-base">Clinic Status</Label>
-                      <p className="text-sm text-muted-foreground">
+                      <Label className="text-sm sm:text-base">Clinic Status</Label>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         Show your clinic as currently open or closed
                       </p>
                     </div>
@@ -452,7 +538,7 @@ const ClinicProfile = () => {
                       value={formData.opening_hours}
                       onChange={(e) => setFormData({ ...formData, opening_hours: e.target.value })}
                     />
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       Describe your typical operating schedule
                     </p>
                   </div>
@@ -483,15 +569,15 @@ const ClinicProfile = () => {
 
           {/* Owner Profile Tab */}
           <TabsContent value="owner">
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Owner Avatar & Info */}
               <Card>
                 <CardContent className="pt-6">
-                  <div className="flex flex-col sm:flex-row items-center gap-6">
-                    <div className="relative">
-                      <Avatar className="h-28 w-28">
+                  <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+                    <div className="relative shrink-0">
+                      <Avatar className="h-24 w-24 sm:h-28 sm:w-28">
                         <AvatarImage src={ownerData.avatar_url} />
-                        <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
+                        <AvatarFallback className="text-xl sm:text-2xl bg-primary text-primary-foreground">
                           {getInitials(ownerData.full_name || user?.email || '')}
                         </AvatarFallback>
                       </Avatar>
@@ -510,9 +596,9 @@ const ClinicProfile = () => {
                         />
                       </label>
                     </div>
-                    <div className="text-center sm:text-left">
-                      <h2 className="text-2xl font-bold">{ownerData.full_name || 'Clinic Owner'}</h2>
-                      <p className="text-muted-foreground">{user?.email}</p>
+                    <div className="text-center sm:text-left min-w-0">
+                      <h2 className="text-xl sm:text-2xl font-bold truncate">{ownerData.full_name || 'Clinic Owner'}</h2>
+                      <p className="text-muted-foreground text-sm truncate">{user?.email}</p>
                       <Badge className="mt-2">
                         <Building2 className="h-3 w-3 mr-1" />
                         Clinic Owner
@@ -524,10 +610,10 @@ const ClinicProfile = () => {
 
               {/* Personal Information */}
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-row items-start sm:items-center justify-between gap-2 pb-4">
                   <div>
-                    <CardTitle>Personal Information</CardTitle>
-                    <CardDescription>Your personal details for the clinic</CardDescription>
+                    <CardTitle className="text-base sm:text-lg">Personal Information</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">Your personal details for the clinic</CardDescription>
                   </div>
                   {!isEditingOwner ? (
                     <Button variant="outline" size="sm" onClick={() => setIsEditingOwner(true)}>
@@ -555,7 +641,7 @@ const ClinicProfile = () => {
                           placeholder="Enter your full name"
                         />
                       ) : (
-                        <p className="text-sm py-2">{ownerData.full_name || 'Not set'}</p>
+                        <p className="text-sm py-2 px-3 bg-secondary/50 rounded-md">{ownerData.full_name || 'Not set'}</p>
                       )}
                     </div>
                     <div className="space-y-2">
@@ -568,7 +654,7 @@ const ClinicProfile = () => {
                           placeholder="+880 1XXX-XXXXXX"
                         />
                       ) : (
-                        <p className="text-sm py-2">{ownerData.phone || 'Not set'}</p>
+                        <p className="text-sm py-2 px-3 bg-secondary/50 rounded-md">{ownerData.phone || 'Not set'}</p>
                       )}
                     </div>
                   </div>
@@ -577,27 +663,32 @@ const ClinicProfile = () => {
 
               {/* Clinic Association */}
               <Card>
-                <CardHeader>
-                  <CardTitle>Clinic Details</CardTitle>
-                  <CardDescription>Your associated clinic information</CardDescription>
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base sm:text-lg">Clinic Details</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Your associated clinic information</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-4 p-4 rounded-lg bg-secondary/50">
-                    <Avatar className="h-16 w-16">
+                  <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-lg bg-secondary/50">
+                    <Avatar className="h-14 w-14 sm:h-16 sm:w-16 shrink-0">
                       <AvatarImage src={ownedClinic?.image_url || ''} />
                       <AvatarFallback>
-                        <Building2 className="h-8 w-8" />
+                        <Building2 className="h-6 w-6 sm:h-8 sm:w-8" />
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{ownedClinic?.name || 'No clinic'}</h3>
-                      <p className="text-sm text-muted-foreground">{ownedClinic?.address || 'Address not set'}</p>
-                      <div className="flex items-center gap-2 mt-1">
+                    <div className="flex-1 text-center sm:text-left min-w-0">
+                      <h3 className="font-semibold truncate">{ownedClinic?.name || 'No clinic'}</h3>
+                      <p className="text-sm text-muted-foreground truncate">{ownedClinic?.address || 'Address not set'}</p>
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-2">
                         {(ownedClinic as any)?.is_verified && (
                           <Badge variant="secondary" className="text-xs">
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Verified
                           </Badge>
+                        )}
+                        {ownedClinic?.id && (
+                          <Button variant="link" size="sm" className="h-auto p-0 text-xs" asChild>
+                            <Link to={`/clinic/${ownedClinic.id}`}>View Public Page →</Link>
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -607,21 +698,21 @@ const ClinicProfile = () => {
 
               {/* Account Info */}
               <Card>
-                <CardHeader>
-                  <CardTitle>Account Information</CardTitle>
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base sm:text-lg">Account Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex justify-between py-2 border-b border-border">
-                    <span className="text-muted-foreground">Email</span>
-                    <span>{user?.email}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-border gap-1">
+                    <span className="text-muted-foreground text-sm">Email</span>
+                    <span className="text-sm truncate">{user?.email}</span>
                   </div>
-                  <div className="flex justify-between py-2 border-b border-border">
-                    <span className="text-muted-foreground">Role</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-border gap-1">
+                    <span className="text-muted-foreground text-sm">Role</span>
                     <Badge>Clinic Owner</Badge>
                   </div>
-                  <div className="flex justify-between py-2">
-                    <span className="text-muted-foreground">Member Since</span>
-                    <span>{user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between py-2 gap-1">
+                    <span className="text-muted-foreground text-sm">Member Since</span>
+                    <span className="text-sm">{user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -631,9 +722,9 @@ const ClinicProfile = () => {
           {/* Doctor Schedules Tab */}
           <TabsContent value="schedules">
             <Card>
-              <CardHeader>
-                <CardTitle>Doctor Schedules</CardTitle>
-                <CardDescription>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base sm:text-lg">Doctor Schedules</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   Set available time slots for each doctor. Pet owners will only be able to book appointments during these times.
                 </CardDescription>
               </CardHeader>
@@ -641,7 +732,7 @@ const ClinicProfile = () => {
                 {doctorsList.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No doctors found. Add doctors to your clinic first.</p>
+                    <p className="text-sm sm:text-base">No doctors found. Add doctors to your clinic first.</p>
                     <Button variant="outline" className="mt-4" asChild>
                       <Link to="/clinic/doctors">Manage Doctors</Link>
                     </Button>
