@@ -43,6 +43,7 @@ import ClinicServices from "./pages/clinic/ClinicServices";
 import ClinicDoctors from "./pages/clinic/ClinicDoctors";
 // OAuth role selection
 import SelectRolePage from "./pages/SelectRolePage";
+import { Navigate, useSearchParams } from "react-router-dom";
 
 const queryClient = new QueryClient();
 
@@ -96,6 +97,7 @@ const App = () => (
                 {/* Clinic owner routes */}
                 <Route path="/clinic/dashboard" element={<ClinicDashboard />} />
                 <Route path="/clinic/profile" element={<ClinicProfile />} />
+                <Route path="/clinic/owner-profile" element={<Navigate to="/clinic/profile?tab=owner" replace />} />
                 <Route path="/clinic/services" element={<ClinicServices />} />
                 <Route path="/clinic/doctors" element={<ClinicDoctors />} />
                 
