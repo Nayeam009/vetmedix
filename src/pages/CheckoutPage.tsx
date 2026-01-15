@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
-import { ArrowLeft, CheckCircle, Banknote, CreditCard, Smartphone } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Banknote, CreditCard, Smartphone, MapPin, Truck } from 'lucide-react';
 import { checkoutSchema } from '@/lib/validations';
 
 const paymentMethods = [
@@ -45,6 +45,13 @@ const paymentMethods = [
   },
 ];
 
+// Delivery charge calculation based on division
+const getDeliveryCharge = (division: string): number => {
+  if (!division) return 60; // Default to Dhaka rate
+  const normalizedDivision = division.toLowerCase().trim();
+  return normalizedDivision === 'dhaka' ? 60 : 120;
+};
+
 const CheckoutPage = () => {
   const { items, totalAmount, clearCart } = useCart();
   const { user } = useAuth();
@@ -64,6 +71,10 @@ const CheckoutPage = () => {
     thana: '',
     notes: '',
   });
+
+  // Calculate delivery charge dynamically
+  const deliveryCharge = getDeliveryCharge(formData.division);
+  const grandTotal = totalAmount + deliveryCharge;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,7 +113,7 @@ const CheckoutPage = () => {
       const { error } = await supabase.from('orders').insert([{
         user_id: user.id,
         items: items as any,
-        total_amount: totalAmount + 60,
+        total_amount: grandTotal,
         shipping_address: shippingAddress,
         payment_method: paymentMethod,
       }]);
@@ -112,7 +123,7 @@ const CheckoutPage = () => {
       clearCart();
       setOrderPlaced(true);
       toast({ title: 'Order Placed!', description: 'Your order has been placed successfully.' });
-    } catch (error: Error) {
+    } catch (error: unknown) {
       toast({ 
         title: 'Error', 
         description: 'Failed to place order. Please try again.',
@@ -135,7 +146,7 @@ const CheckoutPage = () => {
           </p>
           {paymentMethod === 'cod' && (
             <p className="text-sm text-muted-foreground mb-8 max-w-md mx-auto">
-              💵 Please keep <span className="font-semibold text-primary">৳{(totalAmount + 60).toLocaleString()}</span> ready for Cash on Delivery.
+              💵 Please keep <span className="font-semibold text-primary">৳{grandTotal.toLocaleString()}</span> ready for Cash on Delivery.
             </p>
           )}
           <div className="flex gap-4 justify-center">
@@ -326,7 +337,7 @@ const CheckoutPage = () => {
                     <div className="mt-4 p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
                       <p className="text-sm text-amber-800 dark:text-amber-200">
                         💵 <strong>Cash on Delivery:</strong> Please keep the exact amount ready when the delivery person arrives. 
-                        Our delivery partner will collect <strong>৳{(totalAmount + 60).toLocaleString()}</strong> at your doorstep.
+                        Our delivery partner will collect <strong>৳{grandTotal.toLocaleString()}</strong> at your doorstep.
                       </p>
                     </div>
                   )}
@@ -334,7 +345,7 @@ const CheckoutPage = () => {
               </Card>
 
               <Button type="submit" variant="accent" size="lg" className="w-full" disabled={loading}>
-                {loading ? 'Placing Order...' : `Place Order - ৳${(totalAmount + 60).toLocaleString()}`}
+                {loading ? 'Placing Order...' : `Place Order - ৳${grandTotal.toLocaleString()}`}
               </Button>
             </form>
           </div>
@@ -366,13 +377,35 @@ const CheckoutPage = () => {
                   <span>Subtotal</span>
                   <span>৳{totalAmount.toLocaleString()}</span>
                 </div>
+                
+                {/* Dynamic Delivery Charge */}
                 <div className="flex justify-between text-muted-foreground">
-                  <span>Shipping</span>
-                  <span>৳60</span>
+                  <div className="flex items-center gap-2">
+                    <Truck className="h-4 w-4" />
+                    <span>Delivery</span>
+                  </div>
+                  <span>৳{deliveryCharge}</span>
                 </div>
+                
+                {/* Delivery Location Info */}
+                <div className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-secondary/50">
+                  <MapPin className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-muted-foreground">
+                    {formData.division ? (
+                      formData.division.toLowerCase() === 'dhaka' ? (
+                        <span className="text-green-600 dark:text-green-400 font-medium">Inside Dhaka - ৳60</span>
+                      ) : (
+                        <span className="text-amber-600 dark:text-amber-400 font-medium">Outside Dhaka - ৳120</span>
+                      )
+                    ) : (
+                      <span>Enter division for delivery rate</span>
+                    )}
+                  </span>
+                </div>
+                
                 <div className="border-t border-border pt-3 flex justify-between text-lg font-bold text-foreground">
                   <span>Total</span>
-                  <span>৳{(totalAmount + 60).toLocaleString()}</span>
+                  <span>৳{grandTotal.toLocaleString()}</span>
                 </div>
               </div>
 

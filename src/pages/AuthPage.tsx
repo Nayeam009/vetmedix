@@ -83,10 +83,11 @@ const AuthPage = () => {
         },
       });
       if (error) throw error;
-    } catch (error: Error) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to sign in with Google";
       toast({
         title: "Error",
-        description: error.message || "Failed to sign in with Google",
+        description: errorMessage,
         variant: "destructive",
       });
       setGoogleLoading(false);
@@ -192,10 +193,11 @@ const AuthPage = () => {
           redirectBasedOnRole(selectedRole);
         }
       }
-    } catch (error: Error) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Something went wrong";
       toast({
         title: "Error",
-        description: error.message || "Something went wrong",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

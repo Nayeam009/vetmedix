@@ -46,11 +46,12 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
 
       onChange(publicUrl);
       toast({ title: 'Success', description: 'Image uploaded successfully' });
-    } catch (error: Error) {
+    } catch (error: unknown) {
       console.error('Upload error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload image';
       toast({ 
         title: 'Upload failed', 
-        description: error.message || 'Failed to upload image', 
+        description: errorMessage, 
         variant: 'destructive' 
       });
     } finally {

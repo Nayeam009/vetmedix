@@ -167,7 +167,7 @@ const ProfilePage = () => {
         title: "Profile Updated",
         description: "Your profile has been saved successfully.",
       });
-    } catch (error: Error) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
         description: "Failed to update profile. Please try again.",

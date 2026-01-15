@@ -106,8 +106,9 @@ const AdminOrders = () => {
 
       toast({ title: 'Success', description: `Order status updated to ${status}` });
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
-    } catch (error: Error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update order';
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
     }
   };
 

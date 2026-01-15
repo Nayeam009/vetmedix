@@ -83,8 +83,9 @@ const AdminCustomers = () => {
 
       toast({ title: 'Success', description: `User role updated to ${role}` });
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-    } catch (error: Error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update role';
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
     }
   };
 
