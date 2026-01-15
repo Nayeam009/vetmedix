@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointment_waitlist: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          doctor_id: string | null
+          expires_at: string | null
+          id: string
+          notification_sent_at: string | null
+          pet_name: string
+          pet_type: string
+          position: number | null
+          preferred_date: string
+          preferred_time: string
+          reason: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          doctor_id?: string | null
+          expires_at?: string | null
+          id?: string
+          notification_sent_at?: string | null
+          pet_name: string
+          pet_type: string
+          position?: number | null
+          preferred_date: string
+          preferred_time: string
+          reason?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          doctor_id?: string | null
+          expires_at?: string | null
+          id?: string
+          notification_sent_at?: string | null
+          pet_name?: string
+          pet_type?: string
+          position?: number | null
+          preferred_date?: string
+          preferred_time?: string
+          reason?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_waitlist_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_waitlist_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           appointment_date: string
@@ -25,6 +94,8 @@ export type Database = {
           pet_name: string | null
           pet_type: string | null
           reason: string | null
+          reminder_sent_at: string | null
+          reminder_type: string | null
           status: string | null
           user_id: string
         }
@@ -38,6 +109,8 @@ export type Database = {
           pet_name?: string | null
           pet_type?: string | null
           reason?: string | null
+          reminder_sent_at?: string | null
+          reminder_type?: string | null
           status?: string | null
           user_id: string
         }
@@ -51,6 +124,8 @@ export type Database = {
           pet_name?: string | null
           pet_type?: string | null
           reason?: string | null
+          reminder_sent_at?: string | null
+          reminder_type?: string | null
           status?: string | null
           user_id?: string
         }
@@ -271,6 +346,48 @@ export type Database = {
           last_message_at?: string | null
           participant_1_id?: string
           participant_2_id?: string
+        }
+        Relationships: []
+      }
+      doctor_schedules: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          day_of_week: number
+          doctor_id: string
+          end_time: string
+          id: string
+          is_available: boolean | null
+          max_appointments: number | null
+          slot_duration_minutes: number | null
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          day_of_week: number
+          doctor_id: string
+          end_time: string
+          id?: string
+          is_available?: boolean | null
+          max_appointments?: number | null
+          slot_duration_minutes?: number | null
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          day_of_week?: number
+          doctor_id?: string
+          end_time?: string
+          id?: string
+          is_available?: boolean | null
+          max_appointments?: number | null
+          slot_duration_minutes?: number | null
+          start_time?: string
+          updated_at?: string
         }
         Relationships: []
       }
