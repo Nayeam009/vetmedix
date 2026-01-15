@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-export type AppRole = 'admin' | 'moderator' | 'user';
+export type AppRole = 'admin' | 'moderator' | 'user' | 'doctor' | 'clinic_owner';
 
 interface UserRole {
   id: string;
@@ -15,10 +15,10 @@ export const useAdmin = () => {
   const { user } = useAuth();
 
   const { data: userRole, isLoading: roleLoading } = useQuery({
-    queryKey: ['user-role', user?.id],
+    queryKey: ['admin-role', user?.id],
     queryFn: async () => {
       if (!user) return null;
-      
+
       const { data, error } = await supabase
         .from('user_roles')
         .select('*')
