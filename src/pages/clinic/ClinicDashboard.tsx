@@ -191,7 +191,7 @@ const ClinicDashboard = () => {
       <main className="container mx-auto px-4 py-4 sm:py-6 max-w-7xl">
         {/* Clinic Hero Banner */}
         <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-primary/20 via-accent/10 to-secondary mb-6 sm:mb-8">
-          <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0 opacity-10 pointer-events-none">
             <div className="absolute top-0 right-0 w-48 sm:w-96 h-48 sm:h-96 bg-primary rounded-full blur-3xl" />
             <div className="absolute bottom-0 left-0 w-32 sm:w-64 h-32 sm:h-64 bg-accent rounded-full blur-3xl" />
           </div>
