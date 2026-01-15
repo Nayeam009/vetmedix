@@ -41,7 +41,6 @@ import ClinicDashboard from "./pages/clinic/ClinicDashboard";
 import ClinicProfile from "./pages/clinic/ClinicProfile";
 import ClinicServices from "./pages/clinic/ClinicServices";
 import ClinicDoctors from "./pages/clinic/ClinicDoctors";
-import ClinicOwnerProfile from "./pages/clinic/ClinicOwnerProfile";
 // OAuth role selection
 import SelectRolePage from "./pages/SelectRolePage";
 
@@ -99,7 +98,6 @@ const App = () => (
                 <Route path="/clinic/profile" element={<ClinicProfile />} />
                 <Route path="/clinic/services" element={<ClinicServices />} />
                 <Route path="/clinic/doctors" element={<ClinicDoctors />} />
-                <Route path="/clinic/owner-profile" element={<ClinicOwnerProfile />} />
                 
                 {/* 404 */}
                 <Route path="*" element={<NotFound />} />
