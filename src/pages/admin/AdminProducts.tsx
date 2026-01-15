@@ -146,8 +146,9 @@ const AdminProducts = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setIsAddOpen(false);
       resetForm();
-    } catch (error: Error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add product';
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -196,8 +197,9 @@ const AdminProducts = () => {
       setIsEditOpen(false);
       setSelectedProduct(null);
       resetForm();
-    } catch (error: Error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update product';
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -216,8 +218,9 @@ const AdminProducts = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setIsDeleteOpen(false);
       setSelectedProduct(null);
-    } catch (error: Error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete product';
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
     } finally {
       setSaving(false);
     }

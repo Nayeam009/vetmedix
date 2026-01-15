@@ -169,11 +169,12 @@ const SelectRolePage = () => {
       });
 
       redirectBasedOnRole(selectedRole);
-    } catch (error: Error) {
+    } catch (error: unknown) {
       console.error('Setup error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to complete setup';
       toast({
         title: 'Error',
-        description: error.message || 'Failed to complete setup',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
