@@ -301,8 +301,8 @@ const ClinicDashboard = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
-          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300 relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             <CardContent className="pt-4 sm:pt-6 relative">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
@@ -319,8 +319,8 @@ const ClinicDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-amber-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300 relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-amber-500/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             <CardContent className="pt-4 sm:pt-6 relative">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
@@ -335,8 +335,8 @@ const ClinicDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-green-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300 relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-green-500/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             <CardContent className="pt-4 sm:pt-6 relative">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
@@ -351,8 +351,8 @@ const ClinicDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300 relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             <CardContent className="pt-4 sm:pt-6 relative">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
