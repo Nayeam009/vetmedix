@@ -596,13 +596,21 @@ const ClinicProfile = () => {
                         />
                       </label>
                     </div>
-                    <div className="text-center sm:text-left min-w-0">
+                    <div className="flex-1 text-center sm:text-left min-w-0">
                       <h2 className="text-xl sm:text-2xl font-bold truncate">{ownerData.full_name || 'Clinic Owner'}</h2>
                       <p className="text-muted-foreground text-sm truncate">{user?.email}</p>
-                      <Badge className="mt-2">
-                        <Building2 className="h-3 w-3 mr-1" />
-                        Clinic Owner
-                      </Badge>
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-2">
+                        <Badge>
+                          <Building2 className="h-3 w-3 mr-1" />
+                          Clinic Owner
+                        </Badge>
+                        <Button variant="outline" size="sm" asChild>
+                          <Link to="/clinic/dashboard">
+                            <Building2 className="h-4 w-4 mr-1.5" />
+                            My Clinic
+                          </Link>
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
