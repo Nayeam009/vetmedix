@@ -125,3 +125,23 @@ export const productFormSchema = z.object({
 });
 
 export type ProductFormData = z.infer<typeof productFormSchema>;
+
+// ========== Waitlist Validation Schema ==========
+
+export const waitlistSchema = z.object({
+  petName: z
+    .string()
+    .min(1, 'Pet name is required')
+    .max(100, 'Pet name must be less than 100 characters')
+    .regex(noXSSRegex, 'Pet name cannot contain < or > characters'),
+  petType: z.enum(['Dog', 'Cat', 'Bird', 'Cattle'], {
+    required_error: 'Pet type is required',
+  }),
+  reason: z
+    .string()
+    .max(500, 'Reason must be less than 500 characters')
+    .regex(noXSSRegex, 'Reason cannot contain < or > characters')
+    .optional(),
+});
+
+export type WaitlistFormData = z.infer<typeof waitlistSchema>;
