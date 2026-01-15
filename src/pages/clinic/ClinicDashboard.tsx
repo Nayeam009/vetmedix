@@ -294,28 +294,6 @@ const ClinicDashboard = () => {
                   </div>
                 </div>
               </div>
-              
-              {/* Quick Actions */}
-              <div className="flex flex-wrap gap-2 md:flex-col md:gap-2">
-                <Button variant="outline" size="sm" asChild className="flex-1 md:flex-none bg-background/80 hover:bg-background">
-                  <Link to="/clinic/profile">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Clinic
-                  </Link>
-                </Button>
-                <Button variant="outline" size="sm" asChild className="flex-1 md:flex-none bg-background/80 hover:bg-background">
-                  <Link to="/clinic/doctors">
-                    <Stethoscope className="h-4 w-4 mr-2" />
-                    Doctors
-                  </Link>
-                </Button>
-                <Button variant="outline" size="sm" asChild className="flex-1 md:flex-none bg-background/80 hover:bg-background">
-                  <Link to="/clinic/services">
-                    <Package className="h-4 w-4 mr-2" />
-                    Services
-                  </Link>
-                </Button>
-              </div>
             </div>
           </div>
         </div>
