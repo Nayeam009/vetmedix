@@ -5,7 +5,7 @@ import {
   Calendar, Clock, Users, Star, TrendingUp, 
   CheckCircle, XCircle, AlertCircle, Settings,
   Building2, Stethoscope, Package, Plus, Edit, 
-  Phone, MapPin, Eye, User, Filter, Search, Menu
+  MapPin, Eye, User, Filter, Search, Menu
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,14 +29,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
-import { useClinicOwner } from '@/hooks/useClinicOwner';
+import { useClinicOwner, ClinicService } from '@/hooks/useClinicOwner';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useToast } from '@/hooks/use-toast';
+import AppointmentDetailsDialog from '@/components/clinic/AppointmentDetailsDialog';
+import ClinicAnalyticsCharts from '@/components/clinic/ClinicAnalyticsCharts';
+import ServiceQuickActions from '@/components/clinic/ServiceQuickActions';
+import DoctorQuickActions from '@/components/clinic/DoctorQuickActions';
 import logo from '@/assets/logo.jpeg';
 
 const ClinicDashboard = () => {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
   const { toast } = useToast();
   const { isClinicOwner, isLoading: roleLoading } = useUserRole();
   const { 
@@ -45,11 +49,17 @@ const ClinicDashboard = () => {
     clinicServices,
     clinicDoctors,
     clinicAppointments,
-    updateAppointmentStatus 
+    updateAppointmentStatus,
+    updateService,
+    deleteService,
+    updateDoctorStatus,
+    removeDoctor,
   } = useClinicOwner();
 
   const [appointmentFilter, setAppointmentFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
+  const [editingService, setEditingService] = useState<ClinicService | null>(null);
 
   if (roleLoading || clinicLoading) {
     return (
@@ -463,65 +473,40 @@ const ClinicDashboard = () => {
 
           {/* Doctors Tab */}
           <TabsContent value="doctors" className="space-y-4">
-            <Card>
-              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4">
-                <div>
-                  <CardTitle className="text-base sm:text-lg">Clinic Doctors</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">Manage doctors at your clinic</CardDescription>
-                </div>
-                <Button asChild size="sm">
-                  <Link to="/clinic/doctors">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Doctor
-                  </Link>
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {clinicDoctors && clinicDoctors.length > 0 ? (
-                  <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                    {clinicDoctors.map((cd) => (
-                      <div 
-                        key={cd.id}
-                        className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border border-border bg-gradient-to-br from-card to-secondary/20 hover:shadow-lg transition-all duration-300"
-                      >
-                        <Avatar className="h-12 w-12 sm:h-16 sm:w-16 border-2 border-primary/20 shrink-0">
-                          <AvatarImage src={cd.doctor?.avatar_url || ''} />
-                          <AvatarFallback className="bg-primary/10">
-                            <Stethoscope className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm sm:text-lg truncate">{cd.doctor?.name}</p>
-                          <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                            {cd.doctor?.specialization || 'General Veterinary'}
-                          </p>
-                          {cd.doctor?.consultation_fee && (
-                            <p className="text-xs sm:text-sm font-medium text-primary mt-1">
-                              ৳{cd.doctor.consultation_fee} / visit
-                            </p>
-                          )}
-                          <Badge 
-                            variant={cd.doctor?.is_available ? 'default' : 'secondary'}
-                            className="mt-2 text-xs"
-                          >
-                            {cd.doctor?.is_available ? '🟢 Available' : '🔴 Unavailable'}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Stethoscope className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground mb-4">No doctors added yet</p>
-                    <Button asChild size="sm">
-                      <Link to="/clinic/doctors">Add Your First Doctor</Link>
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div>
+                <h2 className="text-base sm:text-lg font-semibold">Clinic Doctors</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground">Manage doctors at your clinic</p>
+              </div>
+              <Button asChild size="sm">
+                <Link to="/clinic/doctors">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Doctor
+                </Link>
+              </Button>
+            </div>
+            {clinicDoctors && clinicDoctors.length > 0 ? (
+              <DoctorQuickActions
+                doctors={clinicDoctors}
+                onStatusChange={(id, status) => updateDoctorStatus.mutate({ id, status })}
+                onEdit={(doctor) => navigate('/clinic/doctors')}
+                onDelete={(doctorId) => removeDoctor.mutate(doctorId)}
+                isUpdating={updateDoctorStatus.isPending || removeDoctor.isPending}
+              />
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Stethoscope className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-4">No doctors added yet</p>
+                  <Button asChild size="sm">
+                    <Link to="/clinic/doctors">Add Your First Doctor</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
+
+
 
           {/* Services Tab */}
           <TabsContent value="services" className="space-y-4">
