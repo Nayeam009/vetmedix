@@ -18,7 +18,7 @@ export const useUserRole = (): UserRoleData => {
   const { user } = useAuth();
 
   const { data: role, isLoading } = useQuery({
-    queryKey: ['user-role', user?.id],
+    queryKey: ['user-role-type', user?.id],
     queryFn: async () => {
       if (!user?.id) return 'user' as UserRoleType;
 
