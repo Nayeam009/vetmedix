@@ -5,7 +5,7 @@ import {
   Calendar, Clock, Users, Star, TrendingUp, 
   CheckCircle, XCircle, AlertCircle, Settings,
   Building2, Stethoscope, Package, Plus, Edit, 
-  MapPin, Eye, User, Filter, Search, Menu, Home
+  MapPin, User, Filter, Search, Menu
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -119,13 +119,6 @@ const ClinicDashboard = () => {
     }
   };
 
-  const handleViewPublicPage = () => {
-    if (ownedClinic?.id) {
-      navigate(`/clinic/${ownedClinic.id}`);
-    } else {
-      toast({ title: 'Clinic not found', description: 'Please complete your clinic profile first.', variant: 'destructive' });
-    }
-  };
 
   // Handle service toggle
   const handleServiceToggle = (serviceId: string, isActive: boolean) => {
@@ -154,73 +147,100 @@ const ClinicDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-lg border-b border-border">
+      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-lg border-b border-border shadow-sm">
         <div className="container mx-auto px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <Link to="/" className="flex items-center gap-2 min-w-0">
-              <img src={logo} alt="VET-MEDIX" className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg object-cover shrink-0" />
-              <span className="font-bold text-base sm:text-lg hidden sm:block truncate">VET-MEDIX</span>
+          {/* Left side - Logo & Title */}
+          <div className="flex items-center gap-3 min-w-0">
+            <Link to="/" className="flex items-center gap-2.5 group">
+              <div className="relative">
+                <img 
+                  src={logo} 
+                  alt="VET-MEDIX" 
+                  className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl object-cover ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all" 
+                />
+                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-green-500 rounded-full border-2 border-background" />
+              </div>
+              <div className="hidden sm:block">
+                <span className="font-bold text-lg tracking-tight">VET-MEDIX</span>
+                <p className="text-[10px] text-muted-foreground -mt-0.5">Clinic Portal</p>
+              </div>
             </Link>
-            <Badge variant="secondary" className="hidden sm:flex shrink-0">
-              <Building2 className="h-3 w-3 mr-1" />
-              Clinic Dashboard
-            </Badge>
           </div>
+
+          {/* Center - Nav tabs (desktop) */}
+          <nav className="hidden md:flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+            <Link 
+              to="/clinic/dashboard"
+              className="px-4 py-1.5 rounded-md text-sm font-medium bg-background shadow-sm text-foreground"
+            >
+              Dashboard
+            </Link>
+            <Link 
+              to="/clinic/doctors"
+              className="px-4 py-1.5 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors"
+            >
+              Doctors
+            </Link>
+            <Link 
+              to="/clinic/services"
+              className="px-4 py-1.5 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors"
+            >
+              Services
+            </Link>
+            <Link 
+              to="/clinic/profile"
+              className="px-4 py-1.5 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors"
+            >
+              Settings
+            </Link>
+          </nav>
           
+          {/* Right side - Actions */}
           <div className="flex items-center gap-2">
-            {/* Desktop buttons */}
-            <Button variant="ghost" size="sm" asChild className="hidden lg:flex">
+            <Button variant="ghost" size="sm" asChild className="hidden lg:flex gap-2">
               <Link to="/profile">
-                <Home className="h-4 w-4 mr-2" />
-                Personal Profile
+                <User className="h-4 w-4" />
+                My Profile
               </Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild className="hidden md:flex">
-              <Link to="/clinic/profile">
-                <Settings className="h-4 w-4 mr-2" />
-                Clinic Settings
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleViewPublicPage} className="hidden sm:flex">
-              <Eye className="h-4 w-4 mr-2" />
-              View Public
             </Button>
             
             {/* Mobile dropdown menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
+                <Button variant="outline" size="icon" className="md:hidden h-9 w-9">
                   <Menu className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-52 bg-popover">
                 <DropdownMenuItem asChild>
-                  <Link to="/profile" className="flex items-center">
-                    <Home className="h-4 w-4 mr-2" />
-                    Personal Profile
+                  <Link to="/clinic/dashboard" className="flex items-center font-medium">
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Dashboard
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/clinic/profile" className="flex items-center">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Clinic Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleViewPublicPage} className="flex items-center">
-                  <Eye className="h-4 w-4 mr-2" />
-                  View Public Page
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link to="/clinic/doctors" className="flex items-center">
                     <Stethoscope className="h-4 w-4 mr-2" />
-                    Manage Doctors
+                    Doctors
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/clinic/services" className="flex items-center">
                     <Package className="h-4 w-4 mr-2" />
-                    Manage Services
+                    Services
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/clinic/profile" className="flex items-center">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="flex items-center">
+                    <User className="h-4 w-4 mr-2" />
+                    Personal Profile
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -277,20 +297,22 @@ const ClinicDashboard = () => {
               
               {/* Quick Actions */}
               <div className="flex flex-wrap gap-2 md:flex-col md:gap-2">
-                <Button variant="outline" size="sm" asChild className="flex-1 md:flex-none">
+                <Button variant="outline" size="sm" asChild className="flex-1 md:flex-none bg-background/80 hover:bg-background">
                   <Link to="/clinic/profile">
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Clinic
                   </Link>
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleViewPublicPage} className="flex-1 md:flex-none">
-                  <Eye className="h-4 w-4 mr-2" />
-                  View Public
+                <Button variant="outline" size="sm" asChild className="flex-1 md:flex-none bg-background/80 hover:bg-background">
+                  <Link to="/clinic/doctors">
+                    <Stethoscope className="h-4 w-4 mr-2" />
+                    Doctors
+                  </Link>
                 </Button>
-                <Button variant="outline" size="sm" asChild className="flex-1 md:flex-none">
-                  <Link to="/profile">
-                    <User className="h-4 w-4 mr-2" />
-                    My Profile
+                <Button variant="outline" size="sm" asChild className="flex-1 md:flex-none bg-background/80 hover:bg-background">
+                  <Link to="/clinic/services">
+                    <Package className="h-4 w-4 mr-2" />
+                    Services
                   </Link>
                 </Button>
               </div>
