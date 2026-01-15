@@ -191,11 +191,6 @@ const ClinicDashboard = () => {
       <main className="container mx-auto px-4 py-4 sm:py-6 max-w-7xl">
         {/* Clinic Hero Banner */}
         <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-primary/20 via-accent/10 to-secondary mb-6 sm:mb-8">
-          <div className="absolute inset-0 opacity-10 pointer-events-none">
-            <div className="absolute top-0 right-0 w-48 sm:w-96 h-48 sm:h-96 bg-primary rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-32 sm:w-64 h-32 sm:h-64 bg-accent rounded-full blur-3xl" />
-          </div>
-          
           <div className="relative p-4 sm:p-6 md:p-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
               <div className="flex items-center gap-3 sm:gap-5">
@@ -234,28 +229,10 @@ const ClinicDashboard = () => {
                   </div>
                 </div>
               </div>
-              
-              <div className="flex flex-wrap gap-2">
-                <Button asChild variant="outline" size="sm" className="bg-background/80">
-                  <Link to="/clinic/profile?tab=owner">
-                    <User className="h-4 w-4 mr-1.5" />
-                    <span className="hidden xs:inline">Owner</span> Profile
-                  </Link>
-                </Button>
-                <Button asChild size="sm">
-                  <Link to="/clinic/profile">
-                    <Edit className="h-4 w-4 mr-1.5" />
-                    <span className="hidden xs:inline">Edit</span> Clinic
-                  </Link>
-                </Button>
-                <Button variant="secondary" size="sm" onClick={handleViewPublicPage}>
-                  <Eye className="h-4 w-4 mr-1.5" />
-                  <span className="hidden sm:inline">View</span> Public
-                </Button>
-              </div>
             </div>
           </div>
         </div>
+
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
