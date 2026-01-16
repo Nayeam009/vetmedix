@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Loader2, Stethoscope, Mail, Phone, Edit, Trash2, GraduationCap, BadgeDollarSign } from 'lucide-react';
+import { Plus, Loader2, Stethoscope, Mail, Phone, Edit, Trash2, GraduationCap, BadgeDollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,7 +33,7 @@ import {
 import { useUserRole } from '@/hooks/useUserRole';
 import { useClinicOwner } from '@/hooks/useClinicOwner';
 import DoctorFormWizard, { DoctorFormData, initialDoctorFormData } from '@/components/clinic/DoctorFormWizard';
-import logo from '@/assets/logo.jpeg';
+import { ClinicHeader } from '@/components/clinic/ClinicHeader';
 
 const ClinicDoctors = () => {
   const navigate = useNavigate();
@@ -149,26 +149,7 @@ const ClinicDoctors = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-lg border-b border-border">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/clinic/dashboard">
-                <ArrowLeft className="h-5 w-5" />
-              </Link>
-            </Button>
-            <Link to="/" className="flex items-center gap-2">
-              <img src={logo} alt="VET-MEDIX" className="h-10 w-10 rounded-lg object-cover" />
-              <span className="font-bold text-lg hidden sm:block">VET-MEDIX</span>
-            </Link>
-          </div>
-          <Badge variant="secondary">
-            <Stethoscope className="h-3 w-3 mr-1" />
-            Doctors
-          </Badge>
-        </div>
-      </header>
+      <ClinicHeader />
 
       <main className="container mx-auto px-4 py-6 max-w-4xl">
         <div className="flex items-center justify-between mb-6">

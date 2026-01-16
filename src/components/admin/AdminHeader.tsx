@@ -25,29 +25,32 @@ export const AdminHeader = ({ title, subtitle }: AdminHeaderProps) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   return (
-    <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-md border-b border-border shadow-sm">
-      <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-4 lg:px-8">
+    <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-sm">
+      <div className="flex items-center justify-between h-14 sm:h-16 lg:h-18 px-3 sm:px-4 lg:px-8">
         <div className="flex items-center gap-2 sm:gap-4">
           {/* Mobile Menu */}
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden h-9 w-9">
+              <Button variant="ghost" size="icon" className="lg:hidden h-9 w-9 text-muted-foreground hover:text-foreground">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-72">
+            <SheetContent side="left" className="p-0 w-[280px] sm:w-[320px]">
               <AdminMobileNav />
             </SheetContent>
           </Sheet>
 
           {/* Logo - Mobile Only */}
-          <Link to="/admin" className="lg:hidden flex items-center gap-2">
-            <img 
-              src={logo} 
-              alt="PetConnect Admin" 
-              className="h-8 w-8 rounded-lg object-cover"
-            />
-            <span className="font-display font-bold text-sm sm:text-base text-foreground hidden xs:inline">Admin</span>
+          <Link to="/admin" className="lg:hidden flex items-center gap-2 group">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-accent/30 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <img 
+                src={logo} 
+                alt="PetConnect Admin" 
+                className="relative h-9 w-9 rounded-xl object-cover shadow-md border-2 border-primary/20 group-hover:border-primary/50 transition-all"
+              />
+            </div>
+            <span className="font-display font-bold text-sm sm:text-base bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent hidden xs:inline">Admin</span>
           </Link>
 
           {/* Page Title - Desktop */}
@@ -65,39 +68,38 @@ export const AdminHeader = ({ title, subtitle }: AdminHeaderProps) => {
         <div className="flex items-center gap-1 sm:gap-2 lg:gap-3">
           {/* Search */}
           <div className="hidden lg:flex relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-9 pl-9 pr-4 rounded-lg bg-secondary border border-border focus:border-primary outline-none text-sm w-48 xl:w-64 transition-all"
+              className="h-10 pl-10 pr-4 rounded-full bg-muted/50 hover:bg-muted/70 border border-border/50 focus:border-primary/50 focus:bg-background focus:ring-2 focus:ring-primary/20 outline-none text-sm w-48 xl:w-64 transition-all"
             />
           </div>
 
           {/* Mobile Search Button */}
-          <Button variant="ghost" size="icon" className="lg:hidden h-9 w-9">
+          <Button variant="ghost" size="icon" className="lg:hidden h-9 w-9 text-muted-foreground hover:text-foreground">
             <Search className="h-4 w-4" />
           </Button>
 
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative h-9 w-9">
+          <Button variant="ghost" size="icon" className="relative h-9 w-9 text-muted-foreground hover:text-foreground">
             <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
-            <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-destructive" />
+            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
           </Button>
 
           {/* Back to Site - Desktop */}
-          <Button variant="ghost" size="sm" className="hidden xl:flex gap-2" asChild>
+          <Button variant="ghost" size="sm" className="hidden xl:flex gap-2 text-muted-foreground hover:text-foreground" asChild>
             <Link to="/">
               <Home className="h-4 w-4" />
               <span>Site</span>
             </Link>
           </Button>
 
-          {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
+              <Button variant="ghost" size="icon" className="h-9 w-9">
                 <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
                   <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary-foreground" />
                 </div>

@@ -5,7 +5,7 @@ import {
   Calendar, Clock, Users, Star, TrendingUp, 
   CheckCircle, XCircle, AlertCircle, Settings,
   Building2, Stethoscope, Package, Plus, Edit, 
-  MapPin, User, Filter, Search, Menu
+  MapPin, User, Filter, Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,13 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicOwner, ClinicService } from '@/hooks/useClinicOwner';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -35,6 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import AppointmentDetailsDialog from '@/components/clinic/AppointmentDetailsDialog';
 import ServiceQuickActions from '@/components/clinic/ServiceQuickActions';
 import DoctorQuickActions from '@/components/clinic/DoctorQuickActions';
+import { ClinicHeader } from '@/components/clinic/ClinicHeader';
 import logo from '@/assets/logo.jpeg';
 
 const ClinicDashboard = () => {
@@ -146,112 +140,7 @@ const ClinicDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-lg border-b border-border shadow-sm">
-        <div className="container mx-auto px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
-          {/* Left side - Logo & Title */}
-          <div className="flex items-center gap-3 min-w-0">
-            <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="relative">
-                <img 
-                  src={logo} 
-                  alt="VET-MEDIX" 
-                  className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl object-cover ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all" 
-                />
-                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-green-500 rounded-full border-2 border-background" />
-              </div>
-              <div className="hidden sm:block">
-                <span className="font-bold text-lg tracking-tight">VET-MEDIX</span>
-                <p className="text-[10px] text-muted-foreground -mt-0.5">Clinic Portal</p>
-              </div>
-            </Link>
-          </div>
-
-          {/* Center - Nav tabs (desktop) */}
-          <nav className="hidden md:flex items-center gap-1 bg-muted/50 rounded-lg p-1">
-            <Link 
-              to="/clinic/dashboard"
-              className="px-4 py-1.5 rounded-md text-sm font-medium bg-background shadow-sm text-foreground"
-            >
-              Dashboard
-            </Link>
-            <Link 
-              to="/clinic/doctors"
-              className="px-4 py-1.5 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors"
-            >
-              Doctors
-            </Link>
-            <Link 
-              to="/clinic/services"
-              className="px-4 py-1.5 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors"
-            >
-              Services
-            </Link>
-            <Link 
-              to="/clinic/profile"
-              className="px-4 py-1.5 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors"
-            >
-              Settings
-            </Link>
-          </nav>
-          
-          {/* Right side - Actions */}
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" asChild className="hidden lg:flex gap-2">
-              <Link to="/profile">
-                <User className="h-4 w-4" />
-                My Profile
-              </Link>
-            </Button>
-            
-            {/* Mobile dropdown menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="md:hidden h-9 w-9">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52 bg-popover">
-                <DropdownMenuItem asChild>
-                  <Link to="/clinic/dashboard" className="flex items-center font-medium">
-                    <Building2 className="h-4 w-4 mr-2" />
-                    Dashboard
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/clinic/doctors" className="flex items-center">
-                    <Stethoscope className="h-4 w-4 mr-2" />
-                    Doctors
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/clinic/services" className="flex items-center">
-                    <Package className="h-4 w-4 mr-2" />
-                    Services
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/clinic/profile" className="flex items-center">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/profile" className="flex items-center">
-                    <User className="h-4 w-4 mr-2" />
-                    Personal Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => signOut()} className="text-destructive">
-                  Sign Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </header>
+      <ClinicHeader />
 
       <main className="container mx-auto px-4 py-4 sm:py-6 max-w-7xl">
         {/* Clinic Hero Banner */}

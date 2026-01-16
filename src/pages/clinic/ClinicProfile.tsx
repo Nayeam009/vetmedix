@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Save, Loader2, Camera, Building2, MapPin, Phone, Mail, Clock, CheckCircle, User, Calendar, Eye } from 'lucide-react';
+import { Save, Loader2, Camera, Building2, MapPin, Phone, Mail, Clock, CheckCircle, User, Calendar, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,7 +17,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import DoctorScheduleManager from '@/components/clinic/DoctorScheduleManager';
-import logo from '@/assets/logo.jpeg';
+import { ClinicHeader } from '@/components/clinic/ClinicHeader';
 
 const serviceCategories = [
   'General Checkup',
@@ -282,37 +282,7 @@ const ClinicProfile = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-lg border-b border-border">
-        <div className="container mx-auto px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <Button variant="ghost" size="icon" className="shrink-0" asChild>
-              <Link to="/clinic/dashboard">
-                <ArrowLeft className="h-5 w-5" />
-              </Link>
-            </Button>
-            <Link to="/" className="flex items-center gap-2 min-w-0">
-              <img src={logo} alt="VET-MEDIX" className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg object-cover shrink-0" />
-              <span className="font-bold text-base sm:text-lg hidden sm:block truncate">VET-MEDIX</span>
-            </Link>
-          </div>
-          <div className="flex items-center gap-2">
-            {ownedClinic?.id && (
-              <Button variant="outline" size="sm" asChild className="hidden sm:flex">
-                <Link to={`/clinic/${ownedClinic.id}`}>
-                  <Eye className="h-4 w-4 mr-2" />
-                  View Public Page
-                </Link>
-              </Button>
-            )}
-            <Badge variant="secondary" className="hidden xs:flex">
-              <Building2 className="h-3 w-3 mr-1" />
-              <span className="hidden sm:inline">Clinic Settings</span>
-              <span className="sm:hidden">Settings</span>
-            </Badge>
-          </div>
-        </div>
-      </header>
+      <ClinicHeader />
 
       <main className="container mx-auto px-4 py-4 sm:py-6 max-w-3xl">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
