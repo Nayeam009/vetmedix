@@ -132,7 +132,7 @@ export const ClinicHeader = ({ title, showBackButton = false }: ClinicHeaderProp
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut} className="flex items-center gap-3 cursor-pointer text-destructive focus:text-destructive">
+                <DropdownMenuItem onClick={async () => { await signOut(); navigate('/'); }} className="flex items-center gap-3 cursor-pointer text-destructive focus:text-destructive">
                   <LogOut className="h-4 w-4" />
                   Sign Out
                 </DropdownMenuItem>
@@ -211,7 +211,7 @@ export const ClinicHeader = ({ title, showBackButton = false }: ClinicHeaderProp
                   <div className="h-px bg-border/50 my-3" />
 
                   <button
-                    onClick={() => { signOut(); setIsMenuOpen(false); }}
+                    onClick={async () => { await signOut(); setIsMenuOpen(false); navigate('/'); }}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-all w-full text-left"
                   >
                     <LogOut className="h-5 w-5" />
