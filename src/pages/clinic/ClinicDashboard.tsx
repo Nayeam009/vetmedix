@@ -4,37 +4,23 @@ import { format } from 'date-fns';
 import { 
   Calendar, Clock, Users, Star, TrendingUp, 
   CheckCircle, XCircle, AlertCircle, Settings,
-  Building2, Stethoscope, Package, Plus, Edit, 
-  MapPin, User, Filter, Search
+  Building2, Stethoscope, Package, Plus, Edit
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import Navbar from '@/components/Navbar';
+import MobileNav from '@/components/MobileNav';
 import { useAuth } from '@/contexts/AuthContext';
-import { useClinicOwner, ClinicService } from '@/hooks/useClinicOwner';
+import { useClinicOwner } from '@/hooks/useClinicOwner';
 import { useUserRole } from '@/hooks/useUserRole';
-import { useToast } from '@/hooks/use-toast';
-import AppointmentDetailsDialog from '@/components/clinic/AppointmentDetailsDialog';
-import ServiceQuickActions from '@/components/clinic/ServiceQuickActions';
-import DoctorQuickActions from '@/components/clinic/DoctorQuickActions';
-import { ClinicHeader } from '@/components/clinic/ClinicHeader';
 import logo from '@/assets/logo.jpeg';
 
 const ClinicDashboard = () => {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
-  const { toast } = useToast();
+  const { user, signOut } = useAuth();
   const { isClinicOwner, isLoading: roleLoading } = useUserRole();
   const { 
     ownedClinic, 
@@ -42,17 +28,8 @@ const ClinicDashboard = () => {
     clinicServices,
     clinicDoctors,
     clinicAppointments,
-    updateAppointmentStatus,
-    updateService,
-    deleteService,
-    updateDoctorStatus,
-    removeDoctor,
+    updateAppointmentStatus 
   } = useClinicOwner();
-
-  const [appointmentFilter, setAppointmentFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
-  const [editingService, setEditingService] = useState<ClinicService | null>(null);
 
   if (roleLoading || clinicLoading) {
     return (
@@ -62,7 +39,7 @@ const ClinicDashboard = () => {
     );
   }
 
-  if (!isClinicOwner) {
+  if (!user || !isClinicOwner) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="max-w-md w-full">
@@ -70,9 +47,11 @@ const ClinicDashboard = () => {
             <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
             <p className="text-muted-foreground mb-4">
-              This page is only accessible to clinic owners.
+              {!user ? 'Please sign in to access this page.' : 'This page is only accessible to clinic owners.'}
             </p>
-            <Button onClick={() => navigate('/')}>Go to Home</Button>
+            <Button onClick={() => navigate(user ? '/' : '/auth')}>
+              {user ? 'Go to Home' : 'Sign In'}
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -91,18 +70,6 @@ const ClinicDashboard = () => {
     d => d.status === 'active'
   ) || [];
 
-  const activeServices = clinicServices?.filter(s => s.is_active) || [];
-
-  const filteredAppointments = clinicAppointments?.filter((apt: any) => {
-    const matchesFilter = appointmentFilter === 'all' || 
-      (appointmentFilter === 'today' && apt.appointment_date === format(new Date(), 'yyyy-MM-dd')) ||
-      apt.status === appointmentFilter;
-    const matchesSearch = !searchQuery || 
-      apt.pet_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      apt.reason?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
-  }) || [];
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed': return 'bg-green-500/10 text-green-600 border-green-500/20';
@@ -113,317 +80,175 @@ const ClinicDashboard = () => {
     }
   };
 
-
-  // Handle service toggle
-  const handleServiceToggle = (serviceId: string, isActive: boolean) => {
-    updateService.mutate({ 
-      id: serviceId, 
-      updates: { is_active: isActive } 
-    });
-  };
-
-  // Handle service edit - navigate to services page for editing
-  const handleServiceEdit = (service: ClinicService) => {
-    navigate('/clinic/services');
-  };
-
-  // Handle service delete
-  const handleServiceDelete = (serviceId: string) => {
-    deleteService.mutate(serviceId);
-  };
-
-  // Handle appointment status update
-  const handleAppointmentStatusUpdate = (id: string, status: string) => {
-    updateAppointmentStatus.mutate({ id, status });
-    setSelectedAppointment(null);
-  };
-
   return (
-    <div className="min-h-screen bg-background">
-      <ClinicHeader />
-
-      <main className="container mx-auto px-4 py-4 sm:py-6 max-w-7xl">
-        {/* Clinic Hero Banner */}
-        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-primary/20 via-accent/10 to-secondary mb-6 sm:mb-8">
-          <div className="relative p-4 sm:p-6 md:p-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
-              <div className="flex items-center gap-3 sm:gap-5">
-                <Avatar className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 border-4 border-background shadow-xl shrink-0">
-                  <AvatarImage src={ownedClinic?.image_url || ''} />
-                  <AvatarFallback className="text-xl sm:text-2xl font-bold bg-gradient-to-br from-primary to-accent text-white">
-                    <Building2 className="h-8 w-8 sm:h-10 sm:w-10" />
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground truncate">
-                      {ownedClinic?.name || 'My Clinic'}
-                    </h1>
-                    {ownedClinic?.is_verified && (
-                      <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30 shrink-0">
-                        ✓ Verified
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                    <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
-                    <span className="text-xs sm:text-sm truncate">{ownedClinic?.address || 'No address set'}</span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                    <Badge variant={ownedClinic?.is_open ? 'default' : 'secondary'} className="gap-1">
-                      <span className={`h-2 w-2 rounded-full ${ownedClinic?.is_open ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
-                      {ownedClinic?.is_open ? 'Open Now' : 'Closed'}
-                    </Badge>
-                    {ownedClinic?.rating !== undefined && ownedClinic.rating > 0 && (
-                      <div className="flex items-center gap-1 text-amber-500">
-                        <Star className="h-4 w-4 fill-current" />
-                        <span className="font-semibold text-sm">{ownedClinic.rating.toFixed(1)}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
+    <div className="min-h-screen bg-background pb-16 md:pb-0">
+      <Navbar />
+      
+      <main className="container mx-auto px-4 py-6 max-w-7xl">
+        {/* Clinic Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <Avatar className="h-16 w-16">
+              <AvatarImage src={ownedClinic?.image_url || ''} />
+              <AvatarFallback>
+                <Building2 className="h-8 w-8" />
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">
+                {ownedClinic?.name || 'My Clinic'}
+              </h1>
+              <p className="text-muted-foreground">{ownedClinic?.address}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant={ownedClinic?.is_open ? 'default' : 'secondary'}>
+                  {ownedClinic?.is_open ? 'Open' : 'Closed'}
+                </Badge>
+                {ownedClinic?.is_verified && (
+                  <Badge variant="outline" className="text-green-600">Verified</Badge>
+                )}
               </div>
             </div>
           </div>
+          <Button asChild>
+            <Link to="/clinic/profile">
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Clinic
+            </Link>
+          </Button>
         </div>
-
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
-          <Card 
-            className="overflow-hidden group hover:shadow-lg transition-all duration-300 relative cursor-pointer"
-            onClick={() => {
-              const tabsElement = document.querySelector('[value="appointments"]');
-              if (tabsElement) tabsElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-            <CardContent className="pt-4 sm:pt-6 relative">
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-xs sm:text-sm text-muted-foreground font-medium truncate">Today's Appointments</p>
-                  <p className="text-2xl sm:text-3xl font-bold mt-1 text-primary">{todayAppointments.length}</p>
-                  <p className="text-xs text-muted-foreground mt-1 hidden sm:block">
-                    {format(new Date(), 'EEEE, MMM d')}
-                  </p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Today</p>
+                  <p className="text-2xl font-bold mt-1">{todayAppointments.length}</p>
                 </div>
-                <div className="h-10 w-10 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg shrink-0">
-                  <Calendar className="h-5 w-5 sm:h-7 sm:w-7 text-primary-foreground" />
+                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Calendar className="h-6 w-6 text-primary" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card 
-            className="overflow-hidden group hover:shadow-lg transition-all duration-300 relative cursor-pointer"
-            onClick={() => {
-              const tabsElement = document.querySelector('[value="appointments"]');
-              if (tabsElement) tabsElement.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-              setAppointmentFilter('pending');
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-amber-500/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-            <CardContent className="pt-4 sm:pt-6 relative">
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-xs sm:text-sm text-muted-foreground font-medium truncate">Pending Review</p>
-                  <p className="text-2xl sm:text-3xl font-bold mt-1 text-amber-600">{pendingAppointments.length}</p>
-                  <p className="text-xs text-muted-foreground mt-1 hidden sm:block">Awaiting confirmation</p>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Pending</p>
+                  <p className="text-2xl font-bold mt-1">{pendingAppointments.length}</p>
                 </div>
-                <div className="h-10 w-10 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shrink-0">
-                  <Clock className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
+                <div className="h-12 w-12 rounded-full bg-yellow-500/10 flex items-center justify-center">
+                  <Clock className="h-6 w-6 text-yellow-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card 
-            className="overflow-hidden group hover:shadow-lg transition-all duration-300 relative cursor-pointer"
-            onClick={() => navigate('/clinic/doctors')}
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-green-500/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-            <CardContent className="pt-4 sm:pt-6 relative">
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-xs sm:text-sm text-muted-foreground font-medium truncate">Active Doctors</p>
-                  <p className="text-2xl sm:text-3xl font-bold mt-1 text-green-600">{activeDoctors.length}</p>
-                  <p className="text-xs text-muted-foreground mt-1 hidden sm:block">Available for appointments</p>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Doctors</p>
+                  <p className="text-2xl font-bold mt-1">{activeDoctors.length}</p>
                 </div>
-                <div className="h-10 w-10 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg shrink-0">
-                  <Stethoscope className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
+                <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <Stethoscope className="h-6 w-6 text-green-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card 
-            className="overflow-hidden group hover:shadow-lg transition-all duration-300 relative cursor-pointer"
-            onClick={() => navigate('/clinic/services')}
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-            <CardContent className="pt-4 sm:pt-6 relative">
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-xs sm:text-sm text-muted-foreground font-medium truncate">Active Services</p>
-                  <p className="text-2xl sm:text-3xl font-bold mt-1 text-blue-600">{activeServices.length}</p>
-                  <p className="text-xs text-muted-foreground mt-1 hidden sm:block">Currently offered</p>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Services</p>
+                  <p className="text-2xl font-bold mt-1">{clinicServices?.length || 0}</p>
                 </div>
-                <div className="h-10 w-10 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shrink-0">
-                  <Package className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
+                <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+                  <Package className="h-6 w-6 text-blue-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <Tabs defaultValue="appointments" className="space-y-4 sm:space-y-6">
-          <ScrollArea className="w-full">
-            <TabsList className="w-full inline-flex h-auto p-1 gap-1">
-              <TabsTrigger value="appointments" className="flex-1 px-3 py-2 text-xs sm:text-sm">
-                <Calendar className="h-4 w-4 mr-1.5 hidden xs:inline" />
-                Appointments
-              </TabsTrigger>
-              <TabsTrigger value="doctors" className="flex-1 px-3 py-2 text-xs sm:text-sm">
-                <Stethoscope className="h-4 w-4 mr-1.5 hidden xs:inline" />
-                Doctors
-              </TabsTrigger>
-              <TabsTrigger value="services" className="flex-1 px-3 py-2 text-xs sm:text-sm">
-                <Package className="h-4 w-4 mr-1.5 hidden xs:inline" />
-                Services
-              </TabsTrigger>
-              <TabsTrigger value="analytics" className="flex-1 px-3 py-2 text-xs sm:text-sm">
-                <TrendingUp className="h-4 w-4 mr-1.5 hidden xs:inline" />
-                Analytics
-              </TabsTrigger>
-            </TabsList>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+        <Tabs defaultValue="appointments" className="space-y-6">
+          <TabsList className="grid w-full max-w-lg grid-cols-4">
+            <TabsTrigger value="appointments">Appointments</TabsTrigger>
+            <TabsTrigger value="doctors">Doctors</TabsTrigger>
+            <TabsTrigger value="services">Services</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          </TabsList>
 
           {/* Appointments Tab */}
           <TabsContent value="appointments" className="space-y-4">
             <Card>
-              <CardHeader className="pb-4">
-                <div className="flex flex-col gap-4">
-                  <div>
-                    <CardTitle className="text-base sm:text-lg">Clinic Appointments</CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">Manage and review all appointments</CardDescription>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search appointments..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9"
-                      />
-                    </div>
-                    <Select value={appointmentFilter} onValueChange={setAppointmentFilter}>
-                      <SelectTrigger className="w-full sm:w-[140px]">
-                        <Filter className="h-4 w-4 mr-2" />
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="today">Today</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="confirmed">Confirmed</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Clinic Appointments</CardTitle>
+                  <CardDescription>All appointments at your clinic</CardDescription>
                 </div>
               </CardHeader>
               <CardContent>
-                {filteredAppointments.length > 0 ? (
-                  <div className="space-y-3 sm:space-y-4">
-                    {filteredAppointments.slice(0, 20).map((apt: any) => (
+                {clinicAppointments && clinicAppointments.length > 0 ? (
+                  <div className="space-y-4">
+                    {clinicAppointments.slice(0, 10).map((apt: any) => (
                       <div 
                         key={apt.id} 
-                        className="flex flex-col gap-3 p-3 sm:p-4 rounded-xl border border-border bg-card hover:bg-muted/50 transition-all duration-200 hover:shadow-md cursor-pointer"
-                        onClick={() => setSelectedAppointment(apt)}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
                       >
-                        <div className="flex items-start gap-3 sm:gap-4">
-                          <div className="h-10 w-10 sm:h-14 sm:w-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0">
-                            <Users className="h-5 w-5 sm:h-7 sm:w-7 text-primary" />
+                        <div className="flex items-center gap-4">
+                          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <Users className="h-6 w-6 text-primary" />
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2 mb-1">
-                              <p className="font-semibold text-sm sm:text-lg">{apt.pet_name || 'Unknown Pet'}</p>
-                              <Badge variant="outline" className="text-xs">
-                                {apt.pet_type || 'Pet'}
-                              </Badge>
-                            </div>
-                            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
-                              {apt.reason || 'General Checkup'}
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{apt.pet_name || 'Unknown Pet'}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {apt.pet_type} • {apt.reason || 'General Checkup'}
                             </p>
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-xs sm:text-sm">
-                              <span className="flex items-center gap-1 text-muted-foreground">
-                                <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                                {format(new Date(apt.appointment_date), 'MMM d, yyyy')}
-                              </span>
-                              <span className="flex items-center gap-1 text-muted-foreground">
-                                <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                                {apt.appointment_time}
-                              </span>
-                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(apt.appointment_date), 'MMM d, yyyy')} at {apt.appointment_time}
+                            </p>
                             {apt.doctor && (
-                              <p className="text-xs sm:text-sm text-primary mt-1 flex items-center gap-1">
-                                <Stethoscope className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                              <p className="text-sm text-primary mt-1">
                                 Dr. {apt.doctor.name}
                               </p>
                             )}
                           </div>
                         </div>
-                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border">
+                        <div className="flex items-center gap-2 ml-16 sm:ml-0">
                           <Badge className={getStatusColor(apt.status)}>
                             {apt.status}
                           </Badge>
                           {apt.status === 'pending' && (
-                            <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex gap-1">
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                className="text-green-600 hover:bg-green-50 hover:border-green-300 text-xs sm:text-sm h-8"
+                                className="text-green-600 hover:bg-green-50"
                                 onClick={() => updateAppointmentStatus.mutate({ 
                                   id: apt.id, 
                                   status: 'confirmed' 
                                 })}
                               >
-                                <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                                Accept
+                                <CheckCircle className="h-4 w-4" />
                               </Button>
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                className="text-red-600 hover:bg-red-50 hover:border-red-300 text-xs sm:text-sm h-8"
+                                className="text-red-600 hover:bg-red-50"
                                 onClick={() => updateAppointmentStatus.mutate({ 
                                   id: apt.id, 
                                   status: 'cancelled' 
                                 })}
                               >
-                                <XCircle className="h-3.5 w-3.5 mr-1" />
-                                Reject
+                                <XCircle className="h-4 w-4" />
                               </Button>
                             </div>
-                          )}
-                          {apt.status === 'confirmed' && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              className="text-blue-600 hover:bg-blue-50 text-xs sm:text-sm h-8"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                updateAppointmentStatus.mutate({ 
-                                  id: apt.id, 
-                                  status: 'completed' 
-                                });
-                              }}
-                            >
-                              <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                              Complete
-                            </Button>
                           )}
                         </div>
                       </div>
@@ -432,7 +257,7 @@ const ClinicDashboard = () => {
                 ) : (
                   <div className="text-center py-12">
                     <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No appointments found</p>
+                    <p className="text-muted-foreground">No appointments yet</p>
                   </div>
                 )}
               </CardContent>
@@ -441,224 +266,203 @@ const ClinicDashboard = () => {
 
           {/* Doctors Tab */}
           <TabsContent value="doctors" className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <div>
-                <h2 className="text-base sm:text-lg font-semibold">Clinic Doctors</h2>
-                <p className="text-xs sm:text-sm text-muted-foreground">Manage doctors at your clinic</p>
-              </div>
-              <Button asChild size="sm">
-                <Link to="/clinic/doctors">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Doctor
-                </Link>
-              </Button>
-            </div>
-            {clinicDoctors && clinicDoctors.length > 0 ? (
-              <DoctorQuickActions
-                doctors={clinicDoctors}
-                onStatusChange={(id, status) => updateDoctorStatus.mutate({ id, status })}
-                onEdit={(doctor) => navigate('/clinic/doctors')}
-                onDelete={(doctorId) => removeDoctor.mutate(doctorId)}
-                isUpdating={updateDoctorStatus.isPending || removeDoctor.isPending}
-              />
-            ) : (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <Stethoscope className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground mb-4">No doctors added yet</p>
-                  <Button asChild size="sm">
-                    <Link to="/clinic/doctors">Add Your First Doctor</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Clinic Doctors</CardTitle>
+                  <CardDescription>Manage doctors at your clinic</CardDescription>
+                </div>
+                <Button asChild>
+                  <Link to="/clinic/doctors">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Doctor
+                  </Link>
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {clinicDoctors && clinicDoctors.length > 0 ? (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {clinicDoctors.map((cd) => (
+                      <div 
+                        key={cd.id}
+                        className="flex items-center gap-4 p-4 rounded-lg border border-border"
+                      >
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={cd.doctor?.avatar_url || ''} />
+                          <AvatarFallback>
+                            <Stethoscope className="h-5 w-5" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{cd.doctor?.name}</p>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {cd.doctor?.specialization || 'General'}
+                          </p>
+                          <Badge 
+                            variant={cd.doctor?.is_available ? 'default' : 'secondary'}
+                            className="mt-1"
+                          >
+                            {cd.doctor?.is_available ? 'Available' : 'Unavailable'}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Stethoscope className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground mb-4">No doctors added yet</p>
+                    <Button asChild>
+                      <Link to="/clinic/doctors">Add Your First Doctor</Link>
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
-          {/* Services Tab - Now using ServiceQuickActions */}
+          {/* Services Tab */}
           <TabsContent value="services" className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <div>
-                <h2 className="text-base sm:text-lg font-semibold">Clinic Services</h2>
-                <p className="text-xs sm:text-sm text-muted-foreground">Services offered at your clinic</p>
-              </div>
-              <Button asChild size="sm">
-                <Link to="/clinic/services">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Service
-                </Link>
-              </Button>
-            </div>
-            {clinicServices && clinicServices.length > 0 ? (
-              <ServiceQuickActions
-                services={clinicServices}
-                onToggleActive={handleServiceToggle}
-                onEdit={handleServiceEdit}
-                onDelete={handleServiceDelete}
-                isUpdating={updateService.isPending || deleteService.isPending}
-              />
-            ) : (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground mb-4">No services added yet</p>
-                  <Button asChild size="sm">
-                    <Link to="/clinic/services">Add Your First Service</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Clinic Services</CardTitle>
+                  <CardDescription>Services offered at your clinic</CardDescription>
+                </div>
+                <Button asChild>
+                  <Link to="/clinic/services">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Service
+                  </Link>
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {clinicServices && clinicServices.length > 0 ? (
+                  <div className="space-y-3">
+                    {clinicServices.map((service) => (
+                      <div 
+                        key={service.id}
+                        className="flex items-center justify-between p-4 rounded-lg border border-border"
+                      >
+                        <div>
+                          <p className="font-medium">{service.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {service.description || 'No description'}
+                          </p>
+                          {service.duration_minutes && (
+                            <p className="text-sm text-muted-foreground">
+                              Duration: {service.duration_minutes} mins
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          {service.price && (
+                            <p className="font-semibold text-primary">৳{service.price}</p>
+                          )}
+                          <Badge variant={service.is_active ? 'default' : 'secondary'}>
+                            {service.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground mb-4">No services added yet</p>
+                    <Button asChild>
+                      <Link to="/clinic/services">Add Your First Service</Link>
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-4">
-            <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <Card>
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                    Appointment Overview
-                  </CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Appointments</CardTitle>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3 sm:space-y-4">
-                    <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg bg-secondary/50">
-                      <span className="text-xs sm:text-sm text-muted-foreground">Total Appointments</span>
-                      <span className="font-bold text-base sm:text-lg">{clinicAppointments?.length || 0}</span>
-                    </div>
-                    <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg bg-green-500/10">
-                      <span className="text-xs sm:text-sm text-green-600">Completed</span>
-                      <span className="font-bold text-base sm:text-lg text-green-600">
-                        {clinicAppointments?.filter((a: any) => a.status === 'completed').length || 0}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg bg-blue-500/10">
-                      <span className="text-xs sm:text-sm text-blue-600">Confirmed</span>
-                      <span className="font-bold text-base sm:text-lg text-blue-600">
-                        {clinicAppointments?.filter((a: any) => a.status === 'confirmed').length || 0}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg bg-amber-500/10">
-                      <span className="text-xs sm:text-sm text-amber-600">Pending</span>
-                      <span className="font-bold text-base sm:text-lg text-amber-600">
-                        {pendingAppointments.length}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg bg-red-500/10">
-                      <span className="text-xs sm:text-sm text-red-600">Cancelled</span>
-                      <span className="font-bold text-base sm:text-lg text-red-600">
-                        {clinicAppointments?.filter((a: any) => a.status === 'cancelled').length || 0}
-                      </span>
-                    </div>
-                  </div>
+                  <div className="text-2xl font-bold">{clinicAppointments?.length || 0}</div>
+                  <p className="text-xs text-muted-foreground">
+                    All time appointments
+                  </p>
                 </CardContent>
               </Card>
-
+              
               <Card>
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <Star className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />
-                    Clinic Performance
-                  </CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Completed Appointments</CardTitle>
+                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4 sm:space-y-6">
-                    <div className="text-center p-4 sm:p-6 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10">
-                      <div className="flex items-center justify-center gap-2 mb-2">
-                        <Star className="h-6 w-6 sm:h-8 sm:w-8 text-amber-500 fill-amber-500" />
-                        <span className="text-3xl sm:text-4xl font-bold">{ownedClinic?.rating?.toFixed(1) || '0.0'}</span>
-                      </div>
-                      <p className="text-xs sm:text-sm text-muted-foreground">Clinic Rating</p>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                      <div className="text-center p-3 sm:p-4 rounded-lg bg-secondary/50">
-                        <p className="text-xl sm:text-2xl font-bold text-primary">{activeDoctors.length}</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground">Active Doctors</p>
-                      </div>
-                      <div className="text-center p-3 sm:p-4 rounded-lg bg-secondary/50">
-                        <p className="text-xl sm:text-2xl font-bold text-primary">{activeServices.length}</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground">Active Services</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                      <div className="text-center p-3 sm:p-4 rounded-lg bg-green-500/10">
-                        <p className="text-xl sm:text-2xl font-bold text-green-600">{todayAppointments.length}</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground">Today's Appointments</p>
-                      </div>
-                      <div className="text-center p-3 sm:p-4 rounded-lg bg-blue-500/10">
-                        <p className="text-xl sm:text-2xl font-bold text-blue-600">
-                          {clinicAppointments?.filter((a: any) => a.status === 'completed').length || 0}
-                        </p>
-                        <p className="text-xs sm:text-sm text-muted-foreground">Total Completed</p>
-                      </div>
-                    </div>
+                  <div className="text-2xl font-bold">
+                    {clinicAppointments?.filter(apt => apt.status === 'completed').length || 0}
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Successfully completed
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Revenue</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">৳0</div>
+                  <p className="text-xs text-muted-foreground">
+                    Total earnings
+                  </p>
                 </CardContent>
               </Card>
             </div>
-
-            {/* Monthly Stats Card */}
+            
             <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                  <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                  This Month's Summary
-                </CardTitle>
+              <CardHeader>
+                <CardTitle>Appointment Status Overview</CardTitle>
+                <CardDescription>Breakdown of appointment statuses</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-                  {(() => {
-                    const thisMonth = new Date().getMonth();
-                    const thisYear = new Date().getFullYear();
-                    const monthlyAppointments = clinicAppointments?.filter((a: any) => {
-                      const date = new Date(a.appointment_date);
-                      return date.getMonth() === thisMonth && date.getFullYear() === thisYear;
-                    }) || [];
-
-                    return (
-                      <>
-                        <div className="text-center p-4 rounded-lg bg-primary/10">
-                          <p className="text-2xl sm:text-3xl font-bold text-primary">{monthlyAppointments.length}</p>
-                          <p className="text-xs sm:text-sm text-muted-foreground">Total This Month</p>
-                        </div>
-                        <div className="text-center p-4 rounded-lg bg-green-500/10">
-                          <p className="text-2xl sm:text-3xl font-bold text-green-600">
-                            {monthlyAppointments.filter((a: any) => a.status === 'completed').length}
-                          </p>
-                          <p className="text-xs sm:text-sm text-muted-foreground">Completed</p>
-                        </div>
-                        <div className="text-center p-4 rounded-lg bg-amber-500/10">
-                          <p className="text-2xl sm:text-3xl font-bold text-amber-600">
-                            {monthlyAppointments.filter((a: any) => a.status === 'pending').length}
-                          </p>
-                          <p className="text-xs sm:text-sm text-muted-foreground">Pending</p>
-                        </div>
-                        <div className="text-center p-4 rounded-lg bg-red-500/10">
-                          <p className="text-2xl sm:text-3xl font-bold text-red-600">
-                            {monthlyAppointments.filter((a: any) => a.status === 'cancelled').length}
-                          </p>
-                          <p className="text-xs sm:text-sm text-muted-foreground">Cancelled</p>
-                        </div>
-                      </>
-                    );
-                  })()}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Pending</span>
+                    <span className="text-sm font-medium">
+                      {clinicAppointments?.filter(apt => apt.status === 'pending').length || 0}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Confirmed</span>
+                    <span className="text-sm font-medium">
+                      {clinicAppointments?.filter(apt => apt.status === 'confirmed').length || 0}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Completed</span>
+                    <span className="text-sm font-medium">
+                      {clinicAppointments?.filter(apt => apt.status === 'completed').length || 0}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Cancelled</span>
+                    <span className="text-sm font-medium">
+                      {clinicAppointments?.filter(apt => apt.status === 'cancelled').length || 0}
+                    </span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </main>
-
-      {/* Appointment Details Dialog */}
-      <AppointmentDetailsDialog
-        appointment={selectedAppointment}
-        open={!!selectedAppointment}
-        onOpenChange={(open) => !open && setSelectedAppointment(null)}
-        onUpdateStatus={handleAppointmentStatusUpdate}
-        isUpdating={updateAppointmentStatus.isPending}
-        clinicPhone={ownedClinic?.phone || undefined}
-      />
+      
+      <MobileNav />
     </div>
   );
 };

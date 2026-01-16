@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Loader2, Stethoscope, Mail, Phone, Edit, Trash2, GraduationCap, BadgeDollarSign } from 'lucide-react';
+import { ArrowLeft, Plus, Loader2, Stethoscope, Mail, Phone, Edit, Trash2, GraduationCap, BadgeDollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -9,6 +12,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -30,10 +34,35 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import Navbar from '@/components/Navbar';
+import MobileNav from '@/components/MobileNav';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useClinicOwner } from '@/hooks/useClinicOwner';
-import DoctorFormWizard, { DoctorFormData, initialDoctorFormData } from '@/components/clinic/DoctorFormWizard';
-import { ClinicHeader } from '@/components/clinic/ClinicHeader';
+import logo from '@/assets/logo.jpeg';
+
+interface DoctorFormData {
+  name: string;
+  email: string;
+  phone: string;
+  specialization: string;
+  license_number: string;
+  qualifications: string;
+  experience_years: string;
+  consultation_fee: string;
+  bio: string;
+}
+
+const initialFormData: DoctorFormData = {
+  name: '',
+  email: '',
+  phone: '',
+  specialization: '',
+  license_number: '',
+  qualifications: '',
+  experience_years: '',
+  consultation_fee: '',
+  bio: '',
+};
 
 const ClinicDoctors = () => {
   const navigate = useNavigate();
@@ -52,8 +81,12 @@ const ClinicDoctors = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [formData, setFormData] = useState<DoctorFormData>(initialDoctorFormData);
+  const [formData, setFormData] = useState<DoctorFormData>(initialFormData);
   const [editingDoctorId, setEditingDoctorId] = useState<string | null>(null);
+
+  const handleInputChange = (field: keyof DoctorFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   const handleAddDoctor = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +109,7 @@ const ClinicDoctors = () => {
     });
 
     setIsAddOpen(false);
-    setFormData(initialDoctorFormData);
+    setFormData(initialFormData);
   };
 
   const handleEditDoctor = async (e: React.FormEvent) => {
@@ -104,7 +137,7 @@ const ClinicDoctors = () => {
     });
 
     setIsEditOpen(false);
-    setFormData(initialDoctorFormData);
+    setFormData(initialFormData);
     setEditingDoctorId(null);
   };
 
@@ -142,15 +175,146 @@ const ClinicDoctors = () => {
     );
   }
 
-  if (!isClinicOwner) {
-    navigate('/');
+  if (!user || !isClinicOwner) {
+    navigate(user ? '/' : '/auth');
     return null;
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      <ClinicHeader />
+  const DoctorForm = ({ onSubmit, submitLabel, isPending }: { onSubmit: (e: React.FormEvent) => void; submitLabel: string; isPending: boolean }) => (
+    <form onSubmit={onSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="name">Doctor Name *</Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => handleInputChange('name', e.target.value)}
+            required
+            placeholder="Dr. John Doe"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="specialization">Specialization</Label>
+          <Select value={formData.specialization} onValueChange={(v) => handleInputChange('specialization', v)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select specialization" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="General Veterinarian">General Veterinarian</SelectItem>
+              <SelectItem value="Surgery">Surgery</SelectItem>
+              <SelectItem value="Dermatology">Dermatology</SelectItem>
+              <SelectItem value="Cardiology">Cardiology</SelectItem>
+              <SelectItem value="Orthopedics">Orthopedics</SelectItem>
+              <SelectItem value="Dentistry">Dentistry</SelectItem>
+              <SelectItem value="Oncology">Oncology</SelectItem>
+              <SelectItem value="Neurology">Neurology</SelectItem>
+              <SelectItem value="Emergency Care">Emergency Care</SelectItem>
+              <SelectItem value="Exotic Animals">Exotic Animals</SelectItem>
+              <SelectItem value="Farm Animals">Farm Animals</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            value={formData.email}
+            onChange={(e) => handleInputChange('email', e.target.value)}
+            placeholder="doctor@example.com"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="phone">Phone</Label>
+          <Input
+            id="phone"
+            type="tel"
+            value={formData.phone}
+            onChange={(e) => handleInputChange('phone', e.target.value)}
+            placeholder="+880 1XXX-XXXXXX"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="license">License Number</Label>
+          <Input
+            id="license"
+            value={formData.license_number}
+            onChange={(e) => handleInputChange('license_number', e.target.value)}
+            placeholder="VET-XXXX-XXXX"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="experience">Experience (years)</Label>
+          <Input
+            id="experience"
+            type="number"
+            min="0"
+            value={formData.experience_years}
+            onChange={(e) => handleInputChange('experience_years', e.target.value)}
+            placeholder="5"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="qualifications">Qualifications (comma-separated)</Label>
+          <Input
+            id="qualifications"
+            value={formData.qualifications}
+            onChange={(e) => handleInputChange('qualifications', e.target.value)}
+            placeholder="DVM, MS, PhD"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="fee">Consultation Fee (৳)</Label>
+          <Input
+            id="fee"
+            type="number"
+            min="0"
+            value={formData.consultation_fee}
+            onChange={(e) => handleInputChange('consultation_fee', e.target.value)}
+            placeholder="500"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="bio">Bio</Label>
+        <Textarea
+          id="bio"
+          value={formData.bio}
+          onChange={(e) => handleInputChange('bio', e.target.value)}
+          placeholder="Brief description about the doctor..."
+          rows={3}
+        />
+      </div>
+
+      <DialogFooter>
+        <Button type="submit" disabled={isPending}>
+          {isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            submitLabel
+          )}
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+
+  return (
+    <div className="min-h-screen bg-background pb-16 md:pb-0">
+      <Navbar />
+      
       <main className="container mx-auto px-4 py-6 max-w-4xl">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -171,9 +335,7 @@ const ClinicDoctors = () => {
                   Create a doctor profile for your clinic. The doctor will be associated with {ownedClinic?.name}.
                 </DialogDescription>
               </DialogHeader>
-              <DoctorFormWizard 
-                formData={formData}
-                onFormDataChange={setFormData}
+              <DoctorForm 
                 onSubmit={handleAddDoctor} 
                 submitLabel="Add Doctor" 
                 isPending={addDoctor.isPending} 
@@ -186,7 +348,7 @@ const ClinicDoctors = () => {
         <Dialog open={isEditOpen} onOpenChange={(open) => {
           setIsEditOpen(open);
           if (!open) {
-            setFormData(initialDoctorFormData);
+            setFormData(initialFormData);
             setEditingDoctorId(null);
           }
         }}>
@@ -197,9 +359,7 @@ const ClinicDoctors = () => {
                 Update doctor information
               </DialogDescription>
             </DialogHeader>
-            <DoctorFormWizard 
-              formData={formData}
-              onFormDataChange={setFormData}
+            <DoctorForm 
               onSubmit={handleEditDoctor} 
               submitLabel="Save Changes" 
               isPending={updateDoctor.isPending} 
@@ -341,6 +501,8 @@ const ClinicDoctors = () => {
           </Card>
         )}
       </main>
+      
+      <MobileNav />
     </div>
   );
 };

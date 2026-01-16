@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import Navbar from '@/components/Navbar';
+import MobileNav from '@/components/MobileNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDoctor } from '@/hooks/useDoctor';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -79,28 +81,9 @@ const DoctorProfile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-lg border-b border-border">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/doctor/dashboard">
-                <ArrowLeft className="h-5 w-5" />
-              </Link>
-            </Button>
-            <Link to="/" className="flex items-center gap-2">
-              <img src={logo} alt="VET-MEDIX" className="h-10 w-10 rounded-lg object-cover" />
-              <span className="font-bold text-lg hidden sm:block">VET-MEDIX</span>
-            </Link>
-          </div>
-          <Badge variant="secondary">
-            <Stethoscope className="h-3 w-3 mr-1" />
-            Doctor Profile
-          </Badge>
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-background pb-16 md:pb-0">
+      <Navbar />
+      
       <main className="container mx-auto px-4 py-6 max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Profile Photo */}
@@ -276,6 +259,8 @@ const DoctorProfile = () => {
           </Button>
         </form>
       </main>
+      
+      <MobileNav />
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, Loader2, Package } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Plus, Edit, Trash2, Loader2, Building2, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,9 +17,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import Navbar from '@/components/Navbar';
+import MobileNav from '@/components/MobileNav';
+import { useAuth } from '@/contexts/AuthContext';
 import { useClinicOwner, ClinicService } from '@/hooks/useClinicOwner';
 import { useUserRole } from '@/hooks/useUserRole';
-import { ClinicHeader } from '@/components/clinic/ClinicHeader';
+import logo from '@/assets/logo.jpeg';
 
 const ClinicServices = () => {
   const navigate = useNavigate();
@@ -107,15 +110,15 @@ const ClinicServices = () => {
     );
   }
 
-  if (!isClinicOwner) {
-    navigate('/');
+  if (!user || !isClinicOwner) {
+    navigate(user ? '/' : '/auth');
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <ClinicHeader />
-
+    <div className="min-h-screen bg-background pb-16 md:pb-0">
+      <Navbar />
+      
       <main className="container mx-auto px-4 py-6 max-w-4xl">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -280,6 +283,8 @@ const ClinicServices = () => {
           </Card>
         )}
       </main>
+      
+      <MobileNav />
     </div>
   );
 };

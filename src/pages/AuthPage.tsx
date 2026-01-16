@@ -28,7 +28,7 @@ const AuthPage = () => {
 
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  const { signIn, signUp, user, loading: authLoading } = useAuth();
+  const { user, signIn, signUp, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 

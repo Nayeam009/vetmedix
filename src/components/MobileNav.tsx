@@ -23,17 +23,17 @@ const MobileNav = () => {
 
     // Add role-specific dashboard as 5th item
     if (isAdmin) {
-      return [...baseItems, { icon: Shield, label: 'Admin', path: '/admin', badge: 0 }];
+      return [...baseItems, { icon: Shield, label: 'Dashboard', path: '/admin', badge: 0 }];
     }
     if (isDoctor) {
       return [...baseItems, { icon: Stethoscope, label: 'Dashboard', path: '/doctor/dashboard', badge: 0 }];
     }
     if (isClinicOwner) {
-      return [...baseItems, { icon: Building2, label: 'Clinic', path: '/clinic/dashboard', badge: 0 }];
+      return [...baseItems, { icon: Building2, label: 'Dashboard', path: '/clinic/dashboard', badge: 0 }];
     }
     
-    // Default: Profile/Login for regular users
-    return [...baseItems, { icon: User, label: user ? 'Profile' : 'Login', path: user ? '/profile' : '/auth', badge: 0 }];
+    // Default: Dashboard/Login for regular users
+    return [...baseItems, { icon: User, label: user ? 'Dashboard' : 'Login', path: user ? '/profile' : '/auth', badge: 0 }];
   };
 
   const navItems = getNavItems();

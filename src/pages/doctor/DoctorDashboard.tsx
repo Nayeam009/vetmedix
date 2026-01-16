@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Navbar from '@/components/Navbar';
+import MobileNav from '@/components/MobileNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDoctor } from '@/hooks/useDoctor';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -72,35 +74,9 @@ const DoctorDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-lg border-b border-border">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/" className="flex items-center gap-2">
-              <img src={logo} alt="VET-MEDIX" className="h-10 w-10 rounded-lg object-cover" />
-              <span className="font-bold text-lg hidden sm:block">VET-MEDIX</span>
-            </Link>
-            <Badge variant="secondary" className="hidden sm:flex">
-              <Stethoscope className="h-3 w-3 mr-1" />
-              Doctor
-            </Badge>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/doctor/profile">
-                <Settings className="h-4 w-4 mr-2" />
-                Profile
-              </Link>
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => signOut()}>
-              Sign Out
-            </Button>
-          </div>
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-background pb-16 md:pb-0">
+      <Navbar />
+      
       <main className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Welcome Section */}
         <div className="mb-8">
@@ -319,6 +295,8 @@ const DoctorDashboard = () => {
           </TabsContent>
         </Tabs>
       </main>
+      
+      <MobileNav />
     </div>
   );
 };
