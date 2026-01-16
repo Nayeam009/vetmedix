@@ -28,18 +28,21 @@ export const AdminMobileNav = () => {
   const location = useLocation();
 
   return (
-    <div className="flex flex-col h-full bg-card">
+    <div className="flex flex-col h-full bg-background">
       {/* Logo */}
-      <div className="p-5 border-b border-border bg-gradient-to-r from-primary/5 to-accent/5">
-        <Link to="/admin" className="flex items-center gap-3">
-          <img 
-            src={logo} 
-            alt="PetConnect Admin" 
-            className="h-11 w-11 rounded-xl object-cover shadow-md"
-          />
+      <div className="p-5 border-b border-border/50 bg-gradient-to-r from-primary/5 to-accent/5">
+        <Link to="/admin" className="flex items-center gap-3 group">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-accent/30 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <img 
+              src={logo} 
+              alt="PetConnect Admin" 
+              className="relative h-11 w-11 rounded-xl object-cover shadow-md border-2 border-primary/20"
+            />
+          </div>
           <div>
-            <h1 className="font-display font-bold text-foreground">Admin Panel</h1>
-            <p className="text-xs text-muted-foreground">PetConnect</p>
+            <h1 className="font-display font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">Admin Panel</h1>
+            <p className="text-xs text-muted-foreground">VET-MEDIX</p>
           </div>
         </Link>
       </div>
@@ -57,11 +60,11 @@ export const AdminMobileNav = () => {
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
                 isActive 
-                  ? "bg-primary text-primary-foreground shadow-soft" 
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  ? "bg-primary/10 text-primary" 
+                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               )}
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className={cn("h-5 w-5", isActive ? "text-primary" : "")} />
               {item.label}
             </Link>
           );
@@ -69,10 +72,10 @@ export const AdminMobileNav = () => {
       </nav>
 
       {/* Back to Site */}
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-border/50">
         <Link
           to="/"
-          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all"
         >
           <ArrowLeft className="h-5 w-5" />
           Back to Site

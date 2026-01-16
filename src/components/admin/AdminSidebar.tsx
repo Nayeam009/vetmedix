@@ -28,18 +28,21 @@ export const AdminSidebar = () => {
   const location = useLocation();
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-card border-r border-border z-50 hidden lg:flex flex-col shadow-lg">
+    <aside className="fixed left-0 top-0 h-screen w-64 bg-background/95 backdrop-blur-xl border-r border-border/50 z-50 hidden lg:flex flex-col shadow-lg">
       {/* Logo */}
-      <div className="p-4 xl:p-6 border-b border-border">
+      <div className="p-4 xl:p-6 border-b border-border/50">
         <Link to="/admin" className="flex items-center gap-3 group">
-          <img 
-            src={logo} 
-            alt="PetConnect Admin" 
-            className="h-10 w-10 xl:h-12 xl:w-12 rounded-xl object-cover shadow-md group-hover:shadow-lg transition-shadow"
-          />
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-accent/30 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <img 
+              src={logo} 
+              alt="PetConnect Admin" 
+              className="relative h-10 w-10 xl:h-12 xl:w-12 rounded-xl object-cover shadow-md border-2 border-primary/20 group-hover:border-primary/50 group-hover:scale-105 transition-all duration-300"
+            />
+          </div>
           <div>
-            <h1 className="font-display font-bold text-foreground text-sm xl:text-base">Admin Panel</h1>
-            <p className="text-xs text-muted-foreground">PetConnect</p>
+            <h1 className="font-display font-bold text-foreground text-sm xl:text-base bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">Admin Panel</h1>
+            <p className="text-xs text-muted-foreground">VET-MEDIX</p>
           </div>
         </Link>
       </div>
@@ -69,10 +72,10 @@ export const AdminSidebar = () => {
       </nav>
 
       {/* Back to Site */}
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-border/50">
         <Link
           to="/"
-          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all"
         >
           <ArrowLeft className="h-5 w-5" />
           Back to Site

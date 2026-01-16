@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Edit, Trash2, Loader2, Building2, Package } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Edit, Trash2, Loader2, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,10 +17,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { useAuth } from '@/contexts/AuthContext';
 import { useClinicOwner, ClinicService } from '@/hooks/useClinicOwner';
 import { useUserRole } from '@/hooks/useUserRole';
-import logo from '@/assets/logo.jpeg';
+import { ClinicHeader } from '@/components/clinic/ClinicHeader';
 
 const ClinicServices = () => {
   const navigate = useNavigate();
@@ -115,26 +114,7 @@ const ClinicServices = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-lg border-b border-border">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/clinic/dashboard">
-                <ArrowLeft className="h-5 w-5" />
-              </Link>
-            </Button>
-            <Link to="/" className="flex items-center gap-2">
-              <img src={logo} alt="VET-MEDIX" className="h-10 w-10 rounded-lg object-cover" />
-              <span className="font-bold text-lg hidden sm:block">VET-MEDIX</span>
-            </Link>
-          </div>
-          <Badge variant="secondary">
-            <Package className="h-3 w-3 mr-1" />
-            Services
-          </Badge>
-        </div>
-      </header>
+      <ClinicHeader />
 
       <main className="container mx-auto px-4 py-6 max-w-4xl">
         <div className="flex items-center justify-between mb-6">

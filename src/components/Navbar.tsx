@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, ShoppingCart, User, Menu, X, LogOut, Home, Store, Stethoscope, PawPrint, Compass, MessageCircle, Shield, Building2, ChevronDown } from 'lucide-react';
+import { Search, ShoppingCart, User, Menu, X, LogOut, Home, Store, Stethoscope, PawPrint, Compass, MessageCircle, Shield, Building2, ChevronDown, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
@@ -211,13 +211,21 @@ const Navbar = () => {
                   </Link>
                 )}
                 
+                {/* Add Pet Icon */}
+                <Link to="/pets/new">
+                  <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted/50">
+                    <Plus className="h-[18px] w-[18px]" />
+                  </Button>
+                </Link>
+
                 <PetSwitcher />
                 
-                {/* User Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
-                      <User className="h-[18px] w-[18px]" />
+                    <Button variant="ghost" size="icon" className="h-9 w-9">
+                      <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                        <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary-foreground" />
+                      </div>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
@@ -225,12 +233,6 @@ const Navbar = () => {
                       <Link to="/profile" className="flex items-center gap-3 cursor-pointer">
                         <User className="h-4 w-4" />
                         Profile
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/pets/new" className="flex items-center gap-3 cursor-pointer">
-                        <PawPrint className="h-4 w-4" />
-                        Add Pet
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -364,9 +366,9 @@ const Navbar = () => {
                       <Link 
                         to="/pets/new" 
                         onClick={() => setIsMenuOpen(false)}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-all"
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-primary hover:bg-primary/10 transition-all"
                       >
-                        <PawPrint className="h-5 w-5 text-muted-foreground" />
+                        <Plus className="h-5 w-5" />
                         Add Pet
                       </Link>
 
