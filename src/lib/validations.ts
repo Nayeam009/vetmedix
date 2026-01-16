@@ -1,0 +1,127 @@
+import { z } from 'zod';
+
+// Utility regex to prevent XSS in text inputs
+const noXSSRegex = /^[^<>]*$/;
+
+// Appointment validation schema
+export const appointmentSchema = z.object({
+  date: z.string().min(1, 'Date is required'),
+  time: z.string().min(1, 'Time is required'),
+  petName: z.string().min(1, 'Pet name is required').max(100, 'Pet name must be less than 100 characters'),
+  petType: z.enum(['Dog', 'Cat', 'Bird', 'Cattle'], { required_error: 'Pet type is required' }),
+  reason: z.string().max(500, 'Reason must be less than 500 characters').optional(),
+});
+
+export type AppointmentFormData = z.infer<typeof appointmentSchema>;
+
+// Checkout/Order validation schema
+export const checkoutSchema = z.object({
+  fullName: z.string().min(1, 'Full name is required').max(100, 'Full name must be less than 100 characters'),
+  phone: z.string().min(1, 'Phone number is required').max(20, 'Phone number must be less than 20 characters'),
+  address: z.string().min(1, 'Address is required').max(500, 'Address must be less than 500 characters'),
+  division: z.string().min(1, 'Division is required').max(50, 'Division must be less than 50 characters'),
+  district: z.string().min(1, 'District is required').max(50, 'District must be less than 50 characters'),
+  thana: z.string().min(1, 'Thana is required').max(50, 'Thana must be less than 50 characters'),
+  notes: z.string().max(1000, 'Notes must be less than 1000 characters').optional(),
+});
+
+export type CheckoutFormData = z.infer<typeof checkoutSchema>;
+
+// Profile validation schema
+export const profileSchema = z.object({
+  full_name: z.string().max(100, 'Full name must be less than 100 characters').optional(),
+  phone: z.string().max(20, 'Phone number must be less than 20 characters').optional(),
+  address: z.string().max(500, 'Address must be less than 500 characters').optional(),
+  division: z.string().max(50, 'Division must be less than 50 characters').optional(),
+  district: z.string().max(50, 'District must be less than 50 characters').optional(),
+  thana: z.string().max(50, 'Thana must be less than 50 characters').optional(),
+});
+
+export type ProfileFormData = z.infer<typeof profileSchema>;
+
+// Review validation schema
+export const reviewSchema = z.object({
+  rating: z.number().min(1, 'Rating is required').max(5, 'Rating must be between 1 and 5'),
+  comment: z.string().max(1000, 'Comment must be less than 1000 characters').optional(),
+});
+
+export type ReviewFormData = z.infer<typeof reviewSchema>;
+
+// ========== Social Feature Validation Schemas ==========
+
+// Comment validation schema - prevents XSS and enforces length limits
+export const commentSchema = z.object({
+  content: z
+    .string()
+    .min(1, 'Comment cannot be empty')
+    .max(2000, 'Comment must be less than 2000 characters')
+    .regex(noXSSRegex, 'Comment cannot contain < or > characters'),
+});
+
+export type CommentFormData = z.infer<typeof commentSchema>;
+
+// Post validation schema
+export const postSchema = z.object({
+  content: z
+    .string()
+    .max(5000, 'Post content must be less than 5000 characters')
+    .regex(noXSSRegex, 'Post content cannot contain < or > characters')
+    .optional()
+    .nullable(),
+  media_urls: z.array(z.string().url()).max(10, 'Maximum 10 media files').optional(),
+});
+
+export type PostFormData = z.infer<typeof postSchema>;
+
+// ========== Admin Product Validation Schema ==========
+
+// Product form validation schema for admin UI (mirrors csvParser schema)
+export const productFormSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Name is required')
+    .max(200, 'Name must be less than 200 characters')
+    .regex(noXSSRegex, 'Name cannot contain < or > characters'),
+  description: z
+    .string()
+    .max(2000, 'Description must be less than 2000 characters')
+    .regex(noXSSRegex, 'Description cannot contain < or > characters')
+    .optional()
+    .nullable()
+    .or(z.literal('')),
+  price: z
+    .number()
+    .positive('Price must be positive')
+    .max(9999999, 'Price must be less than 10,000,000'),
+  category: z.enum(['Pet', 'Farm'], {
+    errorMap: () => ({ message: 'Category must be "Pet" or "Farm"' }),
+  }),
+  product_type: z
+    .string()
+    .max(100, 'Product type must be less than 100 characters')
+    .regex(noXSSRegex, 'Product type cannot contain < or > characters')
+    .optional()
+    .nullable()
+    .or(z.literal('')),
+  image_url: z.string().optional().nullable().or(z.literal('')),
+  stock: z
+    .number()
+    .int('Stock must be a whole number')
+    .min(0, 'Stock cannot be negative')
+    .max(999999, 'Stock must be less than 1,000,000'),
+  badge: z
+    .string()
+    .max(50, 'Badge must be less than 50 characters')
+    .regex(noXSSRegex, 'Badge cannot contain < or > characters')
+    .optional()
+    .nullable()
+    .or(z.literal('')),
+  discount: z
+    .number()
+    .min(0, 'Discount cannot be negative')
+    .max(100, 'Discount cannot exceed 100%')
+    .optional()
+    .nullable(),
+});
+
+export type ProductFormData = z.infer<typeof productFormSchema>;
