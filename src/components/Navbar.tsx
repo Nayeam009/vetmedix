@@ -36,9 +36,9 @@ const Navbar = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group flex-shrink-0">
             <div className="relative">
-              <img 
-                src={logo} 
-                alt="VET-MEDIX Logo" 
+              <img
+                src={logo}
+                alt="VET-MEDIX Logo"
                 className="h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-xl object-cover shadow-soft border-2 border-primary/20 group-hover:border-primary/40 transition-colors"
               />
             </div>
@@ -65,9 +65,9 @@ const Navbar = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-1">
             <Link to="/feed">
-              <Button 
-                variant={isActive('/feed') ? 'secondary' : 'ghost'} 
-                size="sm" 
+              <Button
+                variant={isActive('/feed') ? 'secondary' : 'ghost'}
+                size="sm"
                 className="gap-2"
               >
                 <Home className="h-4 w-4" />
@@ -75,8 +75,8 @@ const Navbar = () => {
               </Button>
             </Link>
             <Link to="/explore">
-              <Button 
-                variant={isActive('/explore') ? 'secondary' : 'ghost'} 
+              <Button
+                variant={isActive('/explore') ? 'secondary' : 'ghost'}
                 size="sm"
                 className="gap-2"
               >
@@ -85,8 +85,8 @@ const Navbar = () => {
               </Button>
             </Link>
             <Link to="/shop">
-              <Button 
-                variant={isActive('/shop') ? 'secondary' : 'ghost'} 
+              <Button
+                variant={isActive('/shop') ? 'secondary' : 'ghost'}
                 size="sm"
                 className="gap-2"
               >
@@ -95,8 +95,8 @@ const Navbar = () => {
               </Button>
             </Link>
             <Link to="/clinics">
-              <Button 
-                variant={isActive('/clinics') ? 'secondary' : 'ghost'} 
+              <Button
+                variant={isActive('/clinics') ? 'secondary' : 'ghost'}
                 size="sm"
                 className="gap-2"
               >
@@ -104,43 +104,8 @@ const Navbar = () => {
                 Clinics
               </Button>
             </Link>
-            {user && (
-              <Link to={isClinicOwner ? "/clinic/dashboard" : isDoctor ? "/doctor/dashboard" : isAdmin ? "/admin" : "/profile"}>
-                <Button 
-                  variant={
-                    (isClinicOwner && isActive('/clinic')) ||
-                    (isDoctor && isActive('/doctor')) ||
-                    (isAdmin && isActive('/admin')) ||
-                    (!isClinicOwner && !isDoctor && !isAdmin && isActive('/profile'))
-                    ? 'secondary' : 'ghost'
-                  } 
-                  size="sm"
-                  className="gap-2"
-                >
-                  <User className="h-4 w-4" />
-                  Dashboard
-                </Button>
-              </Link>
-            )}
-            {user && (
-              <Link to={isClinicOwner ? "/clinic/dashboard" : isDoctor ? "/doctor/dashboard" : isAdmin ? "/admin" : "/profile"}>
-                <Button 
-                  variant={
-                    (isClinicOwner && isActive('/clinic')) ||
-                    (isDoctor && isActive('/doctor')) ||
-                    (isAdmin && isActive('/admin')) ||
-                    (!isClinicOwner && !isDoctor && !isAdmin && isActive('/profile'))
-                    ? 'secondary' : 'ghost'
-                  } 
-                  size="sm"
-                  className="gap-2"
-                >
-                  <User className="h-4 w-4" />
-                  Dashboard
-                </Button>
-              </Link>
-            )}
-            
+
+
             <div className="w-px h-6 bg-border mx-1" />
 
             {user && (
@@ -218,45 +183,42 @@ const Navbar = () => {
         {isMenuOpen && (
           <div className="md:hidden pb-4 border-t border-border animate-fade-in">
             <div className="flex flex-col gap-1 pt-4">
-              <Link 
-                to="/feed" 
-                className={`px-4 py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-3 ${
-                  isActive('/feed') ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted'
-                }`}
+              <Link
+                to="/feed"
+                className={`px-4 py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-3 ${isActive('/feed') ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted'
+                  }`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 <Home className="h-5 w-5" />
                 Feed
               </Link>
-              <Link 
-                to="/shop" 
-                className={`px-4 py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-3 ${
-                  isActive('/shop') ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted'
-                }`}
+              <Link
+                to="/shop"
+                className={`px-4 py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-3 ${isActive('/shop') ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted'
+                  }`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 <Store className="h-5 w-5" />
                 Shop
               </Link>
-              <Link 
-                to="/clinics" 
-                className={`px-4 py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-3 ${
-                  isActive('/clinics') ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted'
-                }`}
+              <Link
+                to="/clinics"
+                className={`px-4 py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-3 ${isActive('/clinics') ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted'
+                  }`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 <Stethoscope className="h-5 w-5" />
                 Clinics
               </Link>
-              
+
               <div className="h-px bg-border my-2" />
-              
+
               {user ? (
                 <>
                   {/* Role-based dashboard links */}
                   {isAdmin && (
-                    <Link 
-                      to="/admin" 
+                    <Link
+                      to="/admin"
                       className="px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors flex items-center gap-3"
                       onClick={() => setIsMenuOpen(false)}
                     >
@@ -265,11 +227,10 @@ const Navbar = () => {
                     </Link>
                   )}
                   {isDoctor && (
-                    <Link 
-                      to="/doctor/dashboard" 
-                      className={`px-4 py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-3 ${
-                        isActive('/doctor') ? 'bg-primary/10 text-primary' : 'text-primary hover:bg-primary/10'
-                      }`}
+                    <Link
+                      to="/doctor/dashboard"
+                      className={`px-4 py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-3 ${isActive('/doctor') ? 'bg-primary/10 text-primary' : 'text-primary hover:bg-primary/10'
+                        }`}
                       onClick={() => setIsMenuOpen(false)}
                     >
                       <Stethoscope className="h-5 w-5" />
@@ -277,35 +238,34 @@ const Navbar = () => {
                     </Link>
                   )}
                   {isClinicOwner && (
-                    <Link 
-                      to="/clinic/dashboard" 
-                      className={`px-4 py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-3 ${
-                        isActive('/clinic') ? 'bg-primary/10 text-primary' : 'text-primary hover:bg-primary/10'
-                      }`}
+                    <Link
+                      to="/clinic/dashboard"
+                      className={`px-4 py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-3 ${isActive('/clinic') ? 'bg-primary/10 text-primary' : 'text-primary hover:bg-primary/10'
+                        }`}
                       onClick={() => setIsMenuOpen(false)}
                     >
                       <Building2 className="h-5 w-5" />
                       Clinic Dashboard
                     </Link>
                   )}
-                  <Link 
-                    to="/pets/new" 
+                  <Link
+                    to="/pets/new"
                     className="px-4 py-3 text-sm font-medium text-foreground hover:bg-muted rounded-lg transition-colors flex items-center gap-3"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     <PawPrint className="h-5 w-5" />
                     Add Pet
                   </Link>
-                  <Link 
-                    to="/profile" 
+                  <Link
+                    to="/profile"
                     className="px-4 py-3 text-sm font-medium text-foreground hover:bg-muted rounded-lg transition-colors flex items-center gap-3"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     <User className="h-5 w-5" />
                     Profile
                   </Link>
-                  <button 
-                    onClick={() => { signOut(); setIsMenuOpen(false); }} 
+                  <button
+                    onClick={() => { signOut(); setIsMenuOpen(false); }}
                     className="px-4 py-3 text-sm font-medium text-foreground hover:bg-muted rounded-lg transition-colors text-left flex items-center gap-3"
                   >
                     <LogOut className="h-5 w-5" />
@@ -313,8 +273,8 @@ const Navbar = () => {
                   </button>
                 </>
               ) : (
-                <Link 
-                  to="/auth" 
+                <Link
+                  to="/auth"
                   className="px-4 py-3 text-sm font-medium text-primary hover:bg-muted rounded-lg transition-colors"
                   onClick={() => setIsMenuOpen(false)}
                 >
