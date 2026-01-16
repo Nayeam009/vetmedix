@@ -360,7 +360,7 @@ const Navbar = () => {
                         onClick={() => setIsMenuOpen(false)}
                         className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-primary hover:bg-primary/10 transition-all"
                       >
-                        <Plus className="h-5 w-5" />
+                        <PawPrint className="h-5 w-5" />
                         Add Pet
                       </Link>
 
