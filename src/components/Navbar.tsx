@@ -210,14 +210,6 @@ const Navbar = () => {
                     </Button>
                   </Link>
                 )}
-                
-                {/* Add Pet Icon */}
-                <Link to="/pets/new">
-                  <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted/50">
-                    <Plus className="h-[18px] w-[18px]" />
-                  </Button>
-                </Link>
-
                 <PetSwitcher />
                 
                 <DropdownMenu>
