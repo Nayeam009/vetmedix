@@ -1,4 +1,4 @@
-import { Check, ChevronDown, Plus } from 'lucide-react';
+import { Check, ChevronDown, Plus, PawPrint } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -17,9 +17,13 @@ export const PetSwitcher = () => {
 
   if (pets.length === 0) {
     return (
-      <Button variant="outline" onClick={() => navigate('/pets/new')}>
-        <Plus className="h-4 w-4 mr-2" />
-        Add Pet
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={() => navigate('/pets/new')}
+        className="h-9 w-9 text-primary hover:bg-primary/10"
+      >
+        <PawPrint className="h-[18px] w-[18px]" />
       </Button>
     );
   }
