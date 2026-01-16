@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { 
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
   Building2, Stethoscope, Package, Settings, Menu, User, 
   Home, LogOut, Bell, Search, ChevronDown 
 } from 'lucide-react';
@@ -37,6 +37,7 @@ const clinicNavItems = [
 export const ClinicHeader = ({ title, showBackButton = false }: ClinicHeaderProps) => {
   const { signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
@@ -90,7 +91,12 @@ export const ClinicHeader = ({ title, showBackButton = false }: ClinicHeaderProp
           {/* Right - Actions */}
           <div className="flex items-center gap-1 sm:gap-2">
             {/* Notifications */}
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground relative">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-9 w-9 text-muted-foreground hover:text-foreground relative"
+              onClick={() => navigate('/notifications')}
+            >
               <Bell className="h-[18px] w-[18px]" />
               <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
             </Button>
