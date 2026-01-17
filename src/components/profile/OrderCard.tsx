@@ -19,6 +19,8 @@ interface OrderCardProps {
     status: string;
     shipping_address: string | null;
     created_at: string;
+    tracking_id?: string | null;
+    rejection_reason?: string | null;
   };
 }
 
@@ -170,6 +172,22 @@ const OrderCard = ({ order }: OrderCardProps) => {
         <span>{order.shipping_address || 'No address provided'}</span>
       </div>
 
+      {/* Rejection Reason */}
+      {isCancelled && order.rejection_reason && (
+        <div className="text-sm p-3 bg-destructive/10 rounded-lg border border-destructive/20 mb-4">
+          <p className="text-muted-foreground text-xs mb-1">Rejection Reason:</p>
+          <p className="text-destructive">{order.rejection_reason}</p>
+        </div>
+      )}
+
+      {/* Tracking ID */}
+      {order.tracking_id && (
+        <div className="text-sm p-3 bg-secondary/50 rounded-lg mb-4">
+          <p className="text-muted-foreground text-xs mb-1">Tracking ID (Steadfast):</p>
+          <code className="font-mono font-bold">{order.tracking_id}</code>
+        </div>
+      )}
+
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-2">
         {order.status?.toLowerCase() === 'delivered' && (
@@ -183,8 +201,13 @@ const OrderCard = ({ order }: OrderCardProps) => {
             Reorder
           </Button>
         )}
-        {order.status?.toLowerCase() === 'shipped' && (
-          <Button size="sm" variant="outline" className="gap-1">
+        {(order.status?.toLowerCase() === 'shipped' || order.status?.toLowerCase() === 'processing') && order.tracking_id && (
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="gap-1"
+            onClick={() => navigate(`/track-order?id=${order.id}`)}
+          >
             <Truck className="h-3 w-3" />
             Track Order
           </Button>

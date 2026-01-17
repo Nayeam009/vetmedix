@@ -43,6 +43,7 @@ import ClinicServices from "./pages/clinic/ClinicServices";
 import ClinicDoctors from "./pages/clinic/ClinicDoctors";
 // OAuth role selection
 import SelectRolePage from "./pages/SelectRolePage";
+import TrackOrderPage from "./pages/TrackOrderPage";
 import { Navigate, useSearchParams } from "react-router-dom";
 
 const queryClient = new QueryClient();
@@ -76,6 +77,7 @@ const App = () => (
                 <Route path="/clinic/:id" element={<ClinicDetailPage />} />
                 <Route path="/book-appointment/:clinicId" element={<BookAppointmentPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/track-order" element={<TrackOrderPage />} />
                 
                 {/* Admin routes */}
                 <Route path="/admin" element={<AdminDashboard />} />

@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
 import { 
   Search, 
   MoreHorizontal,
@@ -12,7 +11,8 @@ import {
   Truck,
   XCircle,
   Package,
-  CreditCard
+  CreditCard,
+  Ban
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -54,6 +54,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { createOrderNotification } from '@/lib/notifications';
+import { AcceptOrderDialog } from '@/components/admin/AcceptOrderDialog';
+import { RejectOrderDialog } from '@/components/admin/RejectOrderDialog';
 
 const AdminOrders = () => {
   const navigate = useNavigate();
@@ -67,6 +69,9 @@ const AdminOrders = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [isAcceptOpen, setIsAcceptOpen] = useState(false);
+  const [isRejectOpen, setIsRejectOpen] = useState(false);
+  const [orderForAction, setOrderForAction] = useState<any>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -220,6 +225,7 @@ const AdminOrders = () => {
                 <TableHead>Date</TableHead>
                 <TableHead>Items</TableHead>
                 <TableHead>Payment</TableHead>
+                <TableHead>Tracking</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
@@ -235,6 +241,15 @@ const AdminOrders = () => {
                   </TableCell>
                   <TableCell>
                     {getPaymentMethodBadge((order as any).payment_method || 'cod')}
+                  </TableCell>
+                  <TableCell>
+                    {(order as any).tracking_id ? (
+                      <code className="text-xs bg-secondary px-2 py-1 rounded">
+                        {(order as any).tracking_id}
+                      </code>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="font-bold text-primary">৳{order.total_amount}</TableCell>
                   <TableCell>
@@ -254,27 +269,48 @@ const AdminOrders = () => {
                           <Eye className="h-4 w-4 mr-2" />
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'processing')}>
-                          <Package className="h-4 w-4 mr-2" />
-                          Mark Processing
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'shipped')}>
-                          <Truck className="h-4 w-4 mr-2" />
-                          Mark Shipped
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'delivered')}>
-                          <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                          Mark Delivered
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          className="text-destructive"
-                          onClick={() => updateOrderStatus(order.id, 'cancelled')}
-                        >
-                          <XCircle className="h-4 w-4 mr-2" />
-                          Cancel Order
-                        </DropdownMenuItem>
+                        
+                        {order.status === 'pending' && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-green-600"
+                              onClick={() => { setOrderForAction(order); setIsAcceptOpen(true); }}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Accept Order
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}
+                            >
+                              <Ban className="h-4 w-4 mr-2" />
+                              Reject Order
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        
+                        {order.status !== 'pending' && order.status !== 'cancelled' && order.status !== 'delivered' && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'shipped')}>
+                              <Truck className="h-4 w-4 mr-2" />
+                              Mark Shipped
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'delivered')}>
+                              <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                              Mark Delivered
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}
+                            >
+                              <XCircle className="h-4 w-4 mr-2" />
+                              Cancel Order
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -287,7 +323,7 @@ const AdminOrders = () => {
 
       {/* Order Details Dialog */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Order #{selectedOrder?.id.slice(0, 8)}</DialogTitle>
             <DialogDescription>
@@ -307,6 +343,25 @@ const AdminOrders = () => {
                 <span className="text-muted-foreground">Payment Method</span>
                 {getPaymentMethodBadge(selectedOrder.payment_method || 'cod')}
               </div>
+
+              {selectedOrder.tracking_id && (
+                <div className="p-3 bg-secondary/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Tracking ID (Steadfast)</p>
+                  <code className="font-mono font-bold">{selectedOrder.tracking_id}</code>
+                  {selectedOrder.consignment_id && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Consignment: {selectedOrder.consignment_id}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {selectedOrder.rejection_reason && (
+                <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                  <p className="text-sm text-muted-foreground">Rejection Reason</p>
+                  <p className="text-sm text-destructive">{selectedOrder.rejection_reason}</p>
+                </div>
+              )}
               
               <div>
                 <h4 className="font-medium mb-2">Shipping Address</h4>
@@ -339,10 +394,59 @@ const AdminOrders = () => {
                 <span className="font-bold">Total</span>
                 <span className="text-xl font-bold text-primary">৳{selectedOrder.total_amount}</span>
               </div>
+
+              {/* Action buttons for pending orders */}
+              {selectedOrder.status === 'pending' && (
+                <div className="flex gap-2 pt-2">
+                  <Button 
+                    className="flex-1"
+                    onClick={() => {
+                      setOrderForAction(selectedOrder);
+                      setIsViewOpen(false);
+                      setIsAcceptOpen(true);
+                    }}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Accept
+                  </Button>
+                  <Button 
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => {
+                      setOrderForAction(selectedOrder);
+                      setIsViewOpen(false);
+                      setIsRejectOpen(true);
+                    }}
+                  >
+                    <Ban className="h-4 w-4 mr-2" />
+                    Reject
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Accept Order Dialog */}
+      <AcceptOrderDialog
+        isOpen={isAcceptOpen}
+        onClose={() => {
+          setIsAcceptOpen(false);
+          setOrderForAction(null);
+        }}
+        order={orderForAction}
+      />
+
+      {/* Reject Order Dialog */}
+      <RejectOrderDialog
+        isOpen={isRejectOpen}
+        onClose={() => {
+          setIsRejectOpen(false);
+          setOrderForAction(null);
+        }}
+        order={orderForAction}
+      />
     </AdminLayout>
   );
 };
