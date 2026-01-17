@@ -106,7 +106,7 @@ export const AdminSidebar = ({ collapsed, onToggle, pendingOrders = 0, pendingVe
     <TooltipProvider delayDuration={0}>
       <aside 
         className={cn(
-          "fixed left-0 top-0 h-screen bg-background/95 backdrop-blur-xl border-r border-border/50 z-50 hidden lg:flex flex-col shadow-lg transition-all duration-300",
+          "fixed inset-y-0 left-0 bg-background/95 backdrop-blur-xl border-r border-border/50 z-50 hidden lg:flex flex-col shadow-lg transition-all duration-300 overflow-hidden",
           collapsed ? "w-[68px]" : "w-64"
         )}
       >
