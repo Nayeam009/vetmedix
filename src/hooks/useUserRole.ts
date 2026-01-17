@@ -5,7 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 export type UserRoleType = 'user' | 'doctor' | 'clinic_owner' | 'admin' | 'moderator';
 
 interface UserRoleData {
-  role: UserRoleType;
+  roles: UserRoleType[];
+  primaryRole: UserRoleType;
   isLoading: boolean;
   isUser: boolean;
   isDoctor: boolean;
@@ -14,40 +15,46 @@ interface UserRoleData {
   isModerator: boolean;
 }
 
+// Priority order for determining primary role
+const ROLE_PRIORITY: UserRoleType[] = ['admin', 'clinic_owner', 'doctor', 'moderator', 'user'];
+
 export const useUserRole = (): UserRoleData => {
   const { user } = useAuth();
 
-  const { data: role, isLoading } = useQuery({
-    queryKey: ['user-role-type', user?.id],
+  const { data: roles, isLoading } = useQuery({
+    queryKey: ['user-roles-all', user?.id],
     queryFn: async () => {
-      if (!user?.id) return 'user' as UserRoleType;
+      if (!user?.id) return [] as UserRoleType[];
 
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', user.id)
-        .maybeSingle();
+        .eq('user_id', user.id);
 
       if (error) {
-        console.error('Error fetching user role:', error);
-        return 'user' as UserRoleType;
+        console.error('Error fetching user roles:', error);
+        return [] as UserRoleType[];
       }
 
-      return (data?.role as UserRoleType) || 'user';
+      return (data?.map(r => r.role) as UserRoleType[]) || [];
     },
     enabled: !!user?.id,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  const currentRole = role || 'user';
+  const currentRoles = roles || [];
+  
+  // Determine primary role by priority
+  const primaryRole = ROLE_PRIORITY.find(r => currentRoles.includes(r)) || 'user';
 
   return {
-    role: currentRole,
+    roles: currentRoles,
+    primaryRole,
     isLoading,
-    isUser: currentRole === 'user',
-    isDoctor: currentRole === 'doctor',
-    isClinicOwner: currentRole === 'clinic_owner',
-    isAdmin: currentRole === 'admin',
-    isModerator: currentRole === 'moderator',
+    isUser: currentRoles.length === 0 || currentRoles.includes('user'),
+    isDoctor: currentRoles.includes('doctor'),
+    isClinicOwner: currentRoles.includes('clinic_owner'),
+    isAdmin: currentRoles.includes('admin'),
+    isModerator: currentRoles.includes('moderator') || currentRoles.includes('admin'),
   };
 };

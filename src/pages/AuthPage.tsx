@@ -32,25 +32,48 @@ const AuthPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Priority order for role-based redirects
+  const ROLE_PRIORITY = ['admin', 'clinic_owner', 'doctor', 'moderator', 'user'];
+
+  const redirectBasedOnRoles = (roles: string[]) => {
+    // Find the highest priority role
+    const primaryRole = ROLE_PRIORITY.find(r => roles.includes(r)) || 'user';
+    
+    switch (primaryRole) {
+      case 'admin':
+        navigate('/admin');
+        break;
+      case 'clinic_owner':
+        navigate('/clinic/dashboard');
+        break;
+      case 'doctor':
+        navigate('/doctor/dashboard');
+        break;
+      default:
+        navigate('/');
+    }
+  };
+
   // Handle OAuth callback and check if user needs role selection
   useEffect(() => {
     const handleAuthCallback = async () => {
       if (authLoading) return;
       
       if (user) {
-        // User is logged in, check if they have a role
+        // User is logged in, check if they have any roles
         const { data: roleData } = await supabase
           .from('user_roles')
           .select('role')
-          .eq('user_id', user.id)
-          .maybeSingle();
+          .eq('user_id', user.id);
 
-        if (!roleData?.role) {
+        const roles = roleData?.map(r => r.role) || [];
+
+        if (roles.length === 0) {
           // New user (likely OAuth), redirect to role selection
           navigate('/select-role');
         } else {
-          // Existing user with role, redirect to appropriate page
-          redirectBasedOnRole(roleData.role);
+          // Existing user with role(s), redirect based on priority
+          redirectBasedOnRoles(roles);
         }
       } else {
         setCheckingAuth(false);
@@ -59,19 +82,6 @@ const AuthPage = () => {
 
     handleAuthCallback();
   }, [user, authLoading, navigate]);
-
-  const redirectBasedOnRole = (role: string) => {
-    switch (role) {
-      case 'clinic_owner':
-        navigate('/clinic/dashboard');
-        break;
-      case 'admin':
-        navigate('/admin');
-        break;
-      default:
-        navigate('/');
-    }
-  };
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
@@ -103,33 +113,23 @@ const AuthPage = () => {
         const { error } = await signIn(email, password);
         if (error) throw error;
         
-        // Check user role and redirect accordingly
+        // Check user roles and redirect accordingly
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           const { data: roleData } = await supabase
             .from('user_roles')
             .select('role')
-            .eq('user_id', user.id)
-            .maybeSingle();
+            .eq('user_id', user.id);
           
-          const role = roleData?.role || 'user';
+          const roles = roleData?.map(r => r.role) || [];
           
           toast({
             title: "Welcome back!",
             description: "You have successfully signed in.",
           });
           
-          // Redirect based on role
-          switch (role) {
-            case 'clinic_owner':
-              navigate('/clinic/dashboard');
-              break;
-            case 'admin':
-              navigate('/admin');
-              break;
-            default:
-              navigate('/');
-          }
+          // Redirect based on priority role
+          redirectBasedOnRoles(roles);
         }
       } else {
         // Sign up
@@ -190,7 +190,7 @@ const AuthPage = () => {
           });
 
           // Redirect based on role
-          redirectBasedOnRole(selectedRole);
+          redirectBasedOnRoles([selectedRole]);
         }
       }
     } catch (error: unknown) {

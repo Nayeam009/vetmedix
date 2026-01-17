@@ -60,10 +60,13 @@ export const useClinicOwner = () => {
     queryFn: async () => {
       if (!user?.id) return null;
 
+      // Use order + limit to handle users with multiple clinics (get newest)
       const { data, error } = await supabase
         .from('clinics')
         .select('*')
         .eq('owner_user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) throw error;
