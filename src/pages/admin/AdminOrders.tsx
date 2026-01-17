@@ -179,23 +179,23 @@ const AdminOrders = () => {
   return (
     <AdminLayout title="Orders" subtitle="Manage customer orders">
       {/* Header Actions */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between mb-6">
-        <div className="flex gap-3 flex-1">
-          <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-between mb-4 sm:mb-6">
+        <div className="flex gap-2 sm:gap-3 flex-1">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search orders..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="pl-9 h-10 sm:h-11 rounded-xl text-sm"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-28 sm:w-36 h-10 sm:h-11 rounded-xl text-sm">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="all">All</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="processing">Processing</SelectItem>
               <SelectItem value="shipped">Shipped</SelectItem>
@@ -206,8 +206,8 @@ const AdminOrders = () => {
         </div>
       </div>
 
-      {/* Orders Table */}
-      <div className="bg-card rounded-2xl border border-border overflow-hidden">
+      {/* Orders - Mobile Cards / Desktop Table */}
+      <div className="bg-card rounded-xl sm:rounded-2xl border border-border overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -218,115 +218,198 @@ const AdminOrders = () => {
             <p className="text-muted-foreground">No orders found</p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Items</TableHead>
-                <TableHead>Payment</TableHead>
-                <TableHead>Tracking</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            {/* Mobile Card View */}
+            <div className="sm:hidden divide-y divide-border">
               {filteredOrders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">#{order.id.slice(0, 8)}</TableCell>
-                  <TableCell>{format(new Date(order.created_at), 'PP')}</TableCell>
-                  <TableCell>
-                    {Array.isArray(order.items) ? order.items.length : 0} items
-                  </TableCell>
-                  <TableCell>
-                    {getPaymentMethodBadge((order as any).payment_method || 'cod')}
-                  </TableCell>
-                  <TableCell>
-                    {(order as any).tracking_id ? (
-                      <code className="text-xs bg-secondary px-2 py-1 rounded">
-                        {(order as any).tracking_id}
-                      </code>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="font-bold text-primary">৳{order.total_amount}</TableCell>
-                  <TableCell>
+                <div key={order.id} className="p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-sm font-medium">#{order.id.slice(0, 8)}</span>
                     <Badge className={getStatusColor(order.status)}>
                       {order.status}
                     </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{format(new Date(order.created_at), 'MMM d, yyyy')}</span>
+                    <span className="font-bold text-primary text-lg">৳{order.total_amount}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{Array.isArray(order.items) ? order.items.length : 0} items</span>
+                    {getPaymentMethodBadge((order as any).payment_method || 'cod')}
+                  </div>
+                  {(order as any).tracking_id && (
+                    <code className="text-xs bg-secondary px-2 py-1 rounded block">
+                      Tracking: {(order as any).tracking_id}
+                    </code>
+                  )}
+                  <div className="flex gap-2 pt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1 h-10 rounded-xl text-sm"
+                      onClick={() => { setSelectedOrder(order); setIsViewOpen(true); }}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      View
+                    </Button>
+                    {order.status === 'pending' && (
+                      <>
+                        <Button 
+                          size="sm" 
+                          className="flex-1 h-10 rounded-xl text-sm bg-green-600 hover:bg-green-700"
+                          onClick={() => { setOrderForAction(order); setIsAcceptOpen(true); }}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Accept
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { setSelectedOrder(order); setIsViewOpen(true); }}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Details
-                        </DropdownMenuItem>
-                        
-                        {order.status === 'pending' && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="text-green-600"
-                              onClick={() => { setOrderForAction(order); setIsAcceptOpen(true); }}
-                            >
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Accept Order
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}
-                            >
-                              <Ban className="h-4 w-4 mr-2" />
-                              Reject Order
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                        
-                        {order.status !== 'pending' && order.status !== 'cancelled' && order.status !== 'delivered' && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'shipped')}>
-                              <Truck className="h-4 w-4 mr-2" />
-                              Mark Shipped
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'delivered')}>
-                              <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                              Mark Delivered
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}
-                            >
-                              <XCircle className="h-4 w-4 mr-2" />
-                              Cancel Order
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          className="flex-1 h-10 rounded-xl text-sm"
+                          onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}
+                        >
+                          <Ban className="h-4 w-4 mr-1" />
+                          Reject
+                        </Button>
+                      </>
+                    )}
+                    {order.status !== 'pending' && order.status !== 'cancelled' && order.status !== 'delivered' && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-10 rounded-xl">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'shipped')}>
+                            <Truck className="h-4 w-4 mr-2" />
+                            Mark Shipped
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'delivered')}>
+                            <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                            Mark Delivered
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
+                </div>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden sm:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Items</TableHead>
+                    <TableHead>Payment</TableHead>
+                    <TableHead>Tracking</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredOrders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">#{order.id.slice(0, 8)}</TableCell>
+                      <TableCell>{format(new Date(order.created_at), 'PP')}</TableCell>
+                      <TableCell>
+                        {Array.isArray(order.items) ? order.items.length : 0} items
+                      </TableCell>
+                      <TableCell>
+                        {getPaymentMethodBadge((order as any).payment_method || 'cod')}
+                      </TableCell>
+                      <TableCell>
+                        {(order as any).tracking_id ? (
+                          <code className="text-xs bg-secondary px-2 py-1 rounded">
+                            {(order as any).tracking_id}
+                          </code>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-bold text-primary">৳{order.total_amount}</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(order.status)}>
+                          {order.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => { setSelectedOrder(order); setIsViewOpen(true); }}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
+                            </DropdownMenuItem>
+                            
+                            {order.status === 'pending' && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  className="text-green-600"
+                                  onClick={() => { setOrderForAction(order); setIsAcceptOpen(true); }}
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  Accept Order
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  className="text-destructive"
+                                  onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}
+                                >
+                                  <Ban className="h-4 w-4 mr-2" />
+                                  Reject Order
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            
+                            {order.status !== 'pending' && order.status !== 'cancelled' && order.status !== 'delivered' && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'shipped')}>
+                                  <Truck className="h-4 w-4 mr-2" />
+                                  Mark Shipped
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'delivered')}>
+                                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                                  Mark Delivered
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  className="text-destructive"
+                                  onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}
+                                >
+                                  <XCircle className="h-4 w-4 mr-2" />
+                                  Cancel Order
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </div>
 
       {/* Order Details Dialog */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Order #{selectedOrder?.id.slice(0, 8)}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg">Order #{selectedOrder?.id.slice(0, 8)}</DialogTitle>
+            <DialogDescription className="text-sm">
               Placed on {selectedOrder && format(new Date(selectedOrder.created_at), 'PPP')}
             </DialogDescription>
           </DialogHeader>
