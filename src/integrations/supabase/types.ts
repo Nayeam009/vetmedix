@@ -250,6 +250,8 @@ export type Database = {
       clinics: {
         Row: {
           address: string | null
+          blocked_at: string | null
+          blocked_reason: string | null
           bvc_certificate_url: string | null
           created_at: string
           description: string | null
@@ -257,6 +259,7 @@ export type Database = {
           email: string | null
           id: string
           image_url: string | null
+          is_blocked: boolean | null
           is_open: boolean | null
           is_verified: boolean | null
           name: string
@@ -275,6 +278,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          blocked_at?: string | null
+          blocked_reason?: string | null
           bvc_certificate_url?: string | null
           created_at?: string
           description?: string | null
@@ -282,6 +287,7 @@ export type Database = {
           email?: string | null
           id?: string
           image_url?: string | null
+          is_blocked?: boolean | null
           is_open?: boolean | null
           is_verified?: boolean | null
           name: string
@@ -300,6 +306,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          blocked_at?: string | null
+          blocked_reason?: string | null
           bvc_certificate_url?: string | null
           created_at?: string
           description?: string | null
@@ -307,6 +315,7 @@ export type Database = {
           email?: string | null
           id?: string
           image_url?: string | null
+          is_blocked?: boolean | null
           is_open?: boolean | null
           is_verified?: boolean | null
           name?: string

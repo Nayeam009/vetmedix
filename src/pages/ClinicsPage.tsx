@@ -19,7 +19,10 @@ const ClinicsPage = () => {
 
   const fetchClinics = async () => {
     try {
-      const { data, error } = await supabase.from('clinics').select('*');
+      const { data, error } = await supabase
+        .from('clinics')
+        .select('*')
+        .neq('is_blocked', true); // Exclude blocked clinics
       if (error) throw error;
       
       // Sort to put Gopalganj Vet Care at the top

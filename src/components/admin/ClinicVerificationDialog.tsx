@@ -12,11 +12,15 @@ import {
   MapPin,
   Loader2,
   AlertTriangle,
+  Ban,
+  Trash2,
+  Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -49,6 +53,9 @@ interface Clinic {
   image_url: string | null;
   is_open: boolean;
   is_verified: boolean;
+  is_blocked: boolean | null;
+  blocked_at: string | null;
+  blocked_reason: string | null;
   verification_status: string | null;
   bvc_certificate_url: string | null;
   trade_license_url: string | null;
@@ -72,8 +79,11 @@ export function ClinicVerificationDialog({
 }: ClinicVerificationDialogProps) {
   const queryClient = useQueryClient();
   const [rejectionReason, setRejectionReason] = useState('');
+  const [blockReason, setBlockReason] = useState('');
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [showBlockDialog, setShowBlockDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const approveMutation = useMutation({
     mutationFn: async () => {
@@ -134,6 +144,59 @@ export function ClinicVerificationDialog({
     },
   });
 
+  const blockMutation = useMutation({
+    mutationFn: async () => {
+      if (!clinic) throw new Error('No clinic selected');
+
+      const isCurrentlyBlocked = clinic.is_blocked;
+
+      const { error } = await supabase
+        .from('clinics')
+        .update({
+          is_blocked: !isCurrentlyBlocked,
+          blocked_at: isCurrentlyBlocked ? null : new Date().toISOString(),
+          blocked_reason: isCurrentlyBlocked ? null : blockReason || 'Blocked by admin',
+        })
+        .eq('id', clinic.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-clinics'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-clinic-stats'] });
+      toast.success(clinic?.is_blocked ? 'Clinic unblocked' : 'Clinic blocked');
+      setBlockReason('');
+      setShowBlockDialog(false);
+      onOpenChange(false);
+    },
+    onError: () => {
+      toast.error('Failed to update clinic block status');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (!clinic) throw new Error('No clinic selected');
+
+      const { error } = await supabase
+        .from('clinics')
+        .delete()
+        .eq('id', clinic.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-clinics'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-clinic-stats'] });
+      toast.success('Clinic deleted permanently');
+      setShowDeleteDialog(false);
+      onOpenChange(false);
+    },
+    onError: () => {
+      toast.error('Failed to delete clinic');
+    },
+  });
+
   if (!clinic) return null;
 
   const isPending = clinic.verification_status === 'pending';
@@ -143,31 +206,46 @@ export function ClinicVerificationDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 flex-wrap">
               <Building2 className="h-5 w-5" />
               {clinic.name}
+              {clinic.is_verified && (
+                <Badge variant="default" className="bg-green-500">Verified</Badge>
+              )}
               {isPending && (
                 <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
                   Pending Review
                 </Badge>
               )}
+              {clinic.is_blocked && (
+                <Badge variant="destructive">
+                  <Ban className="h-3 w-3 mr-1" />
+                  Blocked
+                </Badge>
+              )}
             </DialogTitle>
             <DialogDescription>
-              Review clinic verification request
+              {isPending ? 'Review clinic verification request' : 'Manage clinic profile and status'}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6">
-            {/* Submission Info */}
-            {clinic.verification_submitted_at && (
-              <div className="p-3 rounded-lg bg-muted/50 text-sm">
-                <span className="text-muted-foreground">Submitted: </span>
-                <span className="font-medium">
-                  {format(new Date(clinic.verification_submitted_at), 'PPpp')}
-                </span>
-              </div>
-            )}
+          {/* Blocked Status Alert */}
+          {clinic.is_blocked && clinic.blocked_reason && (
+            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+              <p className="text-sm font-medium text-destructive flex items-center gap-1 mb-1">
+                <Ban className="h-4 w-4" />
+                Blocked Reason
+              </p>
+              <p className="text-sm text-destructive/80">{clinic.blocked_reason}</p>
+              {clinic.blocked_at && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Blocked on {format(new Date(clinic.blocked_at), 'PPpp')}
+                </p>
+              )}
+            </div>
+          )}
 
+          <div className="space-y-6">
             {/* Owner Information */}
             <div className="space-y-3">
               <h3 className="font-semibold flex items-center gap-2">
@@ -281,25 +359,55 @@ export function ClinicVerificationDialog({
             )}
           </div>
 
-          {isPending && (
-            <DialogFooter className="gap-2">
-              <Button
-                variant="destructive"
-                onClick={() => setShowRejectDialog(true)}
-                disabled={rejectMutation.isPending || approveMutation.isPending}
-              >
-                <XCircle className="h-4 w-4 mr-1" />
-                Reject
-              </Button>
-              <Button
-                onClick={() => setShowApproveDialog(true)}
-                disabled={rejectMutation.isPending || approveMutation.isPending}
-              >
-                <CheckCircle className="h-4 w-4 mr-1" />
-                Approve
-              </Button>
-            </DialogFooter>
-          )}
+          {/* Admin Actions */}
+          <DialogFooter className="gap-2 flex-wrap">
+            {/* Delete button - always visible */}
+            <Button
+              variant="outline"
+              className="text-destructive hover:bg-destructive/10"
+              onClick={() => setShowDeleteDialog(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete
+            </Button>
+
+            {/* Block/Unblock button */}
+            <Button
+              variant={clinic.is_blocked ? 'default' : 'outline'}
+              onClick={() => clinic.is_blocked ? blockMutation.mutate() : setShowBlockDialog(true)}
+              disabled={blockMutation.isPending}
+            >
+              {blockMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              ) : clinic.is_blocked ? (
+                <Shield className="h-4 w-4 mr-1" />
+              ) : (
+                <Ban className="h-4 w-4 mr-1" />
+              )}
+              {clinic.is_blocked ? 'Unblock' : 'Block'}
+            </Button>
+
+            {/* Pending verification actions */}
+            {isPending && (
+              <>
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowRejectDialog(true)}
+                  disabled={rejectMutation.isPending || approveMutation.isPending}
+                >
+                  <XCircle className="h-4 w-4 mr-1" />
+                  Reject
+                </Button>
+                <Button
+                  onClick={() => setShowApproveDialog(true)}
+                  disabled={rejectMutation.isPending || approveMutation.isPending}
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Approve
+                </Button>
+              </>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -363,6 +471,74 @@ export function ClinicVerificationDialog({
                 <XCircle className="h-4 w-4 mr-1" />
               )}
               Reject
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Block Dialog with Reason */}
+      <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Block This Clinic?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Blocking this clinic will prevent pet parents from booking appointments. 
+              The clinic profile will remain visible but marked as blocked.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="blockReason">Block Reason (optional)</Label>
+            <Textarea
+              id="blockReason"
+              value={blockReason}
+              onChange={(e) => setBlockReason(e.target.value)}
+              placeholder="e.g., Violation of terms, suspicious activity..."
+              rows={3}
+              className="mt-2"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={blockMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => blockMutation.mutate()}
+              disabled={blockMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {blockMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              ) : (
+                <Ban className="h-4 w-4 mr-1" />
+              )}
+              Block Clinic
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Clinic Permanently?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the clinic 
+              "{clinic.name}" and all associated data including appointments, doctors, 
+              and services.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-1" />
+              )}
+              Delete Permanently
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

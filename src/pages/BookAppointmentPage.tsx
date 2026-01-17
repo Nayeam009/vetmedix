@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, Clock, ArrowLeft, Loader2, User, Info, AlertTriangle } from 'lucide-react';
+import { Calendar, Clock, ArrowLeft, Loader2, User, Info, AlertTriangle, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { appointmentSchema } from '@/lib/validations';
 import { useClinicDoctorsWithSchedules } from '@/hooks/useDoctorSchedules';
+import { useQuery } from '@tanstack/react-query';
 
 // Default time slots when no schedule is configured
 const DEFAULT_TIME_SLOTS = ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'];
@@ -29,6 +30,21 @@ const BookAppointmentPage = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     date: '', time: '', petName: '', petType: '', reason: '', doctorId: ''
+  });
+
+  // Fetch clinic to check if blocked
+  const { data: clinic, isLoading: clinicLoading } = useQuery({
+    queryKey: ['clinic-for-booking', clinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clinics')
+        .select('id, name, is_blocked, is_verified')
+        .eq('id', clinicId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clinicId,
   });
 
   const { data: doctorsWithSchedules = [], isLoading: doctorsLoading } = useClinicDoctorsWithSchedules(clinicId || '');
@@ -162,6 +178,48 @@ const BookAppointmentPage = () => {
   const selectedDoctorHasSchedule = formData.doctorId 
     ? doctorsWithSchedules.find((d: any) => d.id === formData.doctorId)?.schedules?.length > 0
     : false;
+
+  // Show loading state
+  if (clinicLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <main className="container mx-auto px-4 py-6 flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Show blocked clinic message
+  if (clinic?.is_blocked) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <main className="container mx-auto px-4 py-6 sm:py-8 max-w-xl flex-1">
+          <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4 sm:mb-6 -ml-2">
+            <ArrowLeft className="h-4 w-4 mr-2" /> Back
+          </Button>
+          <Card>
+            <CardContent className="pt-6 text-center">
+              <div className="p-4 rounded-full bg-destructive/10 w-fit mx-auto mb-4">
+                <Ban className="h-12 w-12 text-destructive" />
+              </div>
+              <h2 className="text-xl font-semibold mb-2">Clinic Unavailable</h2>
+              <p className="text-muted-foreground mb-4">
+                This clinic is currently not accepting appointments. Please try another clinic.
+              </p>
+              <Button onClick={() => navigate('/clinics')}>
+                Browse Other Clinics
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
