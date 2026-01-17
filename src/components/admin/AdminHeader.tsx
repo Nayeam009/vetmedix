@@ -55,11 +55,20 @@ export const AdminHeader = ({
           {/* Mobile Menu */}
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden h-9 w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-foreground active:scale-95 transition-transform">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="relative lg:hidden h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted/60 active:scale-95 transition-all duration-200 rounded-xl"
+              >
                 <Menu className="h-5 w-5" />
+                {totalPending > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center animate-pulse shadow-lg">
+                    {totalPending > 9 ? '9+' : totalPending}
+                  </span>
+                )}
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-[85vw] max-w-[320px] h-[100dvh] max-h-[100dvh] overflow-hidden">
+            <SheetContent side="left" className="p-0 w-[88vw] max-w-[340px] h-[100dvh] max-h-[100dvh] overflow-hidden border-r-0 shadow-2xl">
               <AdminMobileNav pendingOrders={pendingOrders} pendingVerifications={pendingVerifications} />
             </SheetContent>
           </Sheet>
