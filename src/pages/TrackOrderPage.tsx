@@ -9,7 +9,8 @@ import {
   Loader2,
   MapPin,
   ArrowLeft,
-  RefreshCw
+  RefreshCw,
+  LogIn
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +20,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 
 interface TrackingStatus {
@@ -42,6 +44,7 @@ const TrackOrderPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
   
   const orderId = searchParams.get('id');
   const [trackingCode, setTrackingCode] = useState('');
@@ -51,10 +54,10 @@ const TrackOrderPage = () => {
   const [isTracking, setIsTracking] = useState(false);
 
   useEffect(() => {
-    if (orderId) {
+    if (orderId && user) {
       fetchOrder(orderId);
     }
-  }, [orderId]);
+  }, [orderId, user]);
 
   const fetchOrder = async (id: string) => {
     setIsLoading(true);
@@ -88,6 +91,15 @@ const TrackOrderPage = () => {
   const fetchTrackingStatus = async (code: string) => {
     if (!code) return;
     
+    if (!user) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please log in to track your order',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setIsTracking(true);
     try {
       const { data, error } = await supabase.functions.invoke('steadfast', {
@@ -97,11 +109,26 @@ const TrackOrderPage = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific error messages from the edge function
+        if (error.message?.includes('Unauthorized') || error.message?.includes('403')) {
+          toast({
+            title: 'Access Denied',
+            description: 'You can only track your own orders',
+            variant: 'destructive',
+          });
+        } else if (error.message?.includes('not found') || error.message?.includes('404')) {
+          toast({
+            title: 'Order Not Found',
+            description: 'No order found with this tracking code',
+            variant: 'destructive',
+          });
+        }
+        throw error;
+      }
       setTrackingStatus(data);
     } catch (error) {
       console.error('Error tracking order:', error);
-      // Don't show error toast for tracking - it might just be pending
     } finally {
       setIsTracking(false);
     }
@@ -170,6 +197,37 @@ const TrackOrderPage = () => {
     }
   };
 
+  // Show login prompt if not authenticated
+  if (!authLoading && !user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8 pt-24">
+          <div className="max-w-md mx-auto">
+            <Card>
+              <CardHeader className="text-center">
+                <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                  <LogIn className="h-6 w-6 text-primary" />
+                </div>
+                <CardTitle>Login Required</CardTitle>
+                <CardDescription>
+                  Please log in to track your orders. You can only view tracking information for orders placed with your account.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center">
+                <Button onClick={() => navigate('/auth')}>
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Log In to Track Orders
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -202,8 +260,9 @@ const TrackOrderPage = () => {
                   value={trackingCode}
                   onChange={(e) => setTrackingCode(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleTrackByCode()}
+                  disabled={!user}
                 />
-                <Button onClick={handleTrackByCode} disabled={isTracking}>
+                <Button onClick={handleTrackByCode} disabled={isTracking || !user}>
                   {isTracking ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
