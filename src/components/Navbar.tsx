@@ -101,10 +101,51 @@ const Navbar = () => {
                 className="gap-2"
               >
                 <Stethoscope className="h-4 w-4" />
-                Clinics
+              Clinics
               </Button>
             </Link>
 
+            {/* Admin Link - Only visible to admins */}
+            {isAdmin && (
+              <Link to="/admin">
+                <Button
+                  variant={isActive('/admin') ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className="gap-2 text-primary"
+                >
+                  <Shield className="h-4 w-4" />
+                  Admin
+                </Button>
+              </Link>
+            )}
+
+            {/* Clinic Owner Link */}
+            {isClinicOwner && !isActive('/admin') && (
+              <Link to="/clinic/dashboard">
+                <Button
+                  variant={isActive('/clinic') ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Building2 className="h-4 w-4" />
+                  My Clinic
+                </Button>
+              </Link>
+            )}
+
+            {/* Doctor Link */}
+            {isDoctor && (
+              <Link to="/doctor/dashboard">
+                <Button
+                  variant={isActive('/doctor') ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Stethoscope className="h-4 w-4" />
+                  Doctor
+                </Button>
+              </Link>
+            )}
 
             <div className="w-px h-6 bg-border mx-1" />
 
