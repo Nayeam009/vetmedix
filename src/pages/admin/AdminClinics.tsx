@@ -18,6 +18,10 @@ import {
   AlertCircle,
   Clock,
   FileText,
+  Ban,
+  Trash2,
+  Shield,
+  MoreVertical,
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -32,6 +36,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { ClinicVerificationDialog } from '@/components/admin/ClinicVerificationDialog';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
@@ -76,6 +99,10 @@ const AdminClinics = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [selectedClinic, setSelectedClinic] = useState<Clinic | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [actionClinic, setActionClinic] = useState<Clinic | null>(null);
+  const [blockReason, setBlockReason] = useState('');
 
   // Fetch all clinics
   const { data: clinics, isLoading: clinicsLoading } = useQuery({
@@ -157,6 +184,58 @@ const AdminClinics = () => {
     },
   });
 
+  // Block/Unblock mutation
+  const blockMutation = useMutation({
+    mutationFn: async ({ clinic, reason }: { clinic: Clinic; reason?: string }) => {
+      const isCurrentlyBlocked = clinic.is_blocked;
+
+      const { error } = await supabase
+        .from('clinics')
+        .update({
+          is_blocked: !isCurrentlyBlocked,
+          blocked_at: isCurrentlyBlocked ? null : new Date().toISOString(),
+          blocked_reason: isCurrentlyBlocked ? null : reason || 'Blocked by admin',
+        })
+        .eq('id', clinic.id);
+
+      if (error) throw error;
+      return !isCurrentlyBlocked;
+    },
+    onSuccess: (wasBlocked) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-clinics'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-clinic-stats'] });
+      toast.success(wasBlocked ? 'Clinic blocked successfully' : 'Clinic unblocked successfully');
+      setBlockDialogOpen(false);
+      setBlockReason('');
+      setActionClinic(null);
+    },
+    onError: () => {
+      toast.error('Failed to update clinic block status');
+    },
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (clinicId: string) => {
+      const { error } = await supabase
+        .from('clinics')
+        .delete()
+        .eq('id', clinicId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-clinics'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-clinic-stats'] });
+      toast.success('Clinic deleted permanently');
+      setDeleteDialogOpen(false);
+      setActionClinic(null);
+    },
+    onError: () => {
+      toast.error('Failed to delete clinic');
+    },
+  });
+
   // Redirect if not admin
   if (!authLoading && !roleLoading && !isAdmin) {
     navigate('/');
@@ -180,12 +259,14 @@ const AdminClinics = () => {
     if (filterStatus === 'verified') return matchesSearch && clinic.is_verified;
     if (filterStatus === 'unverified') return matchesSearch && !clinic.is_verified;
     if (filterStatus === 'pending') return matchesSearch && clinic.verification_status === 'pending';
+    if (filterStatus === 'blocked') return matchesSearch && clinic.is_blocked;
     if (filterStatus === 'open') return matchesSearch && clinic.is_open;
     if (filterStatus === 'closed') return matchesSearch && !clinic.is_open;
     return matchesSearch;
   });
 
   const pendingCount = clinics?.filter(c => c.verification_status === 'pending').length || 0;
+  const blockedCount = clinics?.filter(c => c.is_blocked).length || 0;
 
   return (
     <AdminLayout title="Clinics Management" subtitle="Manage and verify veterinary clinics">
@@ -268,6 +349,9 @@ const AdminClinics = () => {
             </SelectItem>
             <SelectItem value="verified">Verified</SelectItem>
             <SelectItem value="unverified">Unverified</SelectItem>
+            <SelectItem value="blocked">
+              Blocked {blockedCount > 0 && `(${blockedCount})`}
+            </SelectItem>
             <SelectItem value="open">Open</SelectItem>
             <SelectItem value="closed">Closed</SelectItem>
           </SelectContent>
@@ -305,6 +389,12 @@ const AdminClinics = () => {
                           <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
                             <Clock className="h-3 w-3 mr-1" />
                             Pending Review
+                          </Badge>
+                        )}
+                        {clinic.is_blocked && (
+                          <Badge variant="destructive">
+                            <Ban className="h-3 w-3 mr-1" />
+                            Blocked
                           </Badge>
                         )}
                         <Badge variant={clinic.is_open ? 'outline' : 'secondary'}>
@@ -349,48 +439,89 @@ const AdminClinics = () => {
                         setDetailsOpen(true);
                       }}
                     >
-                      {clinic.verification_status === 'pending' ? (
+                      <Eye className="h-4 w-4 mr-1" />
+                      View
+                    </Button>
+                    
+                    {/* Block/Unblock Button */}
+                    <Button
+                      variant={clinic.is_blocked ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        if (clinic.is_blocked) {
+                          blockMutation.mutate({ clinic, reason: '' });
+                        } else {
+                          setActionClinic(clinic);
+                          setBlockDialogOpen(true);
+                        }
+                      }}
+                      disabled={blockMutation.isPending}
+                      className={clinic.is_blocked ? '' : 'text-amber-600 hover:bg-amber-50 border-amber-300'}
+                    >
+                      {clinic.is_blocked ? (
                         <>
-                          <FileText className="h-4 w-4 mr-1" />
-                          Review
+                          <Shield className="h-4 w-4 mr-1" />
+                          Unblock
                         </>
                       ) : (
                         <>
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
+                          <Ban className="h-4 w-4 mr-1" />
+                          Block
                         </>
                       )}
                     </Button>
-                    {clinic.verification_status !== 'pending' && (
-                      <>
-                        <Button
-                          variant={clinic.is_verified ? 'destructive' : 'default'}
-                          size="sm"
-                          onClick={() => toggleVerification.mutate({ id: clinic.id, isVerified: clinic.is_verified })}
-                          disabled={toggleVerification.isPending}
-                        >
-                          {clinic.is_verified ? (
-                            <>
-                              <XCircle className="h-4 w-4 mr-1" />
-                              Unverify
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Verify
-                            </>
-                          )}
+
+                    {/* More Actions Dropdown */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {clinic.verification_status === 'pending' ? (
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedClinic(clinic);
+                            setDetailsOpen(true);
+                          }}>
+                            <FileText className="h-4 w-4 mr-2" />
+                            Review Verification
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem
+                            onClick={() => toggleVerification.mutate({ id: clinic.id, isVerified: clinic.is_verified })}
+                          >
+                            {clinic.is_verified ? (
+                              <>
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Unverify Clinic
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Verify Clinic
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
                           onClick={() => toggleOpenStatus.mutate({ id: clinic.id, isOpen: clinic.is_open })}
-                          disabled={toggleOpenStatus.isPending}
                         >
-                          {clinic.is_open ? 'Close' : 'Open'}
-                        </Button>
-                      </>
-                    )}
+                          {clinic.is_open ? 'Close Clinic' : 'Open Clinic'}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => {
+                            setActionClinic(clinic);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Clinic
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </CardContent>
@@ -415,6 +546,73 @@ const AdminClinics = () => {
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
       />
+
+      {/* Block Dialog */}
+      <AlertDialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Block Clinic?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Blocking "{actionClinic?.name}" will prevent them from receiving new appointments.
+              The clinic profile will remain visible but will be marked as blocked.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="blockReason">Block Reason (optional)</Label>
+            <Textarea
+              id="blockReason"
+              value={blockReason}
+              onChange={(e) => setBlockReason(e.target.value)}
+              placeholder="e.g., Violation of terms, Fraudulent activity..."
+              rows={2}
+              className="mt-2"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={blockMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => actionClinic && blockMutation.mutate({ clinic: actionClinic, reason: blockReason })}
+              disabled={blockMutation.isPending}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              {blockMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              ) : (
+                <Ban className="h-4 w-4 mr-1" />
+              )}
+              Block Clinic
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Clinic Permanently?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete "{actionClinic?.name}"
+              and all associated data including appointments, doctors, and services.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => actionClinic && deleteMutation.mutate(actionClinic.id)}
+              disabled={deleteMutation.isPending}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-1" />
+              )}
+              Delete Permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 };
