@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, Loader2, Shield, PawPrint, ShoppingBag, Building2, Calendar, LogOut, Star, MapPin, ImagePlus } from 'lucide-react';
+import { Camera, Loader2, Shield, PawPrint, ShoppingBag, Building2, Calendar, LogOut, Star, MapPin, ImagePlus, Settings, Plus } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -94,7 +94,7 @@ const ProfileHeader = ({
       if (updateError) throw updateError;
 
       onAvatarUpdate(publicUrl);
-      toast({ title: "Profile picture updated", description: "Your profile picture has been updated successfully." });
+      toast({ title: "Profile picture updated" });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to upload avatar";
       toast({ title: "Upload failed", description: errorMessage, variant: "destructive" });
@@ -140,7 +140,7 @@ const ProfileHeader = ({
       if (updateError) throw updateError;
 
       onCoverUpdate?.(publicUrl);
-      toast({ title: "Cover photo updated", description: "Your cover photo has been updated successfully." });
+      toast({ title: "Cover photo updated" });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to upload cover photo";
       toast({ title: "Upload failed", description: errorMessage, variant: "destructive" });
@@ -155,9 +155,9 @@ const ProfileHeader = ({
   };
 
   return (
-    <div className="relative mb-6">
-      {/* Cover Photo */}
-      <div className="relative h-36 sm:h-44 md:h-52 rounded-2xl sm:rounded-3xl overflow-hidden group">
+    <div className="bg-card shadow-sm rounded-b-2xl sm:rounded-2xl overflow-hidden mb-4 sm:mb-6">
+      {/* Cover Photo - Facebook Style */}
+      <div className="relative h-[140px] xs:h-[180px] sm:h-[220px] md:h-[280px] lg:h-[320px] bg-gradient-to-r from-primary/20 via-accent/20 to-primary/10">
         {profile?.cover_photo_url ? (
           <img 
             src={profile.cover_photo_url} 
@@ -165,26 +165,29 @@ const ProfileHeader = ({
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="h-full bg-gradient-to-br from-primary via-primary/80 to-accent">
-            <div className="absolute inset-0 opacity-20">
-              <div className="absolute top-1/4 right-1/4 w-32 h-32 bg-white rounded-full blur-3xl" />
-              <div className="absolute bottom-0 left-1/3 w-24 h-24 bg-white rounded-full blur-2xl" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-accent/20 to-lavender/30">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-1/4 right-1/4 w-40 h-40 bg-white rounded-full blur-3xl" />
+              <div className="absolute bottom-0 left-1/3 w-32 h-32 bg-white rounded-full blur-2xl" />
             </div>
           </div>
         )}
         
-        {/* Cover Photo Upload Button */}
+        {/* Cover Photo Upload Button - Facebook Style */}
         <button
           onClick={() => coverInputRef.current?.click()}
           disabled={uploadingCover}
-          className="absolute bottom-3 right-3 flex items-center gap-2 px-3 py-1.5 bg-black/50 hover:bg-black/70 text-white text-xs sm:text-sm font-medium rounded-lg backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100 sm:opacity-100"
+          className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 bg-white/90 hover:bg-white text-foreground text-xs sm:text-sm font-semibold rounded-lg shadow-md transition-all"
         >
           {uploadingCover ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <ImagePlus className="h-4 w-4" />
+            <>
+              <Camera className="h-4 w-4" />
+              <span className="hidden sm:inline">Edit cover photo</span>
+              <span className="sm:hidden">Edit</span>
+            </>
           )}
-          <span className="hidden sm:inline">{profile?.cover_photo_url ? 'Change Cover' : 'Add Cover'}</span>
         </button>
         <input
           ref={coverInputRef}
@@ -195,164 +198,181 @@ const ProfileHeader = ({
         />
       </div>
 
-      {/* Profile Content */}
-      <div className="relative px-3 sm:px-6 -mt-14 sm:-mt-18">
-        <div className="bg-card rounded-2xl shadow-lg border border-border/50 p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-            {/* Avatar */}
-            <div className="relative mx-auto sm:mx-0 -mt-16 sm:-mt-20">
-              <Avatar className="h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 border-4 border-card shadow-xl">
-                <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || 'User'} />
-                <AvatarFallback className="text-2xl sm:text-3xl font-bold bg-gradient-to-br from-primary to-accent text-white">
+      {/* Profile Info Section - Facebook Style */}
+      <div className="relative px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6">
+        {/* Avatar - Overlapping Cover */}
+        <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-5">
+          <div className="relative -mt-[60px] xs:-mt-[70px] sm:-mt-[80px] md:-mt-[90px] self-center sm:self-start">
+            <div className="p-1 bg-card rounded-full shadow-lg">
+              <Avatar className="h-[100px] w-[100px] xs:h-[120px] xs:w-[120px] sm:h-[140px] sm:w-[140px] md:h-[160px] md:w-[160px] border-4 border-card">
+                <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || 'User'} className="object-cover" />
+                <AvatarFallback className="text-3xl xs:text-4xl sm:text-5xl font-bold bg-gradient-to-br from-primary to-accent text-white">
                   {getInitials(profile?.full_name || null, user.email)}
                 </AvatarFallback>
               </Avatar>
-              <button
-                onClick={() => avatarInputRef.current?.click()}
-                disabled={uploadingAvatar}
-                className="absolute bottom-0 right-0 h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors"
-              >
-                {uploadingAvatar ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Camera className="h-4 w-4" />
-                )}
-              </button>
-              <input
-                ref={avatarInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarChange}
-                className="hidden"
-              />
+            </div>
+            <button
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-muted hover:bg-muted/80 border-2 border-card flex items-center justify-center shadow-md transition-colors"
+            >
+              {uploadingAvatar ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4 sm:h-5 sm:w-5" />
+              )}
+            </button>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarChange}
+              className="hidden"
+            />
+          </div>
+
+          {/* Name & Info - Facebook Style */}
+          <div className="flex-1 text-center sm:text-left sm:pb-2 min-w-0">
+            <h1 className="text-xl xs:text-2xl sm:text-3xl md:text-4xl font-bold text-foreground leading-tight">
+              {profile?.full_name || 'Pet Parent'}
+            </h1>
+            
+            {/* Role Badges */}
+            <div className="flex items-center justify-center sm:justify-start gap-2 mt-1.5 flex-wrap">
+              {isAdmin && (
+                <Badge className="bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100">
+                  <Shield className="h-3 w-3 mr-1" />
+                  Admin
+                </Badge>
+              )}
+              {isClinicOwner && (
+                <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
+                  <Building2 className="h-3 w-3 mr-1" />
+                  Clinic Owner
+                </Badge>
+              )}
+              <Badge className="bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100">
+                <Star className="h-3 w-3 mr-1 fill-amber-500" />
+                Pet Parent
+              </Badge>
             </div>
 
-            {/* Info */}
-            <div className="flex-1 text-center sm:text-left">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold text-foreground">
-                  {profile?.full_name || 'Pet Parent'}
-                </h1>
-                <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-                  {isAdmin && (
-                    <Badge className="bg-primary/10 text-primary border-primary/20">
-                      <Shield className="h-3 w-3 mr-1" />
-                      Admin
-                    </Badge>
-                  )}
-                  {isClinicOwner && (
-                    <Badge className="bg-accent/10 text-accent border-accent/20">
-                      <Building2 className="h-3 w-3 mr-1" />
-                      Clinic Owner
-                    </Badge>
-                  )}
-                  <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
-                    <Star className="h-3 w-3 mr-1 fill-amber-500 text-amber-500" />
-                    Pet Parent
-                  </Badge>
-                </div>
-              </div>
-              
-              <p className="text-sm text-muted-foreground mb-1">{user.email}</p>
-              
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs sm:text-sm text-muted-foreground">
+            {/* Friends/Followers Style Info */}
+            <div className="flex items-center justify-center sm:justify-start gap-1 mt-2 text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">{petsCount}</span>
+              <span>pets</span>
+              <span className="mx-1">•</span>
+              <span className="font-semibold text-foreground">{ordersCount}</span>
+              <span>orders</span>
+              <span className="mx-1">•</span>
+              <span className="font-semibold text-foreground">{appointmentsCount}</span>
+              <span>appointments</span>
+            </div>
+            
+            {/* Location & Join Date */}
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-2 text-xs sm:text-sm text-muted-foreground">
+              {profile?.division && (
                 <span className="flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5" />
-                  Joined {user.created_at ? format(new Date(user.created_at), 'MMM yyyy') : 'recently'}
+                  <MapPin className="h-3.5 w-3.5" />
+                  {profile.division}
                 </span>
-                {profile?.division && (
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-3.5 w-3.5" />
-                    {profile.division}
-                  </span>
-                )}
-              </div>
-
-              {/* Quick Stats - Mobile */}
-              <div className="grid grid-cols-3 gap-2 mt-4 sm:hidden">
-                <div className="bg-primary/5 rounded-xl p-3 text-center">
-                  <PawPrint className="h-5 w-5 text-primary mx-auto mb-1" />
-                  <p className="text-lg font-bold text-foreground">{petsCount}</p>
-                  <p className="text-xs text-muted-foreground">Pets</p>
-                </div>
-                <div className="bg-coral/5 rounded-xl p-3 text-center">
-                  <ShoppingBag className="h-5 w-5 text-coral mx-auto mb-1" />
-                  <p className="text-lg font-bold text-foreground">{ordersCount}</p>
-                  <p className="text-xs text-muted-foreground">Orders</p>
-                </div>
-                <div className="bg-accent/5 rounded-xl p-3 text-center">
-                  <Calendar className="h-5 w-5 text-accent mx-auto mb-1" />
-                  <p className="text-lg font-bold text-foreground">{appointmentsCount}</p>
-                  <p className="text-xs text-muted-foreground">Appts</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Desktop Stats & Actions */}
-            <div className="hidden sm:flex flex-col gap-3">
-              {/* Stats */}
-              <div className="flex gap-3">
-                <div className="bg-muted/50 rounded-xl px-4 py-3 text-center min-w-[80px]">
-                  <p className="text-xl font-bold text-foreground">{petsCount}</p>
-                  <p className="text-xs text-muted-foreground">Pets</p>
-                </div>
-                <div className="bg-muted/50 rounded-xl px-4 py-3 text-center min-w-[80px]">
-                  <p className="text-xl font-bold text-foreground">{ordersCount}</p>
-                  <p className="text-xs text-muted-foreground">Orders</p>
-                </div>
-                <div className="bg-muted/50 rounded-xl px-4 py-3 text-center min-w-[80px]">
-                  <p className="text-xl font-bold text-foreground">{appointmentsCount}</p>
-                  <p className="text-xs text-muted-foreground">Appts</p>
-                </div>
-              </div>
-              
-              {/* Desktop Action Buttons */}
-              <div className="flex gap-2">
-                {isAdmin && (
-                  <Link to="/admin">
-                    <Button size="sm" className="gap-1.5">
-                      <Shield className="h-4 w-4" />
-                      Admin
-                    </Button>
-                  </Link>
-                )}
-                {isClinicOwner && (
-                  <Link to="/clinic/dashboard">
-                    <Button size="sm" variant="outline" className="gap-1.5">
-                      <Building2 className="h-4 w-4" />
-                      My Clinic
-                    </Button>
-                  </Link>
-                )}
-                <Button size="sm" variant="ghost" onClick={handleSignOut} className="text-muted-foreground">
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
+              )}
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" />
+                Joined {user.created_at ? format(new Date(user.created_at), 'MMMM yyyy') : 'recently'}
+              </span>
             </div>
           </div>
 
-          {/* Mobile Action Buttons */}
-          <div className="flex gap-2 mt-4 sm:hidden">
+          {/* Action Buttons - Facebook Style - Desktop */}
+          <div className="hidden sm:flex items-center gap-2 pb-2">
+            <Link to="/pets/new">
+              <Button className="gap-2 font-semibold">
+                <Plus className="h-4 w-4" />
+                Add Pet
+              </Button>
+            </Link>
             {isAdmin && (
-              <Link to="/admin" className="flex-1">
-                <Button size="sm" className="w-full gap-1.5">
+              <Link to="/admin">
+                <Button variant="secondary" className="gap-2 font-semibold">
                   <Shield className="h-4 w-4" />
-                  Admin Panel
+                  Admin
                 </Button>
               </Link>
             )}
             {isClinicOwner && (
-              <Link to="/clinic/dashboard" className="flex-1">
-                <Button size="sm" variant="outline" className="w-full gap-1.5">
+              <Link to="/clinic/dashboard">
+                <Button variant="secondary" className="gap-2 font-semibold">
                   <Building2 className="h-4 w-4" />
                   My Clinic
                 </Button>
               </Link>
             )}
-            <Button size="sm" variant="ghost" onClick={handleSignOut} className="text-muted-foreground px-3">
+            <Button variant="outline" size="icon" onClick={handleSignOut} title="Sign out">
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
+        </div>
+
+        {/* Mobile Action Buttons - Facebook Style */}
+        <div className="flex gap-2 mt-4 sm:hidden">
+          <Link to="/pets/new" className="flex-1">
+            <Button className="w-full gap-2 font-semibold h-10">
+              <Plus className="h-4 w-4" />
+              Add Pet
+            </Button>
+          </Link>
+          {isAdmin && (
+            <Link to="/admin" className="flex-1">
+              <Button variant="secondary" className="w-full gap-2 font-semibold h-10">
+                <Shield className="h-4 w-4" />
+                Admin
+              </Button>
+            </Link>
+          )}
+          {isClinicOwner && (
+            <Link to="/clinic/dashboard" className="flex-1">
+              <Button variant="secondary" className="w-full gap-2 font-semibold h-10">
+                <Building2 className="h-4 w-4" />
+                Clinic
+              </Button>
+            </Link>
+          )}
+          <Button variant="outline" size="icon" onClick={handleSignOut} className="h-10 w-10 flex-shrink-0">
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-border/50 mt-4 sm:mt-5" />
+
+        {/* Quick Stats Row - Facebook Style */}
+        <div className="grid grid-cols-3 gap-2 mt-4">
+          <Link to="/pets/new" className="group">
+            <div className="flex flex-col items-center p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer">
+              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-primary/10 flex items-center justify-center mb-2 group-hover:bg-primary/20 transition-colors">
+                <PawPrint className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+              </div>
+              <span className="text-lg sm:text-xl font-bold text-foreground">{petsCount}</span>
+              <span className="text-xs text-muted-foreground">Pets</span>
+            </div>
+          </Link>
+          <div className="flex flex-col items-center p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer">
+            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-coral/10 flex items-center justify-center mb-2">
+              <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6 text-coral" />
+            </div>
+            <span className="text-lg sm:text-xl font-bold text-foreground">{ordersCount}</span>
+            <span className="text-xs text-muted-foreground">Orders</span>
+          </div>
+          <Link to="/clinics">
+            <div className="flex flex-col items-center p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer">
+              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-accent/10 flex items-center justify-center mb-2">
+                <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-accent" />
+              </div>
+              <span className="text-lg sm:text-xl font-bold text-foreground">{appointmentsCount}</span>
+              <span className="text-xs text-muted-foreground">Appointments</span>
+            </div>
+          </Link>
         </div>
       </div>
     </div>

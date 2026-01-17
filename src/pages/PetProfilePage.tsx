@@ -96,7 +96,7 @@ const PetProfilePage = () => {
     <div className="min-h-screen bg-muted/30">
       <Navbar />
       
-      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-2xl">
+      <main className="container mx-auto px-0 sm:px-4 py-0 sm:py-6 max-w-3xl">
         {/* Profile Card */}
         <PetProfileCard 
           pet={pet} 
@@ -107,152 +107,150 @@ const PetProfilePage = () => {
 
         {/* Create Post (only for owner) */}
         {isOwner && (
-          <div className="mt-4 sm:mt-6">
+          <div className="mt-3 sm:mt-4 px-2 sm:px-0">
             <CreatePostCard onPostCreated={refreshPosts} />
           </div>
         )}
 
-        {/* Content Tabs */}
-        <div className="mt-4 sm:mt-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full h-11 sm:h-12 bg-card rounded-xl shadow-sm border border-border/50 p-1">
-              <TabsTrigger 
-                value="posts" 
-                className="flex-1 h-full gap-1.5 sm:gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm font-medium"
-              >
-                <Grid3X3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span>Posts</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="photos" 
-                className="flex-1 h-full gap-1.5 sm:gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm font-medium"
-              >
-                <ImageIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span>Photos</span>
-                {imagePosts.length > 0 && (
-                  <span className="text-[10px] sm:text-xs bg-muted px-1.5 rounded-full">
-                    {imagePosts.length}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger 
-                value="videos" 
-                className="flex-1 h-full gap-1.5 sm:gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm font-medium"
-              >
-                <Film className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span>Videos</span>
-                {videoPosts.length > 0 && (
-                  <span className="text-[10px] sm:text-xs bg-muted px-1.5 rounded-full">
-                    {videoPosts.length}
-                  </span>
-                )}
-              </TabsTrigger>
-            </TabsList>
+        {/* Content Tabs - Facebook Style */}
+        <div className="mt-3 sm:mt-4 px-2 sm:px-0">
+          <div className="bg-card rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="w-full h-12 sm:h-14 bg-transparent rounded-none border-b border-border/50 p-0 grid grid-cols-3">
+                <TabsTrigger 
+                  value="posts" 
+                  className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary font-semibold text-sm sm:text-base transition-all"
+                >
+                  <Grid3X3 className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                  Posts
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="photos" 
+                  className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary font-semibold text-sm sm:text-base transition-all"
+                >
+                  <ImageIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                  Photos
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="videos" 
+                  className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary font-semibold text-sm sm:text-base transition-all"
+                >
+                  <Film className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                  Videos
+                </TabsTrigger>
+              </TabsList>
 
-            {/* Posts Tab */}
-            <TabsContent value="posts" className="mt-4">
-              {postsLoading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : posts.length === 0 ? (
-                <div className="text-center py-12 bg-card rounded-xl border border-border/50">
-                  <div className="text-4xl mb-3">📝</div>
-                  <p className="text-muted-foreground font-medium">No posts yet</p>
-                  {isOwner && (
-                    <p className="text-sm text-muted-foreground mt-1">Share your first moment!</p>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-3 sm:space-y-4">
-                  {posts.map((post) => (
-                    <PostCard
-                      key={post.id}
-                      post={post}
-                      onLike={likePost}
-                      onUnlike={unlikePost}
-                      onDelete={refreshPosts}
-                    />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
+              {/* Posts Tab */}
+              <TabsContent value="posts" className="mt-0 p-3 sm:p-4">
+                {postsLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : posts.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="h-16 w-16 mx-auto rounded-full bg-muted flex items-center justify-center mb-4">
+                      <Grid3X3 className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-1">No posts yet</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {isOwner ? "Share your first moment!" : "When this pet shares, posts will appear here."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 sm:space-y-4">
+                    {posts.map((post) => (
+                      <PostCard
+                        key={post.id}
+                        post={post}
+                        onLike={likePost}
+                        onUnlike={unlikePost}
+                        onDelete={refreshPosts}
+                      />
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
 
-            {/* Photos Tab */}
-            <TabsContent value="photos" className="mt-4">
-              {postsLoading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : imagePosts.length === 0 ? (
-                <div className="text-center py-12 bg-card rounded-xl border border-border/50">
-                  <div className="text-4xl mb-3">📷</div>
-                  <p className="text-muted-foreground font-medium">No photos yet</p>
-                  {isOwner && (
-                    <p className="text-sm text-muted-foreground mt-1">Share some cute photos!</p>
-                  )}
-                </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-1 sm:gap-2">
-                  {imagePosts.map((post) => (
-                    post.media_urls?.map((url, index) => (
+              {/* Photos Tab */}
+              <TabsContent value="photos" className="mt-0 p-3 sm:p-4">
+                {postsLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : imagePosts.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="h-16 w-16 mx-auto rounded-full bg-muted flex items-center justify-center mb-4">
+                      <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-1">No photos</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {isOwner ? "Share cute photos of this pet!" : "No photos shared yet."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-1 sm:gap-2">
+                    {imagePosts.map((post) => (
+                      post.media_urls?.map((url, index) => (
+                        <div 
+                          key={`${post.id}-${index}`} 
+                          className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
+                          onClick={() => navigate(`/post/${post.id}`)}
+                        >
+                          <img 
+                            src={url} 
+                            alt="" 
+                            loading="lazy"
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                        </div>
+                      ))
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* Videos Tab */}
+              <TabsContent value="videos" className="mt-0 p-3 sm:p-4">
+                {postsLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : videoPosts.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="h-16 w-16 mx-auto rounded-full bg-muted flex items-center justify-center mb-4">
+                      <Film className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-1">No videos</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {isOwner ? "Share fun videos (max 1 min)!" : "No videos shared yet."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                    {videoPosts.map((post) => (
                       <div 
-                        key={`${post.id}-${index}`} 
-                        className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
+                        key={post.id} 
+                        className="relative aspect-video rounded-xl overflow-hidden cursor-pointer group bg-muted"
                         onClick={() => navigate(`/post/${post.id}`)}
                       >
-                        <img 
-                          src={url} 
-                          alt="" 
-                          loading="lazy"
-                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        <video 
+                          src={post.media_urls?.[0]} 
+                          className="w-full h-full object-cover"
+                          preload="metadata"
                         />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-                      </div>
-                    ))
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            {/* Videos Tab */}
-            <TabsContent value="videos" className="mt-4">
-              {postsLoading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : videoPosts.length === 0 ? (
-                <div className="text-center py-12 bg-card rounded-xl border border-border/50">
-                  <div className="text-4xl mb-3">🎬</div>
-                  <p className="text-muted-foreground font-medium">No videos yet</p>
-                  {isOwner && (
-                    <p className="text-sm text-muted-foreground mt-1">Share fun videos (max 1 min)!</p>
-                  )}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                  {videoPosts.map((post) => (
-                    <div 
-                      key={post.id} 
-                      className="relative aspect-video rounded-xl overflow-hidden cursor-pointer group bg-muted"
-                      onClick={() => navigate(`/post/${post.id}`)}
-                    >
-                      <video 
-                        src={post.media_urls?.[0]} 
-                        className="w-full h-full object-cover"
-                        preload="metadata"
-                      />
-                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/90 flex items-center justify-center">
-                          <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-foreground border-b-[6px] border-b-transparent ml-1" />
+                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                            <div className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-foreground border-b-[8px] border-b-transparent ml-1" />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
       </main>
 
