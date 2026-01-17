@@ -3,13 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   Plus, Loader2, Stethoscope, Mail, Phone, Edit, Trash2, 
-  GraduationCap, BadgeDollarSign, Calendar, Clock, ArrowLeft
+  GraduationCap, BadgeDollarSign, Calendar, Clock, ChevronLeft,
+  User, Star, CheckCircle, AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -175,8 +176,11 @@ const ClinicDoctors = () => {
 
   if (roleLoading || clinicLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50/30 via-background to-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading doctors...</p>
+        </div>
       </div>
     );
   }
@@ -197,12 +201,13 @@ const ClinicDoctors = () => {
             onChange={(e) => handleInputChange('name', e.target.value)}
             required
             placeholder="Dr. John Doe"
+            className="rounded-xl"
           />
         </div>
         <div className="space-y-2">
           <Label htmlFor="specialization">Specialization</Label>
           <Select value={formData.specialization} onValueChange={(v) => handleInputChange('specialization', v)}>
-            <SelectTrigger>
+            <SelectTrigger className="rounded-xl">
               <SelectValue placeholder="Select specialization" />
             </SelectTrigger>
             <SelectContent>
@@ -231,6 +236,7 @@ const ClinicDoctors = () => {
             value={formData.email}
             onChange={(e) => handleInputChange('email', e.target.value)}
             placeholder="doctor@example.com"
+            className="rounded-xl"
           />
         </div>
         <div className="space-y-2">
@@ -241,6 +247,7 @@ const ClinicDoctors = () => {
             value={formData.phone}
             onChange={(e) => handleInputChange('phone', e.target.value)}
             placeholder="+880 1XXX-XXXXXX"
+            className="rounded-xl"
           />
         </div>
       </div>
@@ -253,6 +260,7 @@ const ClinicDoctors = () => {
             value={formData.license_number}
             onChange={(e) => handleInputChange('license_number', e.target.value)}
             placeholder="VET-XXXX-XXXX"
+            className="rounded-xl"
           />
         </div>
         <div className="space-y-2">
@@ -264,6 +272,7 @@ const ClinicDoctors = () => {
             value={formData.experience_years}
             onChange={(e) => handleInputChange('experience_years', e.target.value)}
             placeholder="5"
+            className="rounded-xl"
           />
         </div>
       </div>
@@ -276,6 +285,7 @@ const ClinicDoctors = () => {
             value={formData.qualifications}
             onChange={(e) => handleInputChange('qualifications', e.target.value)}
             placeholder="DVM, MS, PhD"
+            className="rounded-xl"
           />
         </div>
         <div className="space-y-2">
@@ -287,6 +297,7 @@ const ClinicDoctors = () => {
             value={formData.consultation_fee}
             onChange={(e) => handleInputChange('consultation_fee', e.target.value)}
             placeholder="500"
+            className="rounded-xl"
           />
         </div>
       </div>
@@ -299,11 +310,12 @@ const ClinicDoctors = () => {
           onChange={(e) => handleInputChange('bio', e.target.value)}
           placeholder="Brief description about the doctor..."
           rows={3}
+          className="rounded-xl resize-none"
         />
       </div>
 
-      <DialogFooter>
-        <Button type="submit" disabled={isPending}>
+      <DialogFooter className="gap-2 sm:gap-0">
+        <Button type="submit" disabled={isPending} className="rounded-xl">
           {isPending ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -318,18 +330,29 @@ const ClinicDoctors = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-16 md:pb-0">
+    <div className="min-h-screen bg-gradient-to-b from-orange-50/30 via-background to-background pb-20 md:pb-0">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-6 max-w-4xl">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">Manage Doctors</h1>
-            <p className="text-muted-foreground">Add and manage doctors at your clinic</p>
+      <main className="container mx-auto px-4 py-6 max-w-5xl">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="rounded-xl"
+              onClick={() => navigate('/clinic/dashboard')}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-display font-bold text-foreground">Manage Doctors</h1>
+              <p className="text-sm text-muted-foreground">Add and manage doctors at your clinic</p>
+            </div>
           </div>
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="gap-2 rounded-xl shadow-lg shadow-primary/25">
                 <Plus className="h-4 w-4" />
                 <span className="hidden sm:inline">Add Doctor</span>
                 <span className="sm:hidden">Add</span>
@@ -388,8 +411,8 @@ const ClinicDoctors = () => {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteDoctor} className="bg-destructive text-destructive-foreground">
+              <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteDoctor} className="bg-destructive text-destructive-foreground rounded-xl">
                 Remove
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -397,99 +420,105 @@ const ClinicDoctors = () => {
         </AlertDialog>
 
         {doctorsLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center">
+              <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+              <p className="text-muted-foreground">Loading doctors...</p>
+            </div>
           </div>
         ) : clinicDoctors && clinicDoctors.length > 0 ? (
-          <div className="grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             {clinicDoctors.map((cd) => (
-              <Card key={cd.id}>
-                <CardContent className="pt-6">
-                  <div className="flex flex-col gap-4">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                      <div className="flex items-start gap-4">
-                        <Avatar className="h-16 w-16">
-                          <AvatarImage src={cd.doctor?.avatar_url || ''} />
-                          <AvatarFallback>
-                            <Stethoscope className="h-6 w-6" />
-                          </AvatarFallback>
-                        </Avatar>
+              <Card key={cd.id} className="bg-white border-border/50 shadow-sm hover:shadow-lg transition-all">
+                <CardContent className="p-5">
+                  <div className="flex gap-4">
+                    <Avatar className="h-16 w-16 border-2 border-primary/10 shadow-md flex-shrink-0">
+                      <AvatarImage src={cd.doctor?.avatar_url || ''} />
+                      <AvatarFallback className="bg-gradient-to-br from-primary/20 to-orange-100 text-primary">
+                        <Stethoscope className="h-7 w-7" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
                         <div>
-                          <h3 className="font-semibold text-lg">{cd.doctor?.name}</h3>
-                          <p className="text-muted-foreground">
+                          <h3 className="font-bold text-foreground text-lg">{cd.doctor?.name}</h3>
+                          <p className="text-primary font-medium text-sm">
                             {cd.doctor?.specialization || 'General Veterinarian'}
                           </p>
-                          <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
-                            {cd.doctor?.email && (
-                              <span className="flex items-center gap-1">
-                                <Mail className="h-3 w-3" />
-                                {cd.doctor.email}
-                              </span>
-                            )}
-                            {cd.doctor?.phone && (
-                              <span className="flex items-center gap-1">
-                                <Phone className="h-3 w-3" />
-                                {cd.doctor.phone}
-                              </span>
-                            )}
-                          </div>
-                          {(cd.doctor as any)?.qualifications?.length > 0 && (
-                            <div className="flex items-center gap-1 mt-2">
-                              <GraduationCap className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-sm text-muted-foreground">
-                                {(cd.doctor as any).qualifications.join(', ')}
-                              </span>
-                            </div>
-                          )}
-                          {(cd.doctor as any)?.consultation_fee && (
-                            <div className="flex items-center gap-1 mt-1">
-                              <BadgeDollarSign className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-sm text-muted-foreground">
-                                ৳{(cd.doctor as any).consultation_fee} consultation fee
-                              </span>
-                            </div>
-                          )}
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2 ml-20 sm:ml-0">
                         <Badge 
                           variant={cd.doctor?.is_available ? 'default' : 'secondary'}
+                          className={cd.doctor?.is_available ? 'bg-emerald-500 hover:bg-emerald-500' : ''}
                         >
                           {cd.doctor?.is_available ? 'Available' : 'Unavailable'}
                         </Badge>
+                      </div>
+                      
+                      <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-muted-foreground">
+                        {cd.doctor?.email && (
+                          <span className="flex items-center gap-1">
+                            <Mail className="h-3.5 w-3.5" />
+                            <span className="truncate max-w-[120px]">{cd.doctor.email}</span>
+                          </span>
+                        )}
+                        {cd.doctor?.phone && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-3.5 w-3.5" />
+                            {cd.doctor.phone}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {(cd.doctor as any)?.qualifications?.length > 0 && (
+                        <div className="flex items-center gap-1.5 mt-2">
+                          <GraduationCap className="h-3.5 w-3.5 text-primary" />
+                          <span className="text-sm text-muted-foreground truncate">
+                            {(cd.doctor as any).qualifications.slice(0, 2).join(', ')}
+                            {(cd.doctor as any).qualifications.length > 2 && '...'}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {(cd.doctor as any)?.consultation_fee && (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <BadgeDollarSign className="h-3.5 w-3.5 text-emerald-600" />
+                          <span className="text-sm font-medium text-emerald-600">
+                            ৳{(cd.doctor as any).consultation_fee}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/50">
                         <Select
                           value={cd.status}
                           onValueChange={(value) => handleStatusChange(cd.id, value)}
                         >
-                          <SelectTrigger className="w-28">
+                          <SelectTrigger className="w-28 h-8 rounded-lg text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="active">Active</SelectItem>
                             <SelectItem value="inactive">Inactive</SelectItem>
-                            <SelectItem value="pending">Pending</SelectItem>
                           </SelectContent>
                         </Select>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="h-8 rounded-lg"
+                          onClick={() => openEditDialog(cd.doctor)}
+                        >
+                          <Edit className="h-3.5 w-3.5 mr-1.5" />
+                          Edit
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10"
+                          onClick={() => setDeleteConfirm(cd.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
-                    </div>
-                    <div className="flex justify-end gap-2 border-t pt-4">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => openEditDialog(cd.doctor)}
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Edit
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => setDeleteConfirm(cd.doctor?.id || '')}
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Remove
-                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -497,14 +526,16 @@ const ClinicDoctors = () => {
             ))}
           </div>
         ) : (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Stethoscope className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="font-semibold mb-2">No doctors yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Add veterinary doctors to your clinic to start accepting appointments
+          <Card className="bg-white border-border/50 shadow-sm">
+            <CardContent className="py-16 text-center">
+              <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                <Stethoscope className="h-10 w-10 text-muted-foreground/50" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">No doctors yet</h3>
+              <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                Add doctors to your clinic to start accepting appointments
               </p>
-              <Button onClick={() => setIsAddOpen(true)}>
+              <Button onClick={() => setIsAddOpen(true)} className="rounded-xl">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Your First Doctor
               </Button>
