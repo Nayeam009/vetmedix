@@ -155,42 +155,48 @@ export const useDoctor = () => {
   };
 };
 
+// Public doctor info - uses doctors_public view for security (excludes email, phone, license)
 export const useDoctorById = (doctorId: string | undefined) => {
   return useQuery({
-    queryKey: ['doctor', doctorId],
+    queryKey: ['doctor-public', doctorId],
     queryFn: async () => {
       if (!doctorId) return null;
 
+      // Use doctors_public view - excludes sensitive contact info (email, phone, license_number)
       const { data, error } = await supabase
-        .from('doctors')
+        .from('doctors_public')
         .select('*')
         .eq('id', doctorId)
         .single();
 
       if (error) throw error;
-      return data as Doctor;
+      // Cast to partial Doctor type since public view excludes some fields
+      return data as Omit<Doctor, 'email' | 'phone' | 'license_number' | 'user_id'>;
     },
     enabled: !!doctorId,
   });
 };
 
+// Public clinic doctors - uses doctors_public view for security
 export const useClinicDoctors = (clinicId: string | undefined) => {
   return useQuery({
-    queryKey: ['clinic-doctors', clinicId],
+    queryKey: ['clinic-doctors-public', clinicId],
     queryFn: async () => {
       if (!clinicId) return [];
 
+      // Use doctors_public view - excludes sensitive contact info (email, phone, license_number)
       const { data, error } = await supabase
         .from('clinic_doctors')
         .select(`
           *,
-          doctor:doctors(*)
+          doctor:doctors_public(*)
         `)
         .eq('clinic_id', clinicId)
         .eq('status', 'active');
 
       if (error) throw error;
-      return data as (ClinicDoctor & { doctor: Doctor })[];
+      // Return with proper typing - doctor field is from doctors_public view
+      return data || [];
     },
     enabled: !!clinicId,
   });

@@ -75,6 +75,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "appointment_waitlist_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "appointment_waitlist_doctor_id_fkey"
             columns: ["doctor_id"]
             isOneToOne: false
@@ -145,6 +152,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "appointments_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "appointments_doctor_id_fkey"
             columns: ["doctor_id"]
             isOneToOne: false
@@ -188,6 +202,13 @@ export type Database = {
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_doctors_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_public"
             referencedColumns: ["id"]
           },
           {
@@ -245,6 +266,13 @@ export type Database = {
             referencedRelation: "clinics"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "clinic_reviews_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       clinic_services: {
@@ -284,6 +312,13 @@ export type Database = {
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_services_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_public"
             referencedColumns: ["id"]
           },
         ]
@@ -553,6 +588,13 @@ export type Database = {
             columns: ["created_by_clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctors_created_by_clinic_id_fkey"
+            columns: ["created_by_clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1101,6 +1143,60 @@ export type Database = {
       }
     }
     Views: {
+      clinics_public: {
+        Row: {
+          address: string | null
+          cover_photo_url: string | null
+          created_at: string | null
+          description: string | null
+          distance: string | null
+          email: string | null
+          id: string | null
+          image_url: string | null
+          is_open: boolean | null
+          is_verified: boolean | null
+          name: string | null
+          opening_hours: string | null
+          phone: string | null
+          rating: number | null
+          services: string[] | null
+        }
+        Insert: {
+          address?: string | null
+          cover_photo_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          distance?: string | null
+          email?: string | null
+          id?: string | null
+          image_url?: string | null
+          is_open?: boolean | null
+          is_verified?: boolean | null
+          name?: string | null
+          opening_hours?: string | null
+          phone?: string | null
+          rating?: number | null
+          services?: string[] | null
+        }
+        Update: {
+          address?: string | null
+          cover_photo_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          distance?: string | null
+          email?: string | null
+          id?: string | null
+          image_url?: string | null
+          is_open?: boolean | null
+          is_verified?: boolean | null
+          name?: string | null
+          opening_hours?: string | null
+          phone?: string | null
+          rating?: number | null
+          services?: string[] | null
+        }
+        Relationships: []
+      }
       doctors_public: {
         Row: {
           avatar_url: string | null
@@ -1153,6 +1249,13 @@ export type Database = {
             columns: ["created_by_clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctors_created_by_clinic_id_fkey"
+            columns: ["created_by_clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_public"
             referencedColumns: ["id"]
           },
         ]

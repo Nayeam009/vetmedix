@@ -17,6 +17,7 @@ import { useClinicReviews } from '@/hooks/useClinicReviews';
 import { useClinicDoctorsWithSchedules } from '@/hooks/useDoctorSchedules';
 import BookAppointmentDialog from '@/components/clinic/BookAppointmentDialog';
 
+// Clinic interface for clinics_public view (excludes sensitive fields like verification docs)
 interface Clinic {
   id: string;
   name: string;
@@ -32,7 +33,8 @@ interface Clinic {
   is_verified: boolean | null;
   opening_hours: string | null;
   description: string | null;
-  is_blocked: boolean | null;
+  created_at?: string;
+  // Note: is_blocked not included - clinics_public view filters out blocked clinics
 }
 
 const ClinicDetailPage = () => {
@@ -63,10 +65,11 @@ const ClinicDetailPage = () => {
   }, [id]);
   const fetchClinic = async () => {
     try {
+      // Use clinics_public view for security - excludes sensitive verification documents
       const {
         data,
         error
-      } = await supabase.from('clinics').select('*').eq('id', id).single();
+      } = await supabase.from('clinics_public').select('*').eq('id', id).single();
       if (error) throw error;
       setClinic(data);
     } catch (error) {
@@ -213,7 +216,6 @@ const ClinicDetailPage = () => {
                         size="lg" 
                         className="shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all" 
                         onClick={() => setShowBookingDialog(true)}
-                        disabled={clinic.is_blocked}
                       >
                         <Calendar className="h-4 w-4 mr-2" />
                         Book Appointment
@@ -403,25 +405,17 @@ const ClinicDetailPage = () => {
                   </div>
                 </div>
                 
-                {clinic?.is_blocked ? (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-muted-foreground">This clinic is not accepting appointments</p>
-                  </div>
-                ) : (
-                  <>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Get professional veterinary care for your pet. Book an appointment in just a few steps.
-                    </p>
-                    <Button 
-                      className="w-full shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all" 
-                      size="lg"
-                      onClick={() => setShowBookingDialog(true)}
-                    >
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Book Now
-                    </Button>
-                  </>
-                )}
+                <p className="text-sm text-muted-foreground mb-4">
+                  Get professional veterinary care for your pet. Book an appointment in just a few steps.
+                </p>
+                <Button 
+                  className="w-full shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all" 
+                  size="lg"
+                  onClick={() => setShowBookingDialog(true)}
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Book Now
+                </Button>
               </div>
             </div>
 

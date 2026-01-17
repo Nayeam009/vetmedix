@@ -28,8 +28,9 @@ const ClinicSection = () => {
 
   const fetchClinics = async () => {
     try {
+      // Use clinics_public view for security - excludes sensitive verification documents
       const { data, error } = await supabase
-        .from('clinics')
+        .from('clinics_public')
         .select('*')
         .limit(3);
       

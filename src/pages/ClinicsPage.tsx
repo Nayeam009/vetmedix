@@ -55,10 +55,10 @@ const ClinicsPage = () => {
 
   const fetchClinics = async () => {
     try {
+      // Use clinics_public view for security - excludes sensitive verification documents
       const { data, error } = await supabase
-        .from('clinics')
-        .select('*')
-        .neq('is_blocked', true);
+        .from('clinics_public')
+        .select('*');
       if (error) throw error;
       
       const sorted = (data || []).sort((a, b) => {

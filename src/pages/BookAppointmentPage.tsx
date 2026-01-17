@@ -22,13 +22,14 @@ const BookAppointmentPage = () => {
   const { toast } = useToast();
   const [isPending, setIsPending] = useState(false);
 
-  // Fetch clinic details
+  // Fetch clinic details - use clinics_public view for security
   const { data: clinic, isLoading: clinicLoading } = useQuery({
     queryKey: ['clinic-for-booking', clinicId],
     queryFn: async () => {
+      // Use clinics_public view - excludes sensitive verification documents
       const { data, error } = await supabase
-        .from('clinics')
-        .select('id, name, is_blocked, is_verified, image_url, address, phone, opening_hours, rating')
+        .from('clinics_public')
+        .select('id, name, is_verified, image_url, address, phone, opening_hours, rating')
         .eq('id', clinicId)
         .single();
       if (error) throw error;
@@ -94,8 +95,8 @@ const BookAppointmentPage = () => {
     );
   }
 
-  // Show blocked clinic message
-  if (clinic?.is_blocked) {
+  // Clinic not found - clinics_public view already filters out blocked clinics
+  if (!clinic) {
     return (
       <div className="min-h-screen bg-background flex flex-col pb-20 md:pb-0">
         <Navbar />
@@ -110,7 +111,7 @@ const BookAppointmentPage = () => {
               </div>
               <h2 className="text-xl font-semibold mb-2">Clinic Unavailable</h2>
               <p className="text-muted-foreground mb-4">
-                This clinic is currently not accepting appointments. Please try another clinic.
+                This clinic is currently not available. Please try another clinic.
               </p>
               <Button onClick={() => navigate('/clinics')}>
                 Browse Other Clinics
