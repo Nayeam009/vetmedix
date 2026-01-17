@@ -8,20 +8,23 @@ interface UserRoleData {
   roles: UserRoleType[];
   primaryRole: UserRoleType;
   isLoading: boolean;
+  isError: boolean;
+  error: Error | null;
   isUser: boolean;
   isDoctor: boolean;
   isClinicOwner: boolean;
   isAdmin: boolean;
   isModerator: boolean;
+  refetch: () => void;
 }
 
 // Priority order for determining primary role
 const ROLE_PRIORITY: UserRoleType[] = ['admin', 'clinic_owner', 'doctor', 'moderator', 'user'];
 
 export const useUserRole = (): UserRoleData => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
-  const { data: roles, isLoading } = useQuery({
+  const { data: roles, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['user-roles-all', user?.id],
     queryFn: async () => {
       if (!user?.id) return [] as UserRoleType[];
@@ -33,13 +36,14 @@ export const useUserRole = (): UserRoleData => {
 
       if (error) {
         console.error('Error fetching user roles:', error);
-        return [] as UserRoleType[];
+        throw error;
       }
 
       return (data?.map(r => r.role) as UserRoleType[]) || [];
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && !authLoading,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 2,
   });
 
   const currentRoles = roles || [];
@@ -50,11 +54,14 @@ export const useUserRole = (): UserRoleData => {
   return {
     roles: currentRoles,
     primaryRole,
-    isLoading,
+    isLoading: isLoading || authLoading,
+    isError,
+    error: error as Error | null,
     isUser: currentRoles.length === 0 || currentRoles.includes('user'),
     isDoctor: currentRoles.includes('doctor'),
     isClinicOwner: currentRoles.includes('clinic_owner'),
     isAdmin: currentRoles.includes('admin'),
     isModerator: currentRoles.includes('moderator') || currentRoles.includes('admin'),
+    refetch,
   };
 };

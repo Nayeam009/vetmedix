@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Building2, Loader2, Check } from 'lucide-react';
+import { User, Building2, Loader2, Check, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,6 +36,8 @@ const SelectRolePage = () => {
   const [selectedRole, setSelectedRole] = useState<SelectableRole>('user');
   const [loading, setLoading] = useState(false);
   const [checkingRole, setCheckingRole] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   
   // Clinic owner fields
   const [clinicName, setClinicName] = useState('');
@@ -53,7 +55,6 @@ const SelectRolePage = () => {
         navigate('/admin');
         break;
       case 'clinic_owner':
-        // New clinic owners go to verification page
         if (isNewClinicOwner) {
           navigate('/clinic/verification');
         } else {
@@ -77,10 +78,18 @@ const SelectRolePage = () => {
       }
 
       try {
-        const { data: roleData } = await supabase
+        setError(null);
+        const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id);
+
+        if (roleError) {
+          console.error('Error checking roles:', roleError);
+          setError('Failed to check your account status. Please try again.');
+          setCheckingRole(false);
+          return;
+        }
 
         const roles = roleData?.map(r => r.role) || [];
 
@@ -90,7 +99,9 @@ const SelectRolePage = () => {
         } else {
           setCheckingRole(false);
         }
-      } catch (error) {
+      } catch (err) {
+        console.error('Error in role check:', err);
+        setError('An unexpected error occurred. Please try again.');
         setCheckingRole(false);
       }
     };
@@ -98,26 +109,41 @@ const SelectRolePage = () => {
     if (!authLoading) {
       checkExistingRoles();
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, retryCount]);
+
+  const handleRetry = () => {
+    setCheckingRole(true);
+    setError(null);
+    setRetryCount(prev => prev + 1);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     setLoading(true);
+    setError(null);
 
     try {
       // Check if user already has any roles (prevent duplicate)
-      const { data: existingRoles } = await supabase
+      const { data: existingRoles, error: checkError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id);
 
-      const roles = existingRoles?.map(r => r.role) || [];
+      if (checkError) {
+        throw new Error('Failed to verify your account. Please try again.');
+      }
 
-      if (roles.length > 0) {
+      const currentRoles = existingRoles?.map(r => r.role) || [];
+
+      if (currentRoles.length > 0) {
         // User already has role(s), just redirect
-        redirectBasedOnRoles(roles);
+        toast({
+          title: 'Already set up!',
+          description: 'Your account is ready. Redirecting...',
+        });
+        redirectBasedOnRoles(currentRoles);
         return;
       }
 
@@ -135,14 +161,18 @@ const SelectRolePage = () => {
         // Check if it's a unique constraint violation (role already exists)
         if (roleError.code === '23505') {
           // Role already exists, fetch all and redirect
-          const { data: currentRoles } = await supabase
+          const { data: updatedRoles } = await supabase
             .from('user_roles')
             .select('role')
             .eq('user_id', user.id);
           
-          const existingRoles = currentRoles?.map(r => r.role) || [];
-          if (existingRoles.length > 0) {
-            redirectBasedOnRoles(existingRoles);
+          const roles = updatedRoles?.map(r => r.role) || [];
+          if (roles.length > 0) {
+            toast({
+              title: 'Already set up!',
+              description: 'Your account is ready. Redirecting...',
+            });
+            redirectBasedOnRoles(roles);
             return;
           }
         }
@@ -184,9 +214,10 @@ const SelectRolePage = () => {
       });
 
       redirectBasedOnRoles([selectedRole], selectedRole === 'clinic_owner');
-    } catch (error: unknown) {
-      console.error('Setup error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to complete setup';
+    } catch (err: unknown) {
+      console.error('Setup error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to complete setup';
+      setError(errorMessage);
       toast({
         title: 'Error',
         description: errorMessage,
@@ -200,7 +231,10 @@ const SelectRolePage = () => {
   if (authLoading || checkingRole) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Setting up your account...</p>
+        </div>
       </div>
     );
   }
@@ -227,6 +261,21 @@ const SelectRolePage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="mb-6 p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+              <p className="text-sm text-destructive mb-3">{error}</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRetry}
+                className="gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Retry
+              </Button>
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Role Selection */}
             <div className="space-y-3">

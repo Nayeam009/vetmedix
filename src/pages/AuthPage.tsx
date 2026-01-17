@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { RoleSelector, SignupRole } from '@/components/auth/RoleSelector';
 import logo from '@/assets/logo.jpeg';
 import { Separator } from '@/components/ui/separator';
+import { loginSchema, signupSchema, clinicOwnerSignupSchema } from '@/lib/validations';
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -20,6 +21,7 @@ const AuthPage = () => {
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<SignupRole>('user');
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   
   // Clinic owner fields
   const [clinicName, setClinicName] = useState('');
@@ -36,7 +38,6 @@ const AuthPage = () => {
   const ROLE_PRIORITY = ['admin', 'clinic_owner', 'doctor', 'moderator', 'user'];
 
   const redirectBasedOnRoles = (roles: string[]) => {
-    // Find the highest priority role
     const primaryRole = ROLE_PRIORITY.find(r => roles.includes(r)) || 'user';
     
     switch (primaryRole) {
@@ -60,20 +61,32 @@ const AuthPage = () => {
       if (authLoading) return;
       
       if (user) {
-        // User is logged in, check if they have any roles
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id);
+        try {
+          // User is logged in, check if they have any roles
+          const { data: roleData, error: roleError } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id);
 
-        const roles = roleData?.map(r => r.role) || [];
+          if (roleError) {
+            console.error('Error checking roles:', roleError);
+            // Still allow access but set checkingAuth to false
+            setCheckingAuth(false);
+            return;
+          }
 
-        if (roles.length === 0) {
-          // New user (likely OAuth), redirect to role selection
-          navigate('/select-role');
-        } else {
-          // Existing user with role(s), redirect based on priority
-          redirectBasedOnRoles(roles);
+          const roles = roleData?.map(r => r.role) || [];
+
+          if (roles.length === 0) {
+            // New user (likely OAuth), redirect to role selection
+            navigate('/select-role');
+          } else {
+            // Existing user with role(s), redirect based on priority
+            redirectBasedOnRoles(roles);
+          }
+        } catch (error) {
+          console.error('Error in auth callback:', error);
+          setCheckingAuth(false);
         }
       } else {
         setCheckingAuth(false);
@@ -104,8 +117,47 @@ const AuthPage = () => {
     }
   };
 
+  const validateForm = (): boolean => {
+    setValidationErrors({});
+    
+    try {
+      if (isLogin) {
+        loginSchema.parse({ email, password });
+      } else if (selectedRole === 'clinic_owner') {
+        clinicOwnerSignupSchema.parse({
+          email,
+          password,
+          fullName,
+          clinicName,
+          clinicAddress,
+          clinicPhone,
+        });
+      } else {
+        signupSchema.parse({ email, password, fullName });
+      }
+      return true;
+    } catch (error: any) {
+      if (error.errors) {
+        const errors: Record<string, string> = {};
+        error.errors.forEach((err: any) => {
+          const path = err.path[0];
+          if (path && !errors[path]) {
+            errors[path] = err.message;
+          }
+        });
+        setValidationErrors(errors);
+      }
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -113,13 +165,13 @@ const AuthPage = () => {
         const { error } = await signIn(email, password);
         if (error) throw error;
         
-        // Check user roles and redirect accordingly
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
+        // Wait for auth state to update
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (currentUser) {
           const { data: roleData } = await supabase
             .from('user_roles')
             .select('role')
-            .eq('user_id', user.id);
+            .eq('user_id', currentUser.id);
           
           const roles = roleData?.map(r => r.role) || [];
           
@@ -128,30 +180,31 @@ const AuthPage = () => {
             description: "You have successfully signed in.",
           });
           
-          // Redirect based on priority role
           redirectBasedOnRoles(roles);
         }
       } else {
         // Sign up
-        const { error } = await signUp(email, password, fullName);
+        const { error, user: newUser } = await signUp(email, password, fullName);
         if (error) throw error;
 
-        // Wait a moment for auth state to update
-        await new Promise(resolve => setTimeout(resolve, 500));
+        if (!newUser) {
+          throw new Error('Failed to create account. Please try again.');
+        }
 
-        // Get the new user
-        const { data: { user: newUser } } = await supabase.auth.getUser();
-        
-        if (newUser) {
-          // Create role entry with error handling
-          const { error: roleError } = await supabase
-            .from('user_roles')
-            .insert({ 
-              user_id: newUser.id, 
-              role: selectedRole 
-            });
+        // Create role entry with error handling
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({ 
+            user_id: newUser.id, 
+            role: selectedRole 
+          });
 
-          if (roleError) {
+        if (roleError) {
+          // Check if it's a duplicate error
+          if (roleError.code === '23505') {
+            // Role already exists, continue
+            console.log('Role already exists, continuing...');
+          } else {
             console.error('Failed to assign role:', roleError);
             toast({
               title: "Account created",
@@ -161,36 +214,40 @@ const AuthPage = () => {
             navigate('/auth');
             return;
           }
+        }
 
-          // Create clinic for clinic owner
-          if (selectedRole === 'clinic_owner') {
-            const { error: clinicError } = await supabase
-              .from('clinics')
-              .insert({
-                name: clinicName,
-                address: clinicAddress || null,
-                phone: clinicPhone || null,
-                owner_user_id: newUser.id,
-                is_open: true,
-                rating: 0,
-              });
+        // Create clinic for clinic owner
+        if (selectedRole === 'clinic_owner') {
+          const { error: clinicError } = await supabase
+            .from('clinics')
+            .insert({
+              name: clinicName,
+              address: clinicAddress || null,
+              phone: clinicPhone || null,
+              owner_user_id: newUser.id,
+              is_open: true,
+              rating: 0,
+            });
 
-            if (clinicError) {
-              console.error('Failed to create clinic:', clinicError);
-              toast({
-                title: "Account created",
-                description: "However, there was an issue creating your clinic. Please set it up in your dashboard.",
-              });
-            }
+          if (clinicError) {
+            console.error('Failed to create clinic:', clinicError);
+            toast({
+              title: "Account created",
+              description: "However, there was an issue creating your clinic. Please set it up in your dashboard.",
+            });
           }
+        }
 
-          toast({
-            title: "Account created!",
-            description: "Welcome to VET-MEDIX. Let's get you started.",
-          });
+        toast({
+          title: "Account created!",
+          description: "Welcome to VET-MEDIX. Let's get you started.",
+        });
 
-          // Redirect based on role
-          redirectBasedOnRoles([selectedRole]);
+        // Redirect based on role
+        if (selectedRole === 'clinic_owner') {
+          navigate('/clinic/verification');
+        } else {
+          navigate('/');
         }
       }
     } catch (error: unknown) {
@@ -213,6 +270,7 @@ const AuthPage = () => {
     setClinicAddress('');
     setClinicPhone('');
     setSelectedRole('user');
+    setValidationErrors({});
   };
 
   // Show loading while checking auth state
@@ -289,8 +347,11 @@ const AuthPage = () => {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
-                  className="h-11"
+                  className={`h-11 ${validationErrors.fullName ? 'border-destructive' : ''}`}
                 />
+                {validationErrors.fullName && (
+                  <p className="text-xs text-destructive">{validationErrors.fullName}</p>
+                )}
               </div>
             )}
 
@@ -304,8 +365,11 @@ const AuthPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="h-11"
+                className={`h-11 ${validationErrors.email ? 'border-destructive' : ''}`}
               />
+              {validationErrors.email && (
+                <p className="text-xs text-destructive">{validationErrors.email}</p>
+              )}
             </div>
 
             {/* Password */}
@@ -319,7 +383,7 @@ const AuthPage = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="h-11 pr-10"
+                  className={`h-11 pr-10 ${validationErrors.password ? 'border-destructive' : ''}`}
                 />
                 <button
                   type="button"
@@ -329,6 +393,9 @@ const AuthPage = () => {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {validationErrors.password && (
+                <p className="text-xs text-destructive">{validationErrors.password}</p>
+              )}
             </div>
 
             {/* Clinic owner fields */}
@@ -343,8 +410,11 @@ const AuthPage = () => {
                     value={clinicName}
                     onChange={(e) => setClinicName(e.target.value)}
                     required
-                    className="h-11"
+                    className={`h-11 ${validationErrors.clinicName ? 'border-destructive' : ''}`}
                   />
+                  {validationErrors.clinicName && (
+                    <p className="text-xs text-destructive">{validationErrors.clinicName}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="clinicAddress">Clinic Address</Label>
@@ -354,8 +424,11 @@ const AuthPage = () => {
                     placeholder="Full address of your clinic"
                     value={clinicAddress}
                     onChange={(e) => setClinicAddress(e.target.value)}
-                    className="h-11"
+                    className={`h-11 ${validationErrors.clinicAddress ? 'border-destructive' : ''}`}
                   />
+                  {validationErrors.clinicAddress && (
+                    <p className="text-xs text-destructive">{validationErrors.clinicAddress}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="clinicPhone">Clinic Phone</Label>
@@ -365,8 +438,11 @@ const AuthPage = () => {
                     placeholder="Contact number"
                     value={clinicPhone}
                     onChange={(e) => setClinicPhone(e.target.value)}
-                    className="h-11"
+                    className={`h-11 ${validationErrors.clinicPhone ? 'border-destructive' : ''}`}
                   />
+                  {validationErrors.clinicPhone && (
+                    <p className="text-xs text-destructive">{validationErrors.clinicPhone}</p>
+                  )}
                 </div>
               </>
             )}
