@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, Globe, ThumbsUp, Bookmark, Send } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, Globe, Bookmark, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -206,8 +206,8 @@ export const PostCard = ({ post, onLike, onUnlike, onDelete }: PostCardProps) =>
         <div className="flex items-center justify-between px-3 sm:px-4 py-2 text-xs sm:text-sm text-muted-foreground">
           {post.likes_count > 0 ? (
             <div className="flex items-center gap-1.5">
-              <div className="flex items-center justify-center h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-primary">
-                <ThumbsUp className="h-2 w-2 sm:h-2.5 sm:w-2.5 text-primary-foreground fill-current" />
+              <div className="flex items-center justify-center h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-rose-500">
+                <Heart className="h-2 w-2 sm:h-2.5 sm:w-2.5 text-white fill-current" />
               </div>
               <span className="font-medium">{post.likes_count}</span>
             </div>
@@ -233,14 +233,14 @@ export const PostCard = ({ post, onLike, onUnlike, onDelete }: PostCardProps) =>
             onClick={handleLike}
             className={`flex-1 h-9 sm:h-10 gap-1 sm:gap-2 rounded-lg font-medium text-xs sm:text-sm ${
               post.liked_by_user 
-                ? 'text-primary hover:text-primary hover:bg-primary/5' 
+                ? 'text-rose-500 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10' 
                 : 'text-muted-foreground hover:bg-muted'
             }`}
           >
-            <ThumbsUp className={`h-4 w-4 sm:h-5 sm:w-5 transition-transform ${
-              post.liked_by_user ? 'fill-primary' : ''
+            <Heart className={`h-4 w-4 sm:h-5 sm:w-5 transition-transform ${
+              post.liked_by_user ? 'fill-rose-500 text-rose-500' : ''
             } ${isLiking ? 'scale-125' : ''}`} />
-            <span className="hidden xs:inline">Like</span>
+            <span className="hidden xs:inline">Love</span>
           </Button>
           
           <Button 
