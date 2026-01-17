@@ -103,7 +103,7 @@ const ClinicsPage = () => {
     setSearchQuery('');
   };
 
-  const FilterContent = () => (
+  const filterContent = (
     <div className="space-y-6">
       {/* Service Filter */}
       <div>
@@ -242,7 +242,7 @@ const ClinicsPage = () => {
                   <SheetTitle>Filter Clinics</SheetTitle>
                 </SheetHeader>
                 <div className="mt-6">
-                  <FilterContent />
+                  {filterContent}
                 </div>
               </SheetContent>
             </Sheet>
