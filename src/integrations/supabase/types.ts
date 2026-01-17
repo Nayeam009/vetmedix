@@ -929,6 +929,7 @@ export type Database = {
         Row: {
           address: string | null
           avatar_url: string | null
+          cover_photo_url: string | null
           created_at: string
           district: string | null
           division: string | null
@@ -942,6 +943,7 @@ export type Database = {
         Insert: {
           address?: string | null
           avatar_url?: string | null
+          cover_photo_url?: string | null
           created_at?: string
           district?: string | null
           division?: string | null
@@ -955,6 +957,7 @@ export type Database = {
         Update: {
           address?: string | null
           avatar_url?: string | null
+          cover_photo_url?: string | null
           created_at?: string
           district?: string | null
           division?: string | null
