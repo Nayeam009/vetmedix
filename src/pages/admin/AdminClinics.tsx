@@ -49,6 +49,9 @@ interface Clinic {
   image_url: string | null;
   is_open: boolean;
   is_verified: boolean;
+  is_blocked: boolean | null;
+  blocked_at: string | null;
+  blocked_reason: string | null;
   verification_status: string | null;
   bvc_certificate_url: string | null;
   trade_license_url: string | null;
