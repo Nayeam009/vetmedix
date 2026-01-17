@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Star, MapPin, Clock, Phone, Stethoscope, User, Calendar, ChevronRight, Award, Heart, Shield, Loader2, MessageSquare, ThumbsUp, Mail, Share2, ChevronLeft, CheckCircle, Building2, AlertCircle, ExternalLink, Users, Sparkles, BadgeCheck, Navigation, Copy } from 'lucide-react';
+import { Star, MapPin, Clock, Phone, Stethoscope, User, Calendar, ChevronRight, Award, Heart, Shield, Loader2, MessageSquare, Mail, Share2, ChevronLeft, CheckCircle, Building2, AlertCircle, Users, Sparkles, BadgeCheck, Copy } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
@@ -8,11 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import gopalganjLogo from '@/assets/gopalganj-vet-care-logo.png';
+import ClinicReviewsSection from '@/components/clinic/ClinicReviewsSection';
+import { useClinicReviews } from '@/hooks/useClinicReviews';
+
 interface Clinic {
   id: string;
   name: string;
@@ -23,50 +25,24 @@ interface Clinic {
   distance: string | null;
   services: string[] | null;
   image_url: string | null;
+  cover_photo_url: string | null;
   is_open: boolean | null;
   is_verified: boolean | null;
   opening_hours: string | null;
   description: string | null;
 }
+
 const ClinicDetailPage = () => {
-  const {
-    id
-  } = useParams<{
-    id: string;
-  }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [isFavorite, setIsFavorite] = useState(false);
   const isGopalganj = clinic?.name?.toLowerCase().includes('gopalganj');
-
-  // Mock reviews data
-  const reviews = [{
-    id: 1,
-    author: 'Rahima Begum',
-    avatar: null,
-    rating: 5,
-    date: '2 days ago',
-    comment: 'Excellent service! Dr. Mohsin is very caring and professional. My cat recovered quickly after treatment.',
-    helpful: 12
-  }, {
-    id: 2,
-    author: 'Kamal Hossain',
-    avatar: null,
-    rating: 5,
-    date: '1 week ago',
-    comment: 'Best vet clinic in Gopalganj. They treated my dog with great care. Highly recommended!',
-    helpful: 8
-  }, {
-    id: 3,
-    author: 'Fatema Akter',
-    avatar: null,
-    rating: 4,
-    date: '2 weeks ago',
-    comment: 'Good facilities and friendly staff. Vaccination was done professionally.',
-    helpful: 5
-  }];
+  
+  // Use the reviews hook for rating stats
+  const { ratingStats } = useClinicReviews(id || '');
 
   // Doctor info for Gopalganj Vet Care
   const doctorInfo = {
@@ -116,27 +92,7 @@ const ClinicDetailPage = () => {
     }
     return days;
   };
-  const ratingDistribution = [{
-    stars: 5,
-    percentage: 70,
-    count: 34
-  }, {
-    stars: 4,
-    percentage: 20,
-    count: 10
-  }, {
-    stars: 3,
-    percentage: 7,
-    count: 3
-  }, {
-    stars: 2,
-    percentage: 2,
-    count: 1
-  }, {
-    stars: 1,
-    percentage: 1,
-    count: 0
-  }];
+  
   const handleShare = async () => {
     try {
       await navigator.share({
@@ -240,8 +196,8 @@ const ClinicDetailPage = () => {
                       <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-2 text-sm mb-4">
                         <button className="flex items-center gap-1.5 bg-amber-50 border border-amber-200/50 px-3 py-1.5 rounded-full hover:bg-amber-100 transition-colors">
                           <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                          <span className="font-bold text-amber-700">{clinic.rating || 4.8}</span>
-                          <span className="text-amber-600/80">(48 reviews)</span>
+                          <span className="font-bold text-amber-700">{ratingStats.average || clinic.rating || '—'}</span>
+                          <span className="text-amber-600/80">({ratingStats.total} {ratingStats.total === 1 ? 'review' : 'reviews'})</span>
                         </button>
                         <span className="flex items-center gap-1.5 text-muted-foreground">
                           <MapPin className="h-4 w-4 text-primary" />
@@ -437,65 +393,7 @@ const ClinicDetailPage = () => {
 
               {/* Reviews Tab */}
               <TabsContent value="reviews" className="mt-6 space-y-6">
-                <div className="bg-white rounded-2xl p-5 sm:p-6 lg:p-8 shadow-sm border border-border/50">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                    <h2 className="text-lg sm:text-xl font-display font-bold text-foreground flex items-center gap-2">
-                      <MessageSquare className="h-5 w-5 text-primary" />
-                      Customer Reviews
-                    </h2>
-                    <Button variant="outline" size="sm" className="w-full sm:w-auto">Write a Review</Button>
-                  </div>
-                  
-                  {/* Rating Summary */}
-                  <div className="flex flex-col sm:flex-row gap-6 p-4 sm:p-6 bg-gradient-to-br from-amber-50/50 to-orange-50/30 rounded-2xl border border-amber-100/50 mb-6">
-                    <div className="text-center sm:border-r sm:border-amber-200/50 sm:pr-6">
-                      <div className="text-4xl sm:text-5xl font-bold text-foreground">{clinic.rating || 4.8}</div>
-                      <div className="flex items-center justify-center gap-0.5 my-2">
-                        {[1, 2, 3, 4, 5].map(i => <Star key={i} className={`h-5 w-5 ${i <= Math.floor(clinic.rating || 4.8) ? 'text-amber-500 fill-amber-500' : 'text-muted/30'}`} />)}
-                      </div>
-                      <p className="text-sm text-muted-foreground">48 reviews</p>
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      {ratingDistribution.map(({
-                      stars,
-                      percentage,
-                      count
-                    }) => <div key={stars} className="flex items-center gap-2 sm:gap-3">
-                          <span className="text-sm w-3 text-muted-foreground">{stars}</span>
-                          <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                          <Progress value={percentage} className="flex-1 h-2" />
-                          <span className="text-xs text-muted-foreground w-6 text-right">{count}</span>
-                        </div>)}
-                    </div>
-                  </div>
-
-                  {/* Review List */}
-                  <div className="space-y-4">
-                    {reviews.map(review => <div key={review.id} className="p-4 sm:p-5 bg-muted/20 rounded-xl border border-border/30">
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
-                                {review.author.charAt(0)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-semibold text-foreground text-sm sm:text-base">{review.author}</p>
-                              <p className="text-xs text-muted-foreground">{review.date}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-0.5">
-                            {[1, 2, 3, 4, 5].map(i => <Star key={i} className={`h-3.5 w-3.5 ${i <= review.rating ? 'text-amber-500 fill-amber-500' : 'text-muted/30'}`} />)}
-                          </div>
-                        </div>
-                        <p className="text-muted-foreground text-sm mb-3">{review.comment}</p>
-                        <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
-                          <ThumbsUp className="h-4 w-4" />
-                          Helpful ({review.helpful})
-                        </button>
-                      </div>)}
-                  </div>
-                </div>
+                <ClinicReviewsSection clinicId={id || ''} clinicName={clinic.name} />
               </TabsContent>
             </Tabs>
           </div>
