@@ -183,7 +183,7 @@ const ProfileHeader = ({ user, profile, petsCount, ordersCount, isAdmin, isClini
           </div>
         </div>
 
-        {/* Role-based Buttons */}
+        {/* Role-based Buttons - Desktop */}
         <div className="hidden md:flex flex-col gap-2">
           {isAdmin && (
             <Link to="/admin">
@@ -203,6 +203,28 @@ const ProfileHeader = ({ user, profile, petsCount, ordersCount, isAdmin, isClini
           )}
         </div>
       </div>
+
+      {/* Mobile Quick Access Buttons */}
+      {(isAdmin || isClinicOwner) && (
+        <div className="flex md:hidden gap-3 mt-4 pt-4 border-t border-border/50">
+          {isAdmin && (
+            <Link to="/admin" className="flex-1">
+              <Button variant="outline" size="sm" className="w-full gap-2 border-primary text-primary">
+                <Shield className="h-4 w-4" />
+                Admin Panel
+              </Button>
+            </Link>
+          )}
+          {isClinicOwner && (
+            <Link to="/clinic/dashboard" className="flex-1">
+              <Button variant="outline" size="sm" className="w-full gap-2 border-accent text-accent">
+                <Building2 className="h-4 w-4" />
+                My Clinic
+              </Button>
+            </Link>
+          )}
+        </div>
+      )}
     </div>
   );
 };

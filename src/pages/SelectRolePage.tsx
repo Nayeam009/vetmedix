@@ -42,9 +42,30 @@ const SelectRolePage = () => {
   const [clinicAddress, setClinicAddress] = useState('');
   const [clinicPhone, setClinicPhone] = useState('');
 
-  // Check if user already has a role
+  // Priority order for role-based redirects
+  const ROLE_PRIORITY = ['admin', 'clinic_owner', 'doctor', 'moderator', 'user'];
+
+  const redirectBasedOnRoles = (roles: string[]) => {
+    const primaryRole = ROLE_PRIORITY.find(r => roles.includes(r)) || 'user';
+    
+    switch (primaryRole) {
+      case 'admin':
+        navigate('/admin');
+        break;
+      case 'clinic_owner':
+        navigate('/clinic/dashboard');
+        break;
+      case 'doctor':
+        navigate('/doctor/dashboard');
+        break;
+      default:
+        navigate('/');
+    }
+  };
+
+  // Check if user already has any roles
   useEffect(() => {
-    const checkExistingRole = async () => {
+    const checkExistingRoles = async () => {
       if (!user) {
         setCheckingRole(false);
         return;
@@ -54,12 +75,13 @@ const SelectRolePage = () => {
         const { data: roleData } = await supabase
           .from('user_roles')
           .select('role')
-          .eq('user_id', user.id)
-          .maybeSingle();
+          .eq('user_id', user.id);
 
-        if (roleData?.role) {
-          // User already has a role, redirect
-          redirectBasedOnRole(roleData.role);
+        const roles = roleData?.map(r => r.role) || [];
+
+        if (roles.length > 0) {
+          // User already has role(s), redirect based on priority
+          redirectBasedOnRoles(roles);
         } else {
           setCheckingRole(false);
         }
@@ -69,22 +91,9 @@ const SelectRolePage = () => {
     };
 
     if (!authLoading) {
-      checkExistingRole();
+      checkExistingRoles();
     }
   }, [user, authLoading]);
-
-  const redirectBasedOnRole = (role: string) => {
-    switch (role) {
-      case 'clinic_owner':
-        navigate('/clinic/dashboard');
-        break;
-      case 'admin':
-        navigate('/admin');
-        break;
-      default:
-        navigate('/');
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,16 +102,17 @@ const SelectRolePage = () => {
     setLoading(true);
 
     try {
-      // Check if user already has a role (prevent duplicate)
-      const { data: existingRole } = await supabase
+      // Check if user already has any roles (prevent duplicate)
+      const { data: existingRoles } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', user.id)
-        .maybeSingle();
+        .eq('user_id', user.id);
 
-      if (existingRole?.role) {
-        // User already has a role, just redirect
-        redirectBasedOnRole(existingRole.role);
+      const roles = existingRoles?.map(r => r.role) || [];
+
+      if (roles.length > 0) {
+        // User already has role(s), just redirect
+        redirectBasedOnRoles(roles);
         return;
       }
 
@@ -119,15 +129,15 @@ const SelectRolePage = () => {
         
         // Check if it's a unique constraint violation (role already exists)
         if (roleError.code === '23505') {
-          // Role already exists, fetch it and redirect
-          const { data: currentRole } = await supabase
+          // Role already exists, fetch all and redirect
+          const { data: currentRoles } = await supabase
             .from('user_roles')
             .select('role')
-            .eq('user_id', user.id)
-            .maybeSingle();
+            .eq('user_id', user.id);
           
-          if (currentRole?.role) {
-            redirectBasedOnRole(currentRole.role);
+          const existingRoles = currentRoles?.map(r => r.role) || [];
+          if (existingRoles.length > 0) {
+            redirectBasedOnRoles(existingRoles);
             return;
           }
         }
@@ -168,7 +178,7 @@ const SelectRolePage = () => {
           : 'Your account is ready. Start exploring!',
       });
 
-      redirectBasedOnRole(selectedRole);
+      redirectBasedOnRoles([selectedRole]);
     } catch (error: unknown) {
       console.error('Setup error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to complete setup';

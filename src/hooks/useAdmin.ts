@@ -14,32 +14,38 @@ interface UserRole {
 export const useAdmin = () => {
   const { user } = useAuth();
 
-  const { data: userRole, isLoading: roleLoading } = useQuery({
-    queryKey: ['admin-role', user?.id],
+  const { data: userRoles, isLoading: roleLoading } = useQuery({
+    queryKey: ['admin-roles-all', user?.id],
     queryFn: async () => {
-      if (!user) return null;
+      if (!user) return [];
 
       const { data, error } = await supabase
         .from('user_roles')
         .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+        .eq('user_id', user.id);
 
       if (error) throw error;
-      return data as UserRole | null;
+      return (data as UserRole[]) || [];
     },
     enabled: !!user,
   });
 
-  const isAdmin = userRole?.role === 'admin';
-  const isModerator = userRole?.role === 'moderator' || isAdmin;
+  const roles = userRoles || [];
+  const roleTypes = roles.map(r => r.role);
+  
+  const isAdmin = roleTypes.includes('admin');
+  const isModerator = roleTypes.includes('moderator') || isAdmin;
+  const isClinicOwner = roleTypes.includes('clinic_owner');
+  const isDoctor = roleTypes.includes('doctor');
 
   return {
-    userRole,
+    userRoles: roles,
     roleLoading,
     isAdmin,
     isModerator,
-    role: userRole?.role || null,
+    isClinicOwner,
+    isDoctor,
+    roles: roleTypes,
   };
 };
 
