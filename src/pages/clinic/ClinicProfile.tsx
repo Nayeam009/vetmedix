@@ -699,124 +699,172 @@ const ClinicProfile = () => {
             </CardContent>
           </Card>
 
-          {/* Verification Details Section - Read Only */}
-          {(ownedClinic?.owner_name || ownedClinic?.owner_nid || ownedClinic?.bvc_certificate_url || ownedClinic?.trade_license_url) && (
-            <Card className="bg-white border-border/50 shadow-sm">
-              <CardHeader className="px-4 sm:px-6 py-4 sm:py-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                      <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                      Verification Details
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm mt-1">
-                      Documents submitted during clinic registration
-                    </CardDescription>
-                  </div>
-                  {/* Verification Status Badge */}
-                  {ownedClinic?.verification_status && (
-                    <Badge 
-                      className={cn(
-                        "self-start sm:self-center gap-1.5 text-xs px-3 py-1.5 shrink-0",
-                        ownedClinic.verification_status === 'approved' && "bg-emerald-500 hover:bg-emerald-500",
-                        ownedClinic.verification_status === 'pending' && "bg-amber-500 hover:bg-amber-500",
-                        ownedClinic.verification_status === 'rejected' && "bg-red-500 hover:bg-red-500"
-                      )}
-                    >
-                      {ownedClinic.verification_status === 'approved' && <CheckCircle className="h-3.5 w-3.5" />}
-                      {ownedClinic.verification_status === 'pending' && <Clock className="h-3.5 w-3.5" />}
-                      {ownedClinic.verification_status === 'rejected' && <AlertCircle className="h-3.5 w-3.5" />}
-                      {ownedClinic.verification_status === 'approved' ? 'Verified' : 
-                       ownedClinic.verification_status === 'pending' ? 'Pending Review' : 'Rejected'}
-                    </Badge>
-                  )}
+          {/* Verification Details Section - Always Visible */}
+          <Card className="bg-white border-border/50 shadow-sm">
+            <CardHeader className="px-4 sm:px-6 py-4 sm:py-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                    Verification Details
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm mt-1">
+                    {(ownedClinic?.owner_name || ownedClinic?.bvc_certificate_url || ownedClinic?.trade_license_url) 
+                      ? "Documents submitted during clinic registration"
+                      : "Submit your documents to get verified"}
+                  </CardDescription>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-5 px-4 sm:px-6 pb-5 sm:pb-6 pt-0">
-                {/* Owner Information - Read Only */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {ownedClinic?.owner_name && (
-                    <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
-                      <div className="flex items-center gap-2 mb-2">
-                        <User className="h-4 w-4 text-primary" />
-                        <Label className="text-sm font-medium text-muted-foreground">Owner Name</Label>
-                      </div>
-                      <p className="text-base font-medium text-foreground">{ownedClinic.owner_name}</p>
-                    </div>
+                {/* Verification Status Badge */}
+                <Badge 
+                  variant={(!ownedClinic?.verification_status || ownedClinic?.verification_status === 'not_submitted') ? 'outline' : 'default'}
+                  className={cn(
+                    "self-start sm:self-center gap-1.5 text-xs px-3 py-1.5 shrink-0",
+                    ownedClinic?.verification_status === 'approved' && "bg-emerald-500 hover:bg-emerald-500",
+                    ownedClinic?.verification_status === 'pending' && "bg-amber-500 hover:bg-amber-500",
+                    ownedClinic?.verification_status === 'rejected' && "bg-red-500 hover:bg-red-500",
+                    (!ownedClinic?.verification_status || ownedClinic?.verification_status === 'not_submitted') && "border-muted-foreground/30 text-muted-foreground"
                   )}
-                  {ownedClinic?.owner_nid && (
-                    <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
-                      <div className="flex items-center gap-2 mb-2">
-                        <CreditCard className="h-4 w-4 text-primary" />
-                        <Label className="text-sm font-medium text-muted-foreground">Owner NID</Label>
+                >
+                  {ownedClinic?.verification_status === 'approved' && <CheckCircle className="h-3.5 w-3.5" />}
+                  {ownedClinic?.verification_status === 'pending' && <Clock className="h-3.5 w-3.5" />}
+                  {ownedClinic?.verification_status === 'rejected' && <AlertCircle className="h-3.5 w-3.5" />}
+                  {(!ownedClinic?.verification_status || ownedClinic?.verification_status === 'not_submitted') && <Shield className="h-3.5 w-3.5" />}
+                  {ownedClinic?.verification_status === 'approved' ? 'Verified' : 
+                   ownedClinic?.verification_status === 'pending' ? 'Pending Review' : 
+                   ownedClinic?.verification_status === 'rejected' ? 'Rejected' : 'Not Verified'}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-5 px-4 sm:px-6 pb-5 sm:pb-6 pt-0">
+              {/* Show verification data if submitted, otherwise show CTA */}
+              {(ownedClinic?.owner_name || ownedClinic?.bvc_certificate_url || ownedClinic?.trade_license_url) ? (
+                <>
+                  {/* Owner Information - Read Only */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {ownedClinic?.owner_name && (
+                      <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
+                        <div className="flex items-center gap-2 mb-2">
+                          <User className="h-4 w-4 text-primary" />
+                          <Label className="text-sm font-medium text-muted-foreground">Owner Name</Label>
+                        </div>
+                        <p className="text-base font-medium text-foreground">{ownedClinic.owner_name}</p>
                       </div>
-                      <p className="text-base font-medium text-foreground font-mono">
-                        {/* Partially mask NID for security - show last 4 digits */}
-                        {'•'.repeat(Math.max(0, ownedClinic.owner_nid.length - 4))}{ownedClinic.owner_nid.slice(-4)}
+                    )}
+                    {ownedClinic?.owner_nid && (
+                      <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CreditCard className="h-4 w-4 text-primary" />
+                          <Label className="text-sm font-medium text-muted-foreground">Owner NID</Label>
+                        </div>
+                        <p className="text-base font-medium text-foreground font-mono">
+                          {/* Partially mask NID for security - show last 4 digits */}
+                          {'•'.repeat(Math.max(0, ownedClinic.owner_nid.length - 4))}{ownedClinic.owner_nid.slice(-4)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  {/* Submitted Certificates */}
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-primary" />
+                      Submitted Certificates
+                    </Label>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* BVC Certificate */}
+                      {ownedClinic?.bvc_certificate_url && (
+                        <DocumentPreviewCard 
+                          url={ownedClinic.bvc_certificate_url} 
+                          label="BVC Certificate" 
+                        />
+                      )}
+                      
+                      {/* Trade License */}
+                      {ownedClinic?.trade_license_url && (
+                        <DocumentPreviewCard 
+                          url={ownedClinic.trade_license_url} 
+                          label="Trade License" 
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Submission Date */}
+                  {ownedClinic?.verification_submitted_at && (
+                    <div className="pt-2">
+                      <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-2">
+                        <Clock className="h-3.5 w-3.5" />
+                        Submitted: {new Date(ownedClinic.verification_submitted_at).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
                       </p>
                     </div>
                   )}
-                </div>
 
-                <Separator />
-
-                {/* Submitted Certificates */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-primary" />
-                    Submitted Certificates
-                  </Label>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* BVC Certificate */}
-                    {ownedClinic?.bvc_certificate_url && (
-                      <DocumentPreviewCard 
-                        url={ownedClinic.bvc_certificate_url} 
-                        label="BVC Certificate" 
-                      />
-                    )}
-                    
-                    {/* Trade License */}
-                    {ownedClinic?.trade_license_url && (
-                      <DocumentPreviewCard 
-                        url={ownedClinic.trade_license_url} 
-                        label="Trade License" 
-                      />
-                    )}
-                  </div>
-                </div>
-
-                {/* Submission Date */}
-                {ownedClinic?.verification_submitted_at && (
-                  <div className="pt-2">
-                    <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-2">
-                      <Clock className="h-3.5 w-3.5" />
-                      Submitted: {new Date(ownedClinic.verification_submitted_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                  {/* Rejection Reason if rejected */}
+                  {ownedClinic?.verification_status === 'rejected' && ownedClinic?.rejection_reason && (
+                    <div className="p-4 rounded-xl bg-red-50 border border-red-200">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-red-800">Rejection Reason</p>
+                          <p className="text-sm text-red-700 mt-1">{ownedClinic.rejection_reason}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* Call to Action - Submit Verification */}
+                  <div className="text-center py-6">
+                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                      <Shield className="h-8 w-8 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-lg mb-2">Verify Your Clinic</h3>
+                    <p className="text-muted-foreground text-sm mb-5 max-w-sm mx-auto">
+                      Submit your BVC Certificate and Trade License to get verified 
+                      and unlock all clinic management features.
                     </p>
+                    <Button 
+                      type="button"
+                      onClick={() => navigate('/clinic/verification')}
+                      className="gap-2"
+                    >
+                      Submit Verification
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
                   </div>
-                )}
-
-                {/* Rejection Reason if rejected */}
-                {ownedClinic?.verification_status === 'rejected' && ownedClinic?.rejection_reason && (
-                  <div className="p-4 rounded-xl bg-red-50 border border-red-200">
-                    <div className="flex items-start gap-3">
-                      <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium text-red-800">Rejection Reason</p>
-                        <p className="text-sm text-red-700 mt-1">{ownedClinic.rejection_reason}</p>
+                  
+                  {/* Benefits List */}
+                  <div className="pt-4 border-t space-y-3">
+                    <p className="text-sm font-medium text-muted-foreground">Benefits of verification:</p>
+                    <div className="space-y-2.5">
+                      <div className="flex items-center gap-2.5 text-sm">
+                        <CheckCircle className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                        <span>Verified badge on your clinic profile</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-sm">
+                        <CheckCircle className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                        <span>Higher visibility in clinic search results</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-sm">
+                        <CheckCircle className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                        <span>Build trust with pet parents</span>
                       </div>
                     </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                </>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Submit Button - Sticky on mobile */}
           <div className="sticky bottom-20 sm:bottom-0 bg-gradient-to-t from-background via-background to-transparent pt-4 pb-2 -mx-3 sm:mx-0 px-3 sm:px-0 sm:bg-transparent sm:static">
