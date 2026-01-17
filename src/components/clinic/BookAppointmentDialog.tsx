@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, Loader2, X, Stethoscope } from 'lucide-react';
+import { Calendar, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -18,7 +18,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
 import BookAppointmentWizard from '@/components/booking/BookAppointmentWizard';
 
 interface BookAppointmentDialogProps {
@@ -28,6 +27,8 @@ interface BookAppointmentDialogProps {
   clinicName: string;
   doctors: any[];
   doctorsLoading?: boolean;
+  onSuccess?: () => void;
+  onNeedAuth?: () => void;
 }
 
 const BookAppointmentDialog = ({
@@ -37,9 +38,10 @@ const BookAppointmentDialog = ({
   clinicName,
   doctors,
   doctorsLoading = false,
+  onSuccess,
+  onNeedAuth,
 }: BookAppointmentDialogProps) => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [isBooking, setIsBooking] = useState(false);
 
@@ -47,7 +49,7 @@ const BookAppointmentDialog = ({
     if (!user) {
       toast.error('Please sign in to book an appointment');
       onOpenChange(false);
-      navigate('/auth');
+      onNeedAuth?.();
       return;
     }
     
@@ -72,7 +74,7 @@ const BookAppointmentDialog = ({
       
       toast.success('Appointment Booked! You will receive a confirmation soon.');
       onOpenChange(false);
-      navigate('/profile');
+      onSuccess?.();
     } catch (error: unknown) {
       toast.error('Failed to book appointment. Please try again.');
     } finally {

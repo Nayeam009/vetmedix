@@ -492,6 +492,8 @@ const ClinicDetailPage = () => {
         clinicName={clinic?.name || ''}
         doctors={doctorsWithSchedules}
         doctorsLoading={doctorsLoading}
+        onSuccess={() => navigate('/profile')}
+        onNeedAuth={() => navigate('/auth')}
       />
     </div>;
 };
