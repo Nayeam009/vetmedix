@@ -1,8 +1,6 @@
 import { useState, useRef } from 'react';
-import { Image, Video, X, Loader2, Send, Camera, Film } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Image, Video, X, Loader2, Smile } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePets } from '@/contexts/PetContext';
@@ -19,13 +17,14 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
   const { activePet, pets } = usePets();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const [content, setContent] = useState('');
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [submitting, setSubmitting] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleFileSelect = (type: 'image' | 'video') => {
     if (!user) {
@@ -54,6 +53,7 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
 
     const newFiles = [...mediaFiles, ...files].slice(0, 4);
     setMediaFiles(newFiles);
+    setIsExpanded(true);
 
     const previews = newFiles.map(file => URL.createObjectURL(file));
     setMediaPreviews(previews);
@@ -81,7 +81,7 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
         const fileExt = file.name.split('.').pop();
         const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         
-        const { error: uploadError, data } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('pet-media')
           .upload(fileName, file);
 
@@ -106,11 +106,11 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
 
       if (error) throw error;
 
-      toast.success('Post created! 🎉');
+      toast.success('Post created!');
       setContent('');
       setMediaFiles([]);
       setMediaPreviews([]);
-      setIsFocused(false);
+      setIsExpanded(false);
       onPostCreated();
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -122,151 +122,180 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
     }
   };
 
+  const handleInputClick = () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    if (pets.length === 0) {
+      navigate('/pets/new');
+      return;
+    }
+    setIsExpanded(true);
+    setTimeout(() => textareaRef.current?.focus(), 100);
+  };
+
   if (!user) {
     return (
-      <Card className="mb-6 border border-border/40 shadow-card rounded-2xl overflow-hidden bg-gradient-to-br from-card via-card to-primary/5">
-        <CardContent className="p-8 text-center">
-          <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-gradient-to-br from-primary/20 via-accent/15 to-lavender/20 flex items-center justify-center shadow-soft">
-            <span className="text-4xl">🐾</span>
+      <div className="bg-card rounded-lg shadow-sm border border-border p-4 mb-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+            <span className="text-lg">🐾</span>
           </div>
-          <h3 className="font-display font-bold text-lg text-foreground mb-2">Join our pet community!</h3>
-          <p className="text-muted-foreground mb-5 text-sm max-w-xs mx-auto">Share adorable moments and connect with fellow pet lovers</p>
-          <Button 
+          <button 
             onClick={() => navigate('/auth')}
-            className="bg-gradient-to-r from-primary to-coral-light hover:from-coral-dark hover:to-primary text-white rounded-xl px-8 shadow-button hover:shadow-hover transition-all"
+            className="flex-1 h-10 bg-muted hover:bg-muted/80 rounded-full px-4 text-left text-muted-foreground text-sm transition-colors"
           >
-            Get Started
-          </Button>
-        </CardContent>
-      </Card>
+            Join to share with pet lovers...
+          </button>
+        </div>
+      </div>
     );
   }
 
   if (pets.length === 0) {
     return (
-      <Card className="mb-6 border border-border/40 shadow-card rounded-2xl overflow-hidden bg-gradient-to-br from-card via-card to-mint/5">
-        <CardContent className="p-8 text-center">
-          <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-gradient-to-br from-mint/20 via-accent/15 to-sky/20 flex items-center justify-center shadow-soft animate-bounce-gentle">
-            <span className="text-4xl">🐶</span>
+      <div className="bg-card rounded-lg shadow-sm border border-border p-4 mb-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+            <span className="text-lg">🐶</span>
           </div>
-          <h3 className="font-display font-bold text-lg text-foreground mb-2">Add your furry friend!</h3>
-          <p className="text-muted-foreground mb-5 text-sm max-w-xs mx-auto">Create a profile for your pet to start sharing</p>
-          <Button 
+          <button 
             onClick={() => navigate('/pets/new')}
-            className="bg-gradient-to-r from-mint to-accent hover:from-accent hover:to-mint text-white rounded-xl px-8 shadow-button hover:shadow-hover transition-all"
+            className="flex-1 h-10 bg-muted hover:bg-muted/80 rounded-full px-4 text-left text-muted-foreground text-sm transition-colors"
           >
-            Add Your Pet
-          </Button>
-        </CardContent>
-      </Card>
+            Add your pet to start posting...
+          </button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className={`mb-6 border shadow-card rounded-2xl overflow-hidden transition-all duration-300 bg-card/95 backdrop-blur-sm ${
-      isFocused ? 'shadow-hover border-primary/30 ring-2 ring-primary/10' : 'border-border/40'
-    }`}>
-      <CardContent className="p-4">
-        <div className="flex gap-3">
-          <div className="p-[2px] rounded-full bg-gradient-to-br from-primary via-coral-light to-accent h-fit shadow-sm">
-            <Avatar className="h-12 w-12 border-[2.5px] border-card">
-              <AvatarImage src={activePet?.avatar_url || ''} alt={activePet?.name} className="object-cover" />
-              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary font-bold text-lg">
-                {activePet?.name?.charAt(0) || 'P'}
-              </AvatarFallback>
-            </Avatar>
-          </div>
-          <div className="flex-1">
-            <div className="bg-muted/40 rounded-2xl px-4 py-3 hover:bg-muted/60 transition-colors">
-              <Textarea
-                placeholder={`What's ${activePet?.name || 'your pet'} up to today?`}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => !content && !mediaFiles.length && setIsFocused(false)}
-                className="min-h-[50px] resize-none border-0 focus-visible:ring-0 p-0 text-[15px] bg-transparent placeholder:text-muted-foreground/50"
-                maxLength={1000}
-              />
+    <div className="bg-card rounded-lg shadow-sm border border-border mb-4">
+      {/* Composer Header */}
+      <div className="p-4 pb-3">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10 ring-1 ring-border cursor-pointer" onClick={() => navigate(`/pet/${activePet?.id}`)}>
+            <AvatarImage src={activePet?.avatar_url || ''} alt={activePet?.name} className="object-cover" />
+            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+              {activePet?.name?.charAt(0) || 'P'}
+            </AvatarFallback>
+          </Avatar>
+          
+          {!isExpanded ? (
+            <button 
+              onClick={handleInputClick}
+              className="flex-1 h-10 bg-muted hover:bg-muted/80 rounded-full px-4 text-left text-muted-foreground text-sm transition-colors"
+            >
+              What's {activePet?.name} up to?
+            </button>
+          ) : (
+            <div className="flex-1">
+              <p className="font-semibold text-sm text-foreground">{activePet?.name}</p>
+              <p className="text-xs text-muted-foreground">Public</p>
             </div>
+          )}
+        </div>
+
+        {/* Expanded Textarea */}
+        {isExpanded && (
+          <div className="mt-3">
+            <textarea
+              ref={textareaRef}
+              placeholder={`What's on ${activePet?.name}'s mind?`}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="w-full min-h-[100px] resize-none border-0 bg-transparent text-foreground text-lg placeholder:text-muted-foreground/60 focus:outline-none"
+              maxLength={1000}
+            />
             
-            {/* Media previews */}
+            {/* Media Previews */}
             {mediaPreviews.length > 0 && (
-              <div className={`grid gap-2 mt-4 ${mediaPreviews.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                {mediaPreviews.map((preview, index) => (
-                  <div key={index} className="relative rounded-xl overflow-hidden group shadow-soft">
-                    {mediaType === 'video' ? (
-                      <video src={preview} className="w-full h-36 object-cover" />
-                    ) : (
-                      <img src={preview} alt="" className="w-full h-36 object-cover" />
-                    )}
-                    <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors" />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-lg"
-                      onClick={() => removeMedia(index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+              <div className="border border-border rounded-lg p-2 mt-2">
+                <div className={`grid gap-2 ${mediaPreviews.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                  {mediaPreviews.map((preview, index) => (
+                    <div key={index} className="relative rounded-lg overflow-hidden group">
+                      {mediaType === 'video' ? (
+                        <video src={preview} className="w-full h-32 object-cover" />
+                      ) : (
+                        <img src={preview} alt="" className="w-full h-32 object-cover" />
+                      )}
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="absolute top-2 right-2 h-7 w-7 rounded-full bg-foreground/80 hover:bg-foreground text-background shadow-lg"
+                        onClick={() => removeMedia(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-
-            <div className={`flex items-center justify-between mt-4 pt-4 border-t transition-all ${
-              isFocused || content || mediaFiles.length ? 'border-border/50 opacity-100' : 'border-transparent opacity-70'
-            }`}>
-              <div className="flex gap-1">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => handleFileSelect('image')}
-                  disabled={submitting}
-                  className="rounded-xl hover:bg-mint/10 hover:text-mint gap-2 h-10 px-4"
-                >
-                  <Camera className="h-5 w-5" />
-                  <span className="hidden sm:inline font-medium">Photo</span>
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => handleFileSelect('video')}
-                  disabled={submitting}
-                  className="rounded-xl hover:bg-sky/10 hover:text-sky gap-2 h-10 px-4"
-                >
-                  <Film className="h-5 w-5" />
-                  <span className="hidden sm:inline font-medium">Video</span>
-                </Button>
-              </div>
-              <Button 
-                onClick={handleSubmit}
-                disabled={submitting || (!content.trim() && mediaFiles.length === 0)}
-                className="bg-gradient-to-r from-primary to-coral-light hover:from-coral-dark hover:to-primary text-white rounded-xl px-6 h-10 font-semibold shadow-button hover:shadow-hover transition-all gap-2"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Posting</span>
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4" />
-                    <span>Post</span>
-                  </>
-                )}
-              </Button>
-            </div>
           </div>
+        )}
+      </div>
+
+      {/* Action Bar */}
+      <div className="border-t border-border px-4 py-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => handleFileSelect('image')}
+              disabled={submitting}
+              className="h-9 gap-2 rounded-lg text-green-600 hover:bg-green-50 hover:text-green-700 font-semibold text-sm"
+            >
+              <Image className="h-5 w-5" />
+              <span className="hidden sm:inline">Photo</span>
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => handleFileSelect('video')}
+              disabled={submitting}
+              className="h-9 gap-2 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-600 font-semibold text-sm"
+            >
+              <Video className="h-5 w-5" />
+              <span className="hidden sm:inline">Video</span>
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              disabled={submitting}
+              className="h-9 gap-2 rounded-lg text-amber-500 hover:bg-amber-50 hover:text-amber-600 font-semibold text-sm"
+            >
+              <Smile className="h-5 w-5" />
+              <span className="hidden sm:inline">Feeling</span>
+            </Button>
+          </div>
+          
+          {isExpanded && (
+            <Button 
+              onClick={handleSubmit}
+              disabled={submitting || (!content.trim() && mediaFiles.length === 0)}
+              className="h-9 px-6 bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg"
+            >
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Post'
+              )}
+            </Button>
+          )}
         </div>
-        
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={handleFilesChange}
-        />
-      </CardContent>
-    </Card>
+      </div>
+      
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={handleFilesChange}
+      />
+    </div>
   );
 };
