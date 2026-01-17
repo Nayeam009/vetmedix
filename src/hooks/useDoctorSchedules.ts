@@ -58,11 +58,12 @@ export const useClinicDoctorsWithSchedules = (clinicId: string) => {
   return useQuery({
     queryKey: ['clinic-doctors-schedules', clinicId],
     queryFn: async () => {
+      // Use doctors_public view for security - excludes sensitive contact info (email, phone, license)
       const { data: clinicDoctors, error: cdError } = await supabase
         .from('clinic_doctors')
         .select(`
           doctor_id,
-          doctors (
+          doctors_public (
             id,
             name,
             specialization,
@@ -88,7 +89,7 @@ export const useClinicDoctorsWithSchedules = (clinicId: string) => {
       if (sError) throw sError;
 
       return clinicDoctors?.map(cd => ({
-        ...cd.doctors,
+        ...cd.doctors_public,
         schedules: schedules?.filter(s => s.doctor_id === cd.doctor_id) || [],
       })) || [];
     },
