@@ -26,6 +26,7 @@ import logo from '@/assets/logo.jpeg';
 
 const ClinicServices = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { isClinicOwner, isLoading: roleLoading } = useUserRole();
   const { 
     ownedClinic,
