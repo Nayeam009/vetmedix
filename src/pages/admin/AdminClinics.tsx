@@ -273,93 +273,71 @@ const AdminClinics = () => {
   return (
     <AdminLayout title="Clinics Management" subtitle="Manage and verify veterinary clinics">
       {/* Stats - Clickable Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-4 mb-6">
         <Card 
           className={cn(
-            "cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] group",
-            filterStatus === 'all' && "ring-2 ring-primary shadow-md"
+            "cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] group border-2",
+            filterStatus === 'all' ? "ring-2 ring-primary shadow-lg border-primary" : "border-transparent hover:border-primary/30"
           )}
           onClick={() => setFilterStatus('all')}
         >
-          <CardContent className="p-4">
+          <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                  <Building2 className="h-5 w-5 text-primary" />
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 group-hover:from-primary/30 group-hover:to-primary/10 transition-colors">
+                  <Building2 className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{clinicStats?.totalClinics || 0}</p>
-                  <p className="text-sm text-muted-foreground">Total Clinics</p>
+                  <p className="text-3xl font-bold text-foreground">{clinicStats?.totalClinics || 0}</p>
+                  <p className="text-sm text-muted-foreground font-medium">Total Clinics</p>
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              <ChevronRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
             </div>
           </CardContent>
         </Card>
         
         <Card 
           className={cn(
-            "cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] group",
-            filterStatus === 'verified' && "ring-2 ring-green-500 shadow-md"
+            "cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] group border-2",
+            filterStatus === 'verified' ? "ring-2 ring-green-500 shadow-lg border-green-500" : "border-transparent hover:border-green-500/30"
           )}
           onClick={() => setFilterStatus('verified')}
         >
-          <CardContent className="p-4">
+          <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5 group-hover:from-green-500/30 group-hover:to-green-500/10 transition-colors">
+                  <CheckCircle className="h-6 w-6 text-green-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{clinicStats?.verifiedClinics || 0}</p>
-                  <p className="text-sm text-muted-foreground">Verified</p>
+                  <p className="text-3xl font-bold text-foreground">{clinicStats?.verifiedClinics || 0}</p>
+                  <p className="text-sm text-muted-foreground font-medium">Verified</p>
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              <ChevronRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
             </div>
           </CardContent>
         </Card>
         
         <Card 
           className={cn(
-            "cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] group"
+            "cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] group border-2 border-transparent hover:border-blue-500/30"
           )}
           onClick={() => navigate('/admin/customers')}
         >
-          <CardContent className="p-4">
+          <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
-                  <Users className="h-5 w-5 text-blue-500" />
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 group-hover:from-blue-500/30 group-hover:to-blue-500/10 transition-colors">
+                  <Users className="h-6 w-6 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{clinicStats?.totalDoctors || 0}</p>
-                  <p className="text-sm text-muted-foreground">Doctors</p>
+                  <p className="text-3xl font-bold text-foreground">{clinicStats?.totalDoctors || 0}</p>
+                  <p className="text-sm text-muted-foreground font-medium">Doctors</p>
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card 
-          className={cn(
-            "cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] group"
-          )}
-          onClick={() => navigate('/admin/dashboard')}
-        >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors">
-                  <Calendar className="h-5 w-5 text-amber-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{clinicStats?.totalAppointments || 0}</p>
-                  <p className="text-sm text-muted-foreground">Appointments</p>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              <ChevronRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
             </div>
           </CardContent>
         </Card>
@@ -405,71 +383,96 @@ const AdminClinics = () => {
       ) : filteredClinics && filteredClinics.length > 0 ? (
         <div className="grid gap-4">
           {filteredClinics.map((clinic) => (
-            <Card key={clinic.id} className="overflow-hidden">
-              <CardContent className="p-4">
+            <Card 
+              key={clinic.id} 
+              className={cn(
+                "overflow-hidden transition-all duration-200 hover:shadow-lg border-l-4",
+                clinic.is_blocked 
+                  ? "border-l-destructive bg-destructive/5" 
+                  : clinic.is_verified 
+                    ? "border-l-green-500" 
+                    : clinic.verification_status === 'pending'
+                      ? "border-l-amber-500"
+                      : "border-l-muted"
+              )}
+            >
+              <CardContent className="p-5">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex items-start gap-4">
-                    <Avatar className="h-14 w-14 rounded-lg">
-                      <AvatarImage src={clinic.image_url || ''} />
-                      <AvatarFallback className="rounded-lg bg-primary/10">
-                        <Building2 className="h-6 w-6 text-primary" />
+                  <div className="flex items-start gap-4 flex-1">
+                    <Avatar className="h-16 w-16 rounded-xl shadow-sm ring-2 ring-background">
+                      <AvatarImage src={clinic.image_url || ''} className="object-cover" />
+                      <AvatarFallback className="rounded-xl bg-gradient-to-br from-primary/20 to-primary/5">
+                        <Building2 className="h-7 w-7 text-primary" />
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-lg">{clinic.name}</h3>
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h3 className="font-bold text-lg text-foreground">{clinic.name}</h3>
                         {clinic.is_verified && (
-                          <Badge variant="default" className="bg-green-500">
+                          <Badge className="bg-green-500/10 text-green-600 border-green-500/20 hover:bg-green-500/20">
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Verified
                           </Badge>
                         )}
                         {clinic.verification_status === 'pending' && (
-                          <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
+                          <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20">
                             <Clock className="h-3 w-3 mr-1" />
-                            Pending Review
+                            Pending
                           </Badge>
                         )}
                         {clinic.is_blocked && (
-                          <Badge variant="destructive">
+                          <Badge variant="destructive" className="animate-pulse">
                             <Ban className="h-3 w-3 mr-1" />
                             Blocked
                           </Badge>
                         )}
-                        <Badge variant={clinic.is_open ? 'outline' : 'secondary'}>
+                        <Badge 
+                          variant="outline" 
+                          className={cn(
+                            "font-medium",
+                            clinic.is_open 
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                              : "bg-gray-100 text-gray-600 border-gray-200"
+                          )}
+                        >
                           {clinic.is_open ? 'Open' : 'Closed'}
                         </Badge>
                       </div>
-                      <div className="flex flex-wrap gap-3 mt-2 text-sm text-muted-foreground">
+                      
+                      <div className="flex flex-wrap gap-4 mt-2 text-sm text-muted-foreground">
                         {clinic.address && (
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
+                          <span className="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-md">
+                            <MapPin className="h-3.5 w-3.5 text-primary" />
                             {clinic.address}
                           </span>
                         )}
                         {clinic.phone && (
-                          <span className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
+                          <span className="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-md">
+                            <Phone className="h-3.5 w-3.5 text-blue-500" />
                             {clinic.phone}
                           </span>
                         )}
                         {clinic.email && (
-                          <span className="flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
+                          <span className="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-md">
+                            <Mail className="h-3.5 w-3.5 text-amber-500" />
                             {clinic.email}
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                        <span className="text-sm font-medium">{clinic.rating || 0}</span>
-                        <span className="text-sm text-muted-foreground">
-                          · Joined {format(new Date(clinic.created_at), 'PP')}
+                      
+                      <div className="flex items-center gap-3 mt-3">
+                        <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-md">
+                          <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                          <span className="text-sm font-semibold text-amber-700">{clinic.rating || 0}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          Joined {format(new Date(clinic.created_at), 'MMM d, yyyy')}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 ml-18 md:ml-0">
+                  
+                  <div className="flex items-center gap-2 md:flex-col lg:flex-row">
                     <Button
                       variant="outline"
                       size="sm"
@@ -477,12 +480,12 @@ const AdminClinics = () => {
                         setSelectedClinic(clinic);
                         setDetailsOpen(true);
                       }}
+                      className="bg-primary/5 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
                     >
-                      <Eye className="h-4 w-4 mr-1" />
+                      <Eye className="h-4 w-4 mr-1.5" />
                       View
                     </Button>
                     
-                    {/* Block/Unblock Button */}
                     <Button
                       variant={clinic.is_blocked ? 'default' : 'outline'}
                       size="sm"
@@ -495,29 +498,33 @@ const AdminClinics = () => {
                         }
                       }}
                       disabled={blockMutation.isPending}
-                      className={clinic.is_blocked ? '' : 'text-amber-600 hover:bg-amber-50 border-amber-300'}
+                      className={cn(
+                        "transition-colors",
+                        clinic.is_blocked 
+                          ? "bg-green-600 hover:bg-green-700" 
+                          : "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
+                      )}
                     >
                       {clinic.is_blocked ? (
                         <>
-                          <Shield className="h-4 w-4 mr-1" />
+                          <Shield className="h-4 w-4 mr-1.5" />
                           Unblock
                         </>
                       ) : (
                         <>
-                          <Ban className="h-4 w-4 mr-1" />
+                          <Ban className="h-4 w-4 mr-1.5" />
                           Block
                         </>
                       )}
                     </Button>
 
-                    {/* More Actions Dropdown */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted">
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="w-48">
                         {clinic.verification_status === 'pending' ? (
                           <DropdownMenuItem onClick={() => {
                             setSelectedClinic(clinic);
@@ -550,7 +557,7 @@ const AdminClinics = () => {
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
+                          className="text-destructive focus:text-destructive focus:bg-destructive/10"
                           onClick={() => {
                             setActionClinic(clinic);
                             setDeleteDialogOpen(true);
