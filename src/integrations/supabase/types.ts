@@ -81,6 +81,13 @@ export type Database = {
             referencedRelation: "doctors"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "appointment_waitlist_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       appointments: {
@@ -144,6 +151,13 @@ export type Database = {
             referencedRelation: "doctors"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "appointments_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       clinic_doctors: {
@@ -181,6 +195,13 @@ export type Database = {
             columns: ["doctor_id"]
             isOneToOne: false
             referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_doctors_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1000,7 +1021,62 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      doctors_public: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          consultation_fee: number | null
+          created_at: string | null
+          created_by_clinic_id: string | null
+          experience_years: number | null
+          id: string | null
+          is_available: boolean | null
+          is_verified: boolean | null
+          name: string | null
+          qualifications: string[] | null
+          specialization: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          consultation_fee?: number | null
+          created_at?: string | null
+          created_by_clinic_id?: string | null
+          experience_years?: number | null
+          id?: string | null
+          is_available?: boolean | null
+          is_verified?: boolean | null
+          name?: string | null
+          qualifications?: string[] | null
+          specialization?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          consultation_fee?: number | null
+          created_at?: string | null
+          created_by_clinic_id?: string | null
+          experience_years?: number | null
+          id?: string | null
+          is_available?: boolean | null
+          is_verified?: boolean | null
+          name?: string | null
+          qualifications?: string[] | null
+          specialization?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctors_created_by_clinic_id_fkey"
+            columns: ["created_by_clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       get_doctor_id: { Args: { _user_id: string }; Returns: string }
