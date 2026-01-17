@@ -57,143 +57,111 @@ const Index = () => {
       <Navbar />
       
       <main>
-        {/* Hero Section */}
-        <section className="relative gradient-hero py-12 md:py-20 overflow-hidden">
-          {/* Decorative elements */}
+        {/* Compact Hero Section */}
+        <section className="relative gradient-hero py-6 md:py-10 overflow-hidden">
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-10 left-[10%] w-24 h-24 bg-primary/20 rounded-full blur-3xl animate-float" />
-            <div className="absolute bottom-10 right-[15%] w-32 h-32 bg-accent/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
-            <div className="absolute top-1/2 left-[60%] w-20 h-20 bg-lavender/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }} />
-            
-            {/* Paw prints decoration */}
-            <div className="absolute top-20 right-[20%] text-primary/10 text-6xl transform rotate-12">🐾</div>
-            <div className="absolute bottom-20 left-[10%] text-accent/10 text-5xl transform -rotate-12">🐾</div>
+            <div className="absolute top-5 left-[10%] w-16 h-16 bg-primary/15 rounded-full blur-2xl" />
+            <div className="absolute bottom-5 right-[15%] w-20 h-20 bg-accent/15 rounded-full blur-2xl" />
           </div>
           
           <div className="container mx-auto px-4 relative z-10">
-            <div className="text-center max-w-3xl mx-auto">
-              <div className="inline-flex items-center gap-2 bg-card/80 backdrop-blur text-primary px-5 py-2.5 rounded-full text-sm font-bold mb-6 shadow-soft animate-bounce-gentle">
-                <Sparkles className="h-4 w-4" />
-                The Social Network for Pet Lovers
-                <Heart className="h-4 w-4 text-destructive fill-destructive" />
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="text-center md:text-left">
+                <div className="inline-flex items-center gap-2 bg-card/80 backdrop-blur text-primary px-4 py-1.5 rounded-full text-xs font-bold mb-3 shadow-soft">
+                  <Sparkles className="h-3 w-3" />
+                  Pet Social Network
+                  <Heart className="h-3 w-3 text-destructive fill-destructive" />
+                </div>
+                
+                <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-2 leading-tight">
+                  Connect & Share with
+                  <span className="text-gradient-fun"> Pet Lovers</span>
+                </h1>
+                
+                <p className="text-muted-foreground text-sm max-w-md leading-relaxed">
+                  Share adventures, shop essentials, and book vet appointments 🐾
+                </p>
               </div>
-              
-              <h1 className="text-4xl md:text-6xl font-display font-bold text-foreground mb-6 leading-tight">
-                Connect, Share & 
-                <span className="text-gradient-fun"> Love</span>
-                <br />Your Pets
-              </h1>
-              
-              <p className="text-muted-foreground text-lg md:text-xl mb-8 max-w-2xl mx-auto leading-relaxed">
-                Create profiles for your furry friends, share their adventures, 
-                shop for essentials, and book vet appointments — all in one paw-some place! 🐾
-              </p>
-              
-              <div className="flex flex-wrap justify-center gap-4">
+
+              <div className="flex items-center gap-3">
                 {user && pets.length === 0 ? (
                   <Link to="/pets/new">
-                    <Button size="lg" className="btn-primary rounded-2xl gap-2 text-base px-8 h-14 font-bold">
-                      <PawPrint className="h-5 w-5" />
-                      Add Your First Pet
+                    <Button size="sm" className="btn-primary rounded-xl gap-2 font-bold">
+                      <PawPrint className="h-4 w-4" />
+                      Add Pet
                     </Button>
                   </Link>
                 ) : !user ? (
                   <Link to="/auth">
-                    <Button size="lg" className="btn-primary rounded-2xl gap-2 text-base px-8 h-14 font-bold">
-                      Get Started Free
-                      <ArrowRight className="h-5 w-5" />
+                    <Button size="sm" className="btn-primary rounded-xl gap-2 font-bold">
+                      Get Started
+                      <ArrowRight className="h-4 w-4" />
                     </Button>
                   </Link>
                 ) : null}
                 <Link to="/explore">
-                  <Button variant="outline" size="lg" className="rounded-2xl gap-2 text-base px-8 h-14 font-bold border-2 hover:bg-accent/5 hover:border-accent hover:text-accent">
-                    <Search className="h-5 w-5" />
-                    Explore Pets
+                  <Button variant="outline" size="sm" className="rounded-xl gap-2 font-bold border-2 hover:bg-accent/5 hover:border-accent hover:text-accent">
+                    <Search className="h-4 w-4" />
+                    Explore
                   </Button>
                 </Link>
               </div>
-            </div>
-
-            {/* Quick Stats */}
-            <div className="grid grid-cols-3 gap-3 sm:gap-6 mt-12 max-w-xl mx-auto">
-              {[
-                { icon: PawPrint, count: `${trendingPets.length}+`, label: 'Happy Pets', color: 'from-primary to-coral-dark' },
-                { icon: ShoppingBag, count: '100+', label: 'Products', color: 'from-accent to-mint' },
-                { icon: Stethoscope, count: '10+', label: 'Clinics', color: 'from-lavender to-sky' },
-              ].map((stat, i) => (
-                <div 
-                  key={stat.label}
-                  className="text-center p-4 sm:p-6 bg-card/80 backdrop-blur-sm rounded-2xl shadow-soft hover:shadow-hover transition-all duration-300 hover:-translate-y-1 group"
-                  style={{ animationDelay: `${i * 100}ms` }}
-                >
-                  <div className={`w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-button group-hover:scale-110 transition-transform`}>
-                    <stat.icon className="h-6 w-6 text-white" />
-                  </div>
-                  <p className="text-2xl sm:text-3xl font-bold text-foreground">{stat.count}</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground font-medium">{stat.label}</p>
-                </div>
-              ))}
             </div>
           </div>
         </section>
 
         {/* Main Content Grid */}
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-5">
           {/* Stories Bar */}
-          <div className="bg-card rounded-2xl shadow-soft p-4 mb-6">
+          <div className="bg-card rounded-xl shadow-soft p-3 mb-4">
             <StoriesBar />
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+          <div className="grid lg:grid-cols-3 gap-4 lg:gap-6">
             {/* Main Feed - 2 columns */}
             <div className="lg:col-span-2">
               <Tabs value={feedType} onValueChange={(v) => setFeedType(v as 'all' | 'following')}>
-                <TabsList className="grid w-full grid-cols-2 mb-6 bg-card shadow-soft rounded-2xl p-1.5 h-14">
+                <TabsList className="grid w-full grid-cols-2 mb-4 bg-card shadow-soft rounded-xl p-1 h-10">
                   <TabsTrigger 
                     value="all" 
-                    className="flex items-center gap-2 rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-coral-dark data-[state=active]:text-white data-[state=active]:shadow-button font-bold transition-all"
+                    className="flex items-center gap-1.5 rounded-lg text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-coral-dark data-[state=active]:text-white data-[state=active]:shadow-button font-semibold transition-all"
                   >
-                    <Globe className="h-4 w-4" />
+                    <Globe className="h-3.5 w-3.5" />
                     Discover
                   </TabsTrigger>
                   <TabsTrigger 
                     value="following" 
-                    className="flex items-center gap-2 rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-accent data-[state=active]:to-mint data-[state=active]:text-white data-[state=active]:shadow-button font-bold transition-all" 
+                    className="flex items-center gap-1.5 rounded-lg text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-accent data-[state=active]:to-mint data-[state=active]:text-white data-[state=active]:shadow-button font-semibold transition-all" 
                     disabled={!user}
                   >
-                    <Users className="h-4 w-4" />
+                    <Users className="h-3.5 w-3.5" />
                     Following
                   </TabsTrigger>
                 </TabsList>
 
                 <CreatePostCard onPostCreated={refreshPosts} />
 
-                <ScrollArea className="h-[600px] pr-4">
+                <ScrollArea className="h-[550px] pr-2">
                   <TabsContent value="all" className="mt-0">
                     {loading ? (
-                      <div className="flex flex-col items-center justify-center py-16">
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-4">
-                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <div className="flex flex-col items-center justify-center py-12">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-3">
+                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
                         </div>
-                        <p className="text-muted-foreground font-medium">Loading amazing pet content...</p>
+                        <p className="text-muted-foreground text-sm">Loading posts...</p>
                       </div>
                     ) : posts.length === 0 ? (
-                      <Card className="border-0 shadow-card rounded-2xl overflow-hidden">
-                        <CardContent className="py-16 text-center">
-                          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                            <span className="text-4xl animate-bounce-gentle">🐾</span>
+                      <Card className="border-0 shadow-soft rounded-xl overflow-hidden">
+                        <CardContent className="py-10 text-center">
+                          <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                            <span className="text-2xl">🐾</span>
                           </div>
-                          <p className="text-lg font-bold text-foreground mb-2">No posts yet!</p>
-                          <p className="text-muted-foreground mb-6">Be the first to share something amazing</p>
-                          {user && pets.length > 0 && (
-                            <p className="text-sm text-muted-foreground">
-                              Use the post creator above to share your pet's first moment! ✨
-                            </p>
-                          )}
+                          <p className="font-semibold text-foreground mb-1">No posts yet!</p>
+                          <p className="text-muted-foreground text-sm">Be the first to share</p>
                         </CardContent>
                       </Card>
                     ) : (
-                      <div className="space-y-6">
+                      <div className="space-y-3">
                         {posts.map((post, index) => (
                           <div key={post.id} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
                             <PostCard
@@ -210,34 +178,34 @@ const Index = () => {
 
                   <TabsContent value="following" className="mt-0">
                     {loading ? (
-                      <div className="flex flex-col items-center justify-center py-16">
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent/20 to-mint/20 flex items-center justify-center mb-4">
-                          <Loader2 className="h-8 w-8 animate-spin text-accent" />
+                      <div className="flex flex-col items-center justify-center py-12">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent/20 to-mint/20 flex items-center justify-center mb-3">
+                          <Loader2 className="h-6 w-6 animate-spin text-accent" />
                         </div>
-                        <p className="text-muted-foreground font-medium">Loading your feed...</p>
+                        <p className="text-muted-foreground text-sm">Loading your feed...</p>
                       </div>
                     ) : posts.length === 0 ? (
-                      <Card className="border-0 shadow-card rounded-2xl overflow-hidden">
-                        <CardContent className="py-16 text-center">
-                          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-accent/20 to-lavender/20 flex items-center justify-center">
-                            <Users className="h-10 w-10 text-accent" />
+                      <Card className="border-0 shadow-soft rounded-xl overflow-hidden">
+                        <CardContent className="py-10 text-center">
+                          <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-gradient-to-br from-accent/20 to-lavender/20 flex items-center justify-center">
+                            <Users className="h-7 w-7 text-accent" />
                           </div>
-                          <p className="text-lg font-bold text-foreground mb-2">
+                          <p className="font-semibold text-foreground mb-1">
                             {user ? "Your feed is empty!" : "Join the community"}
                           </p>
-                          <p className="text-muted-foreground mb-6">
-                            {user ? "Follow some adorable pets to see their posts here!" : "Login to see posts from pets you follow"}
+                          <p className="text-muted-foreground text-sm mb-4">
+                            {user ? "Follow pets to see their posts" : "Login to see posts from pets you follow"}
                           </p>
                           <Link to="/explore">
-                            <Button className="btn-accent rounded-xl font-bold">
-                              <Search className="h-4 w-4 mr-2" />
-                              Discover Pets
+                            <Button size="sm" className="btn-accent rounded-lg font-semibold">
+                              <Search className="h-3.5 w-3.5 mr-1.5" />
+                              Discover
                             </Button>
                           </Link>
                         </CardContent>
                       </Card>
                     ) : (
-                      <div className="space-y-6">
+                      <div className="space-y-3">
                         {posts.map((post, index) => (
                           <div key={post.id} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
                             <PostCard
@@ -256,45 +224,42 @@ const Index = () => {
             </div>
 
             {/* Sidebar */}
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Trending Pets */}
               {trendingPets.length > 0 && (
-                <Card className="border-0 shadow-card rounded-2xl overflow-hidden">
-                  <CardContent className="p-5">
-                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-sunshine" />
+                <Card className="border-0 shadow-soft rounded-xl overflow-hidden">
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-sm mb-3 flex items-center gap-1.5">
+                      <Sparkles className="h-4 w-4 text-sunshine" />
                       Featured Pets
                     </h3>
-                    <div className="space-y-3">
-                      {trendingPets.slice(0, 5).map((pet, index) => (
+                    <div className="space-y-1">
+                      {trendingPets.slice(0, 5).map((pet) => (
                         <Link 
                           key={pet.id} 
                           to={`/pet/${pet.id}`}
-                          className="flex items-center gap-3 p-3 rounded-xl hover:bg-gradient-to-r hover:from-primary/5 hover:to-accent/5 transition-all duration-300 group"
+                          className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-muted/50 transition-all group"
                         >
-                          <div className="p-0.5 rounded-full bg-gradient-to-br from-primary/50 to-accent/50 group-hover:from-primary group-hover:to-accent transition-all">
-                            <div className="h-11 w-11 rounded-full bg-card flex items-center justify-center overflow-hidden border-2 border-card">
+                          <div className="p-0.5 rounded-full bg-gradient-to-br from-primary/40 to-accent/40 group-hover:from-primary group-hover:to-accent transition-all">
+                            <div className="h-8 w-8 rounded-full bg-card flex items-center justify-center overflow-hidden border border-card">
                               {pet.avatar_url ? (
                                 <img src={pet.avatar_url} alt={pet.name} className="w-full h-full object-cover" />
                               ) : (
-                                <PawPrint className="h-5 w-5 text-primary" />
+                                <PawPrint className="h-3.5 w-3.5 text-primary" />
                               )}
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-bold text-sm truncate group-hover:text-primary transition-colors">{pet.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{pet.species}{pet.breed && ` • ${pet.breed}`}</p>
+                            <p className="font-medium text-xs truncate group-hover:text-primary transition-colors">{pet.name}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">{pet.species}{pet.breed && ` • ${pet.breed}`}</p>
                           </div>
-                          <Button variant="ghost" size="sm" className="rounded-xl text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                            View
-                          </Button>
                         </Link>
                       ))}
                     </div>
-                    <Link to="/explore" className="block mt-4">
-                      <Button variant="outline" className="w-full rounded-xl font-bold border-2 hover:bg-primary/5 hover:border-primary hover:text-primary">
+                    <Link to="/explore" className="block mt-3">
+                      <Button variant="outline" size="sm" className="w-full rounded-lg text-xs font-semibold border hover:bg-primary/5 hover:border-primary hover:text-primary h-8">
                         See All Pets
-                        <ArrowRight className="h-4 w-4 ml-2" />
+                        <ArrowRight className="h-3 w-3 ml-1.5" />
                       </Button>
                     </Link>
                   </CardContent>
@@ -302,36 +267,36 @@ const Index = () => {
               )}
 
               {/* Quick Links */}
-              <Card className="border-0 shadow-card rounded-2xl overflow-hidden">
-                <CardContent className="p-5">
-                  <h3 className="font-bold text-lg mb-4">Quick Actions</h3>
-                  <div className="space-y-3">
-                    <Link to="/shop" className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-accent/10 to-mint/5 hover:from-accent/20 hover:to-mint/10 transition-all duration-300 group">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent to-mint flex items-center justify-center shadow-soft group-hover:scale-110 transition-transform">
-                        <ShoppingBag className="h-6 w-6 text-white" />
+              <Card className="border-0 shadow-soft rounded-xl overflow-hidden">
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-sm mb-3">Quick Actions</h3>
+                  <div className="space-y-2">
+                    <Link to="/shop" className="flex items-center gap-3 p-2.5 rounded-lg bg-gradient-to-r from-accent/10 to-transparent hover:from-accent/15 transition-all group">
+                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-accent to-mint flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <ShoppingBag className="h-4 w-4 text-white" />
                       </div>
                       <div>
-                        <p className="font-bold text-sm">Shop Products</p>
-                        <p className="text-xs text-muted-foreground">Food, toys, medicine & more</p>
+                        <p className="font-medium text-xs">Shop Products</p>
+                        <p className="text-[10px] text-muted-foreground">Food, toys, medicine & more</p>
                       </div>
                     </Link>
-                    <Link to="/clinics" className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-lavender/10 to-sky/5 hover:from-lavender/20 hover:to-sky/10 transition-all duration-300 group">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-lavender to-sky flex items-center justify-center shadow-soft group-hover:scale-110 transition-transform">
-                        <Stethoscope className="h-6 w-6 text-white" />
+                    <Link to="/clinics" className="flex items-center gap-3 p-2.5 rounded-lg bg-gradient-to-r from-lavender/10 to-transparent hover:from-lavender/15 transition-all group">
+                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-lavender to-sky flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                        <Stethoscope className="h-4 w-4 text-white" />
                       </div>
                       <div>
-                        <p className="font-bold text-sm">Find Clinics</p>
-                        <p className="text-xs text-muted-foreground">Book vet appointments</p>
+                        <p className="font-medium text-xs">Find Clinics</p>
+                        <p className="text-[10px] text-muted-foreground">Book vet appointments</p>
                       </div>
                     </Link>
                     {user && (
-                      <Link to="/pets/new" className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-primary/10 to-coral-light/5 hover:from-primary/20 hover:to-coral-light/10 transition-all duration-300 group">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-coral-dark flex items-center justify-center shadow-soft group-hover:scale-110 transition-transform">
-                          <PawPrint className="h-6 w-6 text-white" />
+                      <Link to="/pets/new" className="flex items-center gap-3 p-2.5 rounded-lg bg-gradient-to-r from-primary/10 to-transparent hover:from-primary/15 transition-all group">
+                        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-coral-dark flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                          <PawPrint className="h-4 w-4 text-white" />
                         </div>
                         <div>
-                          <p className="font-bold text-sm">Add Pet Profile</p>
-                          <p className="text-xs text-muted-foreground">Create a profile for your pet</p>
+                          <p className="font-medium text-xs">Add Pet Profile</p>
+                          <p className="text-[10px] text-muted-foreground">Create a profile for your pet</p>
                         </div>
                       </Link>
                     )}
