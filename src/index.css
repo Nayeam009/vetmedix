@@ -42,16 +42,16 @@
 
     /* Custom pet-friendly tokens */
     --coral: 15 85% 60%;
-    --coral-light: 15 80% 75%;
+    --coral-light: 15 80% 85%;
     --coral-dark: 15 90% 45%;
     --mint: 165 55% 50%;
-    --mint-light: 165 50% 70%;
+    --mint-light: 165 50% 80%;
     --sky: 200 85% 60%;
-    --sky-light: 200 80% 85%;
-    --lavender: 270 60% 70%;
-    --lavender-light: 270 60% 90%;
-    --sunshine: 45 95% 55%;
-    --sunshine-light: 45 95% 80%;
+    --sky-light: 200 80% 90%;
+    --lavender: 270 60% 65%;
+    --lavender-light: 270 60% 92%;
+    --sunshine: 45 95% 50%;
+    --sunshine-light: 45 95% 85%;
     --peach: 25 90% 75%;
     --cream: 45 60% 97%;
 
