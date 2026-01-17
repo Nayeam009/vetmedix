@@ -419,4 +419,22 @@
   .scroll-smooth {
     scroll-behavior: smooth;
   }
+
+  /* Animated gradient background */
+  @keyframes gradient-slow {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  .animate-gradient-slow {
+    background-size: 200% 200%;
+    animation: gradient-slow 8s ease infinite;
+  }
 }
