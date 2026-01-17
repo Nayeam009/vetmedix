@@ -61,31 +61,56 @@ const PetCard = ({ pet, onFollow }: { pet: Pet; onFollow?: () => void }) => {
 
   return (
     <Card 
-      className="group cursor-pointer card-playful overflow-hidden animate-fade-in"
+      className="group cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-border/50 bg-card"
       onClick={() => navigate(`/pet/${pet.id}`)}
     >
-      {/* Cover/Header Section */}
-      <div className="relative h-20 sm:h-24 bg-gradient-to-br from-primary/20 via-accent/10 to-secondary overflow-hidden">
-        <div className="absolute inset-0 paw-pattern opacity-50" />
-        <div className="absolute -bottom-8 left-4">
-          <div className="avatar-gradient p-0.5 rounded-full">
-            <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border-4 border-card">
-              <AvatarImage src={pet.avatar_url || ''} className="object-cover" />
-              <AvatarFallback className="bg-primary/10 text-xl sm:text-2xl font-bold text-primary">
-                {pet.name.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
+      {/* Cover Photo Section */}
+      <div className="relative h-28 sm:h-32 md:h-36 overflow-hidden">
+        {/* Cover Image or Gradient Fallback */}
+        {pet.cover_photo_url ? (
+          <img 
+            src={pet.cover_photo_url} 
+            alt={`${pet.name}'s cover`}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-accent/20 to-secondary/40">
+            <div className="absolute inset-0 paw-pattern opacity-30" />
           </div>
-        </div>
+        )}
+        
+        {/* Overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
+        
         {/* Species Badge */}
-        <div className="absolute top-2 right-2">
-          <Badge className="bg-card/90 backdrop-blur-sm text-foreground border-0 shadow-sm text-xs font-medium">
+        <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3">
+          <Badge className="bg-card/95 backdrop-blur-sm text-foreground border-0 shadow-md text-xs font-medium px-2.5 py-1">
             {speciesEmojis[pet.species] || '🐾'} {pet.species}
           </Badge>
         </div>
+
+        {/* Avatar - Positioned at bottom of cover */}
+        <div className="absolute -bottom-10 sm:-bottom-12 left-3 sm:left-4">
+          <div className="relative">
+            {/* Gradient Ring */}
+            <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-primary via-accent to-primary opacity-75 blur-sm" />
+            <div className="relative rounded-full p-[3px] bg-gradient-to-br from-primary to-accent">
+              <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-[3px] border-card shadow-lg">
+                <AvatarImage 
+                  src={pet.avatar_url || ''} 
+                  alt={pet.name}
+                  className="object-cover"
+                />
+                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-2xl sm:text-3xl font-bold text-primary">
+                  {pet.name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <CardContent className="pt-10 sm:pt-12 pb-4 px-4">
+      <CardContent className="pt-12 sm:pt-14 pb-4 px-3 sm:px-4">
         {/* Name & Follow Button Row */}
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="min-w-0 flex-1">
@@ -93,7 +118,7 @@ const PetCard = ({ pet, onFollow }: { pet: Pet; onFollow?: () => void }) => {
               {pet.name}
             </h3>
             {pet.breed && (
-              <p className="text-sm text-muted-foreground truncate">{pet.breed}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">{pet.breed}</p>
             )}
           </div>
           {!isOwner && (
@@ -101,20 +126,21 @@ const PetCard = ({ pet, onFollow }: { pet: Pet; onFollow?: () => void }) => {
               variant={isFollowing ? 'outline' : 'default'}
               size="sm"
               onClick={handleFollowClick}
-              className={`shrink-0 min-h-[36px] text-xs sm:text-sm ${
+              className={`shrink-0 h-8 sm:h-9 text-xs sm:text-sm px-3 ${
                 isFollowing 
                   ? 'hover:bg-destructive/10 hover:text-destructive hover:border-destructive' 
-                  : 'btn-primary'
+                  : 'bg-primary hover:bg-primary/90 text-primary-foreground'
               }`}
             >
               {isFollowing ? (
                 <>
-                  <Heart className="h-3.5 w-3.5 mr-1 fill-current" />
-                  Following
+                  <Heart className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1 fill-current" />
+                  <span className="hidden xs:inline">Following</span>
+                  <span className="xs:hidden">✓</span>
                 </>
               ) : (
                 <>
-                  <Heart className="h-3.5 w-3.5 mr-1" />
+                  <Heart className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
                   Follow
                 </>
               )}
@@ -123,14 +149,14 @@ const PetCard = ({ pet, onFollow }: { pet: Pet; onFollow?: () => void }) => {
         </div>
 
         {/* Stats Row */}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
-          <span className="flex items-center gap-1">
-            <Users className="h-3.5 w-3.5" />
-            {followersCount} followers
+        <div className="flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground mb-2.5">
+          <span className="flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-full">
+            <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+            <span className="font-medium">{followersCount}</span>
           </span>
           {pet.location && (
             <span className="flex items-center gap-1 truncate">
-              <MapPin className="h-3.5 w-3.5 shrink-0" />
+              <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0 text-primary/70" />
               <span className="truncate">{pet.location}</span>
             </span>
           )}
@@ -138,7 +164,7 @@ const PetCard = ({ pet, onFollow }: { pet: Pet; onFollow?: () => void }) => {
 
         {/* Bio */}
         {pet.bio && (
-          <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed">
             {pet.bio}
           </p>
         )}
@@ -442,12 +468,12 @@ const ExplorePage = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:gap-4 lg:gap-5 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3">
               {pets.map((pet, index) => (
                 <div 
                   key={pet.id} 
-                  className="animate-slide-up"
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${Math.min(index, 8) * 50}ms` }}
                 >
                   <PetCard pet={pet} onFollow={fetchPets} />
                 </div>
