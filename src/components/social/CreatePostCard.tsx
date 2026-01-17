@@ -123,7 +123,22 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
   };
 
   if (!user) {
-    return null;
+    return (
+      <Card className="mb-6 border-0 shadow-card rounded-2xl overflow-hidden bg-gradient-to-br from-card to-secondary/30">
+        <CardContent className="p-6 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+            <Sparkles className="h-8 w-8 text-primary" />
+          </div>
+          <p className="text-muted-foreground mb-4 font-medium">Join our pet-loving community!</p>
+          <Button 
+            onClick={() => navigate('/auth')}
+            className="btn-primary rounded-xl px-6"
+          >
+            Get Started
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   if (pets.length === 0) {
