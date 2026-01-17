@@ -97,8 +97,9 @@ const ClinicProfile = () => {
 
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `clinic-${ownedClinic?.id}-${type}-${Date.now()}.${fileExt}`;
-      const filePath = `clinics/${fileName}`;
+      const fileName = `${type}-${Date.now()}.${fileExt}`;
+      // Path must start with clinic ID for RLS policy
+      const filePath = `${ownedClinic?.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('clinic-images')
