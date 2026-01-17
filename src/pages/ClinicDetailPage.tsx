@@ -1,12 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Star, MapPin, Clock, Phone, Stethoscope, User, 
-  Calendar, ChevronRight, Award, Heart, Shield, Loader2,
-  MessageSquare, ThumbsUp, Mail, Share2, ChevronLeft,
-  CheckCircle, Building2, AlertCircle, ExternalLink,
-  Users, Sparkles, BadgeCheck, Navigation, Copy
-} from 'lucide-react';
+import { Star, MapPin, Clock, Phone, Stethoscope, User, Calendar, ChevronRight, Award, Heart, Shield, Loader2, MessageSquare, ThumbsUp, Mail, Share2, ChevronLeft, CheckCircle, Building2, AlertCircle, ExternalLink, Users, Sparkles, BadgeCheck, Navigation, Copy } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
@@ -19,7 +13,6 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import gopalganjLogo from '@/assets/gopalganj-vet-care-logo.png';
-
 interface Clinic {
   id: string;
   name: string;
@@ -35,74 +28,63 @@ interface Clinic {
   opening_hours: string | null;
   description: string | null;
 }
-
 const ClinicDetailPage = () => {
-  const { id } = useParams<{ id: string }>();
+  const {
+    id
+  } = useParams<{
+    id: string;
+  }>();
   const navigate = useNavigate();
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [isFavorite, setIsFavorite] = useState(false);
-
   const isGopalganj = clinic?.name?.toLowerCase().includes('gopalganj');
 
   // Mock reviews data
-  const reviews = [
-    {
-      id: 1,
-      author: 'Rahima Begum',
-      avatar: null,
-      rating: 5,
-      date: '2 days ago',
-      comment: 'Excellent service! Dr. Mohsin is very caring and professional. My cat recovered quickly after treatment.',
-      helpful: 12
-    },
-    {
-      id: 2,
-      author: 'Kamal Hossain',
-      avatar: null,
-      rating: 5,
-      date: '1 week ago',
-      comment: 'Best vet clinic in Gopalganj. They treated my dog with great care. Highly recommended!',
-      helpful: 8
-    },
-    {
-      id: 3,
-      author: 'Fatema Akter',
-      avatar: null,
-      rating: 4,
-      date: '2 weeks ago',
-      comment: 'Good facilities and friendly staff. Vaccination was done professionally.',
-      helpful: 5
-    }
-  ];
+  const reviews = [{
+    id: 1,
+    author: 'Rahima Begum',
+    avatar: null,
+    rating: 5,
+    date: '2 days ago',
+    comment: 'Excellent service! Dr. Mohsin is very caring and professional. My cat recovered quickly after treatment.',
+    helpful: 12
+  }, {
+    id: 2,
+    author: 'Kamal Hossain',
+    avatar: null,
+    rating: 5,
+    date: '1 week ago',
+    comment: 'Best vet clinic in Gopalganj. They treated my dog with great care. Highly recommended!',
+    helpful: 8
+  }, {
+    id: 3,
+    author: 'Fatema Akter',
+    avatar: null,
+    rating: 4,
+    date: '2 weeks ago',
+    comment: 'Good facilities and friendly staff. Vaccination was done professionally.',
+    helpful: 5
+  }];
 
   // Doctor info for Gopalganj Vet Care
   const doctorInfo = {
     name: 'Dr. Md. Mohsin Hossain',
     title: 'Pet Consultant & Surgeon',
-    qualifications: [
-      'B.Sc. Vet. Sci. & A.H. (GSTU)',
-      'MS in Theriogenology (BAU)',
-      'CT (Ultra), PGT (Japan)',
-      'BVC Reg. No: 9562'
-    ],
+    qualifications: ['B.Sc. Vet. Sci. & A.H. (GSTU)', 'MS in Theriogenology (BAU)', 'CT (Ultra), PGT (Japan)', 'BVC Reg. No: 9562'],
     experience: '10+ years',
     image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400'
   };
-
   useEffect(() => {
     if (id) fetchClinic();
   }, [id]);
-
   const fetchClinic = async () => {
     try {
-      const { data, error } = await supabase
-        .from('clinics')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
+      const {
+        data,
+        error
+      } = await supabase.from('clinics').select('*').eq('id', id).single();
       if (error) throw error;
       setClinic(data);
     } catch (error) {
@@ -122,23 +104,39 @@ const ClinicDetailPage = () => {
       date.setDate(date.getDate() + i);
       days.push({
         date: date.toISOString().split('T')[0],
-        day: date.toLocaleDateString('en-US', { weekday: 'short' }),
+        day: date.toLocaleDateString('en-US', {
+          weekday: 'short'
+        }),
         dayNum: date.getDate(),
-        month: date.toLocaleDateString('en-US', { month: 'short' }),
+        month: date.toLocaleDateString('en-US', {
+          month: 'short'
+        }),
         isToday: i === 0
       });
     }
     return days;
   };
-
-  const ratingDistribution = [
-    { stars: 5, percentage: 70, count: 34 },
-    { stars: 4, percentage: 20, count: 10 },
-    { stars: 3, percentage: 7, count: 3 },
-    { stars: 2, percentage: 2, count: 1 },
-    { stars: 1, percentage: 1, count: 0 },
-  ];
-
+  const ratingDistribution = [{
+    stars: 5,
+    percentage: 70,
+    count: 34
+  }, {
+    stars: 4,
+    percentage: 20,
+    count: 10
+  }, {
+    stars: 3,
+    percentage: 7,
+    count: 3
+  }, {
+    stars: 2,
+    percentage: 2,
+    count: 1
+  }, {
+    stars: 1,
+    percentage: 1,
+    count: 0
+  }];
   const handleShare = async () => {
     try {
       await navigator.share({
@@ -151,28 +149,22 @@ const ClinicDetailPage = () => {
       toast.success('Link copied to clipboard!');
     }
   };
-
   const handleCopyPhone = () => {
     if (clinic?.phone) {
       navigator.clipboard.writeText(clinic.phone);
       toast.success('Phone number copied!');
     }
   };
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+    return <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
           <p className="text-muted-foreground">Loading clinic details...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (!clinic) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    return <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center max-w-md">
           <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="h-10 w-10 text-muted-foreground" />
@@ -184,51 +176,29 @@ const ClinicDetailPage = () => {
             Back to Clinics
           </Button>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0">
+  return <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
       
       {/* Full-width Hero Section */}
       <div className="relative">
         {/* Cover Image */}
         <div className="relative h-48 sm:h-64 md:h-80 lg:h-96 w-full overflow-hidden">
-          <img 
-            src={clinic.image_url || 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=1600'}
-            alt={clinic.name}
-            className="w-full h-full object-cover"
-          />
+          <img src={clinic.image_url || 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=1600'} alt={clinic.name} className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
           
           {/* Top Actions */}
           <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-10">
-            <Button 
-              variant="secondary" 
-              size="icon" 
-              className="rounded-full bg-white/90 backdrop-blur-md hover:bg-white shadow-xl h-10 w-10"
-              onClick={() => navigate('/clinics')}
-            >
+            <Button variant="secondary" size="icon" className="rounded-full bg-white/90 backdrop-blur-md hover:bg-white shadow-xl h-10 w-10" onClick={() => navigate('/clinics')}>
               <ChevronLeft className="h-5 w-5" />
             </Button>
             
             <div className="flex gap-2">
-              <Button 
-                variant="secondary" 
-                size="icon" 
-                className="rounded-full bg-white/90 backdrop-blur-md hover:bg-white shadow-xl h-10 w-10"
-                onClick={() => setIsFavorite(!isFavorite)}
-              >
+              <Button variant="secondary" size="icon" className="rounded-full bg-white/90 backdrop-blur-md hover:bg-white shadow-xl h-10 w-10" onClick={() => setIsFavorite(!isFavorite)}>
                 <Heart className={`h-5 w-5 transition-colors ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-muted-foreground'}`} />
               </Button>
-              <Button 
-                variant="secondary" 
-                size="icon" 
-                className="rounded-full bg-white/90 backdrop-blur-md hover:bg-white shadow-xl h-10 w-10"
-                onClick={handleShare}
-              >
+              <Button variant="secondary" size="icon" className="rounded-full bg-white/90 backdrop-blur-md hover:bg-white shadow-xl h-10 w-10" onClick={handleShare}>
                 <Share2 className="h-5 w-5 text-muted-foreground" />
               </Button>
             </div>
@@ -242,15 +212,7 @@ const ClinicDetailPage = () => {
               <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                 {/* Logo */}
                 <div className="w-20 h-20 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-xl sm:rounded-2xl bg-white shadow-lg border-2 border-border/50 overflow-hidden flex-shrink-0 mx-auto sm:mx-0">
-                  {isGopalganj ? (
-                    <img src={gopalganjLogo} alt={clinic.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <img 
-                      src={clinic.image_url || 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=200'}
-                      alt={clinic.name}
-                      className="w-full h-full object-cover"
-                    />
-                  )}
+                  {isGopalganj ? <img src={gopalganjLogo} alt={clinic.name} className="w-full h-full object-cover" /> : <img src={clinic.image_url || 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=200'} alt={clinic.name} className="w-full h-full object-cover" />}
                 </div>
                 
                 {/* Info */}
@@ -263,19 +225,11 @@ const ClinicDetailPage = () => {
                           {clinic.name}
                         </h1>
                         <div className="flex items-center justify-center sm:justify-start gap-2">
-                          {clinic.is_verified && (
-                            <Badge className="bg-primary/10 text-primary hover:bg-primary/20 gap-1">
+                          {clinic.is_verified && <Badge className="bg-primary/10 text-primary hover:bg-primary/20 gap-1">
                               <BadgeCheck className="h-3.5 w-3.5" />
                               Verified
-                            </Badge>
-                          )}
-                          <Badge 
-                            variant="outline"
-                            className={clinic.is_open 
-                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700' 
-                              : 'border-red-200 bg-red-50 text-red-700'
-                            }
-                          >
+                            </Badge>}
+                          <Badge variant="outline" className={clinic.is_open ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700'}>
                             <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${clinic.is_open ? 'bg-emerald-500 animate-pulse' : 'bg-red-400'}`} />
                             {clinic.is_open ? 'Open Now' : 'Closed'}
                           </Badge>
@@ -293,12 +247,10 @@ const ClinicDetailPage = () => {
                           <MapPin className="h-4 w-4 text-primary" />
                           {clinic.distance || '2 km away'}
                         </span>
-                        {clinic.opening_hours && (
-                          <span className="flex items-center gap-1.5 text-muted-foreground">
+                        {clinic.opening_hours && <span className="flex items-center gap-1.5 text-muted-foreground">
                             <Clock className="h-4 w-4" />
                             {clinic.opening_hours}
-                          </span>
-                        )}
+                          </span>}
                       </div>
 
                       {/* Quick Stats */}
@@ -316,22 +268,16 @@ const ClinicDetailPage = () => {
                     
                     {/* CTA Buttons */}
                     <div className="flex flex-col sm:flex-row lg:flex-col gap-2 mt-2 lg:mt-0">
-                      <Button 
-                        size="lg"
-                        className="shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all"
-                        onClick={() => navigate(`/book-appointment/${clinic.id}`)}
-                      >
+                      <Button size="lg" className="shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all" onClick={() => navigate(`/book-appointment/${clinic.id}`)}>
                         <Calendar className="h-4 w-4 mr-2" />
                         Book Appointment
                       </Button>
-                      {clinic.phone && (
-                        <Button variant="outline" size="lg" asChild>
+                      {clinic.phone && <Button variant="outline" size="lg" asChild>
                           <a href={`tel:${clinic.phone}`}>
                             <Phone className="h-4 w-4 mr-2" />
                             Call Now
                           </a>
-                        </Button>
-                      )}
+                        </Button>}
                     </div>
                   </div>
                 </div>
@@ -384,10 +330,7 @@ const ClinicDetailPage = () => {
                     About This Clinic
                   </h2>
                   <p className="text-muted-foreground leading-relaxed text-sm sm:text-base">
-                    {clinic.description || (isGopalganj 
-                      ? "Gopalganj Vet Care is the first and only dedicated pet clinic in Gopalganj, offering comprehensive veterinary services for cats, dogs, and birds. Starting January 1, 2026, we provide compassionate care for your beloved pets under one roof. Our commitment is to ensure the health and safety of your pets with professional treatment and care."
-                      : `${clinic.name} provides comprehensive veterinary services for your beloved pets. Our team of experienced veterinarians is dedicated to ensuring the health and well-being of your furry friends.`
-                    )}
+                    {clinic.description || (isGopalganj ? "Gopalganj Vet Care is the first and only dedicated pet clinic in Gopalganj, offering comprehensive veterinary services for cats, dogs, and birds. Starting January 1, 2026, we provide compassionate care for your beloved pets under one roof. Our commitment is to ensure the health and safety of your pets with professional treatment and care." : `${clinic.name} provides comprehensive veterinary services for your beloved pets. Our team of experienced veterinarians is dedicated to ensuring the health and well-being of your furry friends.`)}
                   </p>
                   
                   {/* Trust Badges */}
@@ -431,11 +374,7 @@ const ClinicDetailPage = () => {
                     Services Offered
                   </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {(clinic.services || ['Consultation', 'Vaccination', 'Surgery', 'Dental Care', 'Grooming', 'Emergency Care']).map((service, idx) => (
-                      <div 
-                        key={idx}
-                        className="flex items-center gap-3 p-4 rounded-xl bg-muted/30 hover:bg-gradient-to-r hover:from-primary/5 hover:to-orange-50/50 border border-border/50 hover:border-primary/20 transition-all cursor-pointer group"
-                      >
+                    {(clinic.services || ['Consultation', 'Vaccination', 'Surgery', 'Dental Care', 'Grooming', 'Emergency Care']).map((service, idx) => <div key={idx} className="flex items-center gap-3 p-4 rounded-xl bg-muted/30 hover:bg-gradient-to-r hover:from-primary/5 hover:to-orange-50/50 border border-border/50 hover:border-primary/20 transition-all cursor-pointer group">
                         <div className="w-10 h-10 rounded-xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center transition-colors flex-shrink-0">
                           <Stethoscope className="h-5 w-5 text-primary" />
                         </div>
@@ -443,8 +382,7 @@ const ClinicDetailPage = () => {
                           <span className="font-medium text-foreground text-sm sm:text-base truncate block">{service}</span>
                         </div>
                         <CheckCircle className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                      </div>
-                    ))}
+                      </div>)}
                   </div>
                 </div>
               </TabsContent>
@@ -457,8 +395,7 @@ const ClinicDetailPage = () => {
                     Our Doctors
                   </h2>
                   
-                  {isGopalganj ? (
-                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-4 sm:p-6 bg-gradient-to-br from-primary/5 via-orange-50/30 to-amber-50/30 rounded-2xl border border-primary/10">
+                  {isGopalganj ? <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-4 sm:p-6 bg-gradient-to-br from-primary/5 via-orange-50/30 to-amber-50/30 rounded-2xl border border-primary/10">
                       <Avatar className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-2xl border-4 border-white shadow-xl flex-shrink-0 mx-auto sm:mx-0">
                         <AvatarImage src={doctorInfo.image} />
                         <AvatarFallback className="text-2xl bg-primary/10 text-primary">DM</AvatarFallback>
@@ -473,12 +410,10 @@ const ClinicDetailPage = () => {
                         </div>
                         <p className="text-primary font-semibold mb-3">{doctorInfo.title}</p>
                         <div className="space-y-1.5 mb-4">
-                          {doctorInfo.qualifications.map((qual, idx) => (
-                            <p key={idx} className="text-xs sm:text-sm text-muted-foreground flex items-center gap-2 justify-center sm:justify-start">
+                          {doctorInfo.qualifications.map((qual, idx) => <p key={idx} className="text-xs sm:text-sm text-muted-foreground flex items-center gap-2 justify-center sm:justify-start">
                               <Award className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                               {qual}
-                            </p>
-                          ))}
+                            </p>)}
                         </div>
                         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                           <Badge variant="secondary" className="bg-white">
@@ -491,15 +426,12 @@ const ClinicDetailPage = () => {
                           </Badge>
                         </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 sm:py-12">
+                    </div> : <div className="text-center py-8 sm:py-12">
                       <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
                         <User className="h-8 w-8 text-muted-foreground/50" />
                       </div>
                       <p className="text-muted-foreground">Doctor information coming soon</p>
-                    </div>
-                  )}
+                    </div>}
                 </div>
               </TabsContent>
 
@@ -519,28 +451,27 @@ const ClinicDetailPage = () => {
                     <div className="text-center sm:border-r sm:border-amber-200/50 sm:pr-6">
                       <div className="text-4xl sm:text-5xl font-bold text-foreground">{clinic.rating || 4.8}</div>
                       <div className="flex items-center justify-center gap-0.5 my-2">
-                        {[1,2,3,4,5].map(i => (
-                          <Star key={i} className={`h-5 w-5 ${i <= Math.floor(clinic.rating || 4.8) ? 'text-amber-500 fill-amber-500' : 'text-muted/30'}`} />
-                        ))}
+                        {[1, 2, 3, 4, 5].map(i => <Star key={i} className={`h-5 w-5 ${i <= Math.floor(clinic.rating || 4.8) ? 'text-amber-500 fill-amber-500' : 'text-muted/30'}`} />)}
                       </div>
                       <p className="text-sm text-muted-foreground">48 reviews</p>
                     </div>
                     <div className="flex-1 space-y-2">
-                      {ratingDistribution.map(({ stars, percentage, count }) => (
-                        <div key={stars} className="flex items-center gap-2 sm:gap-3">
+                      {ratingDistribution.map(({
+                      stars,
+                      percentage,
+                      count
+                    }) => <div key={stars} className="flex items-center gap-2 sm:gap-3">
                           <span className="text-sm w-3 text-muted-foreground">{stars}</span>
                           <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
                           <Progress value={percentage} className="flex-1 h-2" />
                           <span className="text-xs text-muted-foreground w-6 text-right">{count}</span>
-                        </div>
-                      ))}
+                        </div>)}
                     </div>
                   </div>
 
                   {/* Review List */}
                   <div className="space-y-4">
-                    {reviews.map(review => (
-                      <div key={review.id} className="p-4 sm:p-5 bg-muted/20 rounded-xl border border-border/30">
+                    {reviews.map(review => <div key={review.id} className="p-4 sm:p-5 bg-muted/20 rounded-xl border border-border/30">
                         <div className="flex items-start justify-between gap-3 mb-3">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-10 w-10">
@@ -554,9 +485,7 @@ const ClinicDetailPage = () => {
                             </div>
                           </div>
                           <div className="flex items-center gap-0.5">
-                            {[1,2,3,4,5].map(i => (
-                              <Star key={i} className={`h-3.5 w-3.5 ${i <= review.rating ? 'text-amber-500 fill-amber-500' : 'text-muted/30'}`} />
-                            ))}
+                            {[1, 2, 3, 4, 5].map(i => <Star key={i} className={`h-3.5 w-3.5 ${i <= review.rating ? 'text-amber-500 fill-amber-500' : 'text-muted/30'}`} />)}
                           </div>
                         </div>
                         <p className="text-muted-foreground text-sm mb-3">{review.comment}</p>
@@ -564,8 +493,7 @@ const ClinicDetailPage = () => {
                           <ThumbsUp className="h-4 w-4" />
                           Helpful ({review.helpful})
                         </button>
-                      </div>
-                    ))}
+                      </div>)}
                   </div>
                 </div>
               </TabsContent>
@@ -585,28 +513,14 @@ const ClinicDetailPage = () => {
               <div className="mb-4">
                 <p className="text-sm font-medium text-muted-foreground mb-3">Select Date</p>
                 <div className="grid grid-cols-7 gap-1">
-                  {getNext7Days().map((day) => (
-                    <button
-                      key={day.date}
-                      onClick={() => setSelectedDate(day.date)}
-                      className={`p-2 rounded-xl text-center transition-all ${
-                        selectedDate === day.date
-                          ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
-                          : 'bg-muted/50 hover:bg-muted text-foreground'
-                      }`}
-                    >
+                  {getNext7Days().map(day => <button key={day.date} onClick={() => setSelectedDate(day.date)} className={`p-2 rounded-xl text-center transition-all ${selectedDate === day.date ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25' : 'bg-muted/50 hover:bg-muted text-foreground'}`}>
                       <div className="text-[10px] font-medium opacity-70">{day.day}</div>
                       <div className="text-sm sm:text-base font-bold">{day.dayNum}</div>
-                    </button>
-                  ))}
+                    </button>)}
                 </div>
               </div>
 
-              <Button 
-                className="w-full shadow-lg shadow-primary/25"
-                size="lg"
-                onClick={() => navigate(`/book-appointment/${clinic.id}`)}
-              >
+              <Button className="w-full shadow-lg shadow-primary/25" size="lg" onClick={() => navigate(`/book-appointment/${clinic.id}`)}>
                 View All Slots
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
@@ -617,8 +531,7 @@ const ClinicDetailPage = () => {
               <h3 className="font-display font-bold text-foreground mb-4">Contact & Location</h3>
               
               <div className="space-y-4">
-                {clinic.address && (
-                  <div className="flex items-start gap-3">
+                {clinic.address && <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
                       <MapPin className="h-5 w-5 text-primary" />
                     </div>
@@ -626,11 +539,9 @@ const ClinicDetailPage = () => {
                       <p className="text-sm font-medium text-foreground">Address</p>
                       <p className="text-sm text-muted-foreground break-words">{clinic.address}</p>
                     </div>
-                  </div>
-                )}
+                  </div>}
                 
-                {clinic.phone && (
-                  <div className="flex items-start gap-3">
+                {clinic.phone && <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
                       <Phone className="h-5 w-5 text-emerald-600" />
                     </div>
@@ -638,19 +549,14 @@ const ClinicDetailPage = () => {
                       <p className="text-sm font-medium text-foreground">Phone</p>
                       <div className="flex items-center gap-2">
                         <a href={`tel:${clinic.phone}`} className="text-sm text-primary hover:underline">{clinic.phone}</a>
-                        <button 
-                          onClick={handleCopyPhone}
-                          className="text-muted-foreground hover:text-foreground transition-colors"
-                        >
+                        <button onClick={handleCopyPhone} className="text-muted-foreground hover:text-foreground transition-colors">
                           <Copy className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </div>
-                  </div>
-                )}
+                  </div>}
                 
-                {clinic.opening_hours && (
-                  <div className="flex items-start gap-3">
+                {clinic.opening_hours && <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center flex-shrink-0">
                       <Clock className="h-5 w-5 text-amber-600" />
                     </div>
@@ -658,30 +564,18 @@ const ClinicDetailPage = () => {
                       <p className="text-sm font-medium text-foreground">Hours</p>
                       <p className="text-sm text-muted-foreground">{clinic.opening_hours}</p>
                     </div>
-                  </div>
-                )}
+                  </div>}
               </div>
 
               <Separator className="my-4" />
 
               {/* Map Preview */}
               <div className="rounded-xl overflow-hidden h-32 bg-muted border border-border/50">
-                <iframe
-                  src={`https://www.openstreetmap.org/export/embed.html?bbox=89.5,22.5,92,26&layer=mapnik`}
-                  className="w-full h-full"
-                  title="Map"
-                />
+                <iframe src={`https://www.openstreetmap.org/export/embed.html?bbox=89.5,22.5,92,26&layer=mapnik`} className="w-full h-full" title="Map" />
               </div>
               
               <Button variant="outline" className="w-full mt-3 gap-2" asChild>
-                <a 
-                  href={`https://maps.google.com/?q=${encodeURIComponent(clinic.address || clinic.name)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Navigation className="h-4 w-4" />
-                  Get Directions
-                </a>
+                
               </Button>
             </div>
           </div>
@@ -690,8 +584,6 @@ const ClinicDetailPage = () => {
 
       <Footer />
       <MobileNav />
-    </div>
-  );
+    </div>;
 };
-
 export default ClinicDetailPage;
