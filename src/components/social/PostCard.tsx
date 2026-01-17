@@ -30,6 +30,7 @@ export const PostCard = ({ post, onLike, onUnlike, onDelete }: PostCardProps) =>
   const [deleting, setDeleting] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
   const [showFullContent, setShowFullContent] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
 
   const handleLike = () => {
     if (!user) {
@@ -201,66 +202,76 @@ export const PostCard = ({ post, onLike, onUnlike, onDelete }: PostCardProps) =>
         </div>
       )}
 
-      {/* Engagement Stats */}
-      {(post.likes_count > 0 || post.comments_count > 0) && (
-        <div className="flex items-center justify-between px-3 sm:px-4 py-2 text-xs sm:text-sm text-muted-foreground">
-          {post.likes_count > 0 ? (
-            <div className="flex items-center gap-1.5">
-              <div className="flex items-center justify-center h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-rose-500">
-                <Heart className="h-2 w-2 sm:h-2.5 sm:w-2.5 text-white fill-current" />
-              </div>
-              <span className="font-medium">{post.likes_count}</span>
-            </div>
-          ) : <div />}
-          <div className="flex items-center gap-3">
-            {post.comments_count > 0 && (
-              <button 
-                onClick={() => setShowComments(!showComments)}
-                className="hover:underline"
-              >
-                {post.comments_count} {post.comments_count === 1 ? 'comment' : 'comments'}
-              </button>
-            )}
+      {/* Instagram-style Action Buttons */}
+      <div className="px-3 sm:px-4 pt-2 sm:pt-3">
+        <div className="flex items-center justify-between">
+          {/* Left actions: Like, Comment, Share */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            <button 
+              onClick={handleLike}
+              className="p-0 hover:opacity-60 transition-opacity active:scale-90"
+              aria-label={post.liked_by_user ? 'Unlike' : 'Like'}
+            >
+              <Heart className={`h-6 w-6 sm:h-7 sm:w-7 transition-all duration-200 ${
+                post.liked_by_user 
+                  ? 'fill-rose-500 text-rose-500' 
+                  : 'text-foreground'
+              } ${isLiking ? 'scale-125' : ''}`} />
+            </button>
+            
+            <button 
+              onClick={() => setShowComments(!showComments)}
+              className="p-0 hover:opacity-60 transition-opacity active:scale-90"
+              aria-label="Comment"
+            >
+              <MessageCircle className="h-6 w-6 sm:h-7 sm:w-7 text-foreground" />
+            </button>
+            
+            <button 
+              onClick={handleShare}
+              className="p-0 hover:opacity-60 transition-opacity active:scale-90"
+              aria-label="Share"
+            >
+              <Send className="h-5 w-5 sm:h-6 sm:w-6 text-foreground -rotate-12" />
+            </button>
           </div>
-        </div>
-      )}
-
-      {/* Action Buttons */}
-      <div className="border-t border-border/50 mx-3 sm:mx-4">
-        <div className="flex items-center py-1">
-          <Button 
-            variant="ghost" 
-            onClick={handleLike}
-            className={`flex-1 h-9 sm:h-10 gap-1 sm:gap-2 rounded-lg font-medium text-xs sm:text-sm ${
-              post.liked_by_user 
-                ? 'text-rose-500 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10' 
-                : 'text-muted-foreground hover:bg-muted'
-            }`}
-          >
-            <Heart className={`h-4 w-4 sm:h-5 sm:w-5 transition-transform ${
-              post.liked_by_user ? 'fill-rose-500 text-rose-500' : ''
-            } ${isLiking ? 'scale-125' : ''}`} />
-            <span className="hidden xs:inline">Love</span>
-          </Button>
           
-          <Button 
-            variant="ghost"
+          {/* Right action: Bookmark */}
+          <button 
+            onClick={() => {
+              setIsBookmarked(!isBookmarked);
+              toast.success(isBookmarked ? 'Removed from saved' : 'Saved to collection');
+            }}
+            className="p-0 hover:opacity-60 transition-opacity active:scale-90"
+            aria-label={isBookmarked ? 'Remove from saved' : 'Save'}
+          >
+            <Bookmark className={`h-6 w-6 sm:h-7 sm:w-7 transition-all ${
+              isBookmarked ? 'fill-foreground text-foreground' : 'text-foreground'
+            }`} />
+          </button>
+        </div>
+        
+        {/* Likes count - Instagram style */}
+        {post.likes_count > 0 && (
+          <p className="font-semibold text-sm sm:text-[15px] mt-2 sm:mt-3 text-foreground">
+            {post.likes_count.toLocaleString()} {post.likes_count === 1 ? 'like' : 'likes'}
+          </p>
+        )}
+        
+        {/* Comments count - Instagram style */}
+        {post.comments_count > 0 && (
+          <button 
             onClick={() => setShowComments(!showComments)}
-            className="flex-1 h-9 sm:h-10 gap-1 sm:gap-2 rounded-lg font-medium text-xs sm:text-sm text-muted-foreground hover:bg-muted"
+            className="text-muted-foreground text-sm sm:text-[15px] mt-1 hover:text-foreground transition-colors"
           >
-            <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5" />
-            <span className="hidden xs:inline">Comment</span>
-          </Button>
-          
-          <Button 
-            variant="ghost" 
-            onClick={handleShare}
-            className="flex-1 h-9 sm:h-10 gap-1 sm:gap-2 rounded-lg font-medium text-xs sm:text-sm text-muted-foreground hover:bg-muted"
-          >
-            <Share2 className="h-4 w-4 sm:h-5 sm:w-5" />
-            <span className="hidden xs:inline">Share</span>
-          </Button>
-        </div>
+            View all {post.comments_count} {post.comments_count === 1 ? 'comment' : 'comments'}
+          </button>
+        )}
+        
+        {/* Timestamp */}
+        <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide mt-2 pb-3">
+          {formatDistanceToNow(new Date(post.created_at), { addSuffix: false })} ago
+        </p>
       </div>
 
       {/* Comments Section */}
