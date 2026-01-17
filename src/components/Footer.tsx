@@ -1,6 +1,6 @@
 import { Phone, Mail, MapPin, Facebook, Instagram, Youtube, PawPrint } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import logo from '@/assets/logo.jpeg';
+import Logo from '@/components/Logo';
 
 const Footer = () => {
   return (
@@ -9,21 +9,8 @@ const Footer = () => {
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
           {/* Brand */}
           <div className="col-span-2 sm:col-span-2 md:col-span-1">
-            <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-              <div className="relative">
-                <img 
-                  src={logo} 
-                  alt="VET-MEDIX Logo" 
-                  className="h-10 w-10 sm:h-12 sm:w-12 rounded-full object-cover"
-                />
-                <div className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 h-3.5 w-3.5 sm:h-4 sm:w-4 bg-primary rounded-full flex items-center justify-center">
-                  <PawPrint className="h-2 w-2 sm:h-2.5 sm:w-2.5 text-primary-foreground" />
-                </div>
-              </div>
-              <div>
-                <h3 className="text-base sm:text-lg font-display font-bold">VET-MEDIX</h3>
-                <p className="text-[10px] sm:text-xs text-card/70">One Stop Pet Care</p>
-              </div>
+            <div className="mb-3 sm:mb-4">
+              <Logo to="/" size="md" showText showSubtitle variant="footer" />
             </div>
             <p className="text-xs sm:text-sm text-card/70 mb-3 sm:mb-4 max-w-xs">
               Your trusted partner for pet and farm animal care across Bangladesh.

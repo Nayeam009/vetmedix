@@ -199,10 +199,10 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-16 md:pb-0">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8">
         {/* Profile Header */}
         {user && (
           <ProfileHeader
@@ -216,81 +216,83 @@ const ProfilePage = () => {
           />
         )}
 
-        <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-[500px] h-12">
-            <TabsTrigger value="profile" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Profile</span>
+        <Tabs defaultValue="profile" className="space-y-4 sm:space-y-6">
+          <TabsList className="grid w-full grid-cols-4 lg:w-[500px] h-11 sm:h-12 p-1">
+            <TabsTrigger value="profile" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Profile</span>
             </TabsTrigger>
-            <TabsTrigger value="pets" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <PawPrint className="h-4 w-4" />
-              <span className="hidden sm:inline">My Pets</span>
+            <TabsTrigger value="pets" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <PawPrint className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Pets</span>
             </TabsTrigger>
-            <TabsTrigger value="orders" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <ShoppingBag className="h-4 w-4" />
-              <span className="hidden sm:inline">Orders</span>
+            <TabsTrigger value="orders" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <ShoppingBag className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Orders</span>
             </TabsTrigger>
-            <TabsTrigger value="appointments" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Appointments</span>
+            <TabsTrigger value="appointments" className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Appts</span>
             </TabsTrigger>
           </TabsList>
 
           {/* Profile Tab */}
           <TabsContent value="profile">
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
               <Card className="shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="h-5 w-5 text-primary" />
-                    Account Information
+                <CardHeader className="flex flex-row items-center justify-between p-4 sm:p-6 pb-2 sm:pb-4">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                    Account Info
                   </CardTitle>
                   {!editing ? (
-                    <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
-                      <Edit2 className="h-4 w-4 mr-2" />
+                    <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="h-8 sm:h-9">
+                      <Edit2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                       Edit
                     </Button>
                   ) : (
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>
-                        <X className="h-4 w-4" />
+                    <div className="flex gap-1 sm:gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => setEditing(false)} className="h-8 sm:h-9 px-2 sm:px-3">
+                        <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </Button>
-                      <Button size="sm" onClick={handleSave} disabled={saving}>
-                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                        Save
+                      <Button size="sm" onClick={handleSave} disabled={saving} className="h-8 sm:h-9">
+                        {saving ? <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> : <Save className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />}
+                        <span className="hidden sm:inline">Save</span>
                       </Button>
                     </div>
                   )}
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0 sm:pt-2">
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Email</label>
-                    <p className="text-foreground">{user?.email}</p>
+                    <label className="text-xs sm:text-sm font-medium text-muted-foreground">Email</label>
+                    <p className="text-sm sm:text-base text-foreground truncate">{user?.email}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Full Name</label>
+                    <label className="text-xs sm:text-sm font-medium text-muted-foreground">Full Name</label>
                     {editing ? (
                       <Input
                         value={formData.full_name}
                         onChange={(e) => setFormData({ ...formData, full_name: e.target.value.slice(0, 100) })}
                         placeholder="Enter your full name"
                         maxLength={100}
+                        className="h-9 sm:h-10 text-sm"
                       />
                     ) : (
-                      <p className="text-foreground">{profile?.full_name || 'Not set'}</p>
+                      <p className="text-sm sm:text-base text-foreground">{profile?.full_name || 'Not set'}</p>
                     )}
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Phone</label>
+                    <label className="text-xs sm:text-sm font-medium text-muted-foreground">Phone</label>
                     {editing ? (
                       <Input
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value.slice(0, 20) })}
                         placeholder="Enter your phone number"
                         maxLength={20}
+                        className="h-9 sm:h-10 text-sm"
                       />
                     ) : (
-                      <p className="text-foreground">{profile?.phone || 'Not set'}</p>
+                      <p className="text-sm sm:text-base text-foreground">{profile?.phone || 'Not set'}</p>
                     )}
                   </div>
                 </CardContent>

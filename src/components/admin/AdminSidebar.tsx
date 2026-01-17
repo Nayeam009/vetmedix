@@ -18,7 +18,7 @@ import {
   CalendarDays
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import logo from '@/assets/logo.jpeg';
+import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
@@ -111,21 +111,12 @@ export const AdminSidebar = ({ collapsed, onToggle, pendingOrders = 0, pendingVe
         )}
       >
         {/* Logo */}
-        <div className={cn("p-4 border-b border-border/50", collapsed ? "px-3" : "xl:p-5")}>
-          <Link to="/admin" className="flex items-center gap-3 group">
-            <div className="relative flex-shrink-0">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-accent/30 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <img 
-                src={logo} 
-                alt="VET-MEDIX Admin" 
-                className="relative h-10 w-10 rounded-xl object-cover shadow-md border-2 border-primary/20 group-hover:border-primary/50 group-hover:scale-105 transition-all duration-300"
-              />
-            </div>
-            {!collapsed && (
-              <div className="overflow-hidden">
-                <h1 className="font-display font-bold text-foreground text-sm xl:text-base bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent whitespace-nowrap">Admin Panel</h1>
-                <p className="text-xs text-muted-foreground">VET-MEDIX</p>
-              </div>
+        <div className={cn("p-3 xl:p-4 border-b border-border/50", collapsed ? "px-2" : "")}>
+          <Link to="/admin" className="flex items-center gap-2 group">
+            {collapsed ? (
+              <Logo to="/admin" size="sm" showText={false} />
+            ) : (
+              <Logo to="/admin" size="sm" showText showSubtitle={false} variant="admin" />
             )}
           </Link>
         </div>

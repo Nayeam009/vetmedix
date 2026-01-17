@@ -109,53 +109,53 @@ const ClinicDashboard = () => {
     <div className="min-h-screen bg-gradient-to-b from-orange-50/30 via-background to-background pb-20 md:pb-0">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-6 max-w-7xl">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl">
         {/* Dashboard Header */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-lg shadow-black/5 border border-border/50 mb-6 sm:mb-8">
+        <div className="bg-white rounded-xl sm:rounded-2xl lg:rounded-3xl p-4 sm:p-5 lg:p-6 xl:p-8 shadow-lg shadow-black/5 border border-border/50 mb-4 sm:mb-6 lg:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border-4 border-primary/10 shadow-lg">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <Avatar className="h-14 w-14 sm:h-16 sm:w-16 lg:h-20 lg:w-20 border-2 sm:border-4 border-primary/10 shadow-lg flex-shrink-0">
                 <AvatarImage src={ownedClinic?.image_url || ''} />
-                <AvatarFallback className="bg-gradient-to-br from-primary to-orange-400 text-white text-xl">
-                  <Building2 className="h-8 w-8" />
+                <AvatarFallback className="bg-gradient-to-br from-primary to-orange-400 text-white text-lg sm:text-xl">
+                  <Building2 className="h-6 w-6 sm:h-8 sm:w-8" />
                 </AvatarFallback>
               </Avatar>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-display font-bold text-foreground">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-0.5 sm:mb-1">
+                  <h1 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-display font-bold text-foreground truncate">
                     {ownedClinic?.name || 'My Clinic'}
                   </h1>
                   {ownedClinic?.is_verified && (
-                    <Badge className="bg-emerald-500 hover:bg-emerald-500 gap-1">
-                      <CheckCircle className="h-3 w-3" />
-                      Verified
+                    <Badge className="bg-emerald-500 hover:bg-emerald-500 gap-1 text-xs flex-shrink-0">
+                      <CheckCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                      <span className="hidden xs:inline">Verified</span>
                     </Badge>
                   )}
                 </div>
-                <p className="text-muted-foreground text-sm sm:text-base">{ownedClinic?.address || 'Add your address'}</p>
-                <div className="flex items-center gap-3 mt-2">
-                  <Badge variant={ownedClinic?.is_open ? 'default' : 'secondary'} className={ownedClinic?.is_open ? 'bg-emerald-500 hover:bg-emerald-500' : ''}>
-                    <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${ownedClinic?.is_open ? 'bg-white animate-pulse' : 'bg-gray-400'}`} />
+                <p className="text-muted-foreground text-xs sm:text-sm truncate">{ownedClinic?.address || 'Add your address'}</p>
+                <div className="flex items-center gap-2 sm:gap-3 mt-1.5 sm:mt-2">
+                  <Badge variant={ownedClinic?.is_open ? 'default' : 'secondary'} className={cn("text-[10px] sm:text-xs", ownedClinic?.is_open ? 'bg-emerald-500 hover:bg-emerald-500' : '')}>
+                    <div className={`w-1.5 h-1.5 rounded-full mr-1 sm:mr-1.5 ${ownedClinic?.is_open ? 'bg-white animate-pulse' : 'bg-gray-400'}`} />
                     {ownedClinic?.is_open ? 'Open' : 'Closed'}
                   </Badge>
-                  <span className="text-sm text-muted-foreground flex items-center gap-1">
-                    <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                  <span className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
+                    <Star className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500 fill-amber-500" />
                     {ownedClinic?.rating || 4.5}
                   </span>
                 </div>
               </div>
             </div>
-            <div className="flex gap-3">
-              <Button variant="outline" asChild className="rounded-xl">
+            <div className="flex gap-2 sm:gap-3 self-start sm:self-auto">
+              <Button variant="outline" asChild className="rounded-lg sm:rounded-xl h-9 sm:h-10 px-3 sm:px-4">
                 <Link to="/clinic/profile">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Settings
+                  <Settings className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Settings</span>
                 </Link>
               </Button>
-              <Button asChild className="rounded-xl shadow-lg shadow-primary/25">
+              <Button asChild className="rounded-lg sm:rounded-xl shadow-lg shadow-primary/25 h-9 sm:h-10 px-3 sm:px-4">
                 <Link to="/clinic/profile">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Profile
+                  <Edit className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Edit Profile</span>
                 </Link>
               </Button>
             </div>
@@ -163,100 +163,101 @@ const ClinicDashboard = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 xl:gap-6 mb-4 sm:mb-6 lg:mb-8">
           <Card 
             onClick={() => setActiveTab('appointments')}
             className={cn(
-              "cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 border-border/50 bg-white",
+              "cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 border-border/50 bg-white active:scale-[0.98]",
               activeTab === 'appointments' && "ring-2 ring-primary shadow-xl shadow-primary/10"
             )}
           >
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-start justify-between mb-3">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-orange-100 flex items-center justify-center">
-                  <CalendarDays className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+            <CardContent className="p-3 sm:p-4 lg:p-6">
+              <div className="flex items-start justify-between mb-2 sm:mb-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary/20 to-orange-100 flex items-center justify-center">
+                  <CalendarDays className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 text-primary" />
                 </div>
-                <ArrowUpRight className="h-4 w-4 text-emerald-500" />
+                <ArrowUpRight className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500" />
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-foreground">{todayAppointments.length}</p>
-              <p className="text-sm text-muted-foreground">Today's Appointments</p>
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">{todayAppointments.length}</p>
+              <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground">Today's Appts</p>
             </CardContent>
           </Card>
 
           <Card 
             onClick={() => setActiveTab('appointments')}
             className={cn(
-              "cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/5 hover:-translate-y-1 border-border/50 bg-white",
+              "cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/5 hover:-translate-y-1 border-border/50 bg-white active:scale-[0.98]",
               activeTab === 'appointments' && pendingAppointments.length > 0 && "ring-2 ring-amber-500 shadow-xl"
             )}
           >
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-start justify-between mb-3">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
-                  <Clock className="h-6 w-6 sm:h-7 sm:w-7 text-amber-600" />
+            <CardContent className="p-3 sm:p-4 lg:p-6">
+              <div className="flex items-start justify-between mb-2 sm:mb-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
+                  <Clock className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 text-amber-600" />
                 </div>
                 {pendingAppointments.length > 0 && (
-                  <Badge className="bg-amber-500 hover:bg-amber-500 animate-pulse">Action</Badge>
+                  <Badge className="bg-amber-500 hover:bg-amber-500 animate-pulse text-[10px] sm:text-xs">Action</Badge>
                 )}
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-foreground">{pendingAppointments.length}</p>
-              <p className="text-sm text-muted-foreground">Pending Approval</p>
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">{pendingAppointments.length}</p>
+              <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground">Pending</p>
             </CardContent>
           </Card>
 
           <Card 
             onClick={() => setActiveTab('doctors')}
             className={cn(
-              "cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/5 hover:-translate-y-1 border-border/50 bg-white",
+              "cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/5 hover:-translate-y-1 border-border/50 bg-white active:scale-[0.98]",
               activeTab === 'doctors' && "ring-2 ring-emerald-500 shadow-xl"
             )}
           >
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-start justify-between mb-3">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-emerald-100 to-green-100 flex items-center justify-center">
-                  <UserCheck className="h-6 w-6 sm:h-7 sm:w-7 text-emerald-600" />
+            <CardContent className="p-3 sm:p-4 lg:p-6">
+              <div className="flex items-start justify-between mb-2 sm:mb-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-100 to-green-100 flex items-center justify-center">
+                  <UserCheck className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 text-emerald-600" />
                 </div>
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-foreground">{activeDoctors.length}</p>
-              <p className="text-sm text-muted-foreground">Active Doctors</p>
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">{activeDoctors.length}</p>
+              <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground">Doctors</p>
             </CardContent>
           </Card>
 
           <Card 
             onClick={() => setActiveTab('services')}
             className={cn(
-              "cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 hover:-translate-y-1 border-border/50 bg-white",
+              "cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 hover:-translate-y-1 border-border/50 bg-white active:scale-[0.98]",
               activeTab === 'services' && "ring-2 ring-blue-500 shadow-xl"
             )}
           >
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-start justify-between mb-3">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
-                  <Package className="h-6 w-6 sm:h-7 sm:w-7 text-blue-600" />
+            <CardContent className="p-3 sm:p-4 lg:p-6">
+              <div className="flex items-start justify-between mb-2 sm:mb-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+                  <Package className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 text-blue-600" />
                 </div>
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-foreground">{clinicServices?.length || 0}</p>
-              <p className="text-sm text-muted-foreground">Services Offered</p>
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">{clinicServices?.length || 0}</p>
+              <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground">Services</p>
             </CardContent>
           </Card>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-white border border-border/50 rounded-xl p-1.5 h-auto w-full sm:w-auto inline-flex shadow-sm">
-            <TabsTrigger value="appointments" className="rounded-lg data-[state=active]:shadow-sm px-4 sm:px-6">
-              <Calendar className="h-4 w-4 mr-2" />
-              Appointments
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+          <TabsList className="bg-white border border-border/50 rounded-lg sm:rounded-xl p-1 sm:p-1.5 h-auto w-full overflow-x-auto flex sm:inline-flex shadow-sm">
+            <TabsTrigger value="appointments" className="rounded-md sm:rounded-lg data-[state=active]:shadow-sm px-2 sm:px-4 lg:px-6 text-xs sm:text-sm whitespace-nowrap">
+              <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden xs:inline">Appointments</span>
+              <span className="xs:hidden">Appts</span>
             </TabsTrigger>
-            <TabsTrigger value="doctors" className="rounded-lg data-[state=active]:shadow-sm px-4 sm:px-6">
-              <Stethoscope className="h-4 w-4 mr-2" />
+            <TabsTrigger value="doctors" className="rounded-md sm:rounded-lg data-[state=active]:shadow-sm px-2 sm:px-4 lg:px-6 text-xs sm:text-sm whitespace-nowrap">
+              <Stethoscope className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               Doctors
             </TabsTrigger>
-            <TabsTrigger value="services" className="rounded-lg data-[state=active]:shadow-sm px-4 sm:px-6">
-              <Package className="h-4 w-4 mr-2" />
+            <TabsTrigger value="services" className="rounded-md sm:rounded-lg data-[state=active]:shadow-sm px-2 sm:px-4 lg:px-6 text-xs sm:text-sm whitespace-nowrap">
+              <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               Services
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="rounded-lg data-[state=active]:shadow-sm px-4 sm:px-6">
-              <BarChart3 className="h-4 w-4 mr-2" />
+            <TabsTrigger value="analytics" className="rounded-md sm:rounded-lg data-[state=active]:shadow-sm px-2 sm:px-4 lg:px-6 text-xs sm:text-sm whitespace-nowrap">
+              <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               Analytics
             </TabsTrigger>
           </TabsList>

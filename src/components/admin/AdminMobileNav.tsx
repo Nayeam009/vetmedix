@@ -12,7 +12,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import logo from '@/assets/logo.jpeg';
+import Logo from '@/components/Logo';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { SheetClose } from '@/components/ui/sheet';
@@ -88,19 +88,8 @@ export const AdminMobileNav = ({ pendingOrders = 0, pendingVerifications = 0 }: 
       {/* Logo */}
       <div className="p-4 sm:p-5 border-b border-border/50 bg-gradient-to-r from-primary/5 to-accent/5">
         <SheetClose asChild>
-          <Link to="/admin" className="flex items-center gap-3 group">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-accent/30 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <img 
-                src={logo} 
-                alt="VET-MEDIX Admin" 
-                className="relative h-10 w-10 sm:h-11 sm:w-11 rounded-xl object-cover shadow-md border-2 border-primary/20"
-              />
-            </div>
-            <div>
-              <h1 className="font-display font-bold text-base bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">Admin Panel</h1>
-              <p className="text-xs text-muted-foreground">VET-MEDIX</p>
-            </div>
+          <Link to="/admin" className="block">
+            <Logo to="/admin" size="md" showText showSubtitle variant="admin" />
           </Link>
         </SheetClose>
       </div>
