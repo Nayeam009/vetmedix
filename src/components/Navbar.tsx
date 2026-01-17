@@ -123,8 +123,9 @@ const Navbar = () => {
 
           {/* Mobile Menu Button */}
           <div className="flex md:hidden items-center gap-1.5 sm:gap-2">
+            <NotificationBell />
             <Button variant="ghost" size="icon" className="relative h-9 w-9" onClick={() => navigate('/cart')}>
-              
+              <ShoppingCart className="h-4 w-4" />
               {totalItems > 0 && <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[9px] flex items-center justify-center font-bold">
                   {totalItems > 9 ? '9+' : totalItems}
                 </span>}
