@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, Plus, Loader2, Stethoscope, Mail, Phone, Edit, Trash2, GraduationCap, BadgeDollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,6 +67,7 @@ const initialFormData: DoctorFormData = {
 
 const ClinicDoctors = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { isClinicOwner, isLoading: roleLoading } = useUserRole();
   const { 
     ownedClinic,
