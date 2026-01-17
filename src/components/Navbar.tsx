@@ -97,12 +97,6 @@ const Navbar = () => {
 
             <NotificationBell />
 
-            <Button variant="ghost" size="icon" className="relative h-9 w-9" onClick={() => navigate('/cart')}>
-              <ShoppingCart className="h-4 w-4 lg:h-5 lg:w-5" />
-              {totalItems > 0 && <span className="absolute -top-0.5 -right-0.5 h-4 w-4 lg:h-5 lg:w-5 rounded-full bg-primary text-primary-foreground text-[10px] lg:text-xs flex items-center justify-center font-medium">
-                  {totalItems > 9 ? '9+' : totalItems}
-                </span>}
-            </Button>
 
             {user ? <div className="flex items-center gap-0.5">
                 <Link to="/profile">
@@ -124,12 +118,6 @@ const Navbar = () => {
           {/* Mobile Menu Button */}
           <div className="flex md:hidden items-center gap-1.5 sm:gap-2">
             <NotificationBell />
-            <Button variant="ghost" size="icon" className="relative h-9 w-9" onClick={() => navigate('/cart')}>
-              <ShoppingCart className="h-4 w-4" />
-              {totalItems > 0 && <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[9px] flex items-center justify-center font-bold">
-                  {totalItems > 9 ? '9+' : totalItems}
-                </span>}
-            </Button>
             <button className="p-2 rounded-lg hover:bg-muted transition-colors active:scale-95" onClick={() => setIsMenuOpen(!isMenuOpen)}>
               {isMenuOpen ? <X className="h-5 w-5 sm:h-6 sm:w-6" /> : <Menu className="h-5 w-5 sm:h-6 sm:w-6" />}
             </button>
