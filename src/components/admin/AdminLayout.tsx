@@ -57,7 +57,7 @@ export const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => 
         pendingVerifications={pendingCounts?.pendingVerifications}
       />
       <div className={cn(
-        "transition-all duration-300",
+        "transition-all duration-300 min-h-screen flex flex-col",
         collapsed ? "lg:pl-[68px]" : "lg:pl-64"
       )}>
         <AdminHeader 
@@ -68,7 +68,7 @@ export const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => 
           pendingOrders={pendingCounts?.pendingOrders}
           pendingVerifications={pendingCounts?.pendingVerifications}
         />
-        <main className="p-4 lg:p-8">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 xl:p-8">
           {children}
         </main>
       </div>
