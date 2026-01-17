@@ -48,7 +48,28 @@ const ClinicDashboard = () => {
     );
   }
 
-  if (!user || !isClinicOwner) {
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50/30 via-background to-background p-4">
+        <Card className="max-w-md w-full shadow-xl border-border/50">
+          <CardContent className="pt-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="h-8 w-8 text-destructive" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">Sign In Required</h2>
+            <p className="text-muted-foreground mb-6">
+              Please sign in to access your clinic dashboard.
+            </p>
+            <Button onClick={() => navigate('/auth')} size="lg">
+              Sign In
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!isClinicOwner) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50/30 via-background to-background p-4">
         <Card className="max-w-md w-full shadow-xl border-border/50">
@@ -58,10 +79,32 @@ const ClinicDashboard = () => {
             </div>
             <h2 className="text-xl font-bold mb-2">Access Denied</h2>
             <p className="text-muted-foreground mb-6">
-              {!user ? 'Please sign in to access this page.' : 'This page is only accessible to clinic owners.'}
+              This page is only accessible to clinic owners.
             </p>
-            <Button onClick={() => navigate(user ? '/' : '/auth')} size="lg">
-              {user ? 'Go to Home' : 'Sign In'}
+            <Button onClick={() => navigate('/')} size="lg">
+              Go to Home
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Clinic owner but no clinic found - redirect to create one
+  if (!ownedClinic && !clinicLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50/30 via-background to-background p-4">
+        <Card className="max-w-md w-full shadow-xl border-border/50">
+          <CardContent className="pt-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <Building2 className="h-8 w-8 text-primary" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">Set Up Your Clinic</h2>
+            <p className="text-muted-foreground mb-6">
+              Your clinic profile needs to be set up. Please complete the registration.
+            </p>
+            <Button onClick={() => navigate('/select-role')} size="lg">
+              Complete Setup
             </Button>
           </CardContent>
         </Card>
