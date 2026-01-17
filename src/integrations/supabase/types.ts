@@ -647,33 +647,42 @@ export type Database = {
       }
       orders: {
         Row: {
+          consignment_id: string | null
           created_at: string
           id: string
           items: Json
           payment_method: string | null
+          rejection_reason: string | null
           shipping_address: string | null
           status: string | null
           total_amount: number
+          tracking_id: string | null
           user_id: string
         }
         Insert: {
+          consignment_id?: string | null
           created_at?: string
           id?: string
           items: Json
           payment_method?: string | null
+          rejection_reason?: string | null
           shipping_address?: string | null
           status?: string | null
           total_amount: number
+          tracking_id?: string | null
           user_id: string
         }
         Update: {
+          consignment_id?: string | null
           created_at?: string
           id?: string
           items?: Json
           payment_method?: string | null
+          rejection_reason?: string | null
           shipping_address?: string | null
           status?: string | null
           total_amount?: number
+          tracking_id?: string | null
           user_id?: string
         }
         Relationships: []
