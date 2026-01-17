@@ -1,21 +1,16 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Edit, Trash2, Loader2, Package, ChevronLeft,
   Clock, DollarSign, CheckCircle, XCircle, Stethoscope
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -35,6 +30,7 @@ import MobileNav from '@/components/MobileNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicOwner, ClinicService } from '@/hooks/useClinicOwner';
 import { useUserRole } from '@/hooks/useUserRole';
+import AddServiceWizard from '@/components/clinic/AddServiceWizard';
 
 const ClinicServices = () => {
   const navigate = useNavigate();
@@ -53,61 +49,31 @@ const ClinicServices = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editingService, setEditingService] = useState<ClinicService | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    duration_minutes: '',
-    is_active: true,
-  });
-
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      description: '',
-      price: '',
-      duration_minutes: '',
-      is_active: true,
-    });
-    setEditingService(null);
-  };
 
   const openAddDialog = () => {
-    resetForm();
+    setEditingService(null);
     setIsDialogOpen(true);
   };
 
   const openEditDialog = (service: ClinicService) => {
     setEditingService(service);
-    setFormData({
-      name: service.name,
-      description: service.description || '',
-      price: service.price?.toString() || '',
-      duration_minutes: service.duration_minutes?.toString() || '',
-      is_active: service.is_active,
-    });
     setIsDialogOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const serviceData = {
-      name: formData.name,
-      description: formData.description || null,
-      price: formData.price ? parseFloat(formData.price) : null,
-      duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : null,
-      is_active: formData.is_active,
-    };
-
+  const handleSubmit = async (data: {
+    name: string;
+    description: string | null;
+    price: number | null;
+    duration_minutes: number | null;
+    is_active: boolean;
+  }) => {
     if (editingService) {
-      await updateService.mutateAsync({ id: editingService.id, updates: serviceData });
+      await updateService.mutateAsync({ id: editingService.id, updates: data });
     } else {
-      await addService.mutateAsync(serviceData);
+      await addService.mutateAsync(data);
     }
-    
     setIsDialogOpen(false);
-    resetForm();
+    setEditingService(null);
   };
 
   const handleDelete = async () => {
@@ -155,7 +121,7 @@ const ClinicServices = () => {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={(open) => {
             setIsDialogOpen(open);
-            if (!open) resetForm();
+            if (!open) setEditingService(null);
           }}>
             <DialogTrigger asChild>
               <Button onClick={openAddDialog} className="rounded-xl shadow-lg shadow-primary/25">
@@ -163,91 +129,31 @@ const ClinicServices = () => {
                 Add Service
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <form onSubmit={handleSubmit}>
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingService ? 'Edit Service' : 'Add New Service'}
-                  </DialogTitle>
-                  <DialogDescription>
-                    {editingService 
-                      ? 'Update the service details below' 
-                      : 'Enter the details for the new service'}
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Service Name *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                      placeholder="e.g., General Checkup"
-                      className="rounded-xl"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="Brief description of the service"
-                      rows={3}
-                      className="rounded-xl resize-none"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="price">Price (৳)</Label>
-                      <Input
-                        id="price"
-                        type="number"
-                        min="0"
-                        value={formData.price}
-                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        placeholder="500"
-                        className="rounded-xl"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="duration">Duration (minutes)</Label>
-                      <Input
-                        id="duration"
-                        type="number"
-                        min="0"
-                        value={formData.duration_minutes}
-                        onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value })}
-                        placeholder="30"
-                        className="rounded-xl"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50">
-                    <div>
-                      <Label htmlFor="active" className="font-medium">Active</Label>
-                      <p className="text-sm text-muted-foreground">Show this service to customers</p>
-                    </div>
-                    <Switch
-                      id="active"
-                      checked={formData.is_active}
-                      onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-                    />
-                  </div>
-                </div>
-                <DialogFooter className="gap-2 sm:gap-0">
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="rounded-xl">
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={addService.isPending || updateService.isPending} className="rounded-xl">
-                    {(addService.isPending || updateService.isPending) && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    {editingService ? 'Update' : 'Add'} Service
-                  </Button>
-                </DialogFooter>
-              </form>
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingService ? 'Edit Service' : 'Add New Service'}
+                </DialogTitle>
+                <DialogDescription>
+                  {editingService 
+                    ? 'Update the service details below' 
+                    : `Add a new service to ${ownedClinic?.name || 'your clinic'}`}
+                </DialogDescription>
+              </DialogHeader>
+              <AddServiceWizard 
+                onSubmit={handleSubmit}
+                isPending={addService.isPending || updateService.isPending}
+                onCancel={() => setIsDialogOpen(false)}
+                isEditing={!!editingService}
+                initialData={editingService ? {
+                  name: editingService.name,
+                  description: editingService.description || '',
+                  price: editingService.price?.toString() || '',
+                  duration_minutes: editingService.duration_minutes?.toString() || '',
+                  is_active: editingService.is_active,
+                  category: '',
+                } : undefined}
+              />
             </DialogContent>
           </Dialog>
         </div>
@@ -291,7 +197,7 @@ const ClinicServices = () => {
                         <Stethoscope className="h-6 w-6 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <h3 className="font-bold text-foreground truncate">{service.name}</h3>
                           <Badge 
                             variant={service.is_active ? 'default' : 'secondary'}
