@@ -22,7 +22,9 @@ import {
   Trash2,
   Shield,
   MoreVertical,
+  ChevronRight,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -270,57 +272,94 @@ const AdminClinics = () => {
 
   return (
     <AdminLayout title="Clinics Management" subtitle="Manage and verify veterinary clinics">
-      {/* Stats */}
+      {/* Stats - Clickable Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card>
+        <Card 
+          className={cn(
+            "cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] group",
+            filterStatus === 'all' && "ring-2 ring-primary shadow-md"
+          )}
+          onClick={() => setFilterStatus('all')}
+        >
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Building2 className="h-5 w-5 text-primary" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                  <Building2 className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{clinicStats?.totalClinics || 0}</p>
+                  <p className="text-sm text-muted-foreground">Total Clinics</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold">{clinicStats?.totalClinics || 0}</p>
-                <p className="text-sm text-muted-foreground">Total Clinics</p>
-              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           </CardContent>
         </Card>
-        <Card>
+        
+        <Card 
+          className={cn(
+            "cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] group",
+            filterStatus === 'verified' && "ring-2 ring-green-500 shadow-md"
+          )}
+          onClick={() => setFilterStatus('verified')}
+        >
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-500/10">
-                <CheckCircle className="h-5 w-5 text-green-500" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{clinicStats?.verifiedClinics || 0}</p>
+                  <p className="text-sm text-muted-foreground">Verified</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold">{clinicStats?.verifiedClinics || 0}</p>
-                <p className="text-sm text-muted-foreground">Verified</p>
-              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           </CardContent>
         </Card>
-        <Card>
+        
+        <Card 
+          className={cn(
+            "cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] group"
+          )}
+          onClick={() => navigate('/admin/customers')}
+        >
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/10">
-                <Users className="h-5 w-5 text-blue-500" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
+                  <Users className="h-5 w-5 text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{clinicStats?.totalDoctors || 0}</p>
+                  <p className="text-sm text-muted-foreground">Doctors</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold">{clinicStats?.totalDoctors || 0}</p>
-                <p className="text-sm text-muted-foreground">Doctors</p>
-              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           </CardContent>
         </Card>
-        <Card>
+        
+        <Card 
+          className={cn(
+            "cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] group"
+          )}
+          onClick={() => navigate('/admin/dashboard')}
+        >
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/10">
-                <Calendar className="h-5 w-5 text-amber-500" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors">
+                  <Calendar className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{clinicStats?.totalAppointments || 0}</p>
+                  <p className="text-sm text-muted-foreground">Appointments</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold">{clinicStats?.totalAppointments || 0}</p>
-                <p className="text-sm text-muted-foreground">Appointments</p>
-              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           </CardContent>
         </Card>
