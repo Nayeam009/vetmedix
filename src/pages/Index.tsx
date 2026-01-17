@@ -9,14 +9,12 @@ import MobileNav from '@/components/MobileNav';
 import { StoriesBar } from '@/components/social/StoriesBar';
 import { CreatePostCard } from '@/components/social/CreatePostCard';
 import { PostCard } from '@/components/social/PostCard';
-import FeaturedProducts from '@/components/FeaturedProducts';
-import ClinicSection from '@/components/ClinicSection';
 import { usePosts } from '@/hooks/usePosts';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePets } from '@/contexts/PetContext';
 import { supabase } from '@/integrations/supabase/client';
 import { 
-  Loader2, Users, Globe, PawPrint, ShoppingBag, Stethoscope, 
+  Loader2, Users, Globe, PawPrint, 
   ArrowRight, Sparkles, Heart, Search, Camera, MessageCircle, 
   Star, TrendingUp, Zap, Share2, Bell
 } from 'lucide-react';
@@ -174,8 +172,8 @@ const Index = () => {
               {[
                 { icon: PawPrint, count: `${trendingPets.length || 50}+`, label: 'Happy Pets', gradient: 'gradient-primary', iconBg: 'bg-white/20' },
                 { icon: Heart, count: '1K+', label: 'Daily Likes', gradient: 'bg-gradient-to-br from-destructive to-primary', iconBg: 'bg-white/20' },
-                { icon: ShoppingBag, count: '100+', label: 'Products', gradient: 'gradient-accent', iconBg: 'bg-white/20' },
-                { icon: Stethoscope, count: '10+', label: 'Vet Clinics', gradient: 'gradient-fun', iconBg: 'bg-white/20' },
+                { icon: Users, count: '500+', label: 'Pet Parents', gradient: 'gradient-accent', iconBg: 'bg-white/20' },
+                { icon: Camera, count: '2K+', label: 'Photos Shared', gradient: 'gradient-fun', iconBg: 'bg-white/20' },
               ].map((stat, index) => (
                 <div 
                   key={stat.label}
@@ -404,22 +402,22 @@ const Index = () => {
                     Quick Actions
                   </h3>
                   <div className="space-y-2 sm:space-y-3">
-                    <Link to="/shop" className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-accent/10 hover:bg-accent/15 transition-all active:scale-[0.98]">
+                    <Link to="/explore" className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-accent/10 hover:bg-accent/15 transition-all active:scale-[0.98]">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl gradient-accent flex items-center justify-center flex-shrink-0 shadow-md">
-                        <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                        <Search className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-bold text-sm">Shop Products</p>
-                        <p className="text-xs text-muted-foreground truncate">Food, toys & more 🛒</p>
+                        <p className="font-bold text-sm">Explore Pets</p>
+                        <p className="text-xs text-muted-foreground truncate">Discover new friends 🐾</p>
                       </div>
                     </Link>
-                    <Link to="/clinics" className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-lavender/10 hover:bg-lavender/15 transition-all active:scale-[0.98]">
+                    <Link to="/messages" className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-lavender/10 hover:bg-lavender/15 transition-all active:scale-[0.98]">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl gradient-fun flex items-center justify-center flex-shrink-0 shadow-md">
-                        <Stethoscope className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                        <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-bold text-sm">Find Clinics</p>
-                        <p className="text-xs text-muted-foreground truncate">Book vet visits 🏥</p>
+                        <p className="font-bold text-sm">Messages</p>
+                        <p className="text-xs text-muted-foreground truncate">Chat with pet parents 💬</p>
                       </div>
                     </Link>
                     {user && (
@@ -439,16 +437,6 @@ const Index = () => {
             </div>
           </div>
         </div>
-
-        {/* Featured Products Section */}
-        <section className="bg-white border-y border-border/50">
-          <FeaturedProducts />
-        </section>
-
-        {/* Clinic Section */}
-        <section className="bg-muted/30">
-          <ClinicSection />
-        </section>
       </main>
 
       <Footer />
