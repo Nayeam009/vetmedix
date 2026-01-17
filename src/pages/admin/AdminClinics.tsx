@@ -16,6 +16,8 @@ import {
   Calendar,
   Filter,
   AlertCircle,
+  Clock,
+  FileText,
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -30,13 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { ClinicVerificationDialog } from '@/components/admin/ClinicVerificationDialog';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -53,6 +49,13 @@ interface Clinic {
   image_url: string | null;
   is_open: boolean;
   is_verified: boolean;
+  verification_status: string | null;
+  bvc_certificate_url: string | null;
+  trade_license_url: string | null;
+  rejection_reason: string | null;
+  verification_submitted_at: string | null;
+  owner_name: string | null;
+  owner_nid: string | null;
   rating: number;
   created_at: string;
   owner_user_id: string | null;
@@ -173,10 +176,13 @@ const AdminClinics = () => {
     
     if (filterStatus === 'verified') return matchesSearch && clinic.is_verified;
     if (filterStatus === 'unverified') return matchesSearch && !clinic.is_verified;
+    if (filterStatus === 'pending') return matchesSearch && clinic.verification_status === 'pending';
     if (filterStatus === 'open') return matchesSearch && clinic.is_open;
     if (filterStatus === 'closed') return matchesSearch && !clinic.is_open;
     return matchesSearch;
   });
+
+  const pendingCount = clinics?.filter(c => c.verification_status === 'pending').length || 0;
 
   return (
     <AdminLayout title="Clinics Management" subtitle="Manage and verify veterinary clinics">
@@ -254,6 +260,9 @@ const AdminClinics = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Clinics</SelectItem>
+            <SelectItem value="pending">
+              Pending Verification {pendingCount > 0 && `(${pendingCount})`}
+            </SelectItem>
             <SelectItem value="verified">Verified</SelectItem>
             <SelectItem value="unverified">Unverified</SelectItem>
             <SelectItem value="open">Open</SelectItem>
@@ -287,6 +296,12 @@ const AdminClinics = () => {
                           <Badge variant="default" className="bg-green-500">
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Verified
+                          </Badge>
+                        )}
+                        {clinic.verification_status === 'pending' && (
+                          <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Pending Review
                           </Badge>
                         )}
                         <Badge variant={clinic.is_open ? 'outline' : 'secondary'}>
@@ -331,35 +346,48 @@ const AdminClinics = () => {
                         setDetailsOpen(true);
                       }}
                     >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
-                    <Button
-                      variant={clinic.is_verified ? 'destructive' : 'default'}
-                      size="sm"
-                      onClick={() => toggleVerification.mutate({ id: clinic.id, isVerified: clinic.is_verified })}
-                      disabled={toggleVerification.isPending}
-                    >
-                      {clinic.is_verified ? (
+                      {clinic.verification_status === 'pending' ? (
                         <>
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Unverify
+                          <FileText className="h-4 w-4 mr-1" />
+                          Review
                         </>
                       ) : (
                         <>
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Verify
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
                         </>
                       )}
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleOpenStatus.mutate({ id: clinic.id, isOpen: clinic.is_open })}
-                      disabled={toggleOpenStatus.isPending}
-                    >
-                      {clinic.is_open ? 'Close' : 'Open'}
-                    </Button>
+                    {clinic.verification_status !== 'pending' && (
+                      <>
+                        <Button
+                          variant={clinic.is_verified ? 'destructive' : 'default'}
+                          size="sm"
+                          onClick={() => toggleVerification.mutate({ id: clinic.id, isVerified: clinic.is_verified })}
+                          disabled={toggleVerification.isPending}
+                        >
+                          {clinic.is_verified ? (
+                            <>
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Unverify
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Verify
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleOpenStatus.mutate({ id: clinic.id, isOpen: clinic.is_open })}
+                          disabled={toggleOpenStatus.isPending}
+                        >
+                          {clinic.is_open ? 'Close' : 'Open'}
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -378,84 +406,12 @@ const AdminClinics = () => {
         </Card>
       )}
 
-      {/* Clinic Details Dialog */}
-      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {selectedClinic?.name}
-              {selectedClinic?.is_verified && (
-                <Badge variant="default" className="bg-green-500">Verified</Badge>
-              )}
-            </DialogTitle>
-            <DialogDescription>
-              Clinic details and management
-            </DialogDescription>
-          </DialogHeader>
-          {selectedClinic && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Address</p>
-                  <p className="font-medium">{selectedClinic.address || 'Not provided'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Phone</p>
-                  <p className="font-medium">{selectedClinic.phone || 'Not provided'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{selectedClinic.email || 'Not provided'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Rating</p>
-                  <p className="font-medium flex items-center gap-1">
-                    <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                    {selectedClinic.rating || 0}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Status</p>
-                  <Badge variant={selectedClinic.is_open ? 'default' : 'secondary'}>
-                    {selectedClinic.is_open ? 'Open' : 'Closed'}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Opening Hours</p>
-                  <p className="font-medium">{selectedClinic.opening_hours || 'Not set'}</p>
-                </div>
-              </div>
-              {selectedClinic.description && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Description</p>
-                  <p className="text-sm">{selectedClinic.description}</p>
-                </div>
-              )}
-              {selectedClinic.services && selectedClinic.services.length > 0 && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">Services</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedClinic.services.map((service, i) => (
-                      <Badge key={i} variant="outline">{service}</Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button
-                  variant={selectedClinic.is_verified ? 'destructive' : 'default'}
-                  onClick={() => {
-                    toggleVerification.mutate({ id: selectedClinic.id, isVerified: selectedClinic.is_verified });
-                    setDetailsOpen(false);
-                  }}
-                >
-                  {selectedClinic.is_verified ? 'Remove Verification' : 'Verify Clinic'}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Clinic Verification Dialog */}
+      <ClinicVerificationDialog
+        clinic={selectedClinic}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+      />
     </AdminLayout>
   );
 };

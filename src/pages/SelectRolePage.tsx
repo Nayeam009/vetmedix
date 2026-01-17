@@ -45,7 +45,7 @@ const SelectRolePage = () => {
   // Priority order for role-based redirects
   const ROLE_PRIORITY = ['admin', 'clinic_owner', 'doctor', 'moderator', 'user'];
 
-  const redirectBasedOnRoles = (roles: string[]) => {
+  const redirectBasedOnRoles = (roles: string[], isNewClinicOwner = false) => {
     const primaryRole = ROLE_PRIORITY.find(r => roles.includes(r)) || 'user';
     
     switch (primaryRole) {
@@ -53,7 +53,12 @@ const SelectRolePage = () => {
         navigate('/admin');
         break;
       case 'clinic_owner':
-        navigate('/clinic/dashboard');
+        // New clinic owners go to verification page
+        if (isNewClinicOwner) {
+          navigate('/clinic/verification');
+        } else {
+          navigate('/clinic/dashboard');
+        }
         break;
       case 'doctor':
         navigate('/doctor/dashboard');
@@ -174,11 +179,11 @@ const SelectRolePage = () => {
       toast({
         title: 'Welcome to VET-MEDIX!',
         description: selectedRole === 'clinic_owner' 
-          ? 'Your clinic has been registered successfully.' 
+          ? 'Please complete verification to access your clinic dashboard.' 
           : 'Your account is ready. Start exploring!',
       });
 
-      redirectBasedOnRoles([selectedRole]);
+      redirectBasedOnRoles([selectedRole], selectedRole === 'clinic_owner');
     } catch (error: unknown) {
       console.error('Setup error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to complete setup';

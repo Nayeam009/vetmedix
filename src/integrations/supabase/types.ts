@@ -250,6 +250,7 @@ export type Database = {
       clinics: {
         Row: {
           address: string | null
+          bvc_certificate_url: string | null
           created_at: string
           description: string | null
           distance: string | null
@@ -260,13 +261,21 @@ export type Database = {
           is_verified: boolean | null
           name: string
           opening_hours: string | null
+          owner_name: string | null
+          owner_nid: string | null
           owner_user_id: string | null
           phone: string | null
           rating: number | null
+          rejection_reason: string | null
           services: string[] | null
+          trade_license_url: string | null
+          verification_reviewed_at: string | null
+          verification_status: string | null
+          verification_submitted_at: string | null
         }
         Insert: {
           address?: string | null
+          bvc_certificate_url?: string | null
           created_at?: string
           description?: string | null
           distance?: string | null
@@ -277,13 +286,21 @@ export type Database = {
           is_verified?: boolean | null
           name: string
           opening_hours?: string | null
+          owner_name?: string | null
+          owner_nid?: string | null
           owner_user_id?: string | null
           phone?: string | null
           rating?: number | null
+          rejection_reason?: string | null
           services?: string[] | null
+          trade_license_url?: string | null
+          verification_reviewed_at?: string | null
+          verification_status?: string | null
+          verification_submitted_at?: string | null
         }
         Update: {
           address?: string | null
+          bvc_certificate_url?: string | null
           created_at?: string
           description?: string | null
           distance?: string | null
@@ -294,10 +311,17 @@ export type Database = {
           is_verified?: boolean | null
           name?: string
           opening_hours?: string | null
+          owner_name?: string | null
+          owner_nid?: string | null
           owner_user_id?: string | null
           phone?: string | null
           rating?: number | null
+          rejection_reason?: string | null
           services?: string[] | null
+          trade_license_url?: string | null
+          verification_reviewed_at?: string | null
+          verification_status?: string | null
+          verification_submitted_at?: string | null
         }
         Relationships: []
       }

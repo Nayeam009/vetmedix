@@ -58,6 +58,12 @@ const ClinicDashboard = () => {
     );
   }
 
+  // Redirect to verification page if not verified
+  if (ownedClinic && !ownedClinic.is_verified && ownedClinic.verification_status !== 'approved') {
+    navigate('/clinic/verification');
+    return null;
+  }
+
   const todayAppointments = clinicAppointments?.filter(
     (apt: any) => apt.appointment_date === format(new Date(), 'yyyy-MM-dd')
   ) || [];
