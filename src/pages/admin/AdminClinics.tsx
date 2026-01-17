@@ -397,39 +397,41 @@ const AdminClinics = () => {
               )}
             >
               <CardContent className="p-5">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex items-start gap-4 flex-1">
-                    <Avatar className="h-16 w-16 rounded-xl shadow-sm ring-2 ring-background">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  {/* Left Section - Avatar and Info */}
+                  <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+                    <Avatar className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 rounded-xl shadow-sm ring-2 ring-background flex-shrink-0">
                       <AvatarImage src={clinic.image_url || ''} className="object-cover" />
                       <AvatarFallback className="rounded-xl bg-gradient-to-br from-primary/20 to-primary/5">
-                        <Building2 className="h-7 w-7 text-primary" />
+                        <Building2 className="h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7 text-primary" />
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <h3 className="font-bold text-lg text-foreground">{clinic.name}</h3>
+                      {/* Name and Badges */}
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap mb-1">
+                        <h3 className="font-bold text-sm sm:text-base lg:text-lg text-foreground truncate max-w-[150px] sm:max-w-none">{clinic.name}</h3>
                         {clinic.is_verified && (
-                          <Badge className="bg-green-500/10 text-green-600 border-green-500/20 hover:bg-green-500/20">
-                            <CheckCircle className="h-3 w-3 mr-1" />
+                          <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-[10px] sm:text-xs px-1.5 sm:px-2">
+                            <CheckCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
                             Verified
                           </Badge>
                         )}
                         {clinic.verification_status === 'pending' && (
-                          <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20">
-                            <Clock className="h-3 w-3 mr-1" />
+                          <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px] sm:text-xs px-1.5 sm:px-2">
+                            <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
                             Pending
                           </Badge>
                         )}
                         {clinic.is_blocked && (
-                          <Badge variant="destructive" className="animate-pulse">
-                            <Ban className="h-3 w-3 mr-1" />
+                          <Badge variant="destructive" className="animate-pulse text-[10px] sm:text-xs px-1.5 sm:px-2">
+                            <Ban className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
                             Blocked
                           </Badge>
                         )}
                         <Badge 
                           variant="outline" 
                           className={cn(
-                            "font-medium",
+                            "font-medium text-[10px] sm:text-xs px-1.5 sm:px-2",
                             clinic.is_open 
                               ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
                               : "bg-gray-100 text-gray-600 border-gray-200"
@@ -439,40 +441,43 @@ const AdminClinics = () => {
                         </Badge>
                       </div>
                       
-                      <div className="flex flex-wrap gap-4 mt-2 text-sm text-muted-foreground">
+                      {/* Contact Info - Responsive */}
+                      <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 text-xs sm:text-sm text-muted-foreground">
                         {clinic.address && (
-                          <span className="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-md">
-                            <MapPin className="h-3.5 w-3.5 text-primary" />
-                            {clinic.address}
+                          <span className="flex items-center gap-1 sm:gap-1.5 bg-muted/50 px-1.5 sm:px-2 py-0.5 rounded-md">
+                            <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary flex-shrink-0" />
+                            <span className="truncate max-w-[120px] sm:max-w-[180px] lg:max-w-none">{clinic.address}</span>
                           </span>
                         )}
                         {clinic.phone && (
-                          <span className="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-md">
-                            <Phone className="h-3.5 w-3.5 text-blue-500" />
+                          <span className="flex items-center gap-1 sm:gap-1.5 bg-muted/50 px-1.5 sm:px-2 py-0.5 rounded-md">
+                            <Phone className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-blue-500 flex-shrink-0" />
                             {clinic.phone}
                           </span>
                         )}
                         {clinic.email && (
-                          <span className="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-md">
-                            <Mail className="h-3.5 w-3.5 text-amber-500" />
-                            {clinic.email}
+                          <span className="hidden sm:flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-md">
+                            <Mail className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                            <span className="truncate max-w-[180px]">{clinic.email}</span>
                           </span>
                         )}
                       </div>
                       
-                      <div className="flex items-center gap-3 mt-3">
-                        <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-md">
-                          <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                          <span className="text-sm font-semibold text-amber-700">{clinic.rating || 0}</span>
+                      {/* Rating and Date */}
+                      <div className="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-3">
+                        <div className="flex items-center gap-1 bg-amber-50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md">
+                          <Star className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500 fill-amber-500" />
+                          <span className="text-xs sm:text-sm font-semibold text-amber-700">{clinic.rating || 0}</span>
                         </div>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-[10px] sm:text-xs text-muted-foreground">
                           Joined {format(new Date(clinic.created_at), 'MMM d, yyyy')}
                         </span>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2 md:flex-col lg:flex-row">
+                  {/* Right Section - Action Buttons */}
+                  <div className="flex items-center gap-2 pl-0 sm:pl-16 lg:pl-0">
                     <Button
                       variant="outline"
                       size="sm"
@@ -480,9 +485,9 @@ const AdminClinics = () => {
                         setSelectedClinic(clinic);
                         setDetailsOpen(true);
                       }}
-                      className="bg-primary/5 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                      className="h-8 sm:h-9 text-xs sm:text-sm bg-primary/5 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
                     >
-                      <Eye className="h-4 w-4 mr-1.5" />
+                      <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
                       View
                     </Button>
                     
@@ -499,7 +504,7 @@ const AdminClinics = () => {
                       }}
                       disabled={blockMutation.isPending}
                       className={cn(
-                        "transition-colors",
+                        "h-8 sm:h-9 text-xs sm:text-sm transition-colors",
                         clinic.is_blocked 
                           ? "bg-green-600 hover:bg-green-700" 
                           : "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
@@ -507,44 +512,53 @@ const AdminClinics = () => {
                     >
                       {clinic.is_blocked ? (
                         <>
-                          <Shield className="h-4 w-4 mr-1.5" />
+                          <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
                           Unblock
                         </>
                       ) : (
                         <>
-                          <Ban className="h-4 w-4 mr-1.5" />
+                          <Ban className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
                           Block
                         </>
                       )}
                     </Button>
 
+                    {/* Improved More Actions Button */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted">
-                          <MoreVertical className="h-4 w-4" />
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg border-muted-foreground/20 hover:bg-muted hover:border-muted-foreground/30 transition-colors"
+                        >
+                          <MoreVertical className="h-4 w-4 text-muted-foreground" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuContent align="end" className="w-48 shadow-lg">
                         {clinic.verification_status === 'pending' ? (
-                          <DropdownMenuItem onClick={() => {
-                            setSelectedClinic(clinic);
-                            setDetailsOpen(true);
-                          }}>
-                            <FileText className="h-4 w-4 mr-2" />
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              setSelectedClinic(clinic);
+                              setDetailsOpen(true);
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <FileText className="h-4 w-4 mr-2 text-amber-500" />
                             Review Verification
                           </DropdownMenuItem>
                         ) : (
                           <DropdownMenuItem
                             onClick={() => toggleVerification.mutate({ id: clinic.id, isVerified: clinic.is_verified })}
+                            className="cursor-pointer"
                           >
                             {clinic.is_verified ? (
                               <>
-                                <XCircle className="h-4 w-4 mr-2" />
+                                <XCircle className="h-4 w-4 mr-2 text-muted-foreground" />
                                 Unverify Clinic
                               </>
                             ) : (
                               <>
-                                <CheckCircle className="h-4 w-4 mr-2" />
+                                <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
                                 Verify Clinic
                               </>
                             )}
@@ -552,12 +566,14 @@ const AdminClinics = () => {
                         )}
                         <DropdownMenuItem
                           onClick={() => toggleOpenStatus.mutate({ id: clinic.id, isOpen: clinic.is_open })}
+                          className="cursor-pointer"
                         >
+                          <Clock className="h-4 w-4 mr-2 text-blue-500" />
                           {clinic.is_open ? 'Close Clinic' : 'Open Clinic'}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                          className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
                           onClick={() => {
                             setActionClinic(clinic);
                             setDeleteDialogOpen(true);
