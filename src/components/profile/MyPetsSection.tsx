@@ -107,7 +107,7 @@ const MyPetsSection = ({ pets, loading }: MyPetsSectionProps) => {
                       View
                     </Button>
                   </Link>
-                  <Link to={`/pet/${pet.id}/edit`}>
+                  <Link to={`/pets/${pet.id}/edit`}>
                     <Button size="sm" variant="outline" className="gap-1">
                       <Edit className="h-3 w-3" />
                       Edit
