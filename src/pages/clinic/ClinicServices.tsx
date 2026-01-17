@@ -335,7 +335,7 @@ const ClinicServices = () => {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      className="flex-1 rounded-lg"
+                      className="flex-1 rounded-lg h-10 sm:h-9 text-sm active:scale-[0.98]"
                       onClick={() => openEditDialog(service)}
                     >
                       <Edit className="h-4 w-4 mr-1.5" />
@@ -344,7 +344,7 @@ const ClinicServices = () => {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      className="rounded-lg text-destructive hover:bg-destructive/10 hover:border-destructive/50"
+                      className="rounded-lg h-10 sm:h-9 text-sm text-destructive hover:bg-destructive/10 hover:border-destructive/50 active:bg-destructive/20 active:scale-[0.98]"
                       onClick={() => setDeleteConfirm(service.id)}
                     >
                       <Trash2 className="h-4 w-4 mr-1.5" />
