@@ -76,68 +76,73 @@ const AdminSettings = () => {
 
   return (
     <AdminLayout title="Settings" subtitle="Configure your store settings">
-      <Tabs defaultValue="general" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="general" className="gap-2">
-            <Store className="h-4 w-4" />
-            General
+      <Tabs defaultValue="general" className="space-y-4 sm:space-y-6">
+        <TabsList className="w-full flex-wrap h-auto gap-1 p-1 sm:w-auto sm:inline-flex">
+          <TabsTrigger value="general" className="gap-1.5 sm:gap-2 flex-1 sm:flex-initial min-h-[44px] sm:min-h-0 text-xs sm:text-sm">
+            <Store className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span>General</span>
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-2">
-            <Bell className="h-4 w-4" />
-            Notifications
+          <TabsTrigger value="notifications" className="gap-1.5 sm:gap-2 flex-1 sm:flex-initial min-h-[44px] sm:min-h-0 text-xs sm:text-sm">
+            <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">Notifications</span>
+            <span className="xs:hidden">Alerts</span>
           </TabsTrigger>
-          <TabsTrigger value="security" className="gap-2">
-            <Shield className="h-4 w-4" />
-            Security
+          <TabsTrigger value="security" className="gap-1.5 sm:gap-2 flex-1 sm:flex-initial min-h-[44px] sm:min-h-0 text-xs sm:text-sm">
+            <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span>Security</span>
           </TabsTrigger>
         </TabsList>
 
         {/* General Settings */}
         <TabsContent value="general">
-          <Card>
-            <CardHeader>
-              <CardTitle>Store Information</CardTitle>
-              <CardDescription>Basic information about your store</CardDescription>
+          <Card className="shadow-sm border-border/50">
+            <CardHeader className="p-3 sm:p-4 lg:p-6">
+              <CardTitle className="text-base sm:text-lg">Store Information</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Basic information about your store</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="storeName">Store Name</Label>
+            <CardContent className="p-3 sm:p-4 lg:p-6 pt-0 space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="storeName" className="text-xs sm:text-sm">Store Name</Label>
                   <Input 
                     id="storeName"
                     value={storeSettings.storeName}
                     onChange={(e) => setStoreSettings({ ...storeSettings, storeName: e.target.value })}
+                    className="h-10 sm:h-11 text-sm sm:text-base"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="storeEmail">Contact Email</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="storeEmail" className="text-xs sm:text-sm">Contact Email</Label>
                   <Input 
                     id="storeEmail"
                     type="email"
                     value={storeSettings.storeEmail}
                     onChange={(e) => setStoreSettings({ ...storeSettings, storeEmail: e.target.value })}
+                    className="h-10 sm:h-11 text-sm sm:text-base"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="currency">Currency</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="currency" className="text-xs sm:text-sm">Currency</Label>
                   <Input 
                     id="currency"
                     value={storeSettings.currency}
                     onChange={(e) => setStoreSettings({ ...storeSettings, currency: e.target.value })}
+                    className="h-10 sm:h-11 text-sm sm:text-base"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="taxRate">Tax Rate (%)</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="taxRate" className="text-xs sm:text-sm">Tax Rate (%)</Label>
                   <Input 
                     id="taxRate"
                     type="number"
                     value={storeSettings.taxRate}
                     onChange={(e) => setStoreSettings({ ...storeSettings, taxRate: e.target.value })}
+                    className="h-10 sm:h-11 text-sm sm:text-base"
                   />
                 </div>
               </div>
-              <Button onClick={handleSave}>
-                <Save className="h-4 w-4 mr-2" />
+              <Button onClick={handleSave} className="w-full sm:w-auto min-h-[44px] sm:min-h-0 gap-2 text-sm">
+                <Save className="h-4 w-4" />
                 Save Changes
               </Button>
             </CardContent>
@@ -146,56 +151,60 @@ const AdminSettings = () => {
 
         {/* Notification Settings */}
         <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>Manage how you receive alerts and updates</CardDescription>
+          <Card className="shadow-sm border-border/50">
+            <CardHeader className="p-3 sm:p-4 lg:p-6">
+              <CardTitle className="text-base sm:text-lg">Notification Preferences</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Manage how you receive alerts and updates</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">New Order Alerts</p>
-                    <p className="text-sm text-muted-foreground">Get notified when a new order is placed</p>
+            <CardContent className="p-3 sm:p-4 lg:p-6 pt-0 space-y-4 sm:space-y-6">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex items-center justify-between gap-3 p-3 sm:p-4 rounded-xl bg-muted/30 border border-border/50">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm sm:text-base">New Order Alerts</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Get notified when a new order is placed</p>
                   </div>
                   <Switch 
                     checked={notifications.orderAlerts}
                     onCheckedChange={(checked) => setNotifications({ ...notifications, orderAlerts: checked })}
+                    className="flex-shrink-0"
                   />
                 </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Low Stock Alerts</p>
-                    <p className="text-sm text-muted-foreground">Get notified when products are running low</p>
+                <div className="flex items-center justify-between gap-3 p-3 sm:p-4 rounded-xl bg-muted/30 border border-border/50">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm sm:text-base">Low Stock Alerts</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Get notified when products are running low</p>
                   </div>
                   <Switch 
                     checked={notifications.lowStockAlerts}
                     onCheckedChange={(checked) => setNotifications({ ...notifications, lowStockAlerts: checked })}
+                    className="flex-shrink-0"
                   />
                 </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">New Customer Alerts</p>
-                    <p className="text-sm text-muted-foreground">Get notified when a new customer registers</p>
+                <div className="flex items-center justify-between gap-3 p-3 sm:p-4 rounded-xl bg-muted/30 border border-border/50">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm sm:text-base">New Customer Alerts</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Get notified when a new customer registers</p>
                   </div>
                   <Switch 
                     checked={notifications.newCustomerAlerts}
                     onCheckedChange={(checked) => setNotifications({ ...notifications, newCustomerAlerts: checked })}
+                    className="flex-shrink-0"
                   />
                 </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Email Notifications</p>
-                    <p className="text-sm text-muted-foreground">Receive notifications via email</p>
+                <div className="flex items-center justify-between gap-3 p-3 sm:p-4 rounded-xl bg-muted/30 border border-border/50">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm sm:text-base">Email Notifications</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Receive notifications via email</p>
                   </div>
                   <Switch 
                     checked={notifications.emailNotifications}
                     onCheckedChange={(checked) => setNotifications({ ...notifications, emailNotifications: checked })}
+                    className="flex-shrink-0"
                   />
                 </div>
               </div>
-              <Button onClick={handleSave}>
-                <Save className="h-4 w-4 mr-2" />
+              <Button onClick={handleSave} className="w-full sm:w-auto min-h-[44px] sm:min-h-0 gap-2 text-sm">
+                <Save className="h-4 w-4" />
                 Save Preferences
               </Button>
             </CardContent>
@@ -204,33 +213,39 @@ const AdminSettings = () => {
 
         {/* Security Settings */}
         <TabsContent value="security">
-          <Card>
-            <CardHeader>
-              <CardTitle>Security Settings</CardTitle>
-              <CardDescription>Manage your admin security preferences</CardDescription>
+          <Card className="shadow-sm border-border/50">
+            <CardHeader className="p-3 sm:p-4 lg:p-6">
+              <CardTitle className="text-base sm:text-lg">Security Settings</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Manage your admin security preferences</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-secondary/50">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Shield className="h-5 w-5 text-primary" />
-                    <p className="font-medium">Two-Factor Authentication</p>
+            <CardContent className="p-3 sm:p-4 lg:p-6 pt-0 space-y-3 sm:space-y-4">
+              <div className="p-3 sm:p-4 rounded-xl bg-secondary/50 border border-border/50">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                   </div>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Add an extra layer of security to your admin account
-                  </p>
-                  <Button variant="outline" size="sm">Enable 2FA</Button>
+                  <p className="font-medium text-sm sm:text-base">Two-Factor Authentication</p>
                 </div>
-                <div className="p-4 rounded-xl bg-secondary/50">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Mail className="h-5 w-5 text-primary" />
-                    <p className="font-medium">Change Admin Email</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 ml-10 sm:ml-[52px]">
+                  Add an extra layer of security to your admin account
+                </p>
+                <Button variant="outline" size="sm" className="ml-10 sm:ml-[52px] min-h-[40px] sm:min-h-0 text-xs sm:text-sm">
+                  Enable 2FA
+                </Button>
+              </div>
+              <div className="p-3 sm:p-4 rounded-xl bg-secondary/50 border border-border/50">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Mail className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                   </div>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Update the email address used for admin notifications
-                  </p>
-                  <Button variant="outline" size="sm">Change Email</Button>
+                  <p className="font-medium text-sm sm:text-base">Change Admin Email</p>
                 </div>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 ml-10 sm:ml-[52px]">
+                  Update the email address used for admin notifications
+                </p>
+                <Button variant="outline" size="sm" className="ml-10 sm:ml-[52px] min-h-[40px] sm:min-h-0 text-xs sm:text-sm">
+                  Change Email
+                </Button>
               </div>
             </CardContent>
           </Card>
