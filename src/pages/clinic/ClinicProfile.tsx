@@ -556,7 +556,11 @@ const ClinicProfile = () => {
               {/* Clinic Status Toggle */}
               <div 
                 className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-muted/30 to-muted/10 border border-border/50 cursor-pointer active:scale-[0.99] transition-transform touch-manipulation"
-                onClick={() => setFormData(prev => ({ ...prev, is_open: !prev.is_open }))}
+                onClick={(e) => {
+                  // Prevent double-toggle when clicking the Switch itself
+                  if ((e.target as HTMLElement).closest('button[role="switch"]')) return;
+                  setFormData(prev => ({ ...prev, is_open: !prev.is_open }));
+                }}
               >
                 <div className="flex-1 min-w-0 pr-4">
                   <Label className="text-sm sm:text-base font-medium cursor-pointer">Clinic Status</Label>
@@ -566,8 +570,9 @@ const ClinicProfile = () => {
                 </div>
                 <Switch
                   checked={formData.is_open}
-                  onCheckedChange={(checked) => setFormData({ ...formData, is_open: checked })}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_open: checked }))}
                   className="scale-110"
+                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
 
