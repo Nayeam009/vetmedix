@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Image, Video, X, Loader2, Smile, Sparkles } from 'lucide-react';
+import { Image, Video, X, Loader2, Send, Camera, Film } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -124,15 +124,16 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
 
   if (!user) {
     return (
-      <Card className="mb-6 border-0 shadow-card rounded-2xl overflow-hidden bg-gradient-to-br from-card to-secondary/30">
-        <CardContent className="p-6 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-            <Sparkles className="h-8 w-8 text-primary" />
+      <Card className="mb-6 border border-border/40 shadow-card rounded-2xl overflow-hidden bg-gradient-to-br from-card via-card to-primary/5">
+        <CardContent className="p-8 text-center">
+          <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-gradient-to-br from-primary/20 via-accent/15 to-lavender/20 flex items-center justify-center shadow-soft">
+            <span className="text-4xl">🐾</span>
           </div>
-          <p className="text-muted-foreground mb-4 font-medium">Join our pet-loving community!</p>
+          <h3 className="font-display font-bold text-lg text-foreground mb-2">Join our pet community!</h3>
+          <p className="text-muted-foreground mb-5 text-sm max-w-xs mx-auto">Share adorable moments and connect with fellow pet lovers</p>
           <Button 
             onClick={() => navigate('/auth')}
-            className="btn-primary rounded-xl px-6"
+            className="bg-gradient-to-r from-primary to-coral-light hover:from-coral-dark hover:to-primary text-white rounded-xl px-8 shadow-button hover:shadow-hover transition-all"
           >
             Get Started
           </Button>
@@ -143,15 +144,16 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
 
   if (pets.length === 0) {
     return (
-      <Card className="mb-6 border-0 shadow-card rounded-2xl overflow-hidden bg-gradient-to-br from-card to-accent/10">
-        <CardContent className="p-6 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center animate-bounce-gentle">
-            <span className="text-3xl">🐾</span>
+      <Card className="mb-6 border border-border/40 shadow-card rounded-2xl overflow-hidden bg-gradient-to-br from-card via-card to-mint/5">
+        <CardContent className="p-8 text-center">
+          <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-gradient-to-br from-mint/20 via-accent/15 to-sky/20 flex items-center justify-center shadow-soft animate-bounce-gentle">
+            <span className="text-4xl">🐶</span>
           </div>
-          <p className="text-muted-foreground mb-4 font-medium">Add your furry friend to start sharing!</p>
+          <h3 className="font-display font-bold text-lg text-foreground mb-2">Add your furry friend!</h3>
+          <p className="text-muted-foreground mb-5 text-sm max-w-xs mx-auto">Create a profile for your pet to start sharing</p>
           <Button 
             onClick={() => navigate('/pets/new')}
-            className="btn-accent rounded-xl px-6"
+            className="bg-gradient-to-r from-mint to-accent hover:from-accent hover:to-mint text-white rounded-xl px-8 shadow-button hover:shadow-hover transition-all"
           >
             Add Your Pet
           </Button>
@@ -161,45 +163,47 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
   }
 
   return (
-    <Card className={`mb-6 border-0 shadow-card rounded-2xl overflow-hidden transition-all duration-300 ${
-      isFocused ? 'shadow-hover ring-2 ring-primary/20' : ''
+    <Card className={`mb-6 border shadow-card rounded-2xl overflow-hidden transition-all duration-300 bg-card/95 backdrop-blur-sm ${
+      isFocused ? 'shadow-hover border-primary/30 ring-2 ring-primary/10' : 'border-border/40'
     }`}>
       <CardContent className="p-4">
         <div className="flex gap-3">
-          <div className="p-0.5 rounded-full bg-gradient-to-br from-primary via-accent to-lavender h-fit">
-            <Avatar className="h-11 w-11 border-2 border-card">
-              <AvatarImage src={activePet?.avatar_url || ''} alt={activePet?.name} />
-              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary font-bold">
+          <div className="p-[2px] rounded-full bg-gradient-to-br from-primary via-coral-light to-accent h-fit shadow-sm">
+            <Avatar className="h-12 w-12 border-[2.5px] border-card">
+              <AvatarImage src={activePet?.avatar_url || ''} alt={activePet?.name} className="object-cover" />
+              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary font-bold text-lg">
                 {activePet?.name?.charAt(0) || 'P'}
               </AvatarFallback>
             </Avatar>
           </div>
           <div className="flex-1">
-            <Textarea
-              placeholder={`What's ${activePet?.name || 'your pet'} up to today? 🐾`}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => !content && !mediaFiles.length && setIsFocused(false)}
-              className="min-h-[60px] resize-none border-0 focus-visible:ring-0 p-0 text-base bg-transparent placeholder:text-muted-foreground/60"
-              maxLength={1000}
-            />
+            <div className="bg-muted/40 rounded-2xl px-4 py-3 hover:bg-muted/60 transition-colors">
+              <Textarea
+                placeholder={`What's ${activePet?.name || 'your pet'} up to today?`}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => !content && !mediaFiles.length && setIsFocused(false)}
+                className="min-h-[50px] resize-none border-0 focus-visible:ring-0 p-0 text-[15px] bg-transparent placeholder:text-muted-foreground/50"
+                maxLength={1000}
+              />
+            </div>
             
             {/* Media previews */}
             {mediaPreviews.length > 0 && (
-              <div className="grid grid-cols-2 gap-2 mt-3">
+              <div className={`grid gap-2 mt-4 ${mediaPreviews.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 {mediaPreviews.map((preview, index) => (
-                  <div key={index} className="relative rounded-xl overflow-hidden group">
+                  <div key={index} className="relative rounded-xl overflow-hidden group shadow-soft">
                     {mediaType === 'video' ? (
-                      <video src={preview} className="w-full h-32 object-cover" />
+                      <video src={preview} className="w-full h-36 object-cover" />
                     ) : (
-                      <img src={preview} alt="" className="w-full h-32 object-cover" />
+                      <img src={preview} alt="" className="w-full h-36 object-cover" />
                     )}
-                    <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/20 transition-colors" />
+                    <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors" />
                     <Button
                       variant="destructive"
                       size="icon"
-                      className="absolute top-2 right-2 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                      className="absolute top-2 right-2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-lg"
                       onClick={() => removeMedia(index)}
                     >
                       <X className="h-4 w-4" />
@@ -209,8 +213,8 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
               </div>
             )}
 
-            <div className={`flex items-center justify-between mt-4 pt-4 border-t border-border/50 transition-all ${
-              isFocused || content || mediaFiles.length ? 'opacity-100' : 'opacity-70'
+            <div className={`flex items-center justify-between mt-4 pt-4 border-t transition-all ${
+              isFocused || content || mediaFiles.length ? 'border-border/50 opacity-100' : 'border-transparent opacity-70'
             }`}>
               <div className="flex gap-1">
                 <Button 
@@ -218,34 +222,37 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
                   size="sm"
                   onClick={() => handleFileSelect('image')}
                   disabled={submitting}
-                  className="rounded-xl hover:bg-mint/10 hover:text-mint gap-2"
+                  className="rounded-xl hover:bg-mint/10 hover:text-mint gap-2 h-10 px-4"
                 >
-                  <Image className="h-5 w-5" />
-                  <span className="hidden sm:inline">Photo</span>
+                  <Camera className="h-5 w-5" />
+                  <span className="hidden sm:inline font-medium">Photo</span>
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="sm"
                   onClick={() => handleFileSelect('video')}
                   disabled={submitting}
-                  className="rounded-xl hover:bg-sky/10 hover:text-sky gap-2"
+                  className="rounded-xl hover:bg-sky/10 hover:text-sky gap-2 h-10 px-4"
                 >
-                  <Video className="h-5 w-5" />
-                  <span className="hidden sm:inline">Video</span>
+                  <Film className="h-5 w-5" />
+                  <span className="hidden sm:inline font-medium">Video</span>
                 </Button>
               </div>
               <Button 
                 onClick={handleSubmit}
                 disabled={submitting || (!content.trim() && mediaFiles.length === 0)}
-                className="btn-primary rounded-xl px-6 font-semibold"
+                className="bg-gradient-to-r from-primary to-coral-light hover:from-coral-dark hover:to-primary text-white rounded-xl px-6 h-10 font-semibold shadow-button hover:shadow-hover transition-all gap-2"
               >
                 {submitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Posting...
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Posting</span>
                   </>
                 ) : (
-                  'Share'
+                  <>
+                    <Send className="h-4 w-4" />
+                    <span>Post</span>
+                  </>
                 )}
               </Button>
             </div>
