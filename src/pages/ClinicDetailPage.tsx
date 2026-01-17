@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Star, MapPin, Clock, Phone, Stethoscope, User, Calendar, ChevronRight, Award, Heart, Shield, Loader2, MessageSquare, Mail, Share2, ChevronLeft, CheckCircle, Building2, AlertCircle, Users, Sparkles, BadgeCheck, Copy } from 'lucide-react';
+import { Star, MapPin, Clock, Phone, Stethoscope, User, Calendar, ChevronRight, Award, Heart, Shield, Loader2, MessageSquare, Share2, ChevronLeft, CheckCircle, Building2, AlertCircle, Users, Sparkles, BadgeCheck, Copy } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
@@ -14,6 +14,9 @@ import { toast } from 'sonner';
 import gopalganjLogo from '@/assets/gopalganj-vet-care-logo.png';
 import ClinicReviewsSection from '@/components/clinic/ClinicReviewsSection';
 import { useClinicReviews } from '@/hooks/useClinicReviews';
+import { useClinicDoctorsWithSchedules } from '@/hooks/useDoctorSchedules';
+import { useAuth } from '@/contexts/AuthContext';
+import BookAppointmentWizard from '@/components/booking/BookAppointmentWizard';
 
 interface Clinic {
   id: string;
@@ -30,19 +33,24 @@ interface Clinic {
   is_verified: boolean | null;
   opening_hours: string | null;
   description: string | null;
+  is_blocked: boolean | null;
 }
 
 const ClinicDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<string>('');
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isBooking, setIsBooking] = useState(false);
   const isGopalganj = clinic?.name?.toLowerCase().includes('gopalganj');
   
   // Use the reviews hook for rating stats
   const { ratingStats } = useClinicReviews(id || '');
+  
+  // Fetch doctors for booking
+  const { data: doctorsWithSchedules = [], isLoading: doctorsLoading } = useClinicDoctorsWithSchedules(id || '');
 
   // Doctor info for Gopalganj Vet Care
   const doctorInfo = {
@@ -72,25 +80,40 @@ const ClinicDetailPage = () => {
     }
   };
 
-  // Generate next 7 days
-  const getNext7Days = () => {
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() + i);
-      days.push({
-        date: date.toISOString().split('T')[0],
-        day: date.toLocaleDateString('en-US', {
-          weekday: 'short'
-        }),
-        dayNum: date.getDate(),
-        month: date.toLocaleDateString('en-US', {
-          month: 'short'
-        }),
-        isToday: i === 0
-      });
+  // Handle booking submission
+  const handleBookingSubmit = async (formData: any) => {
+    if (!user) {
+      toast.error('Please sign in to book an appointment');
+      navigate('/auth');
+      return;
     }
-    return days;
+    
+    setIsBooking(true);
+    try {
+      const insertData: any = {
+        user_id: user.id, 
+        clinic_id: id,
+        appointment_date: formData.date, 
+        appointment_time: formData.time,
+        pet_name: formData.petName, 
+        pet_type: formData.petType, 
+        reason: formData.reason || ''
+      };
+
+      if (formData.doctorId) {
+        insertData.doctor_id = formData.doctorId;
+      }
+
+      const { error } = await supabase.from('appointments').insert([insertData]);
+      if (error) throw error;
+      
+      toast.success('Appointment Booked! You will receive a confirmation soon.');
+      navigate('/profile');
+    } catch (error: unknown) {
+      toast.error('Failed to book appointment. Please try again.');
+    } finally {
+      setIsBooking(false);
+    }
   };
   
   const handleShare = async () => {
@@ -224,7 +247,14 @@ const ClinicDetailPage = () => {
                     
                     {/* CTA Buttons */}
                     <div className="flex flex-col sm:flex-row lg:flex-col gap-2 mt-2 lg:mt-0">
-                      <Button size="lg" className="shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all" onClick={() => navigate(`/book-appointment/${clinic.id}`)}>
+                      <Button 
+                        size="lg" 
+                        className="shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all" 
+                        onClick={() => {
+                          const bookingSection = document.getElementById('booking-section');
+                          bookingSection?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                      >
                         <Calendar className="h-4 w-4 mr-2" />
                         Book Appointment
                       </Button>
@@ -399,29 +429,38 @@ const ClinicDetailPage = () => {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Quick Book Card */}
-            <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-border/50 lg:sticky lg:top-4">
-              <h3 className="font-display font-bold text-foreground mb-4 flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" />
-                Quick Book
-              </h3>
-              
-              {/* Date Selection */}
-              <div className="mb-4">
-                <p className="text-sm font-medium text-muted-foreground mb-3">Select Date</p>
-                <div className="grid grid-cols-7 gap-1">
-                  {getNext7Days().map(day => <button key={day.date} onClick={() => setSelectedDate(day.date)} className={`p-2 rounded-xl text-center transition-all ${selectedDate === day.date ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25' : 'bg-muted/50 hover:bg-muted text-foreground'}`}>
-                      <div className="text-[10px] font-medium opacity-70">{day.day}</div>
-                      <div className="text-sm sm:text-base font-bold">{day.dayNum}</div>
-                    </button>)}
-                </div>
+          <div className="space-y-6" id="booking-section">
+            {/* Book Appointment Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-border/50 lg:sticky lg:top-4 overflow-hidden">
+              <div className="bg-gradient-to-r from-primary/10 to-orange-50 p-4 sm:p-5 border-b border-border/50">
+                <h3 className="font-display font-bold text-foreground flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  Book Appointment
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">Schedule your visit in minutes</p>
               </div>
-
-              <Button className="w-full shadow-lg shadow-primary/25" size="lg" onClick={() => navigate(`/book-appointment/${clinic.id}`)}>
-                View All Slots
-                <ChevronRight className="h-4 w-4 ml-2" />
-              </Button>
+              
+              <div className="p-4 sm:p-5">
+                {clinic?.is_blocked ? (
+                  <div className="text-center py-6">
+                    <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-3">
+                      <AlertCircle className="h-6 w-6 text-destructive" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">This clinic is not accepting appointments</p>
+                  </div>
+                ) : doctorsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <BookAppointmentWizard
+                    onSubmit={handleBookingSubmit}
+                    isPending={isBooking}
+                    doctors={doctorsWithSchedules}
+                    clinicName={clinic?.name}
+                  />
+                )}
+              </div>
             </div>
 
             {/* Contact Card */}
