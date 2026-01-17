@@ -726,6 +726,7 @@ export type Database = {
           is_read: boolean | null
           message: string | null
           target_appointment_id: string | null
+          target_clinic_id: string | null
           target_order_id: string | null
           target_pet_id: string | null
           target_post_id: string | null
@@ -740,6 +741,7 @@ export type Database = {
           is_read?: boolean | null
           message?: string | null
           target_appointment_id?: string | null
+          target_clinic_id?: string | null
           target_order_id?: string | null
           target_pet_id?: string | null
           target_post_id?: string | null
@@ -754,6 +756,7 @@ export type Database = {
           is_read?: boolean | null
           message?: string | null
           target_appointment_id?: string | null
+          target_clinic_id?: string | null
           target_order_id?: string | null
           target_pet_id?: string | null
           target_post_id?: string | null
@@ -767,6 +770,20 @@ export type Database = {
             columns: ["actor_pet_id"]
             isOneToOne: false
             referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_target_clinic_id_fkey"
+            columns: ["target_clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_target_clinic_id_fkey"
+            columns: ["target_clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_public"
             referencedColumns: ["id"]
           },
           {

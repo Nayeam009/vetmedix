@@ -1,4 +1,4 @@
-import { Bell, Heart, MessageCircle, UserPlus, Check, Calendar, Package, Truck, ShoppingBag } from 'lucide-react';
+import { Bell, Heart, MessageCircle, UserPlus, Check, Calendar, Package, ShoppingBag, Shield, Building2, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -30,8 +30,16 @@ export const NotificationBell = () => {
         return <UserPlus className="h-4 w-4 text-green-500" />;
       case 'appointment':
         return <Calendar className="h-4 w-4 text-primary" />;
+      case 'new_appointment':
+        return <Calendar className="h-4 w-4 text-emerald-500" />;
       case 'order':
         return <Package className="h-4 w-4 text-orange-500" />;
+      case 'verification':
+        return <Shield className="h-4 w-4 text-blue-600" />;
+      case 'clinic':
+        return <Building2 className="h-4 w-4 text-violet-500" />;
+      case 'system':
+        return <Settings className="h-4 w-4 text-muted-foreground" />;
       default:
         return <Bell className="h-4 w-4" />;
     }
@@ -41,8 +49,16 @@ export const NotificationBell = () => {
     switch (type) {
       case 'appointment':
         return 'bg-primary/20';
+      case 'new_appointment':
+        return 'bg-emerald-100 dark:bg-emerald-900/30';
       case 'order':
-        return 'bg-orange-100';
+        return 'bg-orange-100 dark:bg-orange-900/30';
+      case 'verification':
+        return 'bg-blue-100 dark:bg-blue-900/30';
+      case 'clinic':
+        return 'bg-violet-100 dark:bg-violet-900/30';
+      case 'system':
+        return 'bg-muted';
       default:
         return 'bg-primary/10';
     }
@@ -52,8 +68,16 @@ export const NotificationBell = () => {
     switch (type) {
       case 'appointment':
         return <Calendar className="h-5 w-5 text-primary" />;
+      case 'new_appointment':
+        return <Calendar className="h-5 w-5 text-emerald-500" />;
       case 'order':
         return <ShoppingBag className="h-5 w-5 text-orange-500" />;
+      case 'verification':
+        return <Shield className="h-5 w-5 text-blue-600" />;
+      case 'clinic':
+        return <Building2 className="h-5 w-5 text-violet-500" />;
+      case 'system':
+        return <Settings className="h-5 w-5 text-muted-foreground" />;
       default:
         return null;
     }
@@ -63,10 +87,24 @@ export const NotificationBell = () => {
     markAsRead(notification.id);
     
     // Navigate based on notification type
-    if (notification.type === 'appointment' || notification.target_appointment_id) {
+    if (notification.type === 'verification') {
+      // Clinic owner verification notifications
+      navigate('/clinic/dashboard');
+    } else if (notification.type === 'new_appointment' && notification.target_clinic_id) {
+      // Clinic owner - new appointment notification
+      navigate('/clinic/dashboard');
+    } else if (notification.type === 'clinic' && notification.target_clinic_id) {
+      // Admin - clinic-related notifications
+      navigate('/admin/clinics');
+    } else if (notification.type === 'appointment' || notification.target_appointment_id) {
       navigate('/profile?tab=appointments');
     } else if (notification.type === 'order' || notification.target_order_id) {
-      navigate('/profile?tab=orders');
+      // Check if it's an admin notification (new order) or user notification
+      if (notification.title.includes('New Order') || notification.title.includes('New order')) {
+        navigate('/admin/orders');
+      } else {
+        navigate('/profile?tab=orders');
+      }
     } else if (notification.target_post_id) {
       // Navigate to post (could implement post detail page)
     } else if (notification.target_pet_id) {

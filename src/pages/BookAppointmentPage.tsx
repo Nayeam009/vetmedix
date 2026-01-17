@@ -14,6 +14,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useClinicDoctorsWithSchedules } from '@/hooks/useDoctorSchedules';
 import { useQuery } from '@tanstack/react-query';
 import BookAppointmentWizard from '@/components/booking/BookAppointmentWizard';
+import { 
+  getClinicOwnerUserId, 
+  createNewAppointmentNotification, 
+  createAppointmentConfirmationNotification 
+} from '@/lib/notifications';
+import { format } from 'date-fns';
 
 const BookAppointmentPage = () => {
   const { clinicId } = useParams();
@@ -62,8 +68,44 @@ const BookAppointmentPage = () => {
         insertData.doctor_id = formData.doctorId;
       }
 
-      const { error } = await supabase.from('appointments').insert([insertData]);
+      const { data: appointmentData, error } = await supabase
+        .from('appointments')
+        .insert([insertData])
+        .select('id')
+        .single();
+      
       if (error) throw error;
+
+      // Format date for notifications
+      const formattedDate = format(new Date(formData.date), 'MMM d, yyyy');
+
+      // Notify clinic owner about new appointment
+      if (clinic && clinicId) {
+        const clinicOwnerId = await getClinicOwnerUserId(clinicId);
+        if (clinicOwnerId && appointmentData) {
+          await createNewAppointmentNotification({
+            clinicOwnerId,
+            appointmentId: appointmentData.id,
+            clinicId: clinicId,
+            clinicName: clinic.name,
+            petName: formData.petName,
+            petType: formData.petType,
+            appointmentDate: formattedDate,
+            appointmentTime: formData.time,
+          });
+        }
+
+        // Send confirmation notification to pet parent
+        if (appointmentData) {
+          await createAppointmentConfirmationNotification({
+            userId: user.id,
+            appointmentId: appointmentData.id,
+            clinicName: clinic.name,
+            appointmentDate: formattedDate,
+            appointmentTime: formData.time,
+          });
+        }
+      }
       
       toast({ 
         title: 'Appointment Booked!', 

@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from 'date-fns';
-import { Link } from 'react-router-dom';
-import { Heart, MessageCircle, UserPlus, Bell, CheckCheck } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Heart, MessageCircle, UserPlus, Bell, CheckCheck, Calendar, Package, Shield, Building2, Settings } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
@@ -10,9 +10,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
+import type { Notification } from '@/types/social';
 
 const NotificationsPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { notifications, loading, markAsRead, markAllAsRead, unreadCount } = useNotifications();
 
   const getNotificationIcon = (type: string) => {
@@ -23,19 +25,86 @@ const NotificationsPage = () => {
         return <MessageCircle className="h-4 w-4 text-blue-500" />;
       case 'follow':
         return <UserPlus className="h-4 w-4 text-green-500" />;
+      case 'appointment':
+        return <Calendar className="h-4 w-4 text-primary" />;
+      case 'new_appointment':
+        return <Calendar className="h-4 w-4 text-emerald-500" />;
+      case 'order':
+        return <Package className="h-4 w-4 text-orange-500" />;
+      case 'verification':
+        return <Shield className="h-4 w-4 text-blue-600" />;
+      case 'clinic':
+        return <Building2 className="h-4 w-4 text-violet-500" />;
+      case 'system':
+        return <Settings className="h-4 w-4 text-muted-foreground" />;
       default:
         return <Bell className="h-4 w-4 text-primary" />;
     }
   };
 
-  const getNotificationLink = (notification: any) => {
-    if (notification.target_post_id) {
-      return `/post/${notification.target_post_id}`;
+  const getAvatarBg = (type: string) => {
+    switch (type) {
+      case 'appointment':
+        return 'bg-primary/20';
+      case 'new_appointment':
+        return 'bg-emerald-100 dark:bg-emerald-900/30';
+      case 'order':
+        return 'bg-orange-100 dark:bg-orange-900/30';
+      case 'verification':
+        return 'bg-blue-100 dark:bg-blue-900/30';
+      case 'clinic':
+        return 'bg-violet-100 dark:bg-violet-900/30';
+      case 'system':
+        return 'bg-muted';
+      default:
+        return 'bg-primary/10';
     }
-    if (notification.target_pet_id) {
-      return `/pet/${notification.target_pet_id}`;
+  };
+
+  const getAvatarIcon = (type: string) => {
+    switch (type) {
+      case 'appointment':
+        return <Calendar className="h-5 w-5 text-primary" />;
+      case 'new_appointment':
+        return <Calendar className="h-5 w-5 text-emerald-500" />;
+      case 'order':
+        return <Package className="h-5 w-5 text-orange-500" />;
+      case 'verification':
+        return <Shield className="h-5 w-5 text-blue-600" />;
+      case 'clinic':
+        return <Building2 className="h-5 w-5 text-violet-500" />;
+      case 'system':
+        return <Settings className="h-5 w-5 text-muted-foreground" />;
+      default:
+        return null;
     }
-    return '#';
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    if (!notification.is_read) {
+      markAsRead(notification.id);
+    }
+    
+    // Navigate based on notification type
+    if (notification.type === 'verification') {
+      navigate('/clinic/dashboard');
+    } else if (notification.type === 'new_appointment' && notification.target_clinic_id) {
+      navigate('/clinic/dashboard');
+    } else if (notification.type === 'clinic' && notification.target_clinic_id) {
+      navigate('/admin/clinics');
+    } else if (notification.type === 'appointment' || notification.target_appointment_id) {
+      navigate('/profile?tab=appointments');
+    } else if (notification.type === 'order' || notification.target_order_id) {
+      if (notification.title.includes('New Order') || notification.title.includes('New order')) {
+        navigate('/admin/orders');
+      } else {
+        navigate('/profile?tab=orders');
+      }
+    } else if (notification.target_post_id) {
+      // Navigate to post page when implemented
+    } else if (notification.target_pet_id) {
+      navigate(`/pet/${notification.target_pet_id}`);
+    }
   };
 
   if (!user) {
@@ -90,21 +159,26 @@ const NotificationsPage = () => {
             ) : (
               <div className="space-y-1">
                 {notifications.map((notification) => (
-                  <Link
+                  <div
                     key={notification.id}
-                    to={getNotificationLink(notification)}
-                    onClick={() => !notification.is_read && markAsRead(notification.id)}
-                    className={`flex items-start gap-3 p-3 rounded-lg transition-colors hover:bg-muted ${
+                    onClick={() => handleNotificationClick(notification)}
+                    className={`flex items-start gap-3 p-3 rounded-lg transition-colors hover:bg-muted cursor-pointer ${
                       !notification.is_read ? 'bg-primary/5' : ''
                     }`}
                   >
                     <div className="relative">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={notification.actor_pet?.avatar_url || ''} />
-                        <AvatarFallback>
-                          {notification.actor_pet?.name?.charAt(0) || '?'}
-                        </AvatarFallback>
-                      </Avatar>
+                      {notification.actor_pet?.avatar_url || notification.type === 'like' || notification.type === 'comment' || notification.type === 'follow' ? (
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={notification.actor_pet?.avatar_url || ''} />
+                          <AvatarFallback>
+                            {notification.actor_pet?.name?.charAt(0) || '?'}
+                          </AvatarFallback>
+                        </Avatar>
+                      ) : (
+                        <div className={`h-10 w-10 rounded-full ${getAvatarBg(notification.type)} flex items-center justify-center`}>
+                          {getAvatarIcon(notification.type)}
+                        </div>
+                      )}
                       <div className="absolute -bottom-1 -right-1 p-1 bg-background rounded-full">
                         {getNotificationIcon(notification.type)}
                       </div>
@@ -114,7 +188,7 @@ const NotificationsPage = () => {
                         {notification.title}
                       </p>
                       {notification.message && (
-                        <p className="text-sm text-muted-foreground truncate">
+                        <p className="text-sm text-muted-foreground line-clamp-2">
                           {notification.message}
                         </p>
                       )}
@@ -125,7 +199,7 @@ const NotificationsPage = () => {
                     {!notification.is_read && (
                       <div className="h-2 w-2 bg-primary rounded-full mt-2" />
                     )}
-                  </Link>
+                  </div>
                 ))}
               </div>
             )}
