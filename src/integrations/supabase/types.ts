@@ -253,6 +253,7 @@ export type Database = {
           blocked_at: string | null
           blocked_reason: string | null
           bvc_certificate_url: string | null
+          cover_photo_url: string | null
           created_at: string
           description: string | null
           distance: string | null
@@ -281,6 +282,7 @@ export type Database = {
           blocked_at?: string | null
           blocked_reason?: string | null
           bvc_certificate_url?: string | null
+          cover_photo_url?: string | null
           created_at?: string
           description?: string | null
           distance?: string | null
@@ -309,6 +311,7 @@ export type Database = {
           blocked_at?: string | null
           blocked_reason?: string | null
           bvc_certificate_url?: string | null
+          cover_photo_url?: string | null
           created_at?: string
           description?: string | null
           distance?: string | null
