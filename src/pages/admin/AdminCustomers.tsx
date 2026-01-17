@@ -130,20 +130,20 @@ const AdminCustomers = () => {
   return (
     <AdminLayout title="Customers" subtitle="Manage user accounts and roles">
       {/* Header Actions */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between mb-6">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-between mb-4 sm:mb-6">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search customers..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
+            className="pl-9 h-10 sm:h-11 rounded-xl text-sm"
           />
         </div>
       </div>
 
-      {/* Customers Table */}
-      <div className="bg-card rounded-2xl border border-border overflow-hidden">
+      {/* Customers - Mobile Cards / Desktop Table */}
+      <div className="bg-card rounded-xl sm:rounded-2xl border border-border overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -154,70 +154,113 @@ const AdminCustomers = () => {
             <p className="text-muted-foreground">No customers found</p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            {/* Mobile Card View */}
+            <div className="sm:hidden divide-y divide-border">
               {filteredCustomers.map((customer) => (
-                <TableRow key={customer.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{customer.full_name || 'Unnamed'}</p>
-                        <p className="text-sm text-muted-foreground">{customer.user_id.slice(0, 8)}...</p>
-                      </div>
+                <div key={customer.id} className="p-3 flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <User className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium text-sm truncate">{customer.full_name || 'Unnamed'}</p>
+                      {getRoleBadge(customer.user_roles)}
                     </div>
-                  </TableCell>
-                  <TableCell>{customer.phone || '-'}</TableCell>
-                  <TableCell>
-                    {customer.district && customer.division 
-                      ? `${customer.district}, ${customer.division}` 
-                      : '-'}
-                  </TableCell>
-                  <TableCell>{getRoleBadge(customer.user_roles)}</TableCell>
-                  <TableCell>{format(new Date(customer.created_at), 'PP')}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => updateUserRole(customer.user_id, 'user')}>
-                          <User className="h-4 w-4 mr-2" />
-                          Set as User
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => updateUserRole(customer.user_id, 'moderator')}>
-                          <Shield className="h-4 w-4 mr-2" />
-                          Set as Moderator
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => updateUserRole(customer.user_id, 'admin')}
-                          className="text-purple-600"
-                        >
-                          <ShieldCheck className="h-4 w-4 mr-2" />
-                          Set as Admin
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
+                    <p className="text-xs text-muted-foreground">{customer.phone || 'No phone'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {customer.district && customer.division ? `${customer.district}, ${customer.division}` : 'No location'}
+                    </p>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-9 w-9 flex-shrink-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => updateUserRole(customer.user_id, 'user')}>
+                        <User className="h-4 w-4 mr-2" />
+                        Set as User
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => updateUserRole(customer.user_id, 'moderator')}>
+                        <Shield className="h-4 w-4 mr-2" />
+                        Set as Moderator
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => updateUserRole(customer.user_id, 'admin')} className="text-purple-600">
+                        <ShieldCheck className="h-4 w-4 mr-2" />
+                        Set as Admin
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden sm:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredCustomers.map((customer) => (
+                    <TableRow key={customer.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <User className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{customer.full_name || 'Unnamed'}</p>
+                            <p className="text-sm text-muted-foreground">{customer.user_id.slice(0, 8)}...</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{customer.phone || '-'}</TableCell>
+                      <TableCell>
+                        {customer.district && customer.division ? `${customer.district}, ${customer.division}` : '-'}
+                      </TableCell>
+                      <TableCell>{getRoleBadge(customer.user_roles)}</TableCell>
+                      <TableCell>{format(new Date(customer.created_at), 'PP')}</TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => updateUserRole(customer.user_id, 'user')}>
+                              <User className="h-4 w-4 mr-2" />
+                              Set as User
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateUserRole(customer.user_id, 'moderator')}>
+                              <Shield className="h-4 w-4 mr-2" />
+                              Set as Moderator
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => updateUserRole(customer.user_id, 'admin')} className="text-purple-600">
+                              <ShieldCheck className="h-4 w-4 mr-2" />
+                              Set as Admin
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </div>
     </AdminLayout>

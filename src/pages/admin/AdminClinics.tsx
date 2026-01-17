@@ -273,101 +273,116 @@ const AdminClinics = () => {
   return (
     <AdminLayout title="Clinics Management" subtitle="Manage and verify veterinary clinics">
       {/* Stats - Clickable Cards */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6">
         <Card 
           className={cn(
-            "cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] group border-2",
+            "cursor-pointer transition-all duration-200 hover:shadow-lg active:scale-[0.98] group border-2",
             filterStatus === 'all' ? "ring-2 ring-primary shadow-lg border-primary" : "border-transparent hover:border-primary/30"
           )}
           onClick={() => setFilterStatus('all')}
         >
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 group-hover:from-primary/30 group-hover:to-primary/10 transition-colors">
-                  <Building2 className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-foreground">{clinicStats?.totalClinics || 0}</p>
-                  <p className="text-sm text-muted-foreground font-medium">Total Clinics</p>
-                </div>
+          <CardContent className="p-3 sm:p-4 lg:p-5">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-2.5 lg:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex-shrink-0">
+                <Building2 className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-primary" />
               </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
+              <div className="min-w-0">
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">{clinicStats?.totalClinics || 0}</p>
+                <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground font-medium truncate">Total Clinics</p>
+              </div>
             </div>
           </CardContent>
         </Card>
         
         <Card 
           className={cn(
-            "cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] group border-2",
+            "cursor-pointer transition-all duration-200 hover:shadow-lg active:scale-[0.98] group border-2",
             filterStatus === 'verified' ? "ring-2 ring-green-500 shadow-lg border-green-500" : "border-transparent hover:border-green-500/30"
           )}
           onClick={() => setFilterStatus('verified')}
         >
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5 group-hover:from-green-500/30 group-hover:to-green-500/10 transition-colors">
-                  <CheckCircle className="h-6 w-6 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-foreground">{clinicStats?.verifiedClinics || 0}</p>
-                  <p className="text-sm text-muted-foreground font-medium">Verified</p>
-                </div>
+          <CardContent className="p-3 sm:p-4 lg:p-5">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-2.5 lg:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5 flex-shrink-0">
+                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-green-500" />
               </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
+              <div className="min-w-0">
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">{clinicStats?.verifiedClinics || 0}</p>
+                <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground font-medium truncate">Verified</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card 
+          className={cn(
+            "cursor-pointer transition-all duration-200 hover:shadow-lg active:scale-[0.98] group border-2",
+            filterStatus === 'pending' ? "ring-2 ring-amber-500 shadow-lg border-amber-500" : "border-transparent hover:border-amber-500/30"
+          )}
+          onClick={() => setFilterStatus('pending')}
+        >
+          <CardContent className="p-3 sm:p-4 lg:p-5">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-2.5 lg:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-500/5 flex-shrink-0">
+                <Clock className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-amber-500" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">{pendingCount}</p>
+                <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground font-medium truncate">Pending</p>
+              </div>
             </div>
           </CardContent>
         </Card>
         
         <Card 
           className={cn(
-            "cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] group border-2 border-transparent hover:border-blue-500/30"
+            "cursor-pointer transition-all duration-200 hover:shadow-lg active:scale-[0.98] group border-2 border-transparent hover:border-blue-500/30"
           )}
           onClick={() => navigate('/admin/customers')}
         >
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 group-hover:from-blue-500/30 group-hover:to-blue-500/10 transition-colors">
-                  <Users className="h-6 w-6 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-foreground">{clinicStats?.totalDoctors || 0}</p>
-                  <p className="text-sm text-muted-foreground font-medium">Doctors</p>
-                </div>
+          <CardContent className="p-3 sm:p-4 lg:p-5">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-2.5 lg:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 flex-shrink-0">
+                <Users className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-blue-500" />
               </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
+              <div className="min-w-0">
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">{clinicStats?.totalDoctors || 0}</p>
+                <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground font-medium truncate">Doctors</p>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4 sm:mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search clinics..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-10 sm:h-11 rounded-xl text-sm"
           />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-full sm:w-48">
-            <Filter className="h-4 w-4 mr-2" />
+          <SelectTrigger className="w-full sm:w-44 h-10 sm:h-11 rounded-xl text-sm">
+            <Filter className="h-4 w-4 mr-2 flex-shrink-0" />
             <SelectValue placeholder="Filter" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Clinics</SelectItem>
             <SelectItem value="pending">
-              Pending Verification {pendingCount > 0 && `(${pendingCount})`}
+              <span className="flex items-center gap-2">
+                Pending {pendingCount > 0 && <Badge variant="secondary" className="h-5 text-xs">{pendingCount}</Badge>}
+              </span>
             </SelectItem>
             <SelectItem value="verified">Verified</SelectItem>
             <SelectItem value="unverified">Unverified</SelectItem>
             <SelectItem value="blocked">
-              Blocked {blockedCount > 0 && `(${blockedCount})`}
+              <span className="flex items-center gap-2">
+                Blocked {blockedCount > 0 && <Badge variant="destructive" className="h-5 text-xs">{blockedCount}</Badge>}
+              </span>
             </SelectItem>
             <SelectItem value="open">Open</SelectItem>
             <SelectItem value="closed">Closed</SelectItem>
@@ -477,7 +492,7 @@ const AdminClinics = () => {
                   </div>
                   
                   {/* Right Section - Action Buttons */}
-                  <div className="flex items-center gap-2 pl-0 sm:pl-16 lg:pl-0">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mt-2 lg:mt-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-border/50">
                     <Button
                       variant="outline"
                       size="sm"
@@ -485,9 +500,9 @@ const AdminClinics = () => {
                         setSelectedClinic(clinic);
                         setDetailsOpen(true);
                       }}
-                      className="h-8 sm:h-9 text-xs sm:text-sm bg-primary/5 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                      className="h-9 flex-1 sm:flex-none text-xs sm:text-sm rounded-xl bg-primary/5 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground transition-colors min-h-[44px] sm:min-h-0"
                     >
-                      <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
+                      <Eye className="h-4 w-4 mr-1.5" />
                       View
                     </Button>
                     
@@ -504,7 +519,7 @@ const AdminClinics = () => {
                       }}
                       disabled={blockMutation.isPending}
                       className={cn(
-                        "h-8 sm:h-9 text-xs sm:text-sm transition-colors",
+                        "h-9 flex-1 sm:flex-none text-xs sm:text-sm transition-colors rounded-xl min-h-[44px] sm:min-h-0",
                         clinic.is_blocked 
                           ? "bg-green-600 hover:bg-green-700" 
                           : "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
@@ -512,13 +527,15 @@ const AdminClinics = () => {
                     >
                       {clinic.is_blocked ? (
                         <>
-                          <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
-                          Unblock
+                          <Shield className="h-4 w-4 mr-1.5" />
+                          <span className="hidden sm:inline">Unblock</span>
+                          <span className="sm:hidden">Unblock</span>
                         </>
                       ) : (
                         <>
-                          <Ban className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-1.5" />
-                          Block
+                          <Ban className="h-4 w-4 mr-1.5" />
+                          <span className="hidden sm:inline">Block</span>
+                          <span className="sm:hidden">Block</span>
                         </>
                       )}
                     </Button>
@@ -529,7 +546,7 @@ const AdminClinics = () => {
                         <Button 
                           variant="outline" 
                           size="icon" 
-                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg border-muted-foreground/20 hover:bg-muted hover:border-muted-foreground/30 transition-colors"
+                          className="h-9 w-9 rounded-xl border-muted-foreground/20 hover:bg-muted hover:border-muted-foreground/30 transition-colors min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex-shrink-0"
                         >
                           <MoreVertical className="h-4 w-4 text-muted-foreground" />
                         </Button>
@@ -611,31 +628,30 @@ const AdminClinics = () => {
 
       {/* Block Dialog */}
       <AlertDialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[95vw] sm:max-w-md rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Block Clinic?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-base sm:text-lg">Block Clinic?</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm">
               Blocking "{actionClinic?.name}" will prevent them from receiving new appointments.
-              The clinic profile will remain visible but will be marked as blocked.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="py-4">
-            <Label htmlFor="blockReason">Block Reason (optional)</Label>
+          <div className="py-3">
+            <Label htmlFor="blockReason" className="text-sm">Block Reason (optional)</Label>
             <Textarea
               id="blockReason"
               value={blockReason}
               onChange={(e) => setBlockReason(e.target.value)}
-              placeholder="e.g., Violation of terms, Fraudulent activity..."
+              placeholder="e.g., Violation of terms..."
               rows={2}
-              className="mt-2"
+              className="mt-2 rounded-xl text-sm"
             />
           </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={blockMutation.isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <AlertDialogCancel disabled={blockMutation.isPending} className="rounded-xl h-11 sm:h-10">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => actionClinic && blockMutation.mutate({ clinic: actionClinic, reason: blockReason })}
               disabled={blockMutation.isPending}
-              className="bg-amber-600 hover:bg-amber-700"
+              className="bg-amber-600 hover:bg-amber-700 rounded-xl h-11 sm:h-10"
             >
               {blockMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-1" />
@@ -650,27 +666,27 @@ const AdminClinics = () => {
 
       {/* Delete Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[95vw] sm:max-w-md rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Clinic Permanently?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-base sm:text-lg">Delete Clinic Permanently?</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm">
               This action cannot be undone. This will permanently delete "{actionClinic?.name}"
-              and all associated data including appointments, doctors, and services.
+              and all associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <AlertDialogCancel disabled={deleteMutation.isPending} className="rounded-xl h-11 sm:h-10">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => actionClinic && deleteMutation.mutate(actionClinic.id)}
               disabled={deleteMutation.isPending}
-              className="bg-destructive hover:bg-destructive/90"
+              className="bg-destructive hover:bg-destructive/90 rounded-xl h-11 sm:h-10"
             >
               {deleteMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-1" />
               ) : (
                 <Trash2 className="h-4 w-4 mr-1" />
               )}
-              Delete Permanently
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
