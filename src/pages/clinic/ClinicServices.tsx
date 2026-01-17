@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Edit, Trash2, Loader2, Building2, Package } from 'lucide-react';
+import { 
+  Plus, Edit, Trash2, Loader2, Package, ChevronLeft,
+  Clock, DollarSign, CheckCircle, XCircle, Stethoscope
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,12 +20,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicOwner, ClinicService } from '@/hooks/useClinicOwner';
 import { useUserRole } from '@/hooks/useUserRole';
-import logo from '@/assets/logo.jpeg';
 
 const ClinicServices = () => {
   const navigate = useNavigate();
@@ -39,6 +51,7 @@ const ClinicServices = () => {
   } = useClinicOwner();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editingService, setEditingService] = useState<ClinicService | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -97,16 +110,19 @@ const ClinicServices = () => {
     resetForm();
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this service?')) {
-      await deleteService.mutateAsync(id);
-    }
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
+    await deleteService.mutateAsync(deleteConfirm);
+    setDeleteConfirm(null);
   };
 
   if (roleLoading || clinicLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50/30 via-background to-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading services...</p>
+        </div>
       </div>
     );
   }
@@ -117,23 +133,37 @@ const ClinicServices = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-16 md:pb-0">
+    <div className="min-h-screen bg-gradient-to-b from-orange-50/30 via-background to-background pb-20 md:pb-0">
       <Navbar />
       
       <main className="container mx-auto px-4 py-6 max-w-4xl">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">Manage Services</h1>
-            <p className="text-muted-foreground">Add and manage services offered at your clinic</p>
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="rounded-xl"
+              onClick={() => navigate('/clinic/dashboard')}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-display font-bold text-foreground">Manage Services</h1>
+              <p className="text-sm text-muted-foreground">Add and manage services offered at your clinic</p>
+            </div>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) resetForm();
+          }}>
             <DialogTrigger asChild>
-              <Button onClick={openAddDialog}>
+              <Button onClick={openAddDialog} className="rounded-xl shadow-lg shadow-primary/25">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Service
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-md">
               <form onSubmit={handleSubmit}>
                 <DialogHeader>
                   <DialogTitle>
@@ -154,6 +184,7 @@ const ClinicServices = () => {
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       required
                       placeholder="e.g., General Checkup"
+                      className="rounded-xl"
                     />
                   </div>
                   <div className="space-y-2">
@@ -164,11 +195,12 @@ const ClinicServices = () => {
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       placeholder="Brief description of the service"
                       rows={3}
+                      className="rounded-xl resize-none"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="price">Price (BDT)</Label>
+                      <Label htmlFor="price">Price (৳)</Label>
                       <Input
                         id="price"
                         type="number"
@@ -176,6 +208,7 @@ const ClinicServices = () => {
                         value={formData.price}
                         onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                         placeholder="500"
+                        className="rounded-xl"
                       />
                     </div>
                     <div className="space-y-2">
@@ -187,11 +220,15 @@ const ClinicServices = () => {
                         value={formData.duration_minutes}
                         onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value })}
                         placeholder="30"
+                        className="rounded-xl"
                       />
                     </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="active">Active</Label>
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50">
+                    <div>
+                      <Label htmlFor="active" className="font-medium">Active</Label>
+                      <p className="text-sm text-muted-foreground">Show this service to customers</p>
+                    </div>
                     <Switch
                       id="active"
                       checked={formData.is_active}
@@ -199,11 +236,11 @@ const ClinicServices = () => {
                     />
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="rounded-xl">
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={addService.isPending || updateService.isPending}>
+                  <Button type="submit" disabled={addService.isPending || updateService.isPending} className="rounded-xl">
                     {(addService.isPending || updateService.isPending) && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
@@ -215,68 +252,120 @@ const ClinicServices = () => {
           </Dialog>
         </div>
 
+        {/* Delete Confirmation */}
+        <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Service?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete this service. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDelete} 
+                className="bg-destructive text-destructive-foreground rounded-xl"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         {servicesLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center">
+              <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+              <p className="text-muted-foreground">Loading services...</p>
+            </div>
           </div>
         ) : clinicServices && clinicServices.length > 0 ? (
-          <div className="grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             {clinicServices.map((service) => (
-              <Card key={service.id}>
-                <CardContent className="pt-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-lg">{service.name}</h3>
-                        <Badge variant={service.is_active ? 'default' : 'secondary'}>
-                          {service.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
+              <Card key={service.id} className="bg-white border-border/50 shadow-sm hover:shadow-lg transition-all group">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-4 flex-1 min-w-0">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-orange-100 flex items-center justify-center flex-shrink-0">
+                        <Stethoscope className="h-6 w-6 text-primary" />
                       </div>
-                      <p className="text-muted-foreground mb-2">
-                        {service.description || 'No description provided'}
-                      </p>
-                      <div className="flex items-center gap-4 text-sm">
-                        {service.price && (
-                          <span className="font-medium text-primary">৳{service.price}</span>
-                        )}
-                        {service.duration_minutes && (
-                          <span className="text-muted-foreground">
-                            {service.duration_minutes} mins
-                          </span>
-                        )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-bold text-foreground truncate">{service.name}</h3>
+                          <Badge 
+                            variant={service.is_active ? 'default' : 'secondary'}
+                            className={service.is_active ? 'bg-emerald-500 hover:bg-emerald-500' : ''}
+                          >
+                            {service.is_active ? (
+                              <>
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Active
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Inactive
+                              </>
+                            )}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                          {service.description || 'No description provided'}
+                        </p>
+                        <div className="flex items-center gap-4 text-sm">
+                          {service.price && (
+                            <span className="flex items-center gap-1.5 font-semibold text-primary">
+                              <DollarSign className="h-4 w-4" />
+                              ৳{service.price}
+                            </span>
+                          )}
+                          {service.duration_minutes && (
+                            <span className="flex items-center gap-1.5 text-muted-foreground">
+                              <Clock className="h-4 w-4" />
+                              {service.duration_minutes} mins
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        onClick={() => openEditDialog(service)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        className="text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDelete(service.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="flex-1 rounded-lg"
+                      onClick={() => openEditDialog(service)}
+                    >
+                      <Edit className="h-4 w-4 mr-1.5" />
+                      Edit
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="rounded-lg text-destructive hover:bg-destructive/10 hover:border-destructive/50"
+                      onClick={() => setDeleteConfirm(service.id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1.5" />
+                      Delete
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         ) : (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="font-semibold mb-2">No services yet</h3>
-              <p className="text-muted-foreground mb-4">
+          <Card className="bg-white border-border/50 shadow-sm">
+            <CardContent className="py-16 text-center">
+              <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                <Package className="h-10 w-10 text-muted-foreground/50" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">No services yet</h3>
+              <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
                 Add services to let patients know what you offer
               </p>
-              <Button onClick={openAddDialog}>
+              <Button onClick={openAddDialog} className="rounded-xl">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Your First Service
               </Button>
