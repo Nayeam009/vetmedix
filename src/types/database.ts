@@ -31,6 +31,17 @@ export interface Clinic {
   verification_status: string | null;
   owner_user_id: string | null;
   created_at: string;
+  // Verification details
+  owner_name: string | null;
+  owner_nid: string | null;
+  bvc_certificate_url: string | null;
+  trade_license_url: string | null;
+  verification_submitted_at: string | null;
+  verification_reviewed_at: string | null;
+  rejection_reason: string | null;
+  is_blocked: boolean | null;
+  blocked_at: string | null;
+  blocked_reason: string | null;
 }
 
 export interface Profile {
