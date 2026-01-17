@@ -206,6 +206,47 @@ export type Database = {
           },
         ]
       }
+      clinic_reviews: {
+        Row: {
+          clinic_id: string
+          comment: string | null
+          created_at: string
+          helpful_count: number | null
+          id: string
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          clinic_id: string
+          comment?: string | null
+          created_at?: string
+          helpful_count?: number | null
+          id?: string
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          clinic_id?: string
+          comment?: string | null
+          created_at?: string
+          helpful_count?: number | null
+          id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_reviews_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_services: {
         Row: {
           clinic_id: string
