@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Image, Video, X, Loader2, Smile } from 'lucide-react';
+import { Image, Video, X, Loader2, Smile, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +11,11 @@ import { useNavigate } from 'react-router-dom';
 interface CreatePostCardProps {
   onPostCreated: () => void;
 }
+
+// File size limits
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_VIDEO_SIZE = 20 * 1024 * 1024; // 20MB
+const MAX_VIDEO_DURATION = 60; // 1 minute in seconds
 
 export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
   const { user } = useAuth();
@@ -26,6 +31,41 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
   const [submitting, setSubmitting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
+  const validateFile = async (file: File, type: 'image' | 'video'): Promise<boolean> => {
+    if (type === 'image') {
+      if (file.size > MAX_IMAGE_SIZE) {
+        toast.error(`Image "${file.name}" exceeds 5MB limit`);
+        return false;
+      }
+    } else {
+      if (file.size > MAX_VIDEO_SIZE) {
+        toast.error(`Video "${file.name}" exceeds 20MB limit`);
+        return false;
+      }
+      
+      // Check video duration
+      return new Promise((resolve) => {
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.onloadedmetadata = () => {
+          URL.revokeObjectURL(video.src);
+          if (video.duration > MAX_VIDEO_DURATION) {
+            toast.error(`Video "${file.name}" exceeds 1 minute limit`);
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+        };
+        video.onerror = () => {
+          toast.error(`Could not validate video "${file.name}"`);
+          resolve(false);
+        };
+        video.src = URL.createObjectURL(file);
+      });
+    }
+    return true;
+  };
+
   const handleFileSelect = (type: 'image' | 'video') => {
     if (!user) {
       toast.error('Please login first');
@@ -40,18 +80,42 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
     setMediaType(type);
     if (fileInputRef.current) {
       fileInputRef.current.accept = type === 'image' ? 'image/*' : 'video/*';
+      fileInputRef.current.multiple = type === 'image';
       fileInputRef.current.click();
     }
   };
 
-  const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFilesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length + mediaFiles.length > 4) {
-      toast.error('Maximum 4 files allowed');
+    if (files.length === 0) return;
+
+    // For videos, only allow 1 file
+    if (mediaType === 'video' && files.length > 1) {
+      toast.error('Only 1 video allowed per post');
       return;
     }
 
-    const newFiles = [...mediaFiles, ...files].slice(0, 4);
+    // For images, limit to 4
+    if (mediaType === 'image' && files.length + mediaFiles.length > 4) {
+      toast.error('Maximum 4 images allowed');
+      return;
+    }
+
+    // Validate files
+    const validatedFiles: File[] = [];
+    for (const file of files) {
+      const isValid = await validateFile(file, mediaType);
+      if (isValid) {
+        validatedFiles.push(file);
+      }
+    }
+
+    if (validatedFiles.length === 0) return;
+
+    const newFiles = mediaType === 'video' 
+      ? validatedFiles.slice(0, 1) 
+      : [...mediaFiles, ...validatedFiles].slice(0, 4);
+    
     setMediaFiles(newFiles);
     setIsExpanded(true);
 
@@ -137,7 +201,7 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
 
   if (!user) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-border/50 p-3 sm:p-4 mb-3 sm:mb-4">
+      <div className="bg-card rounded-xl shadow-sm border border-border/50 p-3 sm:p-4 mb-3 sm:mb-4">
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
             <span className="text-base sm:text-lg">🐾</span>
@@ -155,7 +219,7 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
 
   if (pets.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-border/50 p-3 sm:p-4 mb-3 sm:mb-4">
+      <div className="bg-card rounded-xl shadow-sm border border-border/50 p-3 sm:p-4 mb-3 sm:mb-4">
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
             <span className="text-base sm:text-lg">🐶</span>
@@ -172,11 +236,14 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-border/50 mb-3 sm:mb-4">
+    <div className="bg-card rounded-xl shadow-sm border border-border/50 mb-3 sm:mb-4 overflow-hidden">
       {/* Composer Header */}
       <div className="p-3 sm:p-4 pb-2 sm:pb-3">
         <div className="flex items-center gap-2 sm:gap-3">
-          <Avatar className="h-9 w-9 sm:h-10 sm:w-10 ring-1 ring-border cursor-pointer flex-shrink-0" onClick={() => navigate(`/pet/${activePet?.id}`)}>
+          <Avatar 
+            className="h-9 w-9 sm:h-10 sm:w-10 ring-2 ring-primary/20 cursor-pointer flex-shrink-0" 
+            onClick={() => navigate(`/pet/${activePet?.id}`)}
+          >
             <AvatarImage src={activePet?.avatar_url || ''} alt={activePet?.name} className="object-cover" />
             <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
               {activePet?.name?.charAt(0) || 'P'}
@@ -206,20 +273,20 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
               placeholder={`What's on ${activePet?.name}'s mind?`}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="w-full min-h-[80px] sm:min-h-[100px] resize-none border-0 bg-transparent text-foreground text-base sm:text-lg placeholder:text-muted-foreground/60 focus:outline-none"
+              className="w-full min-h-[80px] sm:min-h-[100px] resize-none border-0 bg-transparent text-foreground text-sm sm:text-base placeholder:text-muted-foreground/60 focus:outline-none"
               maxLength={1000}
             />
             
             {/* Media Previews */}
             {mediaPreviews.length > 0 && (
-              <div className="border border-border rounded-lg p-2 mt-2">
+              <div className="border border-border rounded-xl p-2 mt-2 bg-muted/30">
                 <div className={`grid gap-2 ${mediaPreviews.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                   {mediaPreviews.map((preview, index) => (
-                    <div key={index} className="relative rounded-lg overflow-hidden">
+                    <div key={index} className="relative rounded-lg overflow-hidden aspect-square">
                       {mediaType === 'video' ? (
-                        <video src={preview} className="w-full h-24 sm:h-32 object-cover" />
+                        <video src={preview} className="w-full h-full object-cover" controls />
                       ) : (
-                        <img src={preview} alt="" className="w-full h-24 sm:h-32 object-cover" />
+                        <img src={preview} alt="" className="w-full h-full object-cover" />
                       )}
                       <Button
                         variant="secondary"
@@ -232,6 +299,9 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
                     </div>
                   ))}
                 </div>
+                <p className="text-[10px] sm:text-xs text-muted-foreground mt-2 text-center">
+                  {mediaType === 'image' ? 'Max 5MB per image • Up to 4 images' : 'Max 20MB • 1 min duration'}
+                </p>
               </div>
             )}
           </div>
@@ -239,34 +309,34 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
       </div>
 
       {/* Action Bar */}
-      <div className="border-t border-border/50 px-3 sm:px-4 py-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto">
+      <div className="border-t border-border/50 px-2 sm:px-4 py-2 bg-muted/20">
+        <div className="flex items-center justify-between gap-1 sm:gap-2">
+          <div className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto flex-1">
             <Button 
               variant="ghost" 
               size="sm"
               onClick={() => handleFileSelect('image')}
               disabled={submitting}
-              className="h-8 sm:h-9 gap-1.5 sm:gap-2 rounded-lg text-green-600 hover:bg-green-50 hover:text-green-700 font-semibold text-xs sm:text-sm px-2 sm:px-3 flex-shrink-0"
+              className="h-8 sm:h-9 gap-1 sm:gap-2 rounded-lg text-green-600 hover:bg-green-50 hover:text-green-700 font-medium text-xs sm:text-sm px-2 sm:px-3 flex-shrink-0"
             >
               <Image className="h-4 w-4 sm:h-5 sm:w-5" />
-              <span className="hidden sm:inline">Photo</span>
+              <span className="hidden xs:inline">Photo</span>
             </Button>
             <Button 
               variant="ghost" 
               size="sm"
               onClick={() => handleFileSelect('video')}
               disabled={submitting}
-              className="h-8 sm:h-9 gap-1.5 sm:gap-2 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-600 font-semibold text-xs sm:text-sm px-2 sm:px-3 flex-shrink-0"
+              className="h-8 sm:h-9 gap-1 sm:gap-2 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-600 font-medium text-xs sm:text-sm px-2 sm:px-3 flex-shrink-0"
             >
               <Video className="h-4 w-4 sm:h-5 sm:w-5" />
-              <span className="hidden sm:inline">Video</span>
+              <span className="hidden xs:inline">Video</span>
             </Button>
             <Button 
               variant="ghost" 
               size="sm"
               disabled={submitting}
-              className="h-8 sm:h-9 gap-1.5 sm:gap-2 rounded-lg text-amber-500 hover:bg-amber-50 hover:text-amber-600 font-semibold text-xs sm:text-sm px-2 sm:px-3 flex-shrink-0"
+              className="h-8 sm:h-9 gap-1 sm:gap-2 rounded-lg text-amber-500 hover:bg-amber-50 hover:text-amber-600 font-medium text-xs sm:text-sm px-2 sm:px-3 flex-shrink-0"
             >
               <Smile className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="hidden sm:inline">Feeling</span>
@@ -277,7 +347,8 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
             <Button 
               onClick={handleSubmit}
               disabled={submitting || (!content.trim() && mediaFiles.length === 0)}
-              className="h-8 sm:h-9 px-4 sm:px-6 bg-primary hover:bg-primary/90 text-white font-semibold rounded-lg text-xs sm:text-sm flex-shrink-0"
+              size="sm"
+              className="h-8 sm:h-9 px-4 sm:px-6 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg text-xs sm:text-sm flex-shrink-0"
             >
               {submitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -292,7 +363,6 @@ export const CreatePostCard = ({ onPostCreated }: CreatePostCardProps) => {
       <input
         ref={fileInputRef}
         type="file"
-        multiple
         className="hidden"
         onChange={handleFilesChange}
       />
