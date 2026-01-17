@@ -1,9 +1,9 @@
-import { Link } from 'react-router-dom';
-import { Plus, Eye, Edit, MessageSquarePlus, Users } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import type { Pet } from '@/types/social';
+import { Link } from "react-router-dom";
+import { Plus, Eye, Edit, MessageSquarePlus, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import type { Pet } from "@/types/social";
 
 interface MyPetsSectionProps {
   pets: Pet[];
@@ -58,9 +58,7 @@ const MyPetsSection = ({ pets, loading }: MyPetsSectionProps) => {
           </Card>
           <Card className="bg-gradient-to-br from-lavender/5 to-lavender/10 border-lavender/20">
             <CardContent className="p-4 text-center">
-              <p className="text-3xl font-bold text-lavender">
-                {pets.filter(p => p.species === 'Dog').length}
-              </p>
+              <p className="text-3xl font-bold text-lavender">{pets.filter((p) => p.species === "Dog").length}</p>
               <p className="text-sm text-muted-foreground">Dogs</p>
             </CardContent>
           </Card>
@@ -70,7 +68,10 @@ const MyPetsSection = ({ pets, loading }: MyPetsSectionProps) => {
       {/* Pets Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {pets.map((pet) => (
-          <Card key={pet.id} className="group hover:shadow-lg transition-all duration-300 hover:border-primary/30 overflow-hidden">
+          <Card
+            key={pet.id}
+            className="group hover:shadow-lg transition-all duration-300 hover:border-primary/30 overflow-hidden"
+          >
             <CardContent className="p-6">
               <div className="flex flex-col items-center text-center">
                 <div className="relative mb-4">
@@ -81,15 +82,13 @@ const MyPetsSection = ({ pets, loading }: MyPetsSectionProps) => {
                     </AvatarFallback>
                   </Avatar>
                   <span className="absolute -bottom-1 -right-1 text-2xl">
-                    {pet.species === 'Dog' ? '🐕' : pet.species === 'Cat' ? '🐱' : pet.species === 'Bird' ? '🐦' : '🐾'}
+                    {pet.species === "Dog" ? "🐕" : pet.species === "Cat" ? "🐱" : pet.species === "Bird" ? "🐦" : "🐾"}
                   </span>
                 </div>
 
                 <h3 className="font-semibold text-lg text-foreground mb-1">{pet.name}</h3>
-                <p className="text-sm text-muted-foreground mb-1">
-                  {pet.breed || pet.species}
-                </p>
-                
+                <p className="text-sm text-muted-foreground mb-1">{pet.breed || pet.species}</p>
+
                 {/* Pet Stats */}
                 <div className="flex items-center gap-3 text-sm text-muted-foreground mb-4">
                   <span className="flex items-center gap-1">
@@ -127,16 +126,14 @@ const MyPetsSection = ({ pets, loading }: MyPetsSectionProps) => {
         ))}
 
         {/* Add New Pet Card */}
-        <Link to="/create-pet">
+        <Link to="/pets/new">
           <Card className="h-full min-h-[280px] border-dashed border-2 hover:border-primary hover:bg-primary/5 transition-all duration-300 cursor-pointer group">
             <CardContent className="h-full flex flex-col items-center justify-center p-6">
               <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                 <Plus className="h-10 w-10 text-primary" />
               </div>
               <h3 className="font-semibold text-lg text-foreground mb-1">Add New Pet</h3>
-              <p className="text-sm text-muted-foreground text-center">
-                Register your furry friend
-              </p>
+              <p className="text-sm text-muted-foreground text-center">Register your furry friend</p>
             </CardContent>
           </Card>
         </Link>
@@ -145,7 +142,9 @@ const MyPetsSection = ({ pets, loading }: MyPetsSectionProps) => {
       {/* Empty State */}
       {pets.length === 0 && (
         <div className="text-center py-8">
-          <p className="text-muted-foreground mb-4">You haven't added any pets yet. Start by registering your first pet!</p>
+          <p className="text-muted-foreground mb-4">
+            You haven't added any pets yet. Start by registering your first pet!
+          </p>
         </div>
       )}
     </div>
