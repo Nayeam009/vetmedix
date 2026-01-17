@@ -107,7 +107,7 @@ const MyPetsSection = ({ pets, loading }: MyPetsSectionProps) => {
                       View
                     </Button>
                   </Link>
-                  <Link to={`/pet/${pet.id}/edit`}>
+                  <Link to={`/pets/${pet.id}/edit`}>
                     <Button size="sm" variant="outline" className="gap-1">
                       <Edit className="h-3 w-3" />
                       Edit
@@ -126,7 +126,7 @@ const MyPetsSection = ({ pets, loading }: MyPetsSectionProps) => {
         ))}
 
         {/* Add New Pet Card */}
-        <Link to="/pets/new">
+        <Link to="/create-pet">
           <Card className="h-full min-h-[280px] border-dashed border-2 hover:border-primary hover:bg-primary/5 transition-all duration-300 cursor-pointer group">
             <CardContent className="h-full flex flex-col items-center justify-center p-6">
               <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
