@@ -62,6 +62,22 @@ const CreatePetPage = () => {
       return;
     }
 
+    // Check pet count limit
+    const { count, error: countError } = await supabase
+      .from('pets')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+
+    if (countError) {
+      toast.error('Failed to verify pet limit');
+      return;
+    }
+
+    if (count !== null && count >= 30) {
+      toast.error('You have reached the maximum limit of 30 pets');
+      return;
+    }
+
     setSubmitting(true);
     try {
       let avatarUrl = null;
