@@ -1,8 +1,9 @@
 import { useState, useRef } from 'react';
-import { Camera, MapPin, MessageCircle, Heart, Users, Edit2, Loader2, Grid3X3, UserPlus, MoreHorizontal } from 'lucide-react';
+import { Camera, MapPin, MessageCircle, Heart, Users, Edit2, Loader2, Grid3X3, UserPlus, MoreHorizontal, Share2, Verified, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFollow } from '@/hooks/useFollow';
 import { useNavigate } from 'react-router-dom';
@@ -154,10 +155,19 @@ export const PetProfileCard = ({ pet, postsCount, isOwner, onPetUpdate }: PetPro
     }
   };
 
+  const handleShareProfile = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast.success('Profile link copied!');
+  };
+
+  const handleReportProfile = () => {
+    toast.info('Report feature coming soon');
+  };
+
   return (
-    <div className="bg-card shadow-sm rounded-2xl overflow-hidden">
-      {/* Cover Photo - Facebook Style */}
-      <div className="relative h-[140px] xs:h-[180px] sm:h-[220px] md:h-[280px] bg-gradient-to-r from-primary/20 via-accent/20 to-lavender/20">
+    <div className="bg-card shadow-sm rounded-none sm:rounded-2xl overflow-hidden">
+      {/* Hero Cover Photo Section */}
+      <div className="relative h-[160px] xs:h-[200px] sm:h-[260px] md:h-[320px] lg:h-[360px] overflow-hidden">
         {pet.cover_photo_url ? (
           <img 
             src={pet.cover_photo_url} 
@@ -165,27 +175,46 @@ export const PetProfileCard = ({ pet, postsCount, isOwner, onPetUpdate }: PetPro
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-accent/20 to-lavender/30 overflow-hidden">
-            <div className="absolute top-4 left-4 text-4xl opacity-20 animate-float">🐾</div>
-            <div className="absolute top-12 right-8 text-3xl opacity-15 animate-float" style={{ animationDelay: '1s' }}>✨</div>
-            <div className="absolute bottom-8 left-1/3 text-2xl opacity-20 animate-float" style={{ animationDelay: '2s' }}>💖</div>
+          /* Animated Gradient Hero Background */
+          <div className="absolute inset-0 bg-gradient-to-br from-lavender via-sky to-mint animate-gradient-slow">
+            {/* Animated floating elements */}
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute top-[10%] left-[5%] w-20 h-20 sm:w-32 sm:h-32 bg-white/10 rounded-full blur-2xl animate-float" />
+              <div className="absolute top-[30%] right-[10%] w-24 h-24 sm:w-40 sm:h-40 bg-white/15 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
+              <div className="absolute bottom-[20%] left-[20%] w-16 h-16 sm:w-28 sm:h-28 bg-white/10 rounded-full blur-2xl animate-float" style={{ animationDelay: '2s' }} />
+              <div className="absolute bottom-[10%] right-[25%] w-12 h-12 sm:w-20 sm:h-20 bg-white/20 rounded-full blur-xl animate-float" style={{ animationDelay: '3s' }} />
+              
+              {/* Decorative elements */}
+              <div className="absolute top-[15%] right-[15%] text-4xl sm:text-6xl opacity-20 animate-float">🐾</div>
+              <div className="absolute bottom-[25%] left-[10%] text-3xl sm:text-5xl opacity-15 animate-float" style={{ animationDelay: '1.5s' }}>💖</div>
+              <div className="absolute top-[50%] left-[40%] text-2xl sm:text-4xl opacity-10 animate-float" style={{ animationDelay: '2.5s' }}>✨</div>
+              <div className="absolute bottom-[15%] right-[15%] text-2xl sm:text-3xl opacity-15 animate-float" style={{ animationDelay: '0.5s' }}>🌟</div>
+            </div>
+            
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
           </div>
         )}
         
-        {/* Cover Photo Edit Button */}
+        {/* Cover Photo Overlay */}
+        {pet.cover_photo_url && (
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+        )}
+        
+        {/* Edit Cover Button */}
         {isOwner && (
           <button
             onClick={() => coverInputRef.current?.click()}
             disabled={uploadingCover}
-            className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 bg-white/90 hover:bg-white text-foreground text-xs sm:text-sm font-semibold rounded-lg shadow-md transition-all"
+            className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 bg-black/50 hover:bg-black/70 text-white text-xs sm:text-sm font-medium rounded-lg backdrop-blur-sm transition-all"
           >
             {uploadingCover ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <>
                 <Camera className="h-4 w-4" />
-                <span className="hidden sm:inline">Edit cover photo</span>
-                <span className="sm:hidden">Edit</span>
+                <span className="hidden sm:inline">{pet.cover_photo_url ? 'Change cover' : 'Add cover photo'}</span>
+                <span className="sm:hidden">Cover</span>
               </>
             )}
           </button>
@@ -200,14 +229,14 @@ export const PetProfileCard = ({ pet, postsCount, isOwner, onPetUpdate }: PetPro
       </div>
 
       {/* Profile Info Section */}
-      <div className="relative px-4 sm:px-6 pb-4 sm:pb-6">
+      <div className="relative px-4 sm:px-6 lg:px-8 pb-5 sm:pb-6">
         {/* Avatar */}
         <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-5">
-          <div className="relative -mt-[60px] xs:-mt-[70px] sm:-mt-[80px] self-center sm:self-start">
-            <div className="p-1 bg-card rounded-full shadow-lg">
-              <Avatar className="h-[100px] w-[100px] xs:h-[120px] xs:w-[120px] sm:h-[140px] sm:w-[140px] border-4 border-card">
+          <div className="relative -mt-[55px] xs:-mt-[65px] sm:-mt-[75px] md:-mt-[85px] self-center sm:self-start z-10">
+            <div className="p-1 bg-card rounded-full shadow-xl ring-4 ring-card">
+              <Avatar className="h-[90px] w-[90px] xs:h-[110px] xs:w-[110px] sm:h-[130px] sm:w-[130px] md:h-[150px] md:w-[150px]">
                 <AvatarImage src={pet.avatar_url || ''} alt={pet.name} className="object-cover" />
-                <AvatarFallback className="text-3xl xs:text-4xl sm:text-5xl bg-gradient-to-br from-primary/20 to-accent/20 text-primary font-bold">
+                <AvatarFallback className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl bg-gradient-to-br from-primary/30 to-accent/30 text-primary font-bold">
                   {pet.name.charAt(0)}
                 </AvatarFallback>
               </Avatar>
@@ -217,12 +246,12 @@ export const PetProfileCard = ({ pet, postsCount, isOwner, onPetUpdate }: PetPro
                 <button
                   onClick={() => avatarInputRef.current?.click()}
                   disabled={uploadingAvatar}
-                  className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-muted hover:bg-muted/80 border-2 border-card flex items-center justify-center shadow-md transition-colors"
+                  className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary hover:bg-primary/90 text-white flex items-center justify-center shadow-lg transition-colors"
                 >
                   {uploadingAvatar ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <Camera className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <Camera className="h-4 w-4" />
                   )}
                 </button>
                 <input
@@ -237,35 +266,42 @@ export const PetProfileCard = ({ pet, postsCount, isOwner, onPetUpdate }: PetPro
           </div>
 
           {/* Name & Info */}
-          <div className="flex-1 text-center sm:text-left sm:pb-2 min-w-0">
-            <h1 className="text-xl xs:text-2xl sm:text-3xl md:text-4xl font-bold text-foreground leading-tight truncate">
-              {pet.name}
-            </h1>
+          <div className="flex-1 text-center sm:text-left min-w-0 pt-2 sm:pt-0 sm:pb-1">
+            <div className="flex items-center justify-center sm:justify-start gap-2">
+              <h1 className="text-xl xs:text-2xl sm:text-3xl md:text-4xl font-bold text-foreground leading-tight truncate">
+                {pet.name}
+              </h1>
+              <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-sunshine flex-shrink-0" />
+            </div>
             
             {/* Species & Breed Badges */}
-            <div className="flex items-center justify-center sm:justify-start gap-2 mt-1.5 flex-wrap">
-              <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">
+            <div className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 mt-2 flex-wrap">
+              <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/10 text-xs font-medium">
                 {pet.species}
               </Badge>
               {pet.breed && (
-                <Badge variant="outline" className="text-muted-foreground">
+                <Badge variant="outline" className="text-muted-foreground text-xs">
                   {pet.breed}
                 </Badge>
               )}
               {pet.age && (
-                <Badge variant="outline" className="text-muted-foreground">
+                <Badge variant="outline" className="text-muted-foreground text-xs">
                   {pet.age}
                 </Badge>
               )}
             </div>
 
-            {/* Followers Count - Facebook Style */}
-            <div className="flex items-center justify-center sm:justify-start gap-1 mt-2 text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">{followersCount}</span>
-              <span>followers</span>
-              <span className="mx-1">•</span>
-              <span className="font-semibold text-foreground">{followingCount}</span>
-              <span>following</span>
+            {/* Followers Info */}
+            <div className="flex items-center justify-center sm:justify-start gap-x-4 gap-y-1 mt-2 text-xs sm:text-sm text-muted-foreground">
+              <span>
+                <span className="font-semibold text-foreground">{followersCount}</span> followers
+              </span>
+              <span>
+                <span className="font-semibold text-foreground">{followingCount}</span> following
+              </span>
+              <span>
+                <span className="font-semibold text-foreground">{postsCount}</span> posts
+              </span>
             </div>
             
             {/* Location */}
@@ -277,22 +313,27 @@ export const PetProfileCard = ({ pet, postsCount, isOwner, onPetUpdate }: PetPro
             )}
           </div>
 
-          {/* Action Buttons - Desktop */}
-          <div className="hidden sm:flex items-center gap-2 pb-2">
+          {/* Desktop Action Buttons */}
+          <div className="hidden sm:flex items-center gap-2 pb-1">
             {isOwner ? (
-              <Button 
-                onClick={() => navigate(`/pets/${pet.id}/edit`)}
-                className="gap-2 font-semibold"
-              >
-                <Edit2 className="h-4 w-4" />
-                Edit Profile
-              </Button>
+              <>
+                <Button 
+                  onClick={() => navigate(`/pets/${pet.id}/edit`)}
+                  className="gap-2 font-semibold shadow-sm"
+                >
+                  <Edit2 className="h-4 w-4" />
+                  Edit Profile
+                </Button>
+                <Button variant="secondary" size="icon" onClick={handleShareProfile} title="Share profile">
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              </>
             ) : (
               <>
                 <Button 
                   variant={isFollowing ? 'secondary' : 'default'}
                   onClick={handleFollowToggle}
-                  className="gap-2 font-semibold min-w-[120px]"
+                  className="gap-2 font-semibold min-w-[120px] shadow-sm"
                 >
                   {isFollowing ? (
                     <>
@@ -314,11 +355,24 @@ export const PetProfileCard = ({ pet, postsCount, isOwner, onPetUpdate }: PetPro
                   <MessageCircle className="h-4 w-4" />
                   Message
                 </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleShareProfile}>
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Share Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleReportProfile} className="text-destructive">
+                      Report
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             )}
-            <Button variant="outline" size="icon">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
           </div>
         </div>
 
@@ -330,21 +384,26 @@ export const PetProfileCard = ({ pet, postsCount, isOwner, onPetUpdate }: PetPro
         )}
 
         {/* Mobile Action Buttons */}
-        <div className="flex gap-2 mt-4 sm:hidden">
+        <div className="grid grid-cols-4 gap-2 mt-4 sm:hidden">
           {isOwner ? (
-            <Button 
-              onClick={() => navigate(`/pets/${pet.id}/edit`)}
-              className="flex-1 gap-2 font-semibold h-10"
-            >
-              <Edit2 className="h-4 w-4" />
-              Edit Profile
-            </Button>
+            <>
+              <Button 
+                onClick={() => navigate(`/pets/${pet.id}/edit`)}
+                className="col-span-3 gap-2 font-semibold h-10 shadow-sm"
+              >
+                <Edit2 className="h-4 w-4" />
+                Edit Profile
+              </Button>
+              <Button variant="secondary" onClick={handleShareProfile} className="h-10">
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </>
           ) : (
             <>
               <Button 
                 variant={isFollowing ? 'secondary' : 'default'}
                 onClick={handleFollowToggle}
-                className="flex-1 gap-2 font-semibold h-10"
+                className="col-span-2 gap-2 font-semibold h-10 shadow-sm"
               >
                 {isFollowing ? (
                   <>
@@ -361,43 +420,55 @@ export const PetProfileCard = ({ pet, postsCount, isOwner, onPetUpdate }: PetPro
               <Button 
                 variant="secondary"
                 onClick={handleMessage}
-                className="flex-1 gap-2 font-semibold h-10"
+                className="h-10"
               >
                 <MessageCircle className="h-4 w-4" />
-                Message
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="h-10">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleShareProfile}>
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Share Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleReportProfile} className="text-destructive">
+                    Report
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           )}
-          <Button variant="outline" size="icon" className="h-10 w-10 flex-shrink-0">
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
         </div>
 
         {/* Divider */}
         <div className="border-t border-border/50 mt-4 sm:mt-5" />
 
-        {/* Stats Row - Facebook Style */}
-        <div className="grid grid-cols-3 gap-2 mt-4">
-          <div className="flex flex-col items-center p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer">
-            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-              <Grid3X3 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+        {/* Stats Row */}
+        <div className="grid grid-cols-3 gap-1 sm:gap-3 mt-4">
+          <div className="flex flex-col items-center p-3 sm:p-4 rounded-xl hover:bg-primary/5 transition-colors cursor-pointer">
+            <div className="h-11 w-11 sm:h-14 sm:w-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-2">
+              <Grid3X3 className="h-5 w-5 sm:h-7 sm:w-7 text-primary" />
             </div>
-            <span className="text-lg sm:text-xl font-bold text-foreground">{postsCount}</span>
-            <span className="text-xs text-muted-foreground">Posts</span>
+            <span className="text-xl sm:text-2xl font-bold text-foreground">{postsCount}</span>
+            <span className="text-[11px] sm:text-xs text-muted-foreground font-medium">Posts</span>
           </div>
-          <div className="flex flex-col items-center p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer">
-            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-coral/10 flex items-center justify-center mb-2">
-              <Users className="h-5 w-5 sm:h-6 sm:w-6 text-coral" />
+          <div className="flex flex-col items-center p-3 sm:p-4 rounded-xl hover:bg-coral/5 transition-colors cursor-pointer">
+            <div className="h-11 w-11 sm:h-14 sm:w-14 rounded-full bg-gradient-to-br from-coral/20 to-coral/5 flex items-center justify-center mb-2">
+              <Users className="h-5 w-5 sm:h-7 sm:w-7 text-coral" />
             </div>
-            <span className="text-lg sm:text-xl font-bold text-foreground">{followersCount}</span>
-            <span className="text-xs text-muted-foreground">Followers</span>
+            <span className="text-xl sm:text-2xl font-bold text-foreground">{followersCount}</span>
+            <span className="text-[11px] sm:text-xs text-muted-foreground font-medium">Followers</span>
           </div>
-          <div className="flex flex-col items-center p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer">
-            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-accent/10 flex items-center justify-center mb-2">
-              <Heart className="h-5 w-5 sm:h-6 sm:w-6 text-accent" />
+          <div className="flex flex-col items-center p-3 sm:p-4 rounded-xl hover:bg-accent/5 transition-colors cursor-pointer">
+            <div className="h-11 w-11 sm:h-14 sm:w-14 rounded-full bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center mb-2">
+              <Heart className="h-5 w-5 sm:h-7 sm:w-7 text-accent" />
             </div>
-            <span className="text-lg sm:text-xl font-bold text-foreground">{followingCount}</span>
-            <span className="text-xs text-muted-foreground">Following</span>
+            <span className="text-xl sm:text-2xl font-bold text-foreground">{followingCount}</span>
+            <span className="text-[11px] sm:text-xs text-muted-foreground font-medium">Following</span>
           </div>
         </div>
       </div>
