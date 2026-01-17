@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, Sparkles } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, Verified, Bookmark } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -81,57 +81,63 @@ export const PostCard = ({ post, onLike, onUnlike, onDelete }: PostCardProps) =>
   };
 
   return (
-    <Card className="overflow-hidden border-0 shadow-card hover:shadow-hover transition-all duration-300 animate-fade-in bg-card rounded-2xl">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 pt-4">
+    <Card className="overflow-hidden border border-border/40 shadow-card hover:shadow-hover transition-all duration-300 bg-card/95 backdrop-blur-sm rounded-2xl group">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-3">
         <div 
-          className="flex items-center gap-3 cursor-pointer group"
+          className="flex items-center gap-3 cursor-pointer group/avatar"
           onClick={() => navigate(`/pet/${post.pet_id}`)}
         >
           <div className="relative">
-            <div className="p-0.5 rounded-full bg-gradient-to-br from-primary via-accent to-lavender">
-              <Avatar className="h-11 w-11 border-2 border-card">
-                <AvatarImage src={post.pet?.avatar_url || ''} alt={post.pet?.name} />
-                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary font-bold">
+            <div className="p-[2px] rounded-full bg-gradient-to-br from-primary via-coral-light to-accent shadow-sm">
+              <Avatar className="h-12 w-12 border-[2.5px] border-card">
+                <AvatarImage src={post.pet?.avatar_url || ''} alt={post.pet?.name} className="object-cover" />
+                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary font-bold text-lg">
                   {post.pet?.name?.charAt(0) || '?'}
                 </AvatarFallback>
               </Avatar>
             </div>
+            {/* Online indicator */}
+            <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 bg-mint rounded-full border-2 border-card" />
           </div>
           <div>
-            <p className="font-bold text-sm group-hover:text-primary transition-colors flex items-center gap-1">
-              {post.pet?.name}
-              <Sparkles className="h-3 w-3 text-sunshine" />
-            </p>
-            <p className="text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <p className="font-bold text-[15px] group-hover/avatar:text-primary transition-colors">
+                {post.pet?.name}
+              </p>
+              <Verified className="h-4 w-4 text-sky fill-sky-light" />
+            </div>
+            <p className="text-xs text-muted-foreground font-medium">
               {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
             </p>
           </div>
         </div>
         
-        {user?.id === post.user_id && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-card border shadow-lg rounded-xl">
-              <DropdownMenuItem 
-                onClick={handleDelete}
-                disabled={deleting}
-                className="text-destructive focus:text-destructive rounded-lg"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Post
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        <div className="flex items-center gap-1">
+          {user?.id === post.user_id && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity">
+                  <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-card border shadow-lg rounded-xl min-w-[140px]">
+                <DropdownMenuItem 
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10 rounded-lg cursor-pointer"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Post
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </CardHeader>
 
-      <CardContent className="pb-3 px-4">
+      <CardContent className="px-4 pb-3 pt-0">
         {post.content && (
-          <p className="text-sm mb-4 whitespace-pre-wrap leading-relaxed">{post.content}</p>
+          <p className="text-[15px] leading-relaxed mb-4 text-foreground/90 whitespace-pre-wrap">{post.content}</p>
         )}
         
         {post.media_urls && post.media_urls.length > 0 && (
@@ -157,7 +163,7 @@ export const PostCard = ({ post, onLike, onUnlike, onDelete }: PostCardProps) =>
                   <img 
                     src={url} 
                     alt="" 
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 cursor-pointer"
                   />
                 )}
                 {index === 3 && post.media_urls.length > 4 && (
@@ -173,48 +179,75 @@ export const PostCard = ({ post, onLike, onUnlike, onDelete }: PostCardProps) =>
         )}
       </CardContent>
 
-      <CardFooter className="flex flex-col pt-0 px-4 pb-4">
-        <div className="flex items-center justify-around w-full border-t border-border/50 pt-3">
+      {/* Engagement Stats */}
+      {(post.likes_count > 0 || post.comments_count > 0) && (
+        <div className="px-4 pb-2 flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center gap-4">
+            {post.likes_count > 0 && (
+              <span className="flex items-center gap-1.5">
+                <div className="flex -space-x-1">
+                  <div className="h-5 w-5 rounded-full bg-gradient-to-br from-red-400 to-red-500 flex items-center justify-center">
+                    <Heart className="h-3 w-3 text-white fill-white" />
+                  </div>
+                </div>
+                <span className="font-medium">{post.likes_count} {post.likes_count === 1 ? 'like' : 'likes'}</span>
+              </span>
+            )}
+          </div>
+          {post.comments_count > 0 && (
+            <button 
+              onClick={() => setShowComments(!showComments)}
+              className="hover:underline font-medium"
+            >
+              {post.comments_count} {post.comments_count === 1 ? 'comment' : 'comments'}
+            </button>
+          )}
+        </div>
+      )}
+
+      <CardFooter className="flex flex-col p-0">
+        <div className="flex items-center w-full border-t border-border/40 px-2 py-1">
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={handleLike}
-            className={`flex-1 gap-2 rounded-xl transition-all duration-200 ${
+            className={`flex-1 gap-2 h-11 rounded-xl font-semibold transition-all duration-200 ${
               post.liked_by_user 
-                ? 'text-destructive hover:text-destructive hover:bg-destructive/10' 
-                : 'hover:text-destructive hover:bg-destructive/5'
+                ? 'text-red-500 hover:text-red-500 hover:bg-red-500/10' 
+                : 'text-muted-foreground hover:text-red-500 hover:bg-red-500/5'
             }`}
           >
-            <Heart className={`h-5 w-5 transition-transform ${
-              post.liked_by_user ? 'fill-current' : ''
-            } ${isLiking ? 'scale-125' : ''}`} />
-            <span className="font-semibold">{post.likes_count > 0 ? post.likes_count : ''}</span>
+            <Heart className={`h-5 w-5 transition-all ${
+              post.liked_by_user ? 'fill-current scale-110' : ''
+            } ${isLiking ? 'scale-125 animate-bounce-gentle' : ''}`} />
+            <span className="text-sm">Like</span>
           </Button>
           
           <Button 
             variant="ghost" 
             size="sm"
             onClick={() => setShowComments(!showComments)}
-            className={`flex-1 gap-2 rounded-xl transition-all duration-200 hover:text-sky hover:bg-sky/5 ${
+            className={`flex-1 gap-2 h-11 rounded-xl font-semibold transition-all duration-200 text-muted-foreground hover:text-sky hover:bg-sky/5 ${
               showComments ? 'text-sky bg-sky/10' : ''
             }`}
           >
             <MessageCircle className="h-5 w-5" />
-            <span className="font-semibold">{post.comments_count > 0 ? post.comments_count : ''}</span>
+            <span className="text-sm">Comment</span>
           </Button>
           
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={handleShare}
-            className="flex-1 gap-2 rounded-xl transition-all duration-200 hover:text-accent hover:bg-accent/5"
+            className="flex-1 gap-2 h-11 rounded-xl font-semibold transition-all duration-200 text-muted-foreground hover:text-mint hover:bg-mint/5"
           >
             <Share2 className="h-5 w-5" />
+            <span className="text-sm">Share</span>
           </Button>
         </div>
 
         {showComments && (
-          <div className="w-full mt-4 animate-slide-up">
+          <div className="w-full p-4 pt-2 border-t border-border/40 animate-fade-in bg-muted/30">
             <CommentsSection postId={post.id} />
           </div>
         )}
