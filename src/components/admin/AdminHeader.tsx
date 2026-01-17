@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, Menu, Search, User, LogOut, PawPrint, Home } from 'lucide-react';
+import { Bell, Menu, Search, User, LogOut, Home, PanelLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
   DropdownMenu,
@@ -14,13 +14,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { AdminMobileNav } from './AdminMobileNav';
 import logo from '@/assets/logo.jpeg';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface AdminHeaderProps {
   title: string;
   subtitle?: string;
+  onToggleSidebar?: () => void;
+  collapsed?: boolean;
 }
 
-export const AdminHeader = ({ title, subtitle }: AdminHeaderProps) => {
+export const AdminHeader = ({ title, subtitle, onToggleSidebar, collapsed }: AdminHeaderProps) => {
   const { user, signOut } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -40,13 +43,32 @@ export const AdminHeader = ({ title, subtitle }: AdminHeaderProps) => {
             </SheetContent>
           </Sheet>
 
+          {/* Desktop Toggle Button */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={onToggleSidebar}
+                  className="hidden lg:flex h-9 w-9 text-muted-foreground hover:text-foreground"
+                >
+                  <PanelLeft className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           {/* Logo - Mobile Only */}
           <Link to="/admin" className="lg:hidden flex items-center gap-2 group">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-accent/30 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               <img 
                 src={logo} 
-                alt="PetConnect Admin" 
+                alt="VET-MEDIX Admin" 
                 className="relative h-9 w-9 rounded-xl object-cover shadow-md border-2 border-primary/20 group-hover:border-primary/50 transition-all"
               />
             </div>

@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
@@ -12,14 +13,27 @@ export interface StatCardProps {
   };
   description?: string;
   className?: string;
+  href?: string;
 }
 
-export const StatCard = ({ title, value, icon, trend, description, className }: StatCardProps) => {
+export const StatCard = ({ title, value, icon, trend, description, className, href }: StatCardProps) => {
+  const navigate = useNavigate();
+  
+  const handleClick = () => {
+    if (href) {
+      navigate(href);
+    }
+  };
+
   return (
-    <div className={cn(
-      "bg-card rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 border border-border shadow-sm hover:shadow-md transition-all",
-      className
-    )}>
+    <div 
+      onClick={handleClick}
+      className={cn(
+        "bg-card rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 border border-border shadow-sm hover:shadow-md transition-all",
+        href && "cursor-pointer hover:border-primary/30 hover:scale-[1.02] active:scale-[0.98]",
+        className
+      )}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-0.5 sm:mb-1 truncate">{title}</p>
