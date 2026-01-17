@@ -15,8 +15,7 @@ import gopalganjLogo from '@/assets/gopalganj-vet-care-logo.png';
 import ClinicReviewsSection from '@/components/clinic/ClinicReviewsSection';
 import { useClinicReviews } from '@/hooks/useClinicReviews';
 import { useClinicDoctorsWithSchedules } from '@/hooks/useDoctorSchedules';
-import { useAuth } from '@/contexts/AuthContext';
-import BookAppointmentWizard from '@/components/booking/BookAppointmentWizard';
+import BookAppointmentDialog from '@/components/clinic/BookAppointmentDialog';
 
 interface Clinic {
   id: string;
@@ -39,11 +38,10 @@ interface Clinic {
 const ClinicDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [isBooking, setIsBooking] = useState(false);
+  const [showBookingDialog, setShowBookingDialog] = useState(false);
   const isGopalganj = clinic?.name?.toLowerCase().includes('gopalganj');
   
   // Use the reviews hook for rating stats
@@ -80,42 +78,6 @@ const ClinicDetailPage = () => {
     }
   };
 
-  // Handle booking submission
-  const handleBookingSubmit = async (formData: any) => {
-    if (!user) {
-      toast.error('Please sign in to book an appointment');
-      navigate('/auth');
-      return;
-    }
-    
-    setIsBooking(true);
-    try {
-      const insertData: any = {
-        user_id: user.id, 
-        clinic_id: id,
-        appointment_date: formData.date, 
-        appointment_time: formData.time,
-        pet_name: formData.petName, 
-        pet_type: formData.petType, 
-        reason: formData.reason || ''
-      };
-
-      if (formData.doctorId) {
-        insertData.doctor_id = formData.doctorId;
-      }
-
-      const { error } = await supabase.from('appointments').insert([insertData]);
-      if (error) throw error;
-      
-      toast.success('Appointment Booked! You will receive a confirmation soon.');
-      navigate('/profile');
-    } catch (error: unknown) {
-      toast.error('Failed to book appointment. Please try again.');
-    } finally {
-      setIsBooking(false);
-    }
-  };
-  
   const handleShare = async () => {
     try {
       await navigator.share({
@@ -250,10 +212,8 @@ const ClinicDetailPage = () => {
                       <Button 
                         size="lg" 
                         className="shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all" 
-                        onClick={() => {
-                          const bookingSection = document.getElementById('booking-section');
-                          bookingSection?.scrollIntoView({ behavior: 'smooth' });
-                        }}
+                        onClick={() => setShowBookingDialog(true)}
+                        disabled={clinic.is_blocked}
                       >
                         <Calendar className="h-4 w-4 mr-2" />
                         Book Appointment
@@ -429,36 +389,38 @@ const ClinicDetailPage = () => {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6" id="booking-section">
+          <div className="space-y-6">
             {/* Book Appointment Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-border/50 lg:sticky lg:top-4 overflow-hidden">
-              <div className="bg-gradient-to-r from-primary/10 to-orange-50 p-4 sm:p-5 border-b border-border/50">
-                <h3 className="font-display font-bold text-foreground flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  Book Appointment
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">Schedule your visit in minutes</p>
-              </div>
-              
-              <div className="p-4 sm:p-5">
+              <div className="bg-gradient-to-r from-primary/10 to-orange-50 p-5 sm:p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Calendar className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-display font-bold text-foreground">Book Appointment</h3>
+                    <p className="text-sm text-muted-foreground">Schedule your visit</p>
+                  </div>
+                </div>
+                
                 {clinic?.is_blocked ? (
-                  <div className="text-center py-6">
-                    <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-3">
-                      <AlertCircle className="h-6 w-6 text-destructive" />
-                    </div>
+                  <div className="text-center py-4">
                     <p className="text-sm text-muted-foreground">This clinic is not accepting appointments</p>
                   </div>
-                ) : doctorsLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
                 ) : (
-                  <BookAppointmentWizard
-                    onSubmit={handleBookingSubmit}
-                    isPending={isBooking}
-                    doctors={doctorsWithSchedules}
-                    clinicName={clinic?.name}
-                  />
+                  <>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Get professional veterinary care for your pet. Book an appointment in just a few steps.
+                    </p>
+                    <Button 
+                      className="w-full shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all" 
+                      size="lg"
+                      onClick={() => setShowBookingDialog(true)}
+                    >
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Book Now
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -521,6 +483,16 @@ const ClinicDetailPage = () => {
 
       <Footer />
       <MobileNav />
+
+      {/* Booking Dialog */}
+      <BookAppointmentDialog
+        open={showBookingDialog}
+        onOpenChange={setShowBookingDialog}
+        clinicId={id || ''}
+        clinicName={clinic?.name || ''}
+        doctors={doctorsWithSchedules}
+        doctorsLoading={doctorsLoading}
+      />
     </div>;
 };
 export default ClinicDetailPage;
