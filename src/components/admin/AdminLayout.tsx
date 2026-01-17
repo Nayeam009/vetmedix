@@ -50,15 +50,18 @@ export const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-muted/30 via-background to-muted/20">
+      {/* Fixed Sidebar - Desktop Only */}
       <AdminSidebar 
         collapsed={collapsed} 
         onToggle={toggleSidebar}
         pendingOrders={pendingCounts?.pendingOrders}
         pendingVerifications={pendingCounts?.pendingVerifications}
       />
+      
+      {/* Main Content Area - Offset by sidebar width on desktop */}
       <div className={cn(
-        "transition-all duration-300 min-h-screen flex flex-col",
-        collapsed ? "lg:pl-[68px]" : "lg:pl-64"
+        "min-h-screen flex flex-col transition-[margin] duration-300 ease-in-out",
+        collapsed ? "lg:ml-[68px]" : "lg:ml-64"
       )}>
         <AdminHeader 
           title={title} 
@@ -68,7 +71,7 @@ export const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => 
           pendingOrders={pendingCounts?.pendingOrders}
           pendingVerifications={pendingCounts?.pendingVerifications}
         />
-        <main className="flex-1 p-3 sm:p-4 lg:p-6 xl:p-8">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 xl:p-8 overflow-x-hidden">
           {children}
         </main>
       </div>
