@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -553,27 +552,29 @@ const ClinicProfile = () => {
               <CardDescription className="text-xs sm:text-sm">When is your clinic open for appointments?</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 px-4 sm:px-6 pb-4 sm:pb-6 pt-0">
-              {/* Clinic Status Toggle */}
-              <div 
-                className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-muted/30 to-muted/10 border border-border/50 cursor-pointer active:scale-[0.99] transition-transform touch-manipulation"
-                onClick={(e) => {
-                  // Prevent double-toggle when clicking the Switch itself
-                  if ((e.target as HTMLElement).closest('button[role="switch"]')) return;
-                  setFormData(prev => ({ ...prev, is_open: !prev.is_open }));
-                }}
-              >
+              {/* Clinic Status Toggle - Using button instead of Switch to avoid ref issues */}
+              <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-muted/30 to-muted/10 border border-border/50">
                 <div className="flex-1 min-w-0 pr-4">
-                  <Label className="text-sm sm:text-base font-medium cursor-pointer">Clinic Status</Label>
+                  <Label className="text-sm sm:text-base font-medium">Clinic Status</Label>
                   <p className="text-xs sm:text-sm text-muted-foreground">
                     {formData.is_open ? 'Your clinic is visible as open' : 'Your clinic is visible as closed'}
                   </p>
                 </div>
-                <Switch
-                  checked={formData.is_open}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_open: checked }))}
-                  className="scale-110"
-                  onClick={(e) => e.stopPropagation()}
-                />
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, is_open: !prev.is_open }))}
+                  className={cn(
+                    "relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                    formData.is_open ? "bg-emerald-500" : "bg-muted"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform",
+                      formData.is_open ? "translate-x-6" : "translate-x-0.5"
+                    )}
+                  />
+                </button>
               </div>
 
               <div className="space-y-2">
