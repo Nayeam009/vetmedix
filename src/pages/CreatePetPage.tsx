@@ -23,8 +23,11 @@ import { toast } from 'sonner';
 
 const speciesOptions = [
   'Dog', 'Cat', 'Bird', 'Fish', 'Rabbit', 'Hamster', 
-  'Guinea Pig', 'Turtle', 'Snake', 'Lizard', 'Horse', 'Other'
+  'Guinea Pig', 'Turtle', 'Snake', 'Lizard', 'Horse', 'Cow', 'Goat', 'Sheep', 'Other'
 ];
+
+const MAX_PETS = 30;
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
 const CreatePetPage = () => {
   const navigate = useNavigate();
@@ -44,6 +47,10 @@ const CreatePetPage = () => {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > MAX_IMAGE_SIZE) {
+        toast.error('Image must be less than 5MB');
+        return;
+      }
       setAvatarFile(file);
       setAvatarPreview(URL.createObjectURL(file));
     }
@@ -73,8 +80,8 @@ const CreatePetPage = () => {
       return;
     }
 
-    if (count !== null && count >= 30) {
-      toast.error('You have reached the maximum limit of 30 pets');
+    if (count !== null && count >= MAX_PETS) {
+      toast.error(`You can create up to ${MAX_PETS} pet profiles`);
       return;
     }
 
