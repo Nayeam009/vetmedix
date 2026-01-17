@@ -215,13 +215,30 @@ const ClinicProfile = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-          {/* Clinic Photo & Status Card */}
-          <Card className="bg-white border-border/50 shadow-sm overflow-hidden">
-            {/* Cover Photo */}
+          {/* Hero Section - Clinic Photo & Status Card */}
+          <Card className="bg-white border-border/50 shadow-lg overflow-hidden">
+            {/* Cover Photo with Enhanced Design */}
             <div 
-              className="h-28 sm:h-36 bg-gradient-to-r from-primary/20 via-orange-100 to-amber-50 relative bg-cover bg-center"
+              className={cn(
+                "h-36 sm:h-48 relative bg-cover bg-center transition-all duration-300",
+                !formData.cover_photo_url && "bg-gradient-to-br from-primary/30 via-orange-200/50 to-amber-100"
+              )}
               style={formData.cover_photo_url ? { backgroundImage: `url(${formData.cover_photo_url})` } : undefined}
             >
+              {/* Overlay for better contrast */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
+              
+              {/* Upload Prompt when no cover */}
+              {!formData.cover_photo_url && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+                  <div className="w-14 h-14 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center mb-2 shadow-lg">
+                    <ImageIcon className="h-7 w-7 text-primary" />
+                  </div>
+                  <p className="text-sm font-medium text-foreground/80">Add a cover photo</p>
+                  <p className="text-xs text-muted-foreground">Recommended: 1200 x 400px</p>
+                </div>
+              )}
+              
               <input
                 ref={coverInputRef}
                 type="file"
@@ -229,11 +246,13 @@ const ClinicProfile = () => {
                 onChange={handleCoverChange}
                 className="hidden"
               />
+              
+              {/* Cover Photo Button */}
               <Button 
                 type="button" 
                 variant="secondary" 
                 size="sm" 
-                className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 rounded-lg shadow-md text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3 active:scale-95 transition-transform"
+                className="absolute bottom-3 right-3 rounded-xl shadow-lg text-xs sm:text-sm h-9 px-3 bg-white/90 backdrop-blur-sm hover:bg-white active:scale-95 transition-all"
                 onClick={() => coverInputRef.current?.click()}
                 disabled={uploadingCover}
               >
@@ -241,19 +260,40 @@ const ClinicProfile = () => {
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    <ImageIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5" />
-                    <span className="hidden sm:inline">Change Cover</span>
-                    <span className="sm:hidden">Cover</span>
+                    <Camera className="h-4 w-4 mr-1.5" />
+                    {formData.cover_photo_url ? 'Change Cover' : 'Add Cover'}
                   </>
                 )}
               </Button>
+
+              {/* Quick Status Toggle - Top Right */}
+              <div className="absolute top-3 right-3">
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, is_open: !prev.is_open }))}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-xl shadow-lg backdrop-blur-sm transition-all active:scale-95",
+                    formData.is_open 
+                      ? "bg-emerald-500/90 text-white hover:bg-emerald-500" 
+                      : "bg-red-500/90 text-white hover:bg-red-500"
+                  )}
+                >
+                  <div className={cn(
+                    "w-2.5 h-2.5 rounded-full animate-pulse",
+                    formData.is_open ? "bg-white" : "bg-white/70"
+                  )} />
+                  <span className="text-sm font-semibold">
+                    {formData.is_open ? 'Open' : 'Closed'}
+                  </span>
+                </button>
+              </div>
             </div>
             
-            {/* Avatar and Info */}
-            <CardContent className="pt-0 -mt-12 sm:-mt-14 relative px-3 sm:px-6 pb-4 sm:pb-6">
-              <div className="flex flex-col sm:flex-row items-center sm:items-end gap-3 sm:gap-4">
-                {/* Avatar */}
-                <div className="relative flex-shrink-0">
+            {/* Avatar and Info Section */}
+            <CardContent className="pt-0 -mt-14 sm:-mt-16 relative px-4 sm:px-6 pb-5 sm:pb-6">
+              <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4">
+                {/* Avatar with Upload */}
+                <div className="relative flex-shrink-0 group">
                   <input
                     ref={avatarInputRef}
                     type="file"
@@ -261,49 +301,104 @@ const ClinicProfile = () => {
                     onChange={handleAvatarChange}
                     className="hidden"
                   />
-                  <Avatar className="h-24 w-24 sm:h-28 sm:w-28 border-4 border-white shadow-xl">
-                    <AvatarImage src={formData.image_url} />
-                    <AvatarFallback className="text-2xl bg-gradient-to-br from-primary to-orange-400 text-white">
-                      <Building2 className="h-10 w-10" />
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative">
+                    <Avatar className="h-28 w-28 sm:h-32 sm:w-32 border-4 border-white shadow-2xl ring-4 ring-primary/10">
+                      <AvatarImage src={formData.image_url} className="object-cover" />
+                      <AvatarFallback className="text-3xl bg-gradient-to-br from-primary via-orange-400 to-amber-400 text-white">
+                        <Building2 className="h-12 w-12" />
+                      </AvatarFallback>
+                    </Avatar>
+                    {/* Hover overlay */}
+                    <div 
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/30 transition-all cursor-pointer flex items-center justify-center"
+                    >
+                      <Camera className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onClick={() => avatarInputRef.current?.click()}
                     disabled={uploadingAvatar}
-                    className="absolute bottom-1 right-1 h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-50"
+                    className="absolute bottom-1 right-1 h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-50 border-2 border-white"
                   >
                     {uploadingAvatar ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
-                      <Camera className="h-4 w-4" />
+                      <Camera className="h-5 w-5" />
                     )}
                   </button>
                 </div>
                 
-                {/* Info */}
-                <div className="flex-1 text-center sm:text-left pb-2 min-w-0">
-                  <h2 className="text-lg sm:text-xl font-bold text-foreground truncate">
-                    {formData.name || 'My Clinic'}
+                {/* Clinic Info */}
+                <div className="flex-1 text-center sm:text-left pb-1 min-w-0">
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground truncate">
+                    {formData.name || 'Your Clinic Name'}
                   </h2>
-                  <p className="text-muted-foreground text-xs sm:text-sm truncate">
-                    {formData.address || 'Add your address'}
+                  <p className="text-muted-foreground text-sm sm:text-base truncate flex items-center justify-center sm:justify-start gap-1.5 mt-1">
+                    <MapPin className="h-4 w-4 flex-shrink-0" />
+                    {formData.address || 'Add your clinic address'}
                   </p>
-                  <div className="flex items-center justify-center sm:justify-start gap-2 mt-2 flex-wrap">
-                    {(ownedClinic as any)?.is_verified ? (
-                      <Badge className="bg-emerald-500 hover:bg-emerald-500 gap-1 text-xs">
-                        <CheckCircle className="h-3 w-3" />
-                        Verified
+                  <div className="flex items-center justify-center sm:justify-start gap-2 mt-3 flex-wrap">
+                    {ownedClinic?.is_verified ? (
+                      <Badge className="bg-emerald-500 hover:bg-emerald-500 gap-1.5 text-xs px-3 py-1">
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        Verified Clinic
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50 text-xs">
+                      <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 text-xs px-3 py-1">
+                        <Clock className="h-3 w-3 mr-1" />
                         Pending Verification
                       </Badge>
                     )}
-                    <Badge variant={formData.is_open ? 'default' : 'secondary'} className="text-xs">
-                      {formData.is_open ? 'Open' : 'Closed'}
-                    </Badge>
+                    {formData.phone && (
+                      <Badge variant="outline" className="text-muted-foreground text-xs px-3 py-1">
+                        <Phone className="h-3 w-3 mr-1" />
+                        {formData.phone}
+                      </Badge>
+                    )}
                   </div>
+                </div>
+              </div>
+
+              {/* Quick Stats / Status Bar */}
+              <div className="mt-5 pt-4 border-t border-border/50">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className={cn(
+                        "w-3 h-3 rounded-full",
+                        formData.is_open ? "bg-emerald-500 animate-pulse" : "bg-red-400"
+                      )} />
+                      <span className="font-medium">
+                        Status: <span className={formData.is_open ? "text-emerald-600" : "text-red-500"}>
+                          {formData.is_open ? 'Currently Open' : 'Currently Closed'}
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, is_open: !prev.is_open }))}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-all active:scale-95",
+                      formData.is_open 
+                        ? "bg-red-50 text-red-600 hover:bg-red-100 border border-red-200" 
+                        : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200"
+                    )}
+                  >
+                    {formData.is_open ? (
+                      <>
+                        <X className="h-4 w-4" />
+                        Close Clinic
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="h-4 w-4" />
+                        Open Clinic
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             </CardContent>
