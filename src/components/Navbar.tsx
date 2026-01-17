@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, ShoppingCart, User, Menu, X, LogOut, Home, Store, Stethoscope, PawPrint, Compass, MessageCircle, Shield, Building2 } from 'lucide-react';
+import { Search, ShoppingCart, User, Menu, X, LogOut, Home, Store, Stethoscope, PawPrint, Compass, MessageCircle, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
-import { useAdmin } from '@/hooks/useAdmin';
 import { useUserRole } from '@/hooks/useUserRole';
-import { PetSwitcher } from '@/components/social/PetSwitcher';
 import { NotificationBell } from '@/components/social/NotificationBell';
 import logo from '@/assets/logo.jpeg';
 
@@ -15,7 +13,6 @@ const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { user, signOut } = useAuth();
   const { totalItems } = useCart();
-  const { isAdmin } = useAdmin();
   const { isDoctor, isClinicOwner } = useUserRole();
   const navigate = useNavigate();
   const location = useLocation();
@@ -105,22 +102,8 @@ const Navbar = () => {
               </Button>
             </Link>
 
-            {/* Admin Link - Only visible to admins */}
-            {isAdmin && (
-              <Link to="/admin">
-                <Button
-                  variant={isActive('/admin') ? 'secondary' : 'ghost'}
-                  size="sm"
-                  className="gap-2 text-primary"
-                >
-                  <Shield className="h-4 w-4" />
-                  Admin
-                </Button>
-              </Link>
-            )}
-
             {/* Clinic Owner Link */}
-            {isClinicOwner && !isActive('/admin') && (
+            {isClinicOwner && (
               <Link to="/clinic/dashboard">
                 <Button
                   variant={isActive('/clinic') ? 'secondary' : 'ghost'}
@@ -170,7 +153,6 @@ const Navbar = () => {
 
             {user ? (
               <div className="flex items-center gap-1">
-                <PetSwitcher />
                 <Link to="/profile">
                   <Button variant="ghost" size="icon">
                     <User className="h-5 w-5" />
@@ -257,16 +239,6 @@ const Navbar = () => {
               {user ? (
                 <>
                   {/* Role-based dashboard links */}
-                  {isAdmin && (
-                    <Link
-                      to="/admin"
-                      className="px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors flex items-center gap-3"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <Shield className="h-5 w-5" />
-                      Admin Panel
-                    </Link>
-                  )}
                   {isDoctor && (
                     <Link
                       to="/doctor/dashboard"
