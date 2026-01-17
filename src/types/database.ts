@@ -18,12 +18,18 @@ export interface Clinic {
   name: string;
   address: string | null;
   phone: string | null;
+  email: string | null;
+  description: string | null;
   rating: number;
   distance: string | null;
   services: string[] | null;
   image_url: string | null;
+  cover_photo_url: string | null;
   is_open: boolean;
   opening_hours: string | null;
+  is_verified: boolean;
+  verification_status: string | null;
+  owner_user_id: string | null;
   created_at: string;
 }
 

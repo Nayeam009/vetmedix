@@ -61,6 +61,7 @@ const ClinicProfile = () => {
     services: [] as string[],
     distance: '',
     image_url: '',
+    cover_photo_url: '',
   });
 
   useEffect(() => {
@@ -69,13 +70,14 @@ const ClinicProfile = () => {
         name: ownedClinic.name || '',
         address: ownedClinic.address || '',
         phone: ownedClinic.phone || '',
-        email: (ownedClinic as any).email || '',
-        description: (ownedClinic as any).description || '',
+        email: ownedClinic.email || '',
+        description: ownedClinic.description || '',
         opening_hours: ownedClinic.opening_hours || '',
         is_open: ownedClinic.is_open ?? true,
         services: ownedClinic.services || [],
         distance: ownedClinic.distance || '',
         image_url: ownedClinic.image_url || '',
+        cover_photo_url: ownedClinic.cover_photo_url || '',
       });
     }
   }, [ownedClinic]);
@@ -116,12 +118,11 @@ const ClinicProfile = () => {
         .from('clinic-images')
         .getPublicUrl(filePath);
 
-      // For now, we'll just update the main image_url for avatar
       if (type === 'avatar') {
         setFormData(prev => ({ ...prev, image_url: publicUrl }));
         toast.success('Clinic photo updated!');
       } else {
-        // Cover image could be stored in a separate field if available
+        setFormData(prev => ({ ...prev, cover_photo_url: publicUrl }));
         toast.success('Cover photo updated!');
       }
     } catch (error) {
@@ -163,7 +164,8 @@ const ClinicProfile = () => {
       services: formData.services.length > 0 ? formData.services : null,
       distance: formData.distance || null,
       image_url: formData.image_url || null,
-    } as any);
+      cover_photo_url: formData.cover_photo_url || null,
+    });
   };
 
   const toggleService = (service: string) => {
@@ -216,7 +218,10 @@ const ClinicProfile = () => {
           {/* Clinic Photo & Status Card */}
           <Card className="bg-white border-border/50 shadow-sm overflow-hidden">
             {/* Cover Photo */}
-            <div className="h-28 sm:h-36 bg-gradient-to-r from-primary/20 via-orange-100 to-amber-50 relative">
+            <div 
+              className="h-28 sm:h-36 bg-gradient-to-r from-primary/20 via-orange-100 to-amber-50 relative bg-cover bg-center"
+              style={formData.cover_photo_url ? { backgroundImage: `url(${formData.cover_photo_url})` } : undefined}
+            >
               <input
                 ref={coverInputRef}
                 type="file"
@@ -419,22 +424,22 @@ const ClinicProfile = () => {
             <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0">
               <div className="flex flex-wrap gap-2">
                 {serviceCategories.map((service) => (
-                  <Badge
+                  <button
+                    type="button"
                     key={service}
-                    variant={formData.services.includes(service) ? 'default' : 'outline'}
-                    className={cn(
-                      "cursor-pointer transition-all active:scale-95 py-2.5 sm:py-2 px-3 sm:px-3 text-xs sm:text-sm touch-manipulation select-none",
-                      formData.services.includes(service) 
-                        ? 'bg-primary hover:bg-primary/90' 
-                        : 'hover:bg-primary/10 hover:border-primary/50'
-                    )}
                     onClick={() => toggleService(service)}
+                    className={cn(
+                      "inline-flex items-center rounded-full border px-3 py-2 sm:py-1.5 text-xs sm:text-sm font-semibold transition-all active:scale-95 touch-manipulation select-none",
+                      formData.services.includes(service) 
+                        ? 'bg-primary text-primary-foreground border-transparent hover:bg-primary/90' 
+                        : 'border-input bg-background hover:bg-primary/10 hover:border-primary/50'
+                    )}
                   >
                     {formData.services.includes(service) && (
                       <CheckCircle className="h-3 w-3 mr-1 flex-shrink-0" />
                     )}
                     {service}
-                  </Badge>
+                  </button>
                 ))}
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground mt-4">

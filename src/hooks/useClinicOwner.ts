@@ -70,13 +70,7 @@ export const useClinicOwner = () => {
         .maybeSingle();
 
       if (error) throw error;
-      return data as (Clinic & { 
-        owner_user_id: string | null;
-        description: string | null;
-        email: string | null;
-        is_verified: boolean;
-        verification_status: string | null;
-      }) | null;
+      return data as Clinic | null;
     },
     enabled: !!user?.id,
   });
