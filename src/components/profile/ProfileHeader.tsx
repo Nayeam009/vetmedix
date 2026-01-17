@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, Loader2, Shield, PawPrint, ShoppingBag, Heart, Building2, Calendar, Settings, LogOut, Star, MapPin } from 'lucide-react';
+import { Camera, Loader2, Shield, PawPrint, ShoppingBag, Building2, Calendar, LogOut, Star, MapPin, ImagePlus } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ interface ProfileHeaderProps {
   profile: {
     full_name: string | null;
     avatar_url?: string | null;
+    cover_photo_url?: string | null;
     address?: string | null;
     division?: string | null;
   } | null;
@@ -27,6 +28,7 @@ interface ProfileHeaderProps {
   isAdmin: boolean;
   isClinicOwner: boolean;
   onAvatarUpdate: (url: string) => void;
+  onCoverUpdate?: (url: string) => void;
 }
 
 const ProfileHeader = ({ 
@@ -37,13 +39,16 @@ const ProfileHeader = ({
   appointmentsCount,
   isAdmin, 
   isClinicOwner, 
-  onAvatarUpdate 
+  onAvatarUpdate,
+  onCoverUpdate 
 }: ProfileHeaderProps) => {
   const { toast } = useToast();
   const { signOut } = useAuth();
   const navigate = useNavigate();
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   const getInitials = (name: string | null, email?: string) => {
     if (name) {
@@ -52,7 +57,7 @@ const ProfileHeader = ({
     return email?.charAt(0).toUpperCase() || 'U';
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -66,7 +71,7 @@ const ProfileHeader = ({
       return;
     }
 
-    setUploading(true);
+    setUploadingAvatar(true);
     try {
       const fileExt = file.name.split('.').pop();
       const filePath = `${user.id}/avatar.${fileExt}`;
@@ -89,12 +94,58 @@ const ProfileHeader = ({
       if (updateError) throw updateError;
 
       onAvatarUpdate(publicUrl);
-      toast({ title: "Avatar updated", description: "Your profile picture has been updated successfully." });
+      toast({ title: "Profile picture updated", description: "Your profile picture has been updated successfully." });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to upload avatar";
       toast({ title: "Upload failed", description: errorMessage, variant: "destructive" });
     } finally {
-      setUploading(false);
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Invalid file type", description: "Please upload an image file", variant: "destructive" });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Please upload an image smaller than 5MB", variant: "destructive" });
+      return;
+    }
+
+    setUploadingCover(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/cover.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ cover_photo_url: publicUrl })
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+
+      onCoverUpdate?.(publicUrl);
+      toast({ title: "Cover photo updated", description: "Your cover photo has been updated successfully." });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to upload cover photo";
+      toast({ title: "Upload failed", description: errorMessage, variant: "destructive" });
+    } finally {
+      setUploadingCover(false);
     }
   };
 
@@ -105,42 +156,73 @@ const ProfileHeader = ({
 
   return (
     <div className="relative mb-6">
-      {/* Cover Background */}
-      <div className="h-32 sm:h-40 md:h-48 bg-gradient-to-br from-primary via-primary/80 to-accent rounded-2xl sm:rounded-3xl overflow-hidden">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-1/4 right-1/4 w-32 h-32 bg-white rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-1/3 w-24 h-24 bg-white rounded-full blur-2xl" />
-        </div>
+      {/* Cover Photo */}
+      <div className="relative h-36 sm:h-44 md:h-52 rounded-2xl sm:rounded-3xl overflow-hidden group">
+        {profile?.cover_photo_url ? (
+          <img 
+            src={profile.cover_photo_url} 
+            alt="Cover" 
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="h-full bg-gradient-to-br from-primary via-primary/80 to-accent">
+            <div className="absolute inset-0 opacity-20">
+              <div className="absolute top-1/4 right-1/4 w-32 h-32 bg-white rounded-full blur-3xl" />
+              <div className="absolute bottom-0 left-1/3 w-24 h-24 bg-white rounded-full blur-2xl" />
+            </div>
+          </div>
+        )}
+        
+        {/* Cover Photo Upload Button */}
+        <button
+          onClick={() => coverInputRef.current?.click()}
+          disabled={uploadingCover}
+          className="absolute bottom-3 right-3 flex items-center gap-2 px-3 py-1.5 bg-black/50 hover:bg-black/70 text-white text-xs sm:text-sm font-medium rounded-lg backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100 sm:opacity-100"
+        >
+          {uploadingCover ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <ImagePlus className="h-4 w-4" />
+          )}
+          <span className="hidden sm:inline">{profile?.cover_photo_url ? 'Change Cover' : 'Add Cover'}</span>
+        </button>
+        <input
+          ref={coverInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleCoverChange}
+          className="hidden"
+        />
       </div>
 
       {/* Profile Content */}
-      <div className="relative px-4 sm:px-6 -mt-16 sm:-mt-20">
-        <div className="bg-white rounded-2xl shadow-lg border border-border/50 p-4 sm:p-6">
+      <div className="relative px-3 sm:px-6 -mt-14 sm:-mt-18">
+        <div className="bg-card rounded-2xl shadow-lg border border-border/50 p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
             {/* Avatar */}
             <div className="relative mx-auto sm:mx-0 -mt-16 sm:-mt-20">
-              <Avatar className="h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 border-4 border-white shadow-xl">
+              <Avatar className="h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 border-4 border-card shadow-xl">
                 <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || 'User'} />
                 <AvatarFallback className="text-2xl sm:text-3xl font-bold bg-gradient-to-br from-primary to-accent text-white">
                   {getInitials(profile?.full_name || null, user.email)}
                 </AvatarFallback>
               </Avatar>
               <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="absolute bottom-0 right-0 h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute bottom-0 right-0 h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors"
               >
-                {uploading ? (
+                {uploadingAvatar ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Camera className="h-4 w-4" />
                 )}
               </button>
               <input
-                ref={fileInputRef}
+                ref={avatarInputRef}
                 type="file"
                 accept="image/*"
-                onChange={handleFileChange}
+                onChange={handleAvatarChange}
                 className="hidden"
               />
             </div>

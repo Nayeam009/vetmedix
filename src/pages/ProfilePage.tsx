@@ -31,6 +31,7 @@ interface Profile {
   district: string | null;
   thana: string | null;
   avatar_url?: string | null;
+  cover_photo_url?: string | null;
 }
 
 interface Order {
@@ -186,6 +187,12 @@ const ProfilePage = () => {
     }
   };
 
+  const handleCoverUpdate = (url: string) => {
+    if (profile) {
+      setProfile({ ...profile, cover_photo_url: url });
+    }
+  };
+
   const divisions = getDivisions();
   const districts = formData.division ? getDistricts(formData.division) : [];
   const thanas = formData.division && formData.district ? getThanas(formData.division, formData.district) : [];
@@ -214,6 +221,7 @@ const ProfilePage = () => {
             isAdmin={isAdmin}
             isClinicOwner={isClinicOwner}
             onAvatarUpdate={handleAvatarUpdate}
+            onCoverUpdate={handleCoverUpdate}
           />
         )}
 
