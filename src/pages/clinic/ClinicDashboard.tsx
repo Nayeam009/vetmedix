@@ -5,7 +5,7 @@ import {
   Calendar, Clock, Users, Star, TrendingUp, 
   CheckCircle, XCircle, AlertCircle, Settings,
   Building2, Stethoscope, Package, Plus, Edit,
-  ChevronRight
+  ChevronRight, Activity, BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,8 +17,9 @@ import MobileNav from '@/components/MobileNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicOwner } from '@/hooks/useClinicOwner';
 import { useUserRole } from '@/hooks/useUserRole';
-import logo from '@/assets/logo.jpeg';
 import { cn } from '@/lib/utils';
+import ClinicAppointmentsList from '@/components/clinic/ClinicAppointmentsList';
+import QuickStatsOverview from '@/components/clinic/QuickStatsOverview';
 
 const ClinicDashboard = () => {
   const navigate = useNavigate();
@@ -235,80 +236,26 @@ const ClinicDashboard = () => {
 
           {/* Appointments Tab */}
           <TabsContent value="appointments" className="space-y-4">
+            {/* Quick Stats */}
+            <QuickStatsOverview 
+              appointments={clinicAppointments || []}
+              doctorsCount={activeDoctors.length}
+              servicesCount={clinicServices?.length || 0}
+            />
+            
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-row items-center justify-between pb-4">
                 <div>
-                  <CardTitle>Clinic Appointments</CardTitle>
-                  <CardDescription>All appointments at your clinic</CardDescription>
+                  <CardTitle>All Appointments</CardTitle>
+                  <CardDescription>Manage and review clinic appointments</CardDescription>
                 </div>
               </CardHeader>
               <CardContent>
-                {clinicAppointments && clinicAppointments.length > 0 ? (
-                  <div className="space-y-4">
-                    {clinicAppointments.slice(0, 10).map((apt: any) => (
-                      <div 
-                        key={apt.id} 
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <Users className="h-6 w-6 text-primary" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium truncate">{apt.pet_name || 'Unknown Pet'}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {apt.pet_type} • {apt.reason || 'General Checkup'}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {format(new Date(apt.appointment_date), 'MMM d, yyyy')} at {apt.appointment_time}
-                            </p>
-                            {apt.doctor && (
-                              <p className="text-sm text-primary mt-1">
-                                Dr. {apt.doctor.name}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 ml-16 sm:ml-0">
-                          <Badge className={getStatusColor(apt.status)}>
-                            {apt.status}
-                          </Badge>
-                          {apt.status === 'pending' && (
-                            <div className="flex gap-1">
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="text-green-600 hover:bg-green-50"
-                                onClick={() => updateAppointmentStatus.mutate({ 
-                                  id: apt.id, 
-                                  status: 'confirmed' 
-                                })}
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                className="text-red-600 hover:bg-red-50"
-                                onClick={() => updateAppointmentStatus.mutate({ 
-                                  id: apt.id, 
-                                  status: 'cancelled' 
-                                })}
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No appointments yet</p>
-                  </div>
-                )}
+                <ClinicAppointmentsList 
+                  appointments={clinicAppointments || []}
+                  onStatusChange={(id, status) => updateAppointmentStatus.mutate({ id, status })}
+                  isUpdating={updateAppointmentStatus.isPending}
+                />
               </CardContent>
             </Card>
           </TabsContent>

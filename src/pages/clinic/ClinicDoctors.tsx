@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Plus, Loader2, Stethoscope, Mail, Phone, Edit, Trash2, GraduationCap, BadgeDollarSign } from 'lucide-react';
+import { 
+  Plus, Loader2, Stethoscope, Mail, Phone, Edit, Trash2, 
+  GraduationCap, BadgeDollarSign, Calendar, Clock, ArrowLeft
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -39,7 +42,8 @@ import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useClinicOwner } from '@/hooks/useClinicOwner';
-import logo from '@/assets/logo.jpeg';
+import AddDoctorWizard from '@/components/clinic/AddDoctorWizard';
+import { cn } from '@/lib/utils';
 
 interface DoctorFormData {
   name: string;
@@ -325,22 +329,27 @@ const ClinicDoctors = () => {
           </div>
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Doctor
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">Add Doctor</span>
+                <span className="sm:hidden">Add</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Doctor</DialogTitle>
                 <DialogDescription>
-                  Create a doctor profile for your clinic. The doctor will be associated with {ownedClinic?.name}.
+                  Create a doctor profile for {ownedClinic?.name}
                 </DialogDescription>
               </DialogHeader>
-              <DoctorForm 
-                onSubmit={handleAddDoctor} 
-                submitLabel="Add Doctor" 
-                isPending={addDoctor.isPending} 
+              <AddDoctorWizard 
+                onSubmit={async (data) => {
+                  await addDoctor.mutateAsync(data);
+                  setIsAddOpen(false);
+                }}
+                isPending={addDoctor.isPending}
+                clinicName={ownedClinic?.name}
+                onCancel={() => setIsAddOpen(false)}
               />
             </DialogContent>
           </Dialog>
