@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -167,88 +168,90 @@ const Index = () => {
 
                 <CreatePostCard onPostCreated={refreshPosts} />
 
-                <TabsContent value="all" className="mt-0">
-                  {loading ? (
-                    <div className="flex flex-col items-center justify-center py-16">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-4">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <ScrollArea className="h-[600px] pr-4">
+                  <TabsContent value="all" className="mt-0">
+                    {loading ? (
+                      <div className="flex flex-col items-center justify-center py-16">
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-4">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                        <p className="text-muted-foreground font-medium">Loading amazing pet content...</p>
                       </div>
-                      <p className="text-muted-foreground font-medium">Loading amazing pet content...</p>
-                    </div>
-                  ) : posts.length === 0 ? (
-                    <Card className="border-0 shadow-card rounded-2xl overflow-hidden">
-                      <CardContent className="py-16 text-center">
-                        <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                          <span className="text-4xl animate-bounce-gentle">🐾</span>
-                        </div>
-                        <p className="text-lg font-bold text-foreground mb-2">No posts yet!</p>
-                        <p className="text-muted-foreground mb-6">Be the first to share something amazing</p>
-                        {user && pets.length > 0 && (
-                          <p className="text-sm text-muted-foreground">
-                            Use the post creator above to share your pet's first moment! ✨
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div className="space-y-6">
-                      {posts.map((post, index) => (
-                        <div key={post.id} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
-                          <PostCard
-                            post={post}
-                            onLike={likePost}
-                            onUnlike={unlikePost}
-                            onDelete={refreshPosts}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
+                    ) : posts.length === 0 ? (
+                      <Card className="border-0 shadow-card rounded-2xl overflow-hidden">
+                        <CardContent className="py-16 text-center">
+                          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                            <span className="text-4xl animate-bounce-gentle">🐾</span>
+                          </div>
+                          <p className="text-lg font-bold text-foreground mb-2">No posts yet!</p>
+                          <p className="text-muted-foreground mb-6">Be the first to share something amazing</p>
+                          {user && pets.length > 0 && (
+                            <p className="text-sm text-muted-foreground">
+                              Use the post creator above to share your pet's first moment! ✨
+                            </p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <div className="space-y-6">
+                        {posts.map((post, index) => (
+                          <div key={post.id} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                            <PostCard
+                              post={post}
+                              onLike={likePost}
+                              onUnlike={unlikePost}
+                              onDelete={refreshPosts}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
 
-                <TabsContent value="following" className="mt-0">
-                  {loading ? (
-                    <div className="flex flex-col items-center justify-center py-16">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent/20 to-mint/20 flex items-center justify-center mb-4">
-                        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+                  <TabsContent value="following" className="mt-0">
+                    {loading ? (
+                      <div className="flex flex-col items-center justify-center py-16">
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent/20 to-mint/20 flex items-center justify-center mb-4">
+                          <Loader2 className="h-8 w-8 animate-spin text-accent" />
+                        </div>
+                        <p className="text-muted-foreground font-medium">Loading your feed...</p>
                       </div>
-                      <p className="text-muted-foreground font-medium">Loading your feed...</p>
-                    </div>
-                  ) : posts.length === 0 ? (
-                    <Card className="border-0 shadow-card rounded-2xl overflow-hidden">
-                      <CardContent className="py-16 text-center">
-                        <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-accent/20 to-lavender/20 flex items-center justify-center">
-                          <Users className="h-10 w-10 text-accent" />
-                        </div>
-                        <p className="text-lg font-bold text-foreground mb-2">
-                          {user ? "Your feed is empty!" : "Join the community"}
-                        </p>
-                        <p className="text-muted-foreground mb-6">
-                          {user ? "Follow some adorable pets to see their posts here!" : "Login to see posts from pets you follow"}
-                        </p>
-                        <Link to="/explore">
-                          <Button className="btn-accent rounded-xl font-bold">
-                            <Search className="h-4 w-4 mr-2" />
-                            Discover Pets
-                          </Button>
-                        </Link>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div className="space-y-6">
-                      {posts.map((post, index) => (
-                        <div key={post.id} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
-                          <PostCard
-                            post={post}
-                            onLike={likePost}
-                            onUnlike={unlikePost}
-                            onDelete={refreshPosts}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
+                    ) : posts.length === 0 ? (
+                      <Card className="border-0 shadow-card rounded-2xl overflow-hidden">
+                        <CardContent className="py-16 text-center">
+                          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-accent/20 to-lavender/20 flex items-center justify-center">
+                            <Users className="h-10 w-10 text-accent" />
+                          </div>
+                          <p className="text-lg font-bold text-foreground mb-2">
+                            {user ? "Your feed is empty!" : "Join the community"}
+                          </p>
+                          <p className="text-muted-foreground mb-6">
+                            {user ? "Follow some adorable pets to see their posts here!" : "Login to see posts from pets you follow"}
+                          </p>
+                          <Link to="/explore">
+                            <Button className="btn-accent rounded-xl font-bold">
+                              <Search className="h-4 w-4 mr-2" />
+                              Discover Pets
+                            </Button>
+                          </Link>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <div className="space-y-6">
+                        {posts.map((post, index) => (
+                          <div key={post.id} className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                            <PostCard
+                              post={post}
+                              onLike={likePost}
+                              onUnlike={unlikePost}
+                              onDelete={refreshPosts}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+                </ScrollArea>
               </Tabs>
             </div>
 
