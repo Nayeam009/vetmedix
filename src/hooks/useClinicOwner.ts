@@ -75,6 +75,7 @@ export const useClinicOwner = () => {
         description: string | null;
         email: string | null;
         is_verified: boolean;
+        verification_status: string | null;
       }) | null;
     },
     enabled: !!user?.id,
