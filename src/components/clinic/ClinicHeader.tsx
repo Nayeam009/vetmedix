@@ -146,8 +146,8 @@ export const ClinicHeader = ({ title, showBackButton = false }: ClinicHeaderProp
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[280px] sm:w-[320px] p-0">
-                <SheetHeader className="p-4 pb-2 border-b border-border/50">
+              <SheetContent side="right" className="w-[280px] sm:w-[320px] p-0 h-[100dvh] max-h-[100dvh] flex flex-col overflow-hidden">
+                <SheetHeader className="p-4 pb-2 border-b border-border/50 flex-shrink-0">
                   <SheetTitle className="flex items-center gap-3">
                     <img 
                       src={logo} 
@@ -164,7 +164,7 @@ export const ClinicHeader = ({ title, showBackButton = false }: ClinicHeaderProp
                 </SheetHeader>
 
                 {/* Mobile Navigation */}
-                <div className="flex flex-col p-4 gap-1">
+                <div className="flex flex-col p-4 gap-1 flex-1 min-h-0 overflow-y-auto overscroll-contain">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-3">Clinic Management</p>
                   
                   {clinicNavItems.map((item) => {
@@ -174,10 +174,10 @@ export const ClinicHeader = ({ title, showBackButton = false }: ClinicHeaderProp
                         key={item.path}
                         to={item.path} 
                         onClick={() => setIsMenuOpen(false)}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                        className={`flex items-center gap-3 px-3 py-3 sm:py-2.5 rounded-xl text-sm font-medium transition-all min-h-[44px] active:scale-[0.98] ${
                           active 
                             ? 'bg-primary/10 text-primary' 
-                            : 'text-foreground hover:bg-muted/50'
+                            : 'text-foreground hover:bg-muted/50 active:bg-muted'
                         }`}
                       >
                         <item.icon className={`h-5 w-5 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
@@ -193,7 +193,7 @@ export const ClinicHeader = ({ title, showBackButton = false }: ClinicHeaderProp
                   <Link 
                     to="/profile" 
                     onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-all"
+                    className="flex items-center gap-3 px-3 py-3 sm:py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 active:bg-muted transition-all min-h-[44px] active:scale-[0.98]"
                   >
                     <User className="h-5 w-5 text-muted-foreground" />
                     My Profile
@@ -202,7 +202,7 @@ export const ClinicHeader = ({ title, showBackButton = false }: ClinicHeaderProp
                   <Link 
                     to="/" 
                     onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 transition-all"
+                    className="flex items-center gap-3 px-3 py-3 sm:py-2.5 rounded-xl text-sm font-medium text-foreground hover:bg-muted/50 active:bg-muted transition-all min-h-[44px] active:scale-[0.98]"
                   >
                     <Home className="h-5 w-5 text-muted-foreground" />
                     Back to Site
@@ -212,7 +212,7 @@ export const ClinicHeader = ({ title, showBackButton = false }: ClinicHeaderProp
 
                   <button
                     onClick={async () => { await signOut(); setIsMenuOpen(false); navigate('/'); }}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-all w-full text-left"
+                    className="flex items-center gap-3 px-3 py-3 sm:py-2.5 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 active:bg-destructive/20 transition-all w-full text-left min-h-[44px] active:scale-[0.98]"
                   >
                     <LogOut className="h-5 w-5" />
                     Sign Out

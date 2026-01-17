@@ -172,13 +172,13 @@ const ClinicAppointmentsList = ({
       </div>
 
       {/* Status Pills */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
+      <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-2 -mx-1 px-1">
         {Object.entries(statusCounts).map(([status, count]) => (
           <button
             key={status}
             onClick={() => setFilterStatus(status)}
             className={cn(
-              "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap",
+              "flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap min-h-[36px] sm:min-h-0 active:scale-95",
               filterStatus === status
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted hover:bg-muted/80 text-muted-foreground"
@@ -186,7 +186,7 @@ const ClinicAppointmentsList = ({
           >
             <span className="capitalize">{status}</span>
             <span className={cn(
-              "px-1.5 py-0.5 rounded-full text-xs",
+              "px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs",
               filterStatus === status ? "bg-primary-foreground/20" : "bg-background"
             )}>
               {count}
@@ -265,17 +265,17 @@ const ClinicAppointmentsList = ({
                           </div>
 
                           {/* Status & Actions */}
-                          <div className="flex items-center gap-2 ml-[72px] sm:ml-0">
-                            <Badge className={statusInfo.color}>
-                              <StatusIcon className="h-3 w-3 mr-1" />
+                          <div className="flex items-center gap-1.5 sm:gap-2 ml-[72px] sm:ml-0 flex-wrap">
+                            <Badge className={cn(statusInfo.color, "text-[10px] sm:text-xs")}>
+                              <StatusIcon className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
                               {statusInfo.label}
                             </Badge>
                             
-                            <div className="flex gap-1">
+                            <div className="flex gap-0.5 sm:gap-1">
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                className="h-8 w-8"
+                                className="h-9 w-9 sm:h-8 sm:w-8"
                                 onClick={() => setSelectedAppointment(apt)}
                               >
                                 <Eye className="h-4 w-4" />
@@ -286,7 +286,7 @@ const ClinicAppointmentsList = ({
                                   <Button 
                                     size="icon"
                                     variant="ghost"
-                                    className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                    className="h-9 w-9 sm:h-8 sm:w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100"
                                     onClick={() => onStatusChange(apt.id, 'confirmed')}
                                     disabled={isUpdating}
                                   >
@@ -295,7 +295,7 @@ const ClinicAppointmentsList = ({
                                   <Button 
                                     size="icon"
                                     variant="ghost"
-                                    className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    className="h-9 w-9 sm:h-8 sm:w-8 text-red-600 hover:text-red-700 hover:bg-red-50 active:bg-red-100"
                                     onClick={() => onStatusChange(apt.id, 'cancelled')}
                                     disabled={isUpdating}
                                   >
@@ -308,7 +308,7 @@ const ClinicAppointmentsList = ({
                                 <Button 
                                   size="sm"
                                   variant="outline"
-                                  className="h-8 text-blue-600 hover:bg-blue-50"
+                                  className="h-9 sm:h-8 text-xs sm:text-sm text-blue-600 hover:bg-blue-50 active:bg-blue-100 px-2 sm:px-3"
                                   onClick={() => onStatusChange(apt.id, 'completed')}
                                   disabled={isUpdating}
                                 >

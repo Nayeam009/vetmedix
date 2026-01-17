@@ -310,12 +310,12 @@ const ClinicProfile = () => {
               <CardDescription>Select all services your clinic provides</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {serviceCategories.map((service) => (
                   <Badge
                     key={service}
                     variant={formData.services.includes(service) ? 'default' : 'outline'}
-                    className={`cursor-pointer transition-all hover:scale-105 ${
+                    className={`cursor-pointer transition-all active:scale-95 py-2 sm:py-1.5 px-3 sm:px-2.5 text-xs sm:text-sm ${
                       formData.services.includes(service) 
                         ? 'bg-primary hover:bg-primary/90' 
                         : 'hover:bg-primary/10 hover:border-primary/50'

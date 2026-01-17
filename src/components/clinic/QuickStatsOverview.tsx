@@ -102,28 +102,28 @@ const QuickStatsOverview = ({ appointments, doctorsCount, servicesCount }: Quick
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
       {stats.map((stat, index) => {
         const Icon = stat.icon;
         return (
           <Card 
             key={index}
             className={cn(
-              "relative overflow-hidden transition-all hover:shadow-md",
+              "relative overflow-hidden transition-all hover:shadow-md active:scale-[0.98]",
               stat.alert && "ring-2 ring-amber-500/50"
             )}
           >
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground font-medium uppercase tracking-wide truncate">
                     {stat.title}
                   </p>
-                  <p className="text-2xl font-bold mt-1">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground">{stat.subtitle}</p>
+                  <p className="text-xl sm:text-2xl font-bold mt-0.5 sm:mt-1">{stat.value}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{stat.subtitle}</p>
                 </div>
-                <div className={cn("p-2 rounded-lg", stat.bgColor)}>
-                  <Icon className={cn("h-4 w-4", stat.color)} />
+                <div className={cn("p-1.5 sm:p-2 rounded-lg flex-shrink-0", stat.bgColor)}>
+                  <Icon className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4", stat.color)} />
                 </div>
               </div>
               {stat.alert && (
