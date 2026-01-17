@@ -4,7 +4,8 @@ import { format } from 'date-fns';
 import { 
   Calendar, Clock, Users, Star, TrendingUp, 
   CheckCircle, XCircle, AlertCircle, Settings,
-  Building2, Stethoscope, Package, Plus, Edit
+  Building2, Stethoscope, Package, Plus, Edit,
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,11 +18,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClinicOwner } from '@/hooks/useClinicOwner';
 import { useUserRole } from '@/hooks/useUserRole';
 import logo from '@/assets/logo.jpeg';
+import { cn } from '@/lib/utils';
 
 const ClinicDashboard = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { isClinicOwner, isLoading: roleLoading } = useUserRole();
+  const [activeTab, setActiveTab] = useState('appointments');
   const { 
     ownedClinic, 
     clinicLoading, 
@@ -123,9 +126,15 @@ const ClinicDashboard = () => {
           </Button>
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid - Clickable Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card>
+          <Card 
+            onClick={() => setActiveTab('appointments')}
+            className={cn(
+              "cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]",
+              activeTab === 'appointments' && "ring-2 ring-primary shadow-lg"
+            )}
+          >
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -136,10 +145,20 @@ const ClinicDashboard = () => {
                   <Calendar className="h-6 w-6 text-primary" />
                 </div>
               </div>
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+                <span className="text-xs text-muted-foreground">View appointments</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card 
+            onClick={() => setActiveTab('appointments')}
+            className={cn(
+              "cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]",
+              activeTab === 'appointments' && pendingAppointments.length > 0 && "ring-2 ring-yellow-500 shadow-lg"
+            )}
+          >
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -150,10 +169,20 @@ const ClinicDashboard = () => {
                   <Clock className="h-6 w-6 text-yellow-600" />
                 </div>
               </div>
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+                <span className="text-xs text-muted-foreground">View pending</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card 
+            onClick={() => setActiveTab('doctors')}
+            className={cn(
+              "cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]",
+              activeTab === 'doctors' && "ring-2 ring-green-500 shadow-lg"
+            )}
+          >
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -164,10 +193,20 @@ const ClinicDashboard = () => {
                   <Stethoscope className="h-6 w-6 text-green-600" />
                 </div>
               </div>
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+                <span className="text-xs text-muted-foreground">Manage doctors</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card 
+            onClick={() => setActiveTab('services')}
+            className={cn(
+              "cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]",
+              activeTab === 'services' && "ring-2 ring-blue-500 shadow-lg"
+            )}
+          >
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -178,11 +217,15 @@ const ClinicDashboard = () => {
                   <Package className="h-6 w-6 text-blue-600" />
                 </div>
               </div>
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+                <span className="text-xs text-muted-foreground">Manage services</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        <Tabs defaultValue="appointments" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full max-w-lg grid-cols-4">
             <TabsTrigger value="appointments">Appointments</TabsTrigger>
             <TabsTrigger value="doctors">Doctors</TabsTrigger>
