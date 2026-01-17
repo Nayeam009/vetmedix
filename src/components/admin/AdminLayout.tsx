@@ -1,7 +1,10 @@
 import { ReactNode, useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminHeader } from './AdminHeader';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useAdmin } from '@/hooks/useAdmin';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -16,21 +19,55 @@ export const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => 
     const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
     return stored === 'true';
   });
+  const { isAdmin } = useAdmin();
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
   }, [collapsed]);
 
+  // Fetch pending counts for badges
+  const { data: pendingCounts } = useQuery({
+    queryKey: ['admin-pending-counts'],
+    queryFn: async () => {
+      const [
+        { count: pendingOrders },
+        { count: pendingVerifications },
+      ] = await Promise.all([
+        supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('clinics').select('*', { count: 'exact', head: true }).eq('verification_status', 'pending'),
+      ]);
+
+      return {
+        pendingOrders: pendingOrders || 0,
+        pendingVerifications: pendingVerifications || 0,
+      };
+    },
+    enabled: isAdmin,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
   const toggleSidebar = () => setCollapsed(prev => !prev);
 
   return (
-    <div className="min-h-screen bg-background">
-      <AdminSidebar collapsed={collapsed} onToggle={toggleSidebar} />
+    <div className="min-h-screen bg-gradient-to-br from-muted/30 via-background to-muted/20">
+      <AdminSidebar 
+        collapsed={collapsed} 
+        onToggle={toggleSidebar}
+        pendingOrders={pendingCounts?.pendingOrders}
+        pendingVerifications={pendingCounts?.pendingVerifications}
+      />
       <div className={cn(
         "transition-all duration-300",
         collapsed ? "lg:pl-[68px]" : "lg:pl-64"
       )}>
-        <AdminHeader title={title} subtitle={subtitle} onToggleSidebar={toggleSidebar} collapsed={collapsed} />
+        <AdminHeader 
+          title={title} 
+          subtitle={subtitle} 
+          onToggleSidebar={toggleSidebar} 
+          collapsed={collapsed}
+          pendingOrders={pendingCounts?.pendingOrders}
+          pendingVerifications={pendingCounts?.pendingVerifications}
+        />
         <main className="p-4 lg:p-8">
           {children}
         </main>

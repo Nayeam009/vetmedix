@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Bell, Menu, Search, User, LogOut, Home, PanelLeft } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Bell, Menu, Search, User, LogOut, Home, PanelLeft, ShoppingCart, Building2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -15,17 +16,37 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { AdminMobileNav } from './AdminMobileNav';
 import logo from '@/assets/logo.jpeg';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 interface AdminHeaderProps {
   title: string;
   subtitle?: string;
   onToggleSidebar?: () => void;
   collapsed?: boolean;
+  pendingOrders?: number;
+  pendingVerifications?: number;
 }
 
-export const AdminHeader = ({ title, subtitle, onToggleSidebar, collapsed }: AdminHeaderProps) => {
+export const AdminHeader = ({ 
+  title, 
+  subtitle, 
+  onToggleSidebar, 
+  collapsed,
+  pendingOrders = 0,
+  pendingVerifications = 0
+}: AdminHeaderProps) => {
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
+
+  const totalPending = pendingOrders + pendingVerifications;
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries();
+    toast.success('Data refreshed');
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-sm">
@@ -100,16 +121,63 @@ export const AdminHeader = ({ title, subtitle, onToggleSidebar, collapsed }: Adm
             />
           </div>
 
-          {/* Mobile Search Button */}
-          <Button variant="ghost" size="icon" className="lg:hidden h-9 w-9 text-muted-foreground hover:text-foreground">
-            <Search className="h-4 w-4" />
-          </Button>
+          {/* Refresh Button */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleRefresh}
+                  className="hidden sm:flex h-9 w-9 text-muted-foreground hover:text-foreground"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Refresh data</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-          {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative h-9 w-9 text-muted-foreground hover:text-foreground">
-            <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
-          </Button>
+          {/* Notifications with Pending Actions */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative h-9 w-9 text-muted-foreground hover:text-foreground">
+                <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+                {totalPending > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center animate-pulse">
+                    {totalPending > 9 ? '9+' : totalPending}
+                  </span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-72">
+              <DropdownMenuLabel>Pending Actions</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {pendingOrders > 0 && (
+                <DropdownMenuItem onClick={() => navigate('/admin/orders?status=pending')} className="cursor-pointer py-3">
+                  <ShoppingCart className="h-4 w-4 mr-3 text-amber-500" />
+                  <span className="flex-1">{pendingOrders} pending order{pendingOrders !== 1 ? 's' : ''}</span>
+                  <Badge variant="outline" className="ml-2 bg-amber-50 text-amber-700 border-amber-200 text-[10px]">
+                    Action
+                  </Badge>
+                </DropdownMenuItem>
+              )}
+              {pendingVerifications > 0 && (
+                <DropdownMenuItem onClick={() => navigate('/admin/clinics?filter=pending')} className="cursor-pointer py-3">
+                  <Building2 className="h-4 w-4 mr-3 text-blue-500" />
+                  <span className="flex-1">{pendingVerifications} verification{pendingVerifications !== 1 ? 's' : ''}</span>
+                  <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-700 border-blue-200 text-[10px]">
+                    Review
+                  </Badge>
+                </DropdownMenuItem>
+              )}
+              {totalPending === 0 && (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  <p>All caught up! No pending actions.</p>
+                </div>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Back to Site - Desktop */}
           <Button variant="ghost" size="sm" className="hidden xl:flex gap-2 text-muted-foreground hover:text-foreground" asChild>
