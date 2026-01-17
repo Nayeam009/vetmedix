@@ -158,7 +158,7 @@ const Navbar = () => {
                     <User className="h-5 w-5" />
                   </Button>
                 </Link>
-                <Button variant="ghost" size="icon" onClick={() => { signOut(); navigate('/'); }}>
+                <Button variant="ghost" size="icon" onClick={signOut}>
                   <LogOut className="h-5 w-5" />
                 </Button>
               </div>
