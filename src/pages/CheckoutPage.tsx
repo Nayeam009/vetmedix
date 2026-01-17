@@ -30,6 +30,7 @@ import {
   FileText
 } from 'lucide-react';
 import { checkoutSchema } from '@/lib/validations';
+import { notifyAdminsOfNewOrder } from '@/lib/notifications';
 
 const paymentMethods = [
   {
@@ -124,15 +125,24 @@ const CheckoutPage = () => {
       const validatedData = validationResult.data;
       const shippingAddress = `${validatedData.fullName}, ${validatedData.phone}, ${validatedData.address}, ${validatedData.thana}, ${validatedData.district}, ${validatedData.division}`;
       
-      const { error } = await supabase.from('orders').insert([{
+      const { data: orderData, error } = await supabase.from('orders').insert([{
         user_id: user.id,
         items: items as any,
         total_amount: grandTotal,
         shipping_address: shippingAddress,
         payment_method: paymentMethod,
-      }]);
+      }]).select('id').single();
 
       if (error) throw error;
+
+      // Notify admins of new order
+      if (orderData) {
+        await notifyAdminsOfNewOrder({
+          orderId: orderData.id,
+          orderTotal: grandTotal,
+          itemCount: totalItems,
+        });
+      }
 
       clearCart();
       setOrderPlaced(true);

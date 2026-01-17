@@ -26,6 +26,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import logo from '@/assets/logo.jpeg';
+import { notifyAdminsOfNewVerification } from '@/lib/notifications';
 
 const ClinicVerificationPage = () => {
   const navigate = useNavigate();
@@ -136,6 +137,13 @@ const ClinicVerificationPage = () => {
         .eq('id', clinic.id);
 
       if (error) throw error;
+
+      // Notify all admins about new verification request
+      await notifyAdminsOfNewVerification({
+        clinicId: clinic.id,
+        clinicName: formData.clinicName,
+        ownerName: formData.ownerName,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-clinic-verification'] });

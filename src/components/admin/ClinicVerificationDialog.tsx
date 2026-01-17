@@ -42,6 +42,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { createClinicVerificationNotification } from '@/lib/notifications';
 
 interface Clinic {
   id: string;
@@ -89,6 +90,14 @@ export function ClinicVerificationDialog({
     mutationFn: async () => {
       if (!clinic) throw new Error('No clinic selected');
 
+      const { data: clinicData, error: fetchError } = await supabase
+        .from('clinics')
+        .select('owner_user_id')
+        .eq('id', clinic.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
       const { error } = await supabase
         .from('clinics')
         .update({
@@ -100,6 +109,16 @@ export function ClinicVerificationDialog({
         .eq('id', clinic.id);
 
       if (error) throw error;
+
+      // Notify clinic owner
+      if (clinicData?.owner_user_id) {
+        await createClinicVerificationNotification({
+          userId: clinicData.owner_user_id,
+          clinicId: clinic.id,
+          clinicName: clinic.name,
+          status: 'approved',
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-clinics'] });
@@ -118,6 +137,14 @@ export function ClinicVerificationDialog({
       if (!clinic) throw new Error('No clinic selected');
       if (!rejectionReason.trim()) throw new Error('Rejection reason is required');
 
+      const { data: clinicData, error: fetchError } = await supabase
+        .from('clinics')
+        .select('owner_user_id')
+        .eq('id', clinic.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
       const { error } = await supabase
         .from('clinics')
         .update({
@@ -129,6 +156,17 @@ export function ClinicVerificationDialog({
         .eq('id', clinic.id);
 
       if (error) throw error;
+
+      // Notify clinic owner
+      if (clinicData?.owner_user_id) {
+        await createClinicVerificationNotification({
+          userId: clinicData.owner_user_id,
+          clinicId: clinic.id,
+          clinicName: clinic.name,
+          status: 'rejected',
+          reason: rejectionReason,
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-clinics'] });
@@ -150,6 +188,14 @@ export function ClinicVerificationDialog({
 
       const isCurrentlyBlocked = clinic.is_blocked;
 
+      const { data: clinicData, error: fetchError } = await supabase
+        .from('clinics')
+        .select('owner_user_id')
+        .eq('id', clinic.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
       const { error } = await supabase
         .from('clinics')
         .update({
@@ -160,6 +206,17 @@ export function ClinicVerificationDialog({
         .eq('id', clinic.id);
 
       if (error) throw error;
+
+      // Notify clinic owner
+      if (clinicData?.owner_user_id) {
+        await createClinicVerificationNotification({
+          userId: clinicData.owner_user_id,
+          clinicId: clinic.id,
+          clinicName: clinic.name,
+          status: isCurrentlyBlocked ? 'unblocked' : 'blocked',
+          reason: isCurrentlyBlocked ? undefined : blockReason || 'Blocked by admin',
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-clinics'] });
