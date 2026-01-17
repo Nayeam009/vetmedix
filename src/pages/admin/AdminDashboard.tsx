@@ -12,7 +12,7 @@ import {
   Building2,
   MessageSquare,
   CalendarDays,
-  CheckCircle
+  ExternalLink
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { StatCard } from '@/components/admin/StatCard';
@@ -62,16 +62,18 @@ const AdminDashboard = () => {
     switch (status?.toLowerCase()) {
       case 'delivered':
       case 'completed':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
       case 'processing':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
       case 'shipped':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400';
       case 'cancelled':
-        return 'bg-red-100 text-red-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400';
     }
   };
 
@@ -84,23 +86,27 @@ const AdminDashboard = () => {
           value={`৳${stats?.totalRevenue?.toLocaleString() || 0}`}
           icon={<DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />}
           trend={{ value: 12.5, isPositive: true }}
+          href="/admin/analytics"
         />
         <StatCard
           title="Total Orders"
           value={stats?.totalOrders || 0}
           icon={<ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />}
           trend={{ value: 8.2, isPositive: true }}
+          href="/admin/orders"
         />
         <StatCard
           title="Total Products"
           value={stats?.totalProducts || 0}
           icon={<Package className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />}
+          href="/admin/products"
         />
         <StatCard
           title="Total Customers"
           value={stats?.totalUsers || 0}
           icon={<Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />}
           trend={{ value: 5.1, isPositive: true }}
+          href="/admin/customers"
         />
       </div>
 
@@ -111,23 +117,27 @@ const AdminDashboard = () => {
           value={stats?.totalClinics || 0}
           icon={<Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />}
           description={`${stats?.verifiedClinics || 0} verified`}
+          href="/admin/clinics"
         />
         <StatCard
           title="Appointments"
           value={stats?.totalAppointments || 0}
           icon={<CalendarDays className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />}
           description={`${stats?.appointmentsToday || 0} today`}
+          href="/admin/clinics"
         />
         <StatCard
           title="Social Posts"
           value={stats?.totalPosts || 0}
           icon={<MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />}
           description={`${stats?.postsToday || 0} today`}
+          href="/admin/social"
         />
         <StatCard
           title="Pending Orders"
           value={stats?.pendingOrders || 0}
           icon={<Clock className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />}
+          href="/admin/orders?status=pending"
         />
       </div>
 
@@ -156,9 +166,13 @@ const AdminDashboard = () => {
             ) : (
               <div className="space-y-2 sm:space-y-3">
                 {stats?.recentOrders?.map((order: any) => (
-                  <div key={order.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors gap-2 sm:gap-4">
+                  <div 
+                    key={order.id} 
+                    onClick={() => navigate('/admin/orders')}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors gap-2 sm:gap-4 cursor-pointer group"
+                  >
                     <div className="flex items-center justify-between sm:block">
-                      <p className="font-medium text-sm sm:text-base">#{order.id.slice(0, 8)}</p>
+                      <p className="font-medium text-sm sm:text-base group-hover:text-primary transition-colors">#{order.id.slice(0, 8)}</p>
                       <p className="text-xs sm:text-sm text-muted-foreground">
                         {format(new Date(order.created_at), 'PP')}
                       </p>
@@ -168,6 +182,7 @@ const AdminDashboard = () => {
                         {order.status}
                       </Badge>
                       <span className="font-bold text-primary text-sm sm:text-base">৳{order.total_amount}</span>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block" />
                     </div>
                   </div>
                 ))}
@@ -185,19 +200,28 @@ const AdminDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0 space-y-4 sm:space-y-5">
-            <div className="flex items-center justify-between">
+            <div 
+              onClick={() => navigate('/admin/orders?status=pending')}
+              className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary/50 cursor-pointer transition-colors"
+            >
               <span className="text-sm text-muted-foreground">Pending Orders</span>
               <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800">
                 {stats?.pendingOrders || 0}
               </Badge>
             </div>
-            <div className="flex items-center justify-between">
+            <div 
+              onClick={() => navigate('/admin/clinics')}
+              className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary/50 cursor-pointer transition-colors"
+            >
               <span className="text-sm text-muted-foreground">Verified Clinics</span>
               <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800">
                 {stats?.verifiedClinics || 0} / {stats?.totalClinics || 0}
               </Badge>
             </div>
-            <div className="flex items-center justify-between">
+            <div 
+              onClick={() => navigate('/admin/clinics')}
+              className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary/50 cursor-pointer transition-colors"
+            >
               <span className="text-sm text-muted-foreground">Today's Appointments</span>
               <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
                 {stats?.appointmentsToday || 0}
