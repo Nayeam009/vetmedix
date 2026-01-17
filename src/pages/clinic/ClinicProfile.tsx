@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Save, Loader2, Camera, Building2, MapPin, 
   Phone, Mail, Clock, CheckCircle, ChevronLeft,
-  Image as ImageIcon, Sparkles, X, Upload
+  Image as ImageIcon, Sparkles, X, Upload, Settings, Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -214,56 +214,18 @@ const ClinicProfile = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-          {/* Hero Section - Clinic Photo & Status Card */}
+          {/* Hero Section - Clinic Preview Card */}
           <Card className="bg-white border-border/50 shadow-lg overflow-hidden">
-            {/* Cover Photo with Enhanced Design */}
+            {/* Cover Photo Display */}
             <div 
               className={cn(
-                "h-36 sm:h-48 relative bg-cover bg-center transition-all duration-300",
+                "h-32 sm:h-40 relative bg-cover bg-center transition-all duration-300",
                 !formData.cover_photo_url && "bg-gradient-to-br from-primary/30 via-orange-200/50 to-amber-100"
               )}
               style={formData.cover_photo_url ? { backgroundImage: `url(${formData.cover_photo_url})` } : undefined}
             >
               {/* Overlay for better contrast */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
-              
-              {/* Upload Prompt when no cover */}
-              {!formData.cover_photo_url && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-                  <div className="w-14 h-14 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center mb-2 shadow-lg">
-                    <ImageIcon className="h-7 w-7 text-primary" />
-                  </div>
-                  <p className="text-sm font-medium text-foreground/80">Add a cover photo</p>
-                  <p className="text-xs text-muted-foreground">Recommended: 1200 x 400px</p>
-                </div>
-              )}
-              
-              <input
-                ref={coverInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleCoverChange}
-                className="hidden"
-              />
-              
-              {/* Cover Photo Button */}
-              <Button 
-                type="button" 
-                variant="secondary" 
-                size="sm" 
-                className="absolute bottom-3 right-3 rounded-xl shadow-lg text-xs sm:text-sm h-9 px-3 bg-white/90 backdrop-blur-sm hover:bg-white active:scale-95 transition-all"
-                onClick={() => coverInputRef.current?.click()}
-                disabled={uploadingCover}
-              >
-                {uploadingCover ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <Camera className="h-4 w-4 mr-1.5" />
-                    {formData.cover_photo_url ? 'Change Cover' : 'Add Cover'}
-                  </>
-                )}
-              </Button>
 
               {/* Quick Status Toggle - Top Right */}
               <div className="absolute top-3 right-3">
@@ -289,44 +251,16 @@ const ClinicProfile = () => {
             </div>
             
             {/* Avatar and Info Section */}
-            <CardContent className="pt-0 -mt-14 sm:-mt-16 relative px-4 sm:px-6 pb-5 sm:pb-6">
+            <CardContent className="pt-0 -mt-12 sm:-mt-14 relative px-4 sm:px-6 pb-5 sm:pb-6">
               <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4">
-                {/* Avatar with Upload */}
-                <div className="relative flex-shrink-0 group">
-                  <input
-                    ref={avatarInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarChange}
-                    className="hidden"
-                  />
-                  <div className="relative">
-                    <Avatar className="h-28 w-28 sm:h-32 sm:w-32 border-4 border-white shadow-2xl ring-4 ring-primary/10">
-                      <AvatarImage src={formData.image_url} className="object-cover" />
-                      <AvatarFallback className="text-3xl bg-gradient-to-br from-primary via-orange-400 to-amber-400 text-white">
-                        <Building2 className="h-12 w-12" />
-                      </AvatarFallback>
-                    </Avatar>
-                    {/* Hover overlay */}
-                    <div 
-                      onClick={() => avatarInputRef.current?.click()}
-                      className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/30 transition-all cursor-pointer flex items-center justify-center"
-                    >
-                      <Camera className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => avatarInputRef.current?.click()}
-                    disabled={uploadingAvatar}
-                    className="absolute bottom-1 right-1 h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-50 border-2 border-white"
-                  >
-                    {uploadingAvatar ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <Camera className="h-5 w-5" />
-                    )}
-                  </button>
+                {/* Avatar Display */}
+                <div className="relative flex-shrink-0">
+                  <Avatar className="h-24 w-24 sm:h-28 sm:w-28 border-4 border-white shadow-2xl ring-4 ring-primary/10">
+                    <AvatarImage src={formData.image_url} className="object-cover" />
+                    <AvatarFallback className="text-3xl bg-gradient-to-br from-primary via-orange-400 to-amber-400 text-white">
+                      <Building2 className="h-10 w-10" />
+                    </AvatarFallback>
+                  </Avatar>
                 </div>
                 
                 {/* Clinic Info */}
@@ -589,6 +523,144 @@ const ClinicProfile = () => {
                 <p className="text-xs sm:text-sm text-muted-foreground">
                   Describe your typical operating schedule
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Settings Section - Photo Uploads */}
+          <Card className="bg-white border-border/50 shadow-sm">
+            <CardHeader className="px-4 sm:px-6 py-4 sm:py-6">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                <Settings className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                Settings
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Manage your clinic's photos and branding</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5 px-4 sm:px-6 pb-5 sm:pb-6 pt-0">
+              {/* Hidden file inputs */}
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="hidden"
+              />
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleCoverChange}
+                className="hidden"
+              />
+
+              {/* Profile Photo Upload */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Clinic Logo / Profile Photo</Label>
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-2 border-border shadow-md">
+                      <AvatarImage src={formData.image_url} className="object-cover" />
+                      <AvatarFallback className="text-xl bg-gradient-to-br from-primary to-orange-400 text-white">
+                        <Building2 className="h-8 w-8" />
+                      </AvatarFallback>
+                    </Avatar>
+                    {uploadingAvatar && (
+                      <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 text-white animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      Upload a square image for best results. Max 5MB.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        className="rounded-lg h-9 text-xs sm:text-sm active:scale-95 transition-transform"
+                        onClick={() => avatarInputRef.current?.click()}
+                        disabled={uploadingAvatar}
+                      >
+                        <Upload className="h-4 w-4 mr-1.5" />
+                        {formData.image_url ? 'Change Photo' : 'Upload Photo'}
+                      </Button>
+                      {formData.image_url && (
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm"
+                          className="rounded-lg h-9 text-xs sm:text-sm text-destructive hover:text-destructive hover:bg-destructive/10 active:scale-95 transition-transform"
+                          onClick={() => setFormData(prev => ({ ...prev, image_url: '' }))}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1.5" />
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Cover Photo Upload */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Cover Photo</Label>
+                <div className="space-y-3">
+                  {/* Cover Preview */}
+                  <div 
+                    className={cn(
+                      "relative h-28 sm:h-36 rounded-xl overflow-hidden bg-cover bg-center border border-border",
+                      !formData.cover_photo_url && "bg-gradient-to-br from-primary/20 via-orange-100 to-amber-50"
+                    )}
+                    style={formData.cover_photo_url ? { backgroundImage: `url(${formData.cover_photo_url})` } : undefined}
+                  >
+                    {!formData.cover_photo_url && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                        <ImageIcon className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                        <p className="text-xs text-muted-foreground">No cover photo</p>
+                      </div>
+                    )}
+                    {uploadingCover && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <Loader2 className="h-8 w-8 text-white animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      Recommended: 1200 x 400px. Max 5MB.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        className="rounded-lg h-9 text-xs sm:text-sm active:scale-95 transition-transform"
+                        onClick={() => coverInputRef.current?.click()}
+                        disabled={uploadingCover}
+                      >
+                        <Camera className="h-4 w-4 mr-1.5" />
+                        {formData.cover_photo_url ? 'Change Cover' : 'Upload Cover'}
+                      </Button>
+                      {formData.cover_photo_url && (
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="sm"
+                          className="rounded-lg h-9 text-xs sm:text-sm text-destructive hover:text-destructive hover:bg-destructive/10 active:scale-95 transition-transform"
+                          onClick={() => setFormData(prev => ({ ...prev, cover_photo_url: '' }))}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1.5" />
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
