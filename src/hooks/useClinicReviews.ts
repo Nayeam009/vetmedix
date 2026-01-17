@@ -36,7 +36,7 @@ export const useClinicReviews = (clinicId: string) => {
       // Fetch profiles for each reviewer
       const userIds = [...new Set(data.map(r => r.user_id))];
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('user_id, full_name, avatar_url')
         .in('user_id', userIds);
 
