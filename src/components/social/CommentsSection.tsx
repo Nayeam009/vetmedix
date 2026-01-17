@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Send, Trash2 } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
@@ -43,9 +43,9 @@ export const CommentsSection = ({ postId }: CommentsSectionProps) => {
     <div className="space-y-3">
       {/* New comment input */}
       <form onSubmit={handleSubmit} className="flex gap-2">
-        <Avatar className="h-8 w-8 ring-1 ring-border flex-shrink-0">
+        <Avatar className="h-7 w-7 sm:h-8 sm:w-8 ring-1 ring-border flex-shrink-0">
           <AvatarImage src={activePet?.avatar_url || ''} className="object-cover" />
-          <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+          <AvatarFallback className="bg-primary/10 text-primary text-[10px] sm:text-xs font-semibold">
             {activePet?.name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'U'}
           </AvatarFallback>
         </Avatar>
@@ -57,7 +57,7 @@ export const CommentsSection = ({ postId }: CommentsSectionProps) => {
             onChange={(e) => setNewComment(e.target.value)}
             disabled={!user || submitting}
             maxLength={500}
-            className="w-full h-9 bg-muted rounded-full px-4 pr-10 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+            className="w-full h-8 sm:h-9 bg-muted rounded-full px-3 sm:px-4 pr-9 sm:pr-10 text-xs sm:text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -71,56 +71,56 @@ export const CommentsSection = ({ postId }: CommentsSectionProps) => {
               size="icon"
               variant="ghost"
               disabled={!user || submitting}
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full text-primary hover:bg-primary/10"
+              className="absolute right-0.5 sm:right-1 top-1/2 -translate-y-1/2 h-6 w-6 sm:h-7 sm:w-7 rounded-full text-primary hover:bg-primary/10"
             >
-              <Send className="h-4 w-4" />
+              <Send className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           )}
         </div>
       </form>
 
       {/* Comments list */}
-      <div className="space-y-3 max-h-80 overflow-y-auto">
+      <div className="space-y-2 sm:space-y-3 max-h-60 sm:max-h-80 overflow-y-auto">
         {loading ? (
-          <p className="text-sm text-muted-foreground text-center py-2">Loading...</p>
+          <p className="text-xs sm:text-sm text-muted-foreground text-center py-2">Loading...</p>
         ) : comments.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-2">No comments yet. Be the first!</p>
+          <p className="text-xs sm:text-sm text-muted-foreground text-center py-2">No comments yet. Be the first!</p>
         ) : (
           comments.map((comment) => (
             <div key={comment.id} className="flex gap-2 group">
               <Avatar 
-                className="h-8 w-8 ring-1 ring-border cursor-pointer flex-shrink-0"
+                className="h-7 w-7 sm:h-8 sm:w-8 ring-1 ring-border cursor-pointer flex-shrink-0"
                 onClick={() => comment.pet_id && navigate(`/pet/${comment.pet_id}`)}
               >
                 <AvatarImage src={comment.pet?.avatar_url || ''} className="object-cover" />
-                <AvatarFallback className="bg-muted text-xs font-semibold">
+                <AvatarFallback className="bg-muted text-[10px] sm:text-xs font-semibold">
                   {comment.pet?.name?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <div className="inline-block bg-muted rounded-2xl px-3 py-2 max-w-full">
+                <div className="inline-block bg-muted rounded-2xl px-2.5 sm:px-3 py-1.5 sm:py-2 max-w-full">
                   <span 
-                    className="text-[13px] font-semibold text-foreground hover:underline cursor-pointer block"
+                    className="text-[11px] sm:text-[13px] font-semibold text-foreground hover:underline cursor-pointer block truncate"
                     onClick={() => comment.pet_id && navigate(`/pet/${comment.pet_id}`)}
                   >
                     {comment.pet?.name || 'Anonymous'}
                   </span>
-                  <p className="text-[15px] text-foreground break-words">{comment.content}</p>
+                  <p className="text-xs sm:text-[15px] text-foreground break-words">{comment.content}</p>
                 </div>
-                <div className="flex items-center gap-3 mt-1 px-3">
-                  <span className="text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 sm:gap-3 mt-0.5 sm:mt-1 px-2 sm:px-3">
+                  <span className="text-[10px] sm:text-xs text-muted-foreground">
                     {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                   </span>
-                  <button className="text-xs font-semibold text-muted-foreground hover:underline">
+                  <button className="text-[10px] sm:text-xs font-semibold text-muted-foreground hover:underline">
                     Like
                   </button>
-                  <button className="text-xs font-semibold text-muted-foreground hover:underline">
+                  <button className="text-[10px] sm:text-xs font-semibold text-muted-foreground hover:underline">
                     Reply
                   </button>
                   {user?.id === comment.user_id && (
                     <button
                       onClick={() => deleteComment(comment.id)}
-                      className="text-xs font-semibold text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="text-[10px] sm:text-xs font-semibold text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       Delete
                     </button>
