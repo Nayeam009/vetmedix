@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Send, Image, Loader2, Check, CheckCheck } from 'lucide-react';
 import Navbar from '@/components/Navbar';
@@ -11,6 +11,54 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMessages } from '@/hooks/useMessages';
 import { supabase } from '@/integrations/supabase/client';
 import type { Pet } from '@/types/social';
+
+// Memoized message bubble component
+const MessageBubble = memo(({ message, isOwn }: { message: any; isOwn: boolean }) => (
+  <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`} role="listitem">
+    <div className={`max-w-[75%] ${isOwn ? 'order-1' : ''}`}>
+      {message.media_url && (
+        <div className="mb-1">
+          {message.media_type === 'video' ? (
+            <video 
+              src={message.media_url} 
+              controls 
+              className="rounded-lg max-h-60"
+              aria-label="Video message"
+            />
+          ) : (
+            <img 
+              src={message.media_url} 
+              alt="Shared media" 
+              className="rounded-lg max-h-60 object-cover"
+              loading="lazy"
+            />
+          )}
+        </div>
+      )}
+      {message.content && (
+        <div className={`rounded-2xl px-4 py-2 ${
+          isOwn 
+            ? 'bg-primary text-primary-foreground rounded-br-sm' 
+            : 'bg-muted rounded-bl-sm'
+        }`}>
+          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+        </div>
+      )}
+      <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-end' : ''}`}>
+        <span className="text-xs text-muted-foreground">
+          {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
+        </span>
+        {isOwn && (
+          message.is_read 
+            ? <CheckCheck className="h-3 w-3 text-primary" aria-label="Message read" />
+            : <Check className="h-3 w-3 text-muted-foreground" aria-label="Message sent" />
+        )}
+      </div>
+    </div>
+  </div>
+));
+
+MessageBubble.displayName = 'MessageBubble';
 
 const ChatPage = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
@@ -61,16 +109,16 @@ const ChatPage = () => {
     }
   }, [messages]);
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     if (!newMessage.trim() || sending) return;
 
     setSending(true);
     await sendMessage(newMessage);
     setNewMessage('');
     setSending(false);
-  };
+  }, [newMessage, sending, sendMessage]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -78,7 +126,31 @@ const ChatPage = () => {
     await sendMessage('', file);
     setSending(false);
     e.target.value = '';
-  };
+  }, [sendMessage]);
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+  }, []);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      handleSend();
+    }
+  }, [handleSend]);
+
+  const handleBackClick = useCallback(() => {
+    navigate('/messages');
+  }, [navigate]);
+
+  const handlePetProfileClick = useCallback(() => {
+    if (otherPet) {
+      navigate(`/pet/${otherPet.id}`);
+    }
+  }, [navigate, otherPet]);
+
+  const handleImageButtonClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
 
   if (!user) {
     navigate('/auth');
@@ -88,18 +160,27 @@ const ChatPage = () => {
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b bg-card">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/messages')}>
-          <ArrowLeft className="h-5 w-5" />
+      <header className="flex items-center gap-3 p-4 border-b bg-card">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={handleBackClick}
+          aria-label="Go back to messages"
+        >
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
         </Button>
         {otherPet && (
           <div 
             className="flex items-center gap-3 cursor-pointer"
-            onClick={() => navigate(`/pet/${otherPet.id}`)}
+            onClick={handlePetProfileClick}
+            role="button"
+            aria-label={`View ${otherPet.name}'s profile`}
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && handlePetProfileClick()}
           >
             <Avatar className="h-10 w-10">
-              <AvatarImage src={otherPet.avatar_url || ''} />
-              <AvatarFallback>{otherPet.name.charAt(0)}</AvatarFallback>
+              <AvatarImage src={otherPet.avatar_url || ''} alt={`${otherPet.name}'s avatar`} />
+              <AvatarFallback aria-hidden="true">{otherPet.name.charAt(0)}</AvatarFallback>
             </Avatar>
             <div>
               <p className="font-medium">{otherPet.name}</p>
@@ -107,68 +188,27 @@ const ChatPage = () => {
             </div>
           </div>
         )}
-      </div>
+      </header>
 
       {/* Messages */}
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
         {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <div className="flex justify-center py-8" aria-busy="true" aria-label="Loading messages">
+            <Loader2 className="h-6 w-6 animate-spin text-primary transform-gpu" aria-hidden="true" />
           </div>
         ) : messages.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-8 text-muted-foreground" role="status">
             No messages yet. Start the conversation!
           </div>
         ) : (
-          <div className="space-y-4">
-            {messages.map((message) => {
-              const isOwn = message.sender_id === user.id;
-              return (
-                <div
-                  key={message.id}
-                  className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`max-w-[75%] ${isOwn ? 'order-1' : ''}`}>
-                    {message.media_url && (
-                      <div className="mb-1">
-                        {message.media_type === 'video' ? (
-                          <video 
-                            src={message.media_url} 
-                            controls 
-                            className="rounded-lg max-h-60"
-                          />
-                        ) : (
-                          <img 
-                            src={message.media_url} 
-                            alt="" 
-                            className="rounded-lg max-h-60 object-cover"
-                          />
-                        )}
-                      </div>
-                    )}
-                    {message.content && (
-                      <div className={`rounded-2xl px-4 py-2 ${
-                        isOwn 
-                          ? 'bg-primary text-primary-foreground rounded-br-sm' 
-                          : 'bg-muted rounded-bl-sm'
-                      }`}>
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      </div>
-                    )}
-                    <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-end' : ''}`}>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
-                      </span>
-                      {isOwn && (
-                        message.is_read 
-                          ? <CheckCheck className="h-3 w-3 text-primary" />
-                          : <Check className="h-3 w-3 text-muted-foreground" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="space-y-4" role="list" aria-label="Chat messages">
+            {messages.map((message) => (
+              <MessageBubble 
+                key={message.id} 
+                message={message} 
+                isOwn={message.sender_id === user.id} 
+              />
+            ))}
           </div>
         )}
       </ScrollArea>
@@ -179,25 +219,31 @@ const ChatPage = () => {
           <Button 
             variant="ghost" 
             size="icon"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={handleImageButtonClick}
             disabled={sending}
+            aria-label="Send image or video"
           >
-            <Image className="h-5 w-5" />
+            <Image className="h-5 w-5" aria-hidden="true" />
           </Button>
           <Input
             placeholder="Type a message..."
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
             disabled={sending}
             maxLength={1000}
             className="flex-1"
+            aria-label="Message input"
           />
-          <Button onClick={handleSend} disabled={!newMessage.trim() || sending}>
+          <Button 
+            onClick={handleSend} 
+            disabled={!newMessage.trim() || sending}
+            aria-label="Send message"
+          >
             {sending ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin transform-gpu" aria-hidden="true" />
             ) : (
-              <Send className="h-5 w-5" />
+              <Send className="h-5 w-5" aria-hidden="true" />
             )}
           </Button>
         </div>
@@ -209,6 +255,7 @@ const ChatPage = () => {
         accept="image/*,video/*"
         className="hidden"
         onChange={handleFileChange}
+        aria-hidden="true"
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search, Filter, Loader2, X, MapPin, Users, Heart, Sparkles, PawPrint } from 'lucide-react';
 import Navbar from '@/components/Navbar';
@@ -39,13 +39,13 @@ const speciesEmojis: Record<string, string> = {
   Other: '🐾',
 };
 
-const PetCard = ({ pet, onFollow }: { pet: Pet; onFollow?: () => void }) => {
+const PetCard = memo(({ pet, onFollow }: { pet: Pet; onFollow?: () => void }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { isFollowing, followersCount, follow, unfollow } = useFollow(pet.id);
   const isOwner = user?.id === pet.user_id;
 
-  const handleFollowClick = async (e: React.MouseEvent) => {
+  const handleFollowClick = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
       navigate('/auth');
@@ -57,12 +57,18 @@ const PetCard = ({ pet, onFollow }: { pet: Pet; onFollow?: () => void }) => {
       await follow();
     }
     onFollow?.();
-  };
+  }, [user, isFollowing, unfollow, follow, onFollow, navigate]);
+
+  const handleCardClick = useCallback(() => {
+    navigate(`/pet/${pet.id}`);
+  }, [navigate, pet.id]);
 
   return (
     <Card 
-      className="group cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-border/50 bg-card"
-      onClick={() => navigate(`/pet/${pet.id}`)}
+      className="group cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-border/50 bg-card transform-gpu"
+      onClick={handleCardClick}
+      role="article"
+      aria-label={`${pet.name}'s profile card`}
     >
       {/* Cover Photo Section */}
       <div className="relative h-28 sm:h-32 md:h-36 overflow-hidden">
@@ -70,11 +76,12 @@ const PetCard = ({ pet, onFollow }: { pet: Pet; onFollow?: () => void }) => {
         {pet.cover_photo_url ? (
           <img 
             src={pet.cover_photo_url} 
-            alt={`${pet.name}'s cover`}
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 transform-gpu"
+            loading="lazy"
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-accent/20 to-secondary/40">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-accent/20 to-secondary/40" aria-hidden="true">
             <div className="absolute inset-0 paw-pattern opacity-30" />
           </div>
         )}
@@ -171,7 +178,9 @@ const PetCard = ({ pet, onFollow }: { pet: Pet; onFollow?: () => void }) => {
       </CardContent>
     </Card>
   );
-};
+});
+
+PetCard.displayName = 'PetCard';
 
 const ExplorePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -218,22 +227,34 @@ const ExplorePage = () => {
     fetchPets();
   }, [species]);
 
-  const handleSearch = () => {
+  const handleSearch = useCallback(() => {
     setSearchParams({
       ...(searchQuery && { q: searchQuery }),
       ...(species !== 'All' && { species }),
       ...(location && { location }),
     });
     fetchPets();
-  };
+  }, [searchQuery, species, location, setSearchParams]);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearchQuery('');
     setSpecies('All');
     setLocation('');
     setSearchParams({});
     fetchPets();
-  };
+  }, [setSearchParams]);
+
+  const handleSearchInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  }, []);
+
+  const handleLocationChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocation(e.target.value);
+  }, []);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSearch();
+  }, [handleSearch]);
 
   const hasActiveFilters = searchQuery || species !== 'All' || location;
   const activeFilterCount = [searchQuery, species !== 'All' ? species : null, location].filter(Boolean).length;
@@ -243,12 +264,12 @@ const ExplorePage = () => {
       <Navbar />
       
       {/* Hero Header Section */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/20 border-b border-border/50">
-        <div className="absolute inset-0 paw-pattern opacity-30" />
+      <header className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/20 border-b border-border/50">
+        <div className="absolute inset-0 paw-pattern opacity-30" aria-hidden="true" />
         <div className="container mx-auto px-4 py-6 sm:py-10 relative">
           <div className="max-w-4xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-medium mb-3 sm:mb-4">
-              <Sparkles className="h-4 w-4" />
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
               Discover Amazing Pets
             </div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3">
@@ -259,9 +280,9 @@ const ExplorePage = () => {
             </p>
           </div>
         </div>
-      </div>
+      </header>
 
-      <main className="container mx-auto px-4 py-4 sm:py-6">
+      <main className="container mx-auto px-4 py-4 sm:py-6" role="main" aria-label="Explore pets">
         <div className="max-w-5xl mx-auto">
           
           {/* Search & Filters - Sticky on Mobile */}
@@ -270,20 +291,22 @@ const ExplorePage = () => {
               {/* Search Row */}
               <div className="flex gap-2">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                   <Input
                     placeholder="Search pets by name or breed..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    onChange={handleSearchInputChange}
+                    onKeyDown={handleKeyDown}
                     className="pl-10 h-11 sm:h-10 bg-card border-border/50 focus-visible:ring-primary/30"
+                    aria-label="Search pets"
                   />
                 </div>
                 <Button 
                   onClick={handleSearch} 
                   className="btn-primary h-11 sm:h-10 px-4 sm:px-6"
+                  aria-label="Search"
                 >
-                  <Search className="h-4 w-4 sm:mr-2" />
+                  <Search className="h-4 w-4 sm:mr-2" aria-hidden="true" />
                   <span className="hidden sm:inline">Search</span>
                 </Button>
               </div>
@@ -354,8 +377,9 @@ const ExplorePage = () => {
                       <Input
                         placeholder="Enter city or region..."
                         value={location}
-                        onChange={(e) => setLocation(e.target.value)}
+                        onChange={handleLocationChange}
                         className="h-12"
+                        aria-label="Filter by location"
                       />
                       <div className="flex gap-2">
                         <SheetClose asChild>
@@ -442,9 +466,9 @@ const ExplorePage = () => {
 
           {/* Results Grid */}
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-16 sm:py-20">
+            <div className="flex flex-col items-center justify-center py-16 sm:py-20" aria-busy="true" aria-label="Loading pets">
               <div className="relative">
-                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" />
+                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" aria-hidden="true" />
                 <Loader2 className="h-10 w-10 animate-spin text-primary relative" />
               </div>
               <p className="text-muted-foreground mt-4 text-sm">Finding adorable pets...</p>
