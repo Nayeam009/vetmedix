@@ -109,19 +109,18 @@ const Index = () => {
                 
                 {/* Main headline with gradient text - responsive sizing */}
                 <h1 className="text-[1.75rem] leading-[1.1] sm:text-4xl md:text-5xl lg:text-[3.5rem] xl:text-6xl font-display font-bold tracking-tight">
-                  <span className="text-foreground block">VETMEDIX SOCIAL:</span>
+                  <span className="text-foreground block">VETMEDIX</span>
                   <span className="block mt-1 sm:mt-2">
-                    <span className="text-gradient-fun">WHERE PETS</span>
+                    <span className="bg-gradient-to-r from-primary via-accent to-lavender bg-clip-text text-transparent">One Stop Pet Care</span>
                   </span>
                   <span className="block">
-                    <span className="bg-gradient-to-r from-primary via-accent to-lavender bg-clip-text text-transparent">CONNECT & SHARE</span>
+                    <span className="text-gradient-fun">Community</span>
                   </span>
                 </h1>
                 
                 {/* Description - responsive text */}
                 <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-md sm:max-w-lg mx-auto lg:mx-0 leading-relaxed px-2 sm:px-0">
-                  Create adorable profiles, share precious moments, find playdates, and join the 
-                  <span className="text-primary font-semibold"> ultimate community</span> for pets and their people! 🐾
+                  Your complete destination for pet care — connect with other pet parents, book vet appointments, shop essentials, and share precious moments! 🐾
                 </p>
 
                 {/* CTA Buttons - improved mobile layout */}
@@ -160,15 +159,6 @@ const Index = () => {
                       </Button>
                     </Link>
                   )}
-                  <Link to="/shop" className="w-full sm:w-auto group">
-                    <Button 
-                      variant="outline" 
-                      size="lg" 
-                      className="w-full sm:w-auto rounded-full text-sm px-6 sm:px-8 h-11 sm:h-12 font-semibold border-2 border-foreground/15 bg-white/60 backdrop-blur-sm hover:bg-white hover:border-primary/30 hover:shadow-lg transition-all duration-300"
-                    >
-                      🛍️ Explore Shop
-                    </Button>
-                  </Link>
                 </div>
 
                 {/* Social features - better mobile layout */}
