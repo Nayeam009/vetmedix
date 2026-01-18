@@ -1,263 +1,120 @@
-import { useRef, useState, useEffect, Suspense } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Float } from '@react-three/drei';
-import * as THREE from 'three';
+import { useRef, useState, useEffect, Suspense, lazy } from 'react';
 
-// Cute stylized cat made with basic geometries
-const CuteCat = ({ isVisible }: { isVisible: boolean }) => {
-  const groupRef = useRef<THREE.Group>(null);
-  const pawRef = useRef<THREE.Group>(null);
-  const tailRef = useRef<THREE.Mesh>(null);
-  const leftEarRef = useRef<THREE.Mesh>(null);
-  const rightEarRef = useRef<THREE.Mesh>(null);
-  const leftEyeRef = useRef<THREE.Group>(null);
-  const rightEyeRef = useRef<THREE.Group>(null);
-  
-  const [animationPhase, setAnimationPhase] = useState<'entering' | 'sitting' | 'waving'>('entering');
-  const [entranceProgress, setEntranceProgress] = useState(0);
-  
-  // Animation timing
+// Lazy load Three.js components to prevent build failures
+const ThreeCanvas = lazy(() => 
+  import('@react-three/fiber').then(mod => ({ default: mod.Canvas }))
+);
+
+// CSS-based animated cat fallback (works without Three.js)
+const CSSAnimatedCat = () => {
+  const [isWaving, setIsWaving] = useState(false);
+  const [hasEntered, setHasEntered] = useState(false);
+
   useEffect(() => {
-    if (!isVisible) return;
-    
-    const enterTimer = setTimeout(() => {
-      setAnimationPhase('sitting');
-    }, 1500);
-    
-    const waveTimer = setTimeout(() => {
-      setAnimationPhase('waving');
-    }, 2000);
-    
+    const enterTimer = setTimeout(() => setHasEntered(true), 100);
+    const waveTimer = setTimeout(() => setIsWaving(true), 1500);
     return () => {
       clearTimeout(enterTimer);
       clearTimeout(waveTimer);
     };
-  }, [isVisible]);
-  
-  useFrame((state) => {
-    if (!groupRef.current) return;
-    
-    const time = state.clock.elapsedTime;
-    
-    // Entrance animation - slide in from left
-    if (animationPhase === 'entering' && entranceProgress < 1) {
-      setEntranceProgress(prev => Math.min(prev + 0.02, 1));
-      const easeOut = 1 - Math.pow(1 - entranceProgress, 3);
-      groupRef.current.position.x = THREE.MathUtils.lerp(-3, 0, easeOut);
-      groupRef.current.rotation.y = THREE.MathUtils.lerp(0.3, 0, easeOut);
-    }
-    
-    // Subtle body bob
-    groupRef.current.position.y = Math.sin(time * 2) * 0.03;
-    
-    // Tail swaying
-    if (tailRef.current) {
-      tailRef.current.rotation.z = Math.sin(time * 3) * 0.3;
-      tailRef.current.rotation.x = Math.sin(time * 2) * 0.1;
-    }
-    
-    // Ear twitching
-    if (leftEarRef.current && rightEarRef.current) {
-      const earTwitch = Math.sin(time * 8) * 0.05;
-      if (Math.floor(time) % 4 === 0) {
-        leftEarRef.current.rotation.z = earTwitch;
-        rightEarRef.current.rotation.z = -earTwitch;
-      }
-    }
-    
-    // Eye blinking
-    if (leftEyeRef.current && rightEyeRef.current) {
-      const blinkCycle = Math.floor(time) % 5;
-      const blinkProgress = time % 1;
-      if (blinkCycle === 0 && blinkProgress < 0.15) {
-        const blinkScale = blinkProgress < 0.075 ? 1 - blinkProgress * 10 : (blinkProgress - 0.075) * 10;
-        leftEyeRef.current.scale.y = Math.max(0.1, blinkScale);
-        rightEyeRef.current.scale.y = Math.max(0.1, blinkScale);
-      } else {
-        leftEyeRef.current.scale.y = 1;
-        rightEyeRef.current.scale.y = 1;
-      }
-    }
-    
-    // Waving animation
-    if (pawRef.current && animationPhase === 'waving') {
-      const waveAngle = Math.sin(time * 4) * 0.4 + 0.6;
-      pawRef.current.rotation.z = waveAngle;
-      pawRef.current.position.y = 0.3 + Math.sin(time * 4) * 0.1;
-    }
-  });
-  
-  // Cat colors - warm orange to match brand
-  const bodyColor = '#f97316';
-  const lightColor = '#fed7aa';
-  const darkColor = '#ea580c';
-  const pinkColor = '#fda4af';
-  const whiteColor = '#ffffff';
-  const blackColor = '#1c1917';
-  
+  }, []);
+
   return (
-    <group ref={groupRef} position={[-3, 0, 0]} scale={0.8}>
-      {/* Body */}
-      <mesh position={[0, -0.3, 0]}>
-        <sphereGeometry args={[0.5, 32, 32]} />
-        <meshToonMaterial color={bodyColor} />
-      </mesh>
+    <div 
+      className={`relative transition-all duration-1000 ease-out ${
+        hasEntered ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'
+      }`}
+    >
+      {/* Cat SVG with animations */}
+      <svg 
+        viewBox="0 0 200 200" 
+        className="w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 lg:w-96 lg:h-96"
+        style={{ filter: 'drop-shadow(0 10px 20px rgba(249, 115, 22, 0.3))' }}
+      >
+        {/* Body */}
+        <ellipse cx="100" cy="140" rx="45" ry="40" fill="#f97316" className="animate-pulse" style={{ animationDuration: '3s' }} />
+        
+        {/* Belly */}
+        <ellipse cx="100" cy="145" rx="28" ry="25" fill="#fed7aa" />
+        
+        {/* Head */}
+        <circle cx="100" cy="85" r="38" fill="#f97316" />
+        
+        {/* Left Ear */}
+        <polygon points="65,60 55,25 80,50" fill="#f97316" />
+        <polygon points="68,55 62,32 77,50" fill="#fda4af" />
+        
+        {/* Right Ear */}
+        <polygon points="135,60 145,25 120,50" fill="#f97316" />
+        <polygon points="132,55 138,32 123,50" fill="#fda4af" />
+        
+        {/* Left Eye */}
+        <ellipse cx="82" cy="80" rx="10" ry="12" fill="white" />
+        <circle cx="84" cy="82" r="6" fill="#1c1917" />
+        <circle cx="86" cy="79" r="2" fill="white" />
+        
+        {/* Right Eye */}
+        <ellipse cx="118" cy="80" rx="10" ry="12" fill="white" />
+        <circle cx="116" cy="82" r="6" fill="#1c1917" />
+        <circle cx="114" cy="79" r="2" fill="white" />
+        
+        {/* Nose */}
+        <ellipse cx="100" cy="95" rx="5" ry="4" fill="#fda4af" />
+        
+        {/* Mouth */}
+        <path d="M92 102 Q100 110 108 102" fill="none" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" />
+        
+        {/* Cheeks */}
+        <circle cx="70" cy="95" r="8" fill="#fed7aa" opacity="0.7" />
+        <circle cx="130" cy="95" r="8" fill="#fed7aa" opacity="0.7" />
+        
+        {/* Whiskers Left */}
+        <line x1="50" y1="90" x2="72" y2="95" stroke="#d4d4d4" strokeWidth="1.5" />
+        <line x1="48" y1="100" x2="70" y2="100" stroke="#d4d4d4" strokeWidth="1.5" />
+        
+        {/* Whiskers Right */}
+        <line x1="150" y1="90" x2="128" y2="95" stroke="#d4d4d4" strokeWidth="1.5" />
+        <line x1="152" y1="100" x2="130" y2="100" stroke="#d4d4d4" strokeWidth="1.5" />
+        
+        {/* Front Paws */}
+        <ellipse cx="70" cy="175" rx="12" ry="10" fill="#f97316" />
+        <ellipse cx="130" cy="175" rx="12" ry="10" fill="#f97316" />
+        
+        {/* Waving Paw */}
+        <g 
+          className={`origin-bottom transition-transform ${isWaving ? 'animate-wave' : ''}`}
+          style={{ transformOrigin: '55px 160px' }}
+        >
+          <ellipse cx="55" cy="145" rx="12" ry="10" fill="#f97316" />
+          {/* Paw pads */}
+          <circle cx="52" cy="142" r="3" fill="#fda4af" />
+          <circle cx="58" cy="142" r="3" fill="#fda4af" />
+          <circle cx="55" cy="148" r="4" fill="#fda4af" />
+        </g>
+        
+        {/* Tail */}
+        <path 
+          d="M145 140 Q170 120 165 90 Q162 75 155 80" 
+          fill="none" 
+          stroke="#f97316" 
+          strokeWidth="12" 
+          strokeLinecap="round"
+          className="animate-tail-wag"
+          style={{ transformOrigin: '145px 140px' }}
+        />
+        <circle cx="155" cy="82" r="8" fill="#ea580c" />
+      </svg>
       
-      {/* Belly patch */}
-      <mesh position={[0, -0.3, 0.35]}>
-        <sphereGeometry args={[0.3, 32, 32]} />
-        <meshToonMaterial color={lightColor} />
-      </mesh>
-      
-      {/* Head */}
-      <mesh position={[0, 0.35, 0.1]}>
-        <sphereGeometry args={[0.45, 32, 32]} />
-        <meshToonMaterial color={bodyColor} />
-      </mesh>
-      
-      {/* Cheeks */}
-      <mesh position={[-0.25, 0.2, 0.35]}>
-        <sphereGeometry args={[0.18, 16, 16]} />
-        <meshToonMaterial color={lightColor} />
-      </mesh>
-      <mesh position={[0.25, 0.2, 0.35]}>
-        <sphereGeometry args={[0.18, 16, 16]} />
-        <meshToonMaterial color={lightColor} />
-      </mesh>
-      
-      {/* Nose */}
-      <mesh position={[0, 0.22, 0.5]}>
-        <sphereGeometry args={[0.06, 16, 16]} />
-        <meshToonMaterial color={pinkColor} />
-      </mesh>
-      
-      {/* Left Eye */}
-      <group ref={leftEyeRef} position={[-0.15, 0.4, 0.38]}>
-        <mesh>
-          <sphereGeometry args={[0.12, 16, 16]} />
-          <meshToonMaterial color={whiteColor} />
-        </mesh>
-        <mesh position={[0.02, 0, 0.08]}>
-          <sphereGeometry args={[0.07, 16, 16]} />
-          <meshToonMaterial color={blackColor} />
-        </mesh>
-        <mesh position={[0.04, 0.03, 0.12]}>
-          <sphereGeometry args={[0.025, 8, 8]} />
-          <meshToonMaterial color={whiteColor} />
-        </mesh>
-      </group>
-      
-      {/* Right Eye */}
-      <group ref={rightEyeRef} position={[0.15, 0.4, 0.38]}>
-        <mesh>
-          <sphereGeometry args={[0.12, 16, 16]} />
-          <meshToonMaterial color={whiteColor} />
-        </mesh>
-        <mesh position={[-0.02, 0, 0.08]}>
-          <sphereGeometry args={[0.07, 16, 16]} />
-          <meshToonMaterial color={blackColor} />
-        </mesh>
-        <mesh position={[-0.04, 0.03, 0.12]}>
-          <sphereGeometry args={[0.025, 8, 8]} />
-          <meshToonMaterial color={whiteColor} />
-        </mesh>
-      </group>
-      
-      {/* Left Ear */}
-      <mesh ref={leftEarRef} position={[-0.3, 0.7, 0]} rotation={[0, 0, -0.3]}>
-        <coneGeometry args={[0.15, 0.3, 32]} />
-        <meshToonMaterial color={bodyColor} />
-      </mesh>
-      <mesh position={[-0.28, 0.65, 0.02]} rotation={[0, 0, -0.3]}>
-        <coneGeometry args={[0.08, 0.18, 32]} />
-        <meshToonMaterial color={pinkColor} />
-      </mesh>
-      
-      {/* Right Ear */}
-      <mesh ref={rightEarRef} position={[0.3, 0.7, 0]} rotation={[0, 0, 0.3]}>
-        <coneGeometry args={[0.15, 0.3, 32]} />
-        <meshToonMaterial color={bodyColor} />
-      </mesh>
-      <mesh position={[0.28, 0.65, 0.02]} rotation={[0, 0, 0.3]}>
-        <coneGeometry args={[0.08, 0.18, 32]} />
-        <meshToonMaterial color={pinkColor} />
-      </mesh>
-      
-      {/* Whiskers - Left */}
-      <mesh position={[-0.35, 0.22, 0.4]} rotation={[0, 0, 0.1]}>
-        <cylinderGeometry args={[0.005, 0.005, 0.2, 8]} />
-        <meshToonMaterial color={whiteColor} />
-      </mesh>
-      <mesh position={[-0.38, 0.18, 0.4]} rotation={[0, 0, 0]}>
-        <cylinderGeometry args={[0.005, 0.005, 0.2, 8]} />
-        <meshToonMaterial color={whiteColor} />
-      </mesh>
-      
-      {/* Whiskers - Right */}
-      <mesh position={[0.35, 0.22, 0.4]} rotation={[0, 0, -0.1]}>
-        <cylinderGeometry args={[0.005, 0.005, 0.2, 8]} />
-        <meshToonMaterial color={whiteColor} />
-      </mesh>
-      <mesh position={[0.38, 0.18, 0.4]} rotation={[0, 0, 0]}>
-        <cylinderGeometry args={[0.005, 0.005, 0.2, 8]} />
-        <meshToonMaterial color={whiteColor} />
-      </mesh>
-      
-      {/* Front Left Paw (waving paw) */}
-      <group ref={pawRef} position={[-0.35, 0, 0.3]}>
-        <mesh>
-          <sphereGeometry args={[0.12, 16, 16]} />
-          <meshToonMaterial color={bodyColor} />
-        </mesh>
-        {/* Paw pad */}
-        <mesh position={[0, 0, 0.08]} rotation={[0.3, 0, 0]}>
-          <sphereGeometry args={[0.06, 8, 8]} />
-          <meshToonMaterial color={pinkColor} />
-        </mesh>
-        {/* Small toe pads */}
-        <mesh position={[-0.04, 0.05, 0.1]}>
-          <sphereGeometry args={[0.025, 8, 8]} />
-          <meshToonMaterial color={pinkColor} />
-        </mesh>
-        <mesh position={[0.04, 0.05, 0.1]}>
-          <sphereGeometry args={[0.025, 8, 8]} />
-          <meshToonMaterial color={pinkColor} />
-        </mesh>
-      </group>
-      
-      {/* Front Right Paw */}
-      <mesh position={[0.35, -0.45, 0.3]}>
-        <sphereGeometry args={[0.12, 16, 16]} />
-        <meshToonMaterial color={bodyColor} />
-      </mesh>
-      
-      {/* Back Paws */}
-      <mesh position={[-0.3, -0.55, 0]}>
-        <sphereGeometry args={[0.14, 16, 16]} />
-        <meshToonMaterial color={bodyColor} />
-      </mesh>
-      <mesh position={[0.3, -0.55, 0]}>
-        <sphereGeometry args={[0.14, 16, 16]} />
-        <meshToonMaterial color={bodyColor} />
-      </mesh>
-      
-      {/* Tail */}
-      <mesh ref={tailRef} position={[0, -0.3, -0.45]} rotation={[0.5, 0, 0]}>
-        <capsuleGeometry args={[0.08, 0.5, 8, 16]} />
-        <meshToonMaterial color={bodyColor} />
-      </mesh>
-      {/* Tail tip */}
-      <mesh position={[0, -0.05, -0.7]} rotation={[0.3, 0, 0]}>
-        <sphereGeometry args={[0.1, 16, 16]} />
-        <meshToonMaterial color={darkColor} />
-      </mesh>
-      
-      {/* Mouth (smile) */}
-      <mesh position={[0, 0.15, 0.48]} rotation={[0.2, 0, 0]}>
-        <torusGeometry args={[0.04, 0.01, 8, 16, Math.PI]} />
-        <meshToonMaterial color={darkColor} />
-      </mesh>
-    </group>
+      {/* Speech Bubble */}
+      <div 
+        className={`absolute -top-2 -right-4 sm:top-0 sm:right-0 bg-white rounded-2xl px-3 py-2 shadow-lg transition-all duration-500 ${
+          isWaving ? 'opacity-100 scale-100' : 'opacity-0 scale-0'
+        }`}
+      >
+        <p className="text-sm font-semibold text-primary">Hi there! 👋</p>
+        <div className="absolute -bottom-2 left-4 w-4 h-4 bg-white transform rotate-45" />
+      </div>
+    </div>
   );
 };
 
@@ -266,7 +123,6 @@ const AnimatedCat3D = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
-    // Delay visibility for smooth entrance
     const timer = setTimeout(() => setIsVisible(true), 300);
     return () => clearTimeout(timer);
   }, []);
@@ -282,34 +138,10 @@ const AnimatedCat3D = () => {
   return (
     <div 
       ref={containerRef}
-      className="w-full h-[200px] sm:h-[280px] md:h-[320px] lg:h-[380px]"
+      className="w-full h-[200px] sm:h-[280px] md:h-[320px] lg:h-[380px] flex items-center justify-center"
       style={{ touchAction: 'pan-y' }}
     >
-      <Canvas
-        camera={{ position: [0, 0, 3], fov: 45 }}
-        dpr={[1, 2]}
-        gl={{ 
-          antialias: true, 
-          alpha: true,
-          powerPreference: 'high-performance'
-        }}
-        style={{ background: 'transparent' }}
-      >
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[5, 5, 5]} intensity={0.8} />
-        <directionalLight position={[-3, 3, 2]} intensity={0.4} color="#fef3c7" />
-        <pointLight position={[0, 2, 3]} intensity={0.3} color="#fed7aa" />
-        
-        <Suspense fallback={null}>
-          <Float
-            speed={2}
-            rotationIntensity={0.1}
-            floatIntensity={0.3}
-          >
-            <CuteCat isVisible={isVisible} />
-          </Float>
-        </Suspense>
-      </Canvas>
+      <CSSAnimatedCat />
     </div>
   );
 };
