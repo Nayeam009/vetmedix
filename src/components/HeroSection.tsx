@@ -1,101 +1,162 @@
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Truck, ShieldCheck, Clock, Heart } from 'lucide-react';
+import { ArrowRight, Heart, MessageCircle, Users, Camera } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import heroPets from '@/assets/hero-pets.jpg';
+import heroCatSocial from '@/assets/hero-cat-social.png';
 
 const HeroSection = () => {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-orange-50 via-amber-50/50 to-white">
-      {/* Subtle decorative blurs */}
+    <section className="relative overflow-hidden bg-[hsl(35,30%,92%)] min-h-[calc(100vh-4rem)]">
+      {/* Decorative paw prints */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-orange-200/30 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-teal-200/20 rounded-full blur-3xl" />
+        {/* Top left paw */}
+        <div className="absolute top-8 left-8 sm:top-12 sm:left-12 text-4xl sm:text-5xl opacity-20 rotate-[-15deg]">
+          🐾
+        </div>
+        {/* Bottom left paw */}
+        <div className="absolute bottom-20 left-4 sm:bottom-32 sm:left-8 text-3xl sm:text-4xl opacity-15 rotate-[25deg]">
+          🐾
+        </div>
+        {/* Top right paw */}
+        <div className="absolute top-20 right-8 sm:top-16 sm:right-20 text-3xl opacity-15 rotate-[10deg]">
+          🐾
+        </div>
+        {/* Floating hearts */}
+        <div className="absolute top-1/4 right-1/4 hidden lg:block">
+          <Heart className="h-5 w-5 text-rose-400/40 fill-rose-400/40 animate-pulse" />
+        </div>
+        <div className="absolute top-1/3 right-1/3 hidden lg:block">
+          <Heart className="h-4 w-4 text-rose-400/30 fill-rose-400/30 animate-pulse delay-300" />
+        </div>
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 py-10 sm:py-12 md:py-16 lg:py-20 relative">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 lg:py-16 relative">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center min-h-[calc(100vh-8rem)] lg:min-h-0">
           {/* Content */}
-          <div className="space-y-5 sm:space-y-6 order-2 lg:order-1">
-            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-white/90 border border-orange-100 text-primary text-xs sm:text-sm font-semibold shadow-sm">
-              <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500 fill-red-500" />
-              Trusted by 10,000+ Pet Owners
+          <div className="space-y-5 sm:space-y-6 order-2 lg:order-1 text-center lg:text-left pb-8 lg:pb-0">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-foreground/10 text-foreground text-xs sm:text-sm font-medium shadow-sm">
+              <Users className="h-4 w-4 text-primary" />
+              <span>10,000+ Pet Parents Connected</span>
             </div>
             
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-display font-bold text-foreground leading-tight">
-              Best Destination{' '}
-              <br className="hidden sm:block" />
-              <span className="text-primary">For Your Pets</span>
+            {/* Main headline */}
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-bold text-foreground leading-tight tracking-tight">
+              VETMEDIX SOCIAL:
+              <br />
+              <span className="text-foreground">WHERE PETS</span>
+              <br />
+              <span className="text-primary">CONNECT & SHARE</span>
             </h1>
             
-            <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-lg leading-relaxed">
-              Premium pet food, medicine, accessories and farm supplies — all delivered to your doorstep across Bangladesh.
+            {/* Description */}
+            <p className="text-base sm:text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0 leading-relaxed">
+              Create profiles, share photos, find playdates, and join the ultimate community for pets and their people.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3 pt-1 sm:pt-2">
-              <Link to="/shop" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white rounded-xl gap-2 text-sm sm:text-base px-6 sm:px-8 h-11 sm:h-12 font-semibold shadow-md">
-                  Shop Now
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-2 justify-center lg:justify-start">
+              <Link to="/feed" className="w-full sm:w-auto">
+                <Button 
+                  size="lg" 
+                  className="w-full sm:w-auto bg-foreground hover:bg-foreground/90 text-background rounded-full gap-2 text-sm sm:text-base px-8 h-12 sm:h-14 font-bold shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  JOIN THE PET COMMUNITY
                   <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </Link>
-              <Link to="/clinics" className="w-full sm:w-auto">
-                <Button variant="outline" size="lg" className="w-full sm:w-auto rounded-xl text-sm sm:text-base px-6 sm:px-8 h-11 sm:h-12 font-semibold border-2 hover:bg-muted/50">
-                  Find a Clinic
+              <Link to="/shop" className="w-full sm:w-auto">
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="w-full sm:w-auto rounded-full text-sm sm:text-base px-8 h-12 sm:h-14 font-semibold border-2 border-foreground/20 hover:bg-foreground/5 hover:border-foreground/40 transition-all duration-300"
+                >
+                  Explore Shop
                 </Button>
               </Link>
             </div>
 
-            {/* Trust badges */}
-            <div className="flex flex-wrap gap-4 sm:gap-6 pt-4 sm:pt-6">
-              <div className="flex items-center gap-2">
-                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-teal-500 flex items-center justify-center">
-                  <Truck className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+            {/* Social features */}
+            <div className="flex flex-wrap gap-4 sm:gap-6 pt-4 sm:pt-6 justify-center lg:justify-start">
+              <div className="flex items-center gap-2 group">
+                <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-white shadow-md flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                  <Camera className="h-5 w-5 text-foreground" />
                 </div>
-                <span className="text-xs sm:text-sm font-medium text-foreground/80">Free Delivery</span>
+                <span className="text-xs sm:text-sm font-medium text-foreground/80">Share Photos</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-violet-500 flex items-center justify-center">
-                  <ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+              <div className="flex items-center gap-2 group">
+                <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-white shadow-md flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                  <Heart className="h-5 w-5 text-rose-500" />
                 </div>
-                <span className="text-xs sm:text-sm font-medium text-foreground/80">Genuine Products</span>
+                <span className="text-xs sm:text-sm font-medium text-foreground/80">Get Likes</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-amber-500 flex items-center justify-center">
-                  <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+              <div className="flex items-center gap-2 group">
+                <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-white shadow-md flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                  <MessageCircle className="h-5 w-5 text-foreground" />
                 </div>
-                <span className="text-xs sm:text-sm font-medium text-foreground/80">24/7 Support</span>
+                <span className="text-xs sm:text-sm font-medium text-foreground/80">Connect</span>
               </div>
             </div>
           </div>
 
-          {/* Hero Image */}
-          <div className="relative order-1 lg:order-2">
+          {/* Hero Illustration */}
+          <div className="relative order-1 lg:order-2 flex justify-center items-center">
             <div className="relative">
-              <img
-                src={heroPets}
-                alt="Happy pets including a dog and cat together, representing VET-MEDIX pet care services"
-                width={600}
-                height={420}
-                fetchPriority="high"
-                decoding="async"
-                className="w-full h-[240px] sm:h-[300px] md:h-[360px] lg:h-[420px] object-cover rounded-2xl sm:rounded-3xl shadow-lg"
-              />
-              {/* Floating badge */}
-              <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 md:bottom-6 md:left-6 bg-white/95 backdrop-blur-sm px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl shadow-md">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-teal-500 flex items-center justify-center">
-                    <span className="text-base sm:text-lg">🐾</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground text-xs sm:text-sm">500+ Clinics</p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">Across Bangladesh</p>
-                  </div>
+              {/* Floating pet avatars - decorative */}
+              <div className="absolute -top-4 -left-4 sm:-top-8 sm:-left-8 z-10 hidden sm:block">
+                <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-white shadow-lg flex items-center justify-center text-2xl sm:text-3xl animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }}>
+                  🐕
                 </div>
               </div>
-              {/* Stats badge */}
-              <div className="absolute top-3 right-3 sm:top-4 sm:right-4 md:top-6 md:right-6 bg-white/95 backdrop-blur-sm px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl shadow-md">
-                <p className="text-lg sm:text-xl font-bold text-primary">2000+</p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Products</p>
+              <div className="absolute top-8 -right-2 sm:top-4 sm:-right-8 z-10 hidden sm:block">
+                <div className="h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-white shadow-lg flex items-center justify-center text-xl sm:text-2xl animate-bounce" style={{ animationDelay: '0.5s', animationDuration: '3s' }}>
+                  🐰
+                </div>
+              </div>
+              <div className="absolute bottom-20 -right-4 sm:bottom-24 sm:-right-12 z-10 hidden sm:block">
+                <div className="h-11 w-11 sm:h-14 sm:w-14 rounded-full bg-white shadow-lg flex items-center justify-center text-xl sm:text-2xl animate-bounce" style={{ animationDelay: '1s', animationDuration: '3s' }}>
+                  🐦
+                </div>
+              </div>
+              <div className="absolute bottom-8 -left-2 sm:bottom-12 sm:-left-10 z-10 hidden sm:block">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-white shadow-lg flex items-center justify-center text-lg sm:text-xl animate-bounce" style={{ animationDelay: '1.5s', animationDuration: '3s' }}>
+                  🐹
+                </div>
+              </div>
+
+              {/* Likes badge */}
+              <div className="absolute top-1/3 right-0 sm:-right-4 z-20">
+                <div className="bg-white rounded-full px-3 py-1.5 sm:px-4 sm:py-2 shadow-lg flex items-center gap-1.5 sm:gap-2 animate-pulse">
+                  <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-rose-500 fill-rose-500" />
+                  <span className="text-xs sm:text-sm font-bold text-foreground">likes</span>
+                </div>
+              </div>
+
+              {/* Main illustration */}
+              <img
+                src={heroCatSocial}
+                alt="Cute cat using VetMedix social app on smartphone, representing pet social media community"
+                width={400}
+                height={400}
+                fetchPriority="high"
+                decoding="async"
+                className="w-[280px] h-[280px] sm:w-[340px] sm:h-[340px] md:w-[400px] md:h-[400px] lg:w-[450px] lg:h-[450px] object-contain drop-shadow-xl"
+              />
+
+              {/* Bottom stats badge */}
+              <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 z-20">
+                <div className="bg-white rounded-2xl px-4 py-2 sm:px-6 sm:py-3 shadow-lg">
+                  <div className="flex items-center gap-4 sm:gap-6">
+                    <div className="text-center">
+                      <p className="text-lg sm:text-xl font-bold text-foreground">5K+</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Pet Profiles</p>
+                    </div>
+                    <div className="h-8 w-px bg-foreground/10" />
+                    <div className="text-center">
+                      <p className="text-lg sm:text-xl font-bold text-foreground">20K+</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Daily Posts</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
