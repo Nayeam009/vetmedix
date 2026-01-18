@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
-import HeroSection from '@/components/HeroSection';
 import { StoriesBar } from '@/components/social/StoriesBar';
 import { CreatePostCard } from '@/components/social/CreatePostCard';
 import { PostCard } from '@/components/social/PostCard';
@@ -59,8 +58,139 @@ const Index = () => {
       <Navbar />
       
       <main>
-        {/* Hero Section with 2D Cat */}
-        <HeroSection />
+        {/* Hero Section - Playful & Social Media Focused */}
+        <section className="relative py-8 sm:py-12 md:py-16 lg:py-20 overflow-hidden">
+          {/* Animated Background */}
+          <div className="absolute inset-0 gradient-hero" />
+          
+          {/* Floating Decorative Elements */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {/* Large blobs */}
+            <div className="absolute -top-20 -right-20 w-64 sm:w-80 h-64 sm:h-80 bg-coral-light/40 rounded-full blur-3xl animate-pulse-slow" />
+            <div className="absolute top-1/2 -left-20 w-48 sm:w-64 h-48 sm:h-64 bg-mint-light/40 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }} />
+            <div className="absolute -bottom-20 right-1/4 w-56 sm:w-72 h-56 sm:h-72 bg-lavender-light/40 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
+            <div className="absolute top-1/4 right-1/3 w-32 sm:w-40 h-32 sm:h-40 bg-sky-light/50 rounded-full blur-2xl animate-float" />
+            
+            {/* Floating icons */}
+            <div className="absolute top-20 left-[10%] animate-float" style={{ animationDelay: '0.5s' }}>
+              <div className="p-2 sm:p-3 bg-white/80 rounded-xl shadow-lg rotate-12">
+                <Heart className="h-4 w-4 sm:h-6 sm:w-6 text-destructive fill-destructive" />
+              </div>
+            </div>
+            <div className="absolute top-32 right-[15%] animate-float" style={{ animationDelay: '1s' }}>
+              <div className="p-2 sm:p-3 bg-white/80 rounded-xl shadow-lg -rotate-6">
+                <PawPrint className="h-4 w-4 sm:h-6 sm:w-6 text-primary" />
+              </div>
+            </div>
+            <div className="absolute bottom-32 left-[15%] animate-float hidden sm:block" style={{ animationDelay: '1.5s' }}>
+              <div className="p-2 sm:p-3 bg-white/80 rounded-xl shadow-lg rotate-6">
+                <Camera className="h-4 w-4 sm:h-6 sm:w-6 text-accent" />
+              </div>
+            </div>
+            <div className="absolute bottom-20 right-[10%] animate-float hidden md:block" style={{ animationDelay: '2s' }}>
+              <div className="p-2 sm:p-3 bg-white/80 rounded-xl shadow-lg -rotate-12">
+                <MessageCircle className="h-4 w-4 sm:h-6 sm:w-6 text-lavender" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="container mx-auto px-4 sm:px-6 relative z-10">
+            <div className="text-center max-w-4xl mx-auto">
+              {/* Animated Badge */}
+              <div className="inline-flex items-center gap-2 bg-white/95 backdrop-blur-sm border-2 border-primary/20 text-primary px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-bold mb-4 sm:mb-6 shadow-lg animate-bounce-gentle">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-accent animate-pulse" />
+                <span>🐾 Social Network for Pets</span>
+                <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-sunshine" />
+              </div>
+              
+              {/* Main Headline */}
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-display font-bold mb-4 sm:mb-6 leading-[1.1] px-2">
+                <span className="text-foreground">Your Pets</span>
+                <br />
+                <span className="text-gradient-fun">Deserve Fame</span>
+                <span className="inline-block ml-2 animate-wiggle">🌟</span>
+              </h1>
+              
+              {/* Tagline */}
+              <p className="text-lg sm:text-xl md:text-2xl font-bold text-primary mb-3 sm:mb-4">
+                Vetmedix — Your One Stop Pet Care
+              </p>
+              
+              {/* Subheadline */}
+              <p className="text-muted-foreground text-sm sm:text-base md:text-lg mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed px-4">
+                Create adorable profiles, share pawsome moments, connect with pet lovers, 
+                shop premium supplies, and book vet visits — all in one fun place! 🎉
+              </p>
+              
+              {/* CTA Buttons */}
+              <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 px-4 mb-8 sm:mb-12">
+                {user && pets.length === 0 ? (
+                  <Link to="/pets/new" className="w-full sm:w-auto">
+                    <Button size="lg" className="w-full sm:w-auto btn-primary rounded-2xl gap-2 text-sm sm:text-base px-6 sm:px-8 h-12 sm:h-14 font-bold">
+                      <PawPrint className="h-4 w-4 sm:h-5 sm:w-5" />
+                      Add Your First Pet
+                      <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                    </Button>
+                  </Link>
+                ) : !user ? (
+                  <Link to="/auth" className="w-full sm:w-auto">
+                    <Button size="lg" className="w-full sm:w-auto btn-primary rounded-2xl gap-2 text-sm sm:text-base px-6 sm:px-8 h-12 sm:h-14 font-bold">
+                      Start Free Today
+                      <Zap className="h-4 w-4 sm:h-5 sm:w-5" />
+                    </Button>
+                  </Link>
+                ) : null}
+                <Link to="/explore" className="w-full sm:w-auto">
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto rounded-2xl gap-2 text-sm sm:text-base px-6 sm:px-8 h-12 sm:h-14 font-bold border-2 border-primary/30 hover:bg-primary/5 hover:border-primary transition-all">
+                    <Search className="h-4 w-4 sm:h-5 sm:w-5" />
+                    Explore Pets
+                  </Button>
+                </Link>
+              </div>
+
+              {/* Feature Pills */}
+              <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-8 sm:mb-12 px-2">
+                {[
+                  { icon: Camera, label: 'Share Photos', color: 'bg-primary/10 text-primary' },
+                  { icon: Heart, label: 'Get Likes', color: 'bg-destructive/10 text-destructive' },
+                  { icon: MessageCircle, label: 'Chat', color: 'bg-accent/10 text-accent' },
+                  { icon: Bell, label: 'Updates', color: 'bg-lavender/10 text-lavender' },
+                ].map((feature) => (
+                  <div 
+                    key={feature.label}
+                    className={`inline-flex items-center gap-1.5 sm:gap-2 ${feature.color} px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold`}
+                  >
+                    <feature.icon className="h-3 w-3 sm:h-4 sm:w-4" />
+                    {feature.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Stats Cards - Playful Design */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 md:gap-6 max-w-3xl mx-auto">
+              {[
+                { icon: PawPrint, count: `${trendingPets.length || 50}+`, label: 'Happy Pets', gradient: 'gradient-primary', iconBg: 'bg-white/20' },
+                { icon: Heart, count: '1K+', label: 'Daily Likes', gradient: 'bg-gradient-to-br from-destructive to-primary', iconBg: 'bg-white/20' },
+                { icon: Users, count: '500+', label: 'Pet Parents', gradient: 'gradient-accent', iconBg: 'bg-white/20' },
+                { icon: Camera, count: '2K+', label: 'Photos Shared', gradient: 'gradient-fun', iconBg: 'bg-white/20' },
+              ].map((stat, index) => (
+                <div 
+                  key={stat.label}
+                  className={`relative text-center p-4 sm:p-5 md:p-6 ${stat.gradient} rounded-2xl sm:rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden group`}
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors duration-300" />
+                  <div className={`w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 rounded-xl ${stat.iconBg} flex items-center justify-center`}>
+                    <stat.icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                  </div>
+                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white">{stat.count}</p>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-white/80 font-medium">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
         {/* Social Features Highlight */}
         <section className="py-8 sm:py-12 bg-white border-y border-border/50">

@@ -1,25 +1,5 @@
 /* Fonts loaded via index.html for better performance */
 @tailwind base;
-
-/* Custom animations for the cat */
-@keyframes wave {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-20deg); }
-  75% { transform: rotate(20deg); }
-}
-
-@keyframes tail-wag {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(10deg); }
-}
-
-.animate-wave {
-  animation: wave 0.5s ease-in-out infinite;
-}
-
-.animate-tail-wag {
-  animation: tail-wag 1s ease-in-out infinite;
-}
 @tailwind components;
 @tailwind utilities;
 
