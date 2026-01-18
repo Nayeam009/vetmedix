@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { 
   Calendar, Clock, Users, Star, TrendingUp, 
-  CheckCircle, XCircle, AlertCircle, Settings,
+  CheckCircle, XCircle, AlertCircle,
   Building2, Stethoscope, Package, Plus, Edit,
   ChevronRight, Activity, BarChart3, Bell, ArrowUpRight,
   CalendarDays, UserCheck, DollarSign, Sparkles, Search
@@ -195,12 +195,6 @@ const ClinicDashboard = () => {
                 <GlobalSearch variant="clinic" className="w-full h-9 sm:h-10" placeholder="Search appointments..." />
               </div>
               <div className="flex gap-2 sm:gap-3">
-                <Button variant="outline" asChild className="rounded-lg sm:rounded-xl h-9 sm:h-10 px-3 sm:px-4 flex-1 sm:flex-none">
-                  <Link to="/clinic/profile">
-                    <Settings className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Settings</span>
-                  </Link>
-                </Button>
                 <Button asChild className="rounded-lg sm:rounded-xl shadow-lg shadow-primary/25 h-9 sm:h-10 px-3 sm:px-4 flex-1 sm:flex-none">
                   <Link to="/clinic/profile">
                     <Edit className="h-4 w-4 sm:mr-2" />
