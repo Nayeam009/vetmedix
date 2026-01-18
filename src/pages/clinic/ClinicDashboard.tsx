@@ -6,7 +6,7 @@ import {
   CheckCircle, XCircle, AlertCircle, Settings,
   Building2, Stethoscope, Package, Plus, Edit,
   ChevronRight, Activity, BarChart3, Bell, ArrowUpRight,
-  CalendarDays, UserCheck, DollarSign, Sparkles
+  CalendarDays, UserCheck, DollarSign, Sparkles, Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -22,6 +22,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { cn } from '@/lib/utils';
 import ClinicAppointmentsList from '@/components/clinic/ClinicAppointmentsList';
 import QuickStatsOverview from '@/components/clinic/QuickStatsOverview';
+import { GlobalSearch } from '@/components/GlobalSearch';
 
 const ClinicDashboard = () => {
   const navigate = useNavigate();
@@ -188,19 +189,25 @@ const ClinicDashboard = () => {
                 </div>
               </div>
             </div>
-            <div className="flex gap-2 sm:gap-3 self-start sm:self-auto">
-              <Button variant="outline" asChild className="rounded-lg sm:rounded-xl h-9 sm:h-10 px-3 sm:px-4">
-                <Link to="/clinic/profile">
-                  <Settings className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Settings</span>
-                </Link>
-              </Button>
-              <Button asChild className="rounded-lg sm:rounded-xl shadow-lg shadow-primary/25 h-9 sm:h-10 px-3 sm:px-4">
-                <Link to="/clinic/profile">
-                  <Edit className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Edit Profile</span>
-                </Link>
-              </Button>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 self-start sm:self-auto w-full sm:w-auto">
+              {/* Clinic Search */}
+              <div className="w-full sm:w-48 lg:w-56">
+                <GlobalSearch variant="clinic" className="w-full h-9 sm:h-10" placeholder="Search appointments..." />
+              </div>
+              <div className="flex gap-2 sm:gap-3">
+                <Button variant="outline" asChild className="rounded-lg sm:rounded-xl h-9 sm:h-10 px-3 sm:px-4 flex-1 sm:flex-none">
+                  <Link to="/clinic/profile">
+                    <Settings className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Settings</span>
+                  </Link>
+                </Button>
+                <Button asChild className="rounded-lg sm:rounded-xl shadow-lg shadow-primary/25 h-9 sm:h-10 px-3 sm:px-4 flex-1 sm:flex-none">
+                  <Link to="/clinic/profile">
+                    <Edit className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Edit Profile</span>
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         </div>

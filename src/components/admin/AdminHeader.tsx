@@ -1,6 +1,5 @@
-import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, Menu, Search, User, LogOut, Home, PanelLeft, ShoppingCart, Building2, RefreshCw } from 'lucide-react';
+import { Bell, Menu, User, LogOut, Home, PanelLeft, ShoppingCart, Building2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -18,6 +17,7 @@ import logo from '@/assets/logo.jpeg';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { GlobalSearch } from '@/components/GlobalSearch';
 
 interface AdminHeaderProps {
   title: string;
@@ -39,7 +39,6 @@ export const AdminHeader = ({
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState('');
 
   const totalPending = pendingOrders + pendingVerifications;
 
@@ -118,16 +117,9 @@ export const AdminHeader = ({
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2">
-          {/* Search - Desktop only */}
-          <div className="hidden xl:flex relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-9 pl-9 pr-4 rounded-full bg-muted/50 hover:bg-muted/70 border border-border/50 focus:border-primary/50 focus:bg-background focus:ring-2 focus:ring-primary/20 outline-none text-sm w-40 2xl:w-56 transition-all"
-            />
+          {/* Search - Desktop and Tablet */}
+          <div className="hidden md:flex w-40 lg:w-48 xl:w-56">
+            <GlobalSearch variant="admin" className="w-full" />
           </div>
 
           {/* Refresh Button - Hidden on mobile */}
