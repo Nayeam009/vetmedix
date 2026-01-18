@@ -1,10 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Truck, ShieldCheck, Clock, Heart } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
-
-// Lazy load the 3D cat for performance
-const AnimatedCat3D = lazy(() => import('./AnimatedCat3D'));
+import heroCat from '@/assets/hero-cat.png';
 
 const HeroSection = () => {
   return (
@@ -72,26 +69,23 @@ const HeroSection = () => {
             </div>
           </div>
 
-          {/* 3D Animated Cat */}
+          {/* Hero Cat Image */}
           <div className="relative order-1 lg:order-2 flex items-center justify-center">
             <div className="relative w-full max-w-md lg:max-w-lg xl:max-w-xl">
               {/* Glow effect behind the cat */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-orange-300/10 to-amber-200/20 rounded-full blur-3xl scale-75" />
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-orange-300/15 to-amber-200/20 rounded-3xl blur-2xl scale-90" />
               
-              {/* 3D Cat Container */}
-              <Suspense fallback={
-                <div className="w-full h-[200px] sm:h-[280px] md:h-[320px] lg:h-[380px] flex items-center justify-center">
-                  <div className="animate-pulse flex flex-col items-center gap-2">
-                    <div className="text-4xl">🐱</div>
-                    <span className="text-sm text-muted-foreground">Loading...</span>
-                  </div>
-                </div>
-              }>
-                <AnimatedCat3D />
-              </Suspense>
+              {/* Cat Image Container */}
+              <div className="relative z-10 flex items-center justify-center p-4 sm:p-6">
+                <img 
+                  src={heroCat} 
+                  alt="Cute cat waving" 
+                  className="w-full max-w-[280px] sm:max-w-[340px] md:max-w-[380px] lg:max-w-[420px] h-auto drop-shadow-2xl animate-fade-in hover:scale-105 transition-transform duration-500"
+                />
+              </div>
               
               {/* Floating stats badges */}
-              <div className="absolute bottom-4 left-4 sm:bottom-8 sm:left-8 bg-white/95 backdrop-blur-sm px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl shadow-lg animate-fade-in">
+              <div className="absolute bottom-0 left-0 sm:bottom-4 sm:left-4 bg-white/95 backdrop-blur-sm px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl shadow-lg animate-fade-in">
                 <div className="flex items-center gap-2 sm:gap-3">
                   <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-teal-500 flex items-center justify-center">
                     <span className="text-sm sm:text-lg">🐾</span>
@@ -103,12 +97,12 @@ const HeroSection = () => {
                 </div>
               </div>
               
-              <div className="absolute top-4 right-4 sm:top-8 sm:right-8 bg-white/95 backdrop-blur-sm px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl shadow-lg animate-fade-in" style={{ animationDelay: '0.2s' }}>
+              <div className="absolute top-0 right-0 sm:top-4 sm:right-4 bg-white/95 backdrop-blur-sm px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl shadow-lg animate-fade-in" style={{ animationDelay: '0.2s' }}>
                 <p className="text-lg sm:text-xl font-bold text-primary">2000+</p>
                 <p className="text-[10px] sm:text-xs text-muted-foreground">Products</p>
               </div>
               
-              <div className="absolute top-1/2 right-0 sm:right-4 -translate-y-1/2 bg-white/95 backdrop-blur-sm px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl shadow-lg animate-fade-in hidden sm:block" style={{ animationDelay: '0.4s' }}>
+              <div className="absolute top-1/2 right-0 sm:right-0 -translate-y-1/2 translate-x-2 bg-white/95 backdrop-blur-sm px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl shadow-lg animate-fade-in hidden sm:block" style={{ animationDelay: '0.4s' }}>
                 <p className="text-lg sm:text-xl font-bold text-teal-600">50+</p>
                 <p className="text-[10px] sm:text-xs text-muted-foreground">Vets Online</p>
               </div>
