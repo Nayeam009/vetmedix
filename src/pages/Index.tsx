@@ -60,90 +60,79 @@ const Index = () => {
       
       <main>
         {/* Hero Section - Playful & Eye-Pleasing */}
-        <section className="relative overflow-hidden min-h-[75vh] sm:min-h-[85vh] lg:min-h-[90vh]">
+        <section className="relative overflow-hidden min-h-[calc(100vh-4rem)] sm:min-h-[85vh] lg:min-h-[90vh]">
           {/* Animated gradient background */}
           <div className="absolute inset-0 bg-gradient-to-br from-[hsl(35,60%,95%)] via-[hsl(15,70%,95%)] to-[hsl(200,60%,95%)] animate-gradient-slow" />
           
-          {/* Playful floating shapes */}
+          {/* Playful floating shapes - hidden on very small screens for performance */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             {/* Large decorative circles */}
-            <div className="absolute -top-20 -right-20 w-64 h-64 sm:w-96 sm:h-96 rounded-full bg-gradient-to-br from-primary/20 to-accent/10 blur-3xl animate-pulse-slow" />
-            <div className="absolute -bottom-32 -left-32 w-80 h-80 sm:w-[30rem] sm:h-[30rem] rounded-full bg-gradient-to-tr from-accent/15 to-lavender/10 blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
+            <div className="absolute -top-20 -right-20 w-48 h-48 sm:w-64 sm:h-64 md:w-96 md:h-96 rounded-full bg-gradient-to-br from-primary/20 to-accent/10 blur-3xl animate-pulse-slow" />
+            <div className="absolute -bottom-32 -left-32 w-56 h-56 sm:w-80 sm:h-80 md:w-[30rem] md:h-[30rem] rounded-full bg-gradient-to-tr from-accent/15 to-lavender/10 blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
             
-            {/* Floating paw prints with rotation */}
-            <div className="absolute top-[8%] left-[5%] text-4xl sm:text-5xl lg:text-6xl opacity-20 animate-float rotate-[-15deg]">🐾</div>
-            <div className="absolute bottom-[15%] left-[8%] text-3xl sm:text-4xl opacity-15 animate-float rotate-[25deg]" style={{ animationDelay: '1s' }}>🐾</div>
-            <div className="absolute top-[12%] right-[8%] text-3xl sm:text-4xl opacity-15 animate-float rotate-[10deg]" style={{ animationDelay: '2s' }}>🐾</div>
-            <div className="absolute bottom-[20%] right-[5%] text-3xl opacity-15 animate-float rotate-[-20deg]" style={{ animationDelay: '3s' }}>🐾</div>
-            <div className="absolute top-[40%] left-[3%] text-2xl opacity-10 animate-float hidden lg:block" style={{ animationDelay: '1.5s' }}>🐾</div>
+            {/* Floating paw prints - responsive positioning */}
+            <div className="absolute top-[5%] left-[3%] text-2xl sm:text-4xl lg:text-5xl opacity-15 animate-float rotate-[-15deg]">🐾</div>
+            <div className="absolute bottom-[25%] left-[5%] text-xl sm:text-3xl opacity-10 animate-float rotate-[25deg] hidden sm:block" style={{ animationDelay: '1s' }}>🐾</div>
+            <div className="absolute top-[8%] right-[5%] text-xl sm:text-3xl opacity-10 animate-float rotate-[10deg]" style={{ animationDelay: '2s' }}>🐾</div>
+            <div className="absolute bottom-[30%] right-[3%] text-xl sm:text-2xl opacity-10 animate-float rotate-[-20deg] hidden sm:block" style={{ animationDelay: '3s' }}>🐾</div>
             
-            {/* Floating hearts with different sizes and delays */}
-            <div className="absolute top-[20%] right-[20%] hidden sm:block">
-              <Heart className="h-6 w-6 text-rose-400/40 fill-rose-400/40 animate-bounce-gentle" style={{ animationDelay: '0s' }} />
+            {/* Floating hearts - hidden on mobile for cleaner look */}
+            <div className="absolute top-[20%] right-[15%] hidden md:block">
+              <Heart className="h-5 w-5 lg:h-6 lg:w-6 text-rose-400/40 fill-rose-400/40 animate-bounce-gentle" />
             </div>
-            <div className="absolute top-[35%] left-[15%] hidden lg:block">
-              <Heart className="h-4 w-4 text-rose-400/30 fill-rose-400/30 animate-bounce-gentle" style={{ animationDelay: '0.5s' }} />
-            </div>
-            <div className="absolute bottom-[30%] right-[12%] hidden sm:block">
-              <Heart className="h-5 w-5 text-primary/30 fill-primary/30 animate-bounce-gentle" style={{ animationDelay: '1s' }} />
-            </div>
-            <div className="absolute top-[60%] right-[25%] hidden lg:block">
-              <Heart className="h-3 w-3 text-accent/40 fill-accent/40 animate-bounce-gentle" style={{ animationDelay: '1.5s' }} />
+            <div className="absolute bottom-[35%] right-[10%] hidden lg:block">
+              <Heart className="h-4 w-4 text-primary/30 fill-primary/30 animate-bounce-gentle" style={{ animationDelay: '1s' }} />
             </div>
             
-            {/* Sparkle elements */}
-            <div className="absolute top-[25%] left-[25%] hidden lg:block">
+            {/* Sparkle elements - hidden on small screens */}
+            <div className="absolute top-[25%] left-[20%] hidden lg:block">
               <Sparkles className="h-5 w-5 text-sunshine/50 animate-pulse" style={{ animationDelay: '0.3s' }} />
             </div>
-            <div className="absolute bottom-[35%] left-[20%] hidden md:block">
-              <Sparkles className="h-4 w-4 text-primary/40 animate-pulse" style={{ animationDelay: '1.2s' }} />
-            </div>
-            <div className="absolute top-[45%] right-[15%] hidden lg:block">
+            <div className="absolute top-[45%] right-[12%] hidden lg:block">
               <Star className="h-4 w-4 text-sunshine/40 fill-sunshine/40 animate-pulse" style={{ animationDelay: '0.8s' }} />
             </div>
           </div>
 
-          <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 lg:py-16 relative z-10">
-            <div className="grid lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-16 items-center">
+          <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-10 lg:py-16 relative z-10">
+            <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center min-h-[calc(100vh-8rem)] sm:min-h-0">
               {/* Content */}
-              <div className="space-y-5 sm:space-y-6 order-2 lg:order-1 text-center lg:text-left pb-8 lg:pb-0 animate-fade-in">
+              <div className="space-y-4 sm:space-y-5 lg:space-y-6 order-2 lg:order-1 text-center lg:text-left animate-fade-in">
                 {/* Animated Badge */}
-                <div className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-full bg-white/80 backdrop-blur-sm border border-primary/20 text-foreground text-xs sm:text-sm font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-default">
-                  <div className="relative">
-                    <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                    <span className="absolute -top-1 -right-1 h-2 w-2 bg-accent rounded-full animate-ping" />
+                <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border border-primary/20 text-foreground text-[10px] sm:text-xs md:text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-300 cursor-default">
+                  <div className="relative flex-shrink-0">
+                    <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+                    <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 sm:h-2 sm:w-2 bg-accent rounded-full animate-ping" />
                   </div>
-                  <span>10,000+ Pet Parents Connected</span>
-                  <Sparkles className="h-3.5 w-3.5 text-sunshine" />
+                  <span className="whitespace-nowrap">10,000+ Pet Parents</span>
+                  <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-sunshine flex-shrink-0" />
                 </div>
                 
-                {/* Main headline with gradient text */}
-                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-display font-bold leading-[1.05] tracking-tight">
-                  <span className="text-foreground block animate-slide-up">VETMEDIX</span>
-                  <span className="text-foreground block animate-slide-up" style={{ animationDelay: '0.1s' }}>SOCIAL:</span>
-                  <span className="block mt-1 sm:mt-2 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+                {/* Main headline with gradient text - responsive sizing */}
+                <h1 className="text-[1.75rem] leading-[1.1] sm:text-4xl md:text-5xl lg:text-[3.5rem] xl:text-6xl font-display font-bold tracking-tight">
+                  <span className="text-foreground block">VETMEDIX SOCIAL:</span>
+                  <span className="block mt-1 sm:mt-2">
                     <span className="text-gradient-fun">WHERE PETS</span>
                   </span>
-                  <span className="block animate-slide-up" style={{ animationDelay: '0.3s' }}>
+                  <span className="block">
                     <span className="bg-gradient-to-r from-primary via-accent to-lavender bg-clip-text text-transparent">CONNECT & SHARE</span>
                   </span>
                 </h1>
                 
-                {/* Description with better styling */}
-                <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed animate-fade-in" style={{ animationDelay: '0.4s' }}>
+                {/* Description - responsive text */}
+                <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-md sm:max-w-lg mx-auto lg:mx-0 leading-relaxed px-2 sm:px-0">
                   Create adorable profiles, share precious moments, find playdates, and join the 
                   <span className="text-primary font-semibold"> ultimate community</span> for pets and their people! 🐾
                 </p>
 
-                {/* CTA Buttons with enhanced styling */}
-                <div className="flex flex-col sm:flex-row gap-4 pt-3 justify-center lg:justify-start animate-fade-in" style={{ animationDelay: '0.5s' }}>
+                {/* CTA Buttons - improved mobile layout */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-2 sm:pt-3 justify-center lg:justify-start px-2 sm:px-0">
                   {user && pets.length === 0 ? (
                     <Link to="/pets/new" className="w-full sm:w-auto group">
                       <Button 
                         size="lg" 
-                        className="w-full sm:w-auto gradient-primary text-white rounded-full gap-2 text-sm sm:text-base px-7 sm:px-10 h-12 sm:h-14 font-bold shadow-button hover:shadow-hover hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300"
+                        className="w-full sm:w-auto gradient-primary text-white rounded-full gap-2 text-sm px-6 sm:px-8 h-11 sm:h-12 font-bold shadow-button hover:shadow-hover hover:-translate-y-1 transition-all duration-300"
                       >
-                        <PawPrint className="h-5 w-5 group-hover:animate-wiggle" />
+                        <PawPrint className="h-4 w-4 sm:h-5 sm:w-5 group-hover:animate-wiggle" />
                         Add Your First Pet
                         <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                       </Button>
@@ -152,9 +141,9 @@ const Index = () => {
                     <Link to="/auth" className="w-full sm:w-auto group">
                       <Button 
                         size="lg" 
-                        className="w-full sm:w-auto gradient-primary text-white rounded-full gap-2 text-sm sm:text-base px-7 sm:px-10 h-12 sm:h-14 font-bold shadow-button hover:shadow-hover hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300"
+                        className="w-full sm:w-auto gradient-primary text-white rounded-full gap-2 text-sm px-6 sm:px-8 h-11 sm:h-12 font-bold shadow-button hover:shadow-hover hover:-translate-y-1 transition-all duration-300"
                       >
-                        <Sparkles className="h-5 w-5 group-hover:animate-wiggle" />
+                        <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 group-hover:animate-wiggle" />
                         JOIN THE COMMUNITY
                         <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                       </Button>
@@ -163,9 +152,9 @@ const Index = () => {
                     <Link to="/feed" className="w-full sm:w-auto group">
                       <Button 
                         size="lg" 
-                        className="w-full sm:w-auto gradient-primary text-white rounded-full gap-2 text-sm sm:text-base px-7 sm:px-10 h-12 sm:h-14 font-bold shadow-button hover:shadow-hover hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300"
+                        className="w-full sm:w-auto gradient-primary text-white rounded-full gap-2 text-sm px-6 sm:px-8 h-11 sm:h-12 font-bold shadow-button hover:shadow-hover hover:-translate-y-1 transition-all duration-300"
                       >
-                        <PawPrint className="h-5 w-5 group-hover:animate-wiggle" />
+                        <PawPrint className="h-4 w-4 sm:h-5 sm:w-5 group-hover:animate-wiggle" />
                         GO TO FEED
                         <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                       </Button>
@@ -175,90 +164,89 @@ const Index = () => {
                     <Button 
                       variant="outline" 
                       size="lg" 
-                      className="w-full sm:w-auto rounded-full text-sm sm:text-base px-7 sm:px-10 h-12 sm:h-14 font-semibold border-2 border-foreground/15 bg-white/60 backdrop-blur-sm hover:bg-white hover:border-primary/30 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+                      className="w-full sm:w-auto rounded-full text-sm px-6 sm:px-8 h-11 sm:h-12 font-semibold border-2 border-foreground/15 bg-white/60 backdrop-blur-sm hover:bg-white hover:border-primary/30 hover:shadow-lg transition-all duration-300"
                     >
                       🛍️ Explore Shop
                     </Button>
                   </Link>
                 </div>
 
-                {/* Social features with playful cards */}
-                <div className="flex flex-wrap gap-3 sm:gap-4 pt-4 sm:pt-6 justify-center lg:justify-start animate-fade-in" style={{ animationDelay: '0.6s' }}>
+                {/* Social features - better mobile layout */}
+                <div className="flex flex-wrap gap-2 sm:gap-3 pt-3 sm:pt-4 justify-center lg:justify-start px-2 sm:px-0">
                   {[
                     { icon: Camera, label: 'Share Photos', color: 'from-primary/20 to-primary/5', iconColor: 'text-primary' },
                     { icon: Heart, label: 'Get Likes', color: 'from-rose-500/20 to-rose-500/5', iconColor: 'text-rose-500' },
                     { icon: MessageCircle, label: 'Connect', color: 'from-accent/20 to-accent/5', iconColor: 'text-accent' },
-                  ].map((feature, index) => (
+                  ].map((feature) => (
                     <div 
                       key={feature.label}
-                      className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-white/70 backdrop-blur-sm shadow-md hover:shadow-lg hover:scale-105 hover:-translate-y-0.5 transition-all duration-300 cursor-default group"
-                      style={{ animationDelay: `${0.7 + index * 0.1}s` }}
+                      className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-white/70 backdrop-blur-sm shadow-sm hover:shadow-md hover:scale-105 transition-all duration-300 cursor-default group"
                     >
-                      <div className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-gradient-to-br ${feature.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
-                        <feature.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${feature.iconColor}`} />
+                      <div className={`h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br ${feature.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
+                        <feature.icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${feature.iconColor}`} />
                       </div>
-                      <span className="text-xs sm:text-sm font-semibold text-foreground/80">{feature.label}</span>
+                      <span className="text-[11px] sm:text-xs font-semibold text-foreground/80">{feature.label}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Hero Illustration - Enhanced */}
-              <div className="relative order-1 lg:order-2 flex justify-center items-center animate-scale-in">
+              {/* Hero Illustration - Enhanced mobile */}
+              <div className="relative order-1 lg:order-2 flex justify-center items-center py-4 sm:py-0">
                 <div className="relative">
-                  {/* Glowing background circle */}
+                  {/* Glowing background circle - responsive */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-[280px] h-[280px] sm:w-[380px] sm:h-[380px] md:w-[440px] md:h-[440px] lg:w-[480px] lg:h-[480px] rounded-full bg-gradient-to-br from-primary/10 via-accent/5 to-lavender/10 blur-2xl animate-pulse-slow" />
+                    <div className="w-[200px] h-[200px] sm:w-[300px] sm:h-[300px] md:w-[380px] md:h-[380px] lg:w-[420px] lg:h-[420px] rounded-full bg-gradient-to-br from-primary/10 via-accent/5 to-lavender/10 blur-2xl animate-pulse-slow" />
                   </div>
                   
-                  {/* Floating pet avatars with enhanced animations */}
-                  <div className="absolute -top-4 -left-4 sm:-top-8 sm:-left-10 z-10">
-                    <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-white shadow-xl flex items-center justify-center text-2xl sm:text-3xl animate-float ring-4 ring-white/50" style={{ animationDelay: '0s' }}>
+                  {/* Floating pet avatars - responsive positioning */}
+                  <div className="absolute -top-2 -left-2 sm:-top-6 sm:-left-8 z-10">
+                    <div className="h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-white shadow-lg flex items-center justify-center text-lg sm:text-2xl animate-float ring-2 sm:ring-4 ring-white/50">
                       🐕
                     </div>
                   </div>
-                  <div className="absolute top-6 -right-2 sm:top-4 sm:-right-8 z-10">
-                    <div className="h-11 w-11 sm:h-14 sm:w-14 rounded-full bg-white shadow-xl flex items-center justify-center text-xl sm:text-2xl animate-float ring-4 ring-white/50" style={{ animationDelay: '0.5s' }}>
+                  <div className="absolute top-4 -right-1 sm:top-2 sm:-right-6 z-10">
+                    <div className="h-9 w-9 sm:h-12 sm:w-12 rounded-full bg-white shadow-lg flex items-center justify-center text-base sm:text-xl animate-float ring-2 sm:ring-4 ring-white/50" style={{ animationDelay: '0.5s' }}>
                       🐰
                     </div>
                   </div>
-                  <div className="absolute bottom-20 -right-4 sm:bottom-24 sm:-right-12 z-10">
-                    <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-white shadow-xl flex items-center justify-center text-xl sm:text-2xl animate-float ring-4 ring-white/50" style={{ animationDelay: '1s' }}>
+                  <div className="absolute bottom-16 -right-2 sm:bottom-20 sm:-right-10 z-10">
+                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-white shadow-lg flex items-center justify-center text-base sm:text-xl animate-float ring-2 sm:ring-4 ring-white/50" style={{ animationDelay: '1s' }}>
                       🐦
                     </div>
                   </div>
-                  <div className="absolute bottom-8 -left-3 sm:bottom-12 sm:-left-10 z-10">
-                    <div className="h-10 w-10 sm:h-13 sm:w-13 rounded-full bg-white shadow-xl flex items-center justify-center text-lg sm:text-xl animate-float ring-4 ring-white/50" style={{ animationDelay: '1.5s' }}>
+                  <div className="absolute bottom-6 -left-1 sm:bottom-10 sm:-left-8 z-10">
+                    <div className="h-8 w-8 sm:h-11 sm:w-11 rounded-full bg-white shadow-lg flex items-center justify-center text-sm sm:text-lg animate-float ring-2 sm:ring-4 ring-white/50" style={{ animationDelay: '1.5s' }}>
                       🐹
                     </div>
                   </div>
                   
-                  {/* Additional floating pet */}
-                  <div className="absolute top-1/2 -right-6 sm:-right-14 z-10 hidden sm:block">
-                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-white shadow-xl flex items-center justify-center text-lg sm:text-xl animate-float ring-4 ring-white/50" style={{ animationDelay: '2s' }}>
+                  {/* Additional floating pet - hidden on mobile */}
+                  <div className="absolute top-1/2 -right-4 sm:-right-12 z-10 hidden sm:block">
+                    <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-white shadow-lg flex items-center justify-center text-base sm:text-lg animate-float ring-2 sm:ring-4 ring-white/50" style={{ animationDelay: '2s' }}>
                       🐱
                     </div>
                   </div>
 
-                  {/* Animated likes notification */}
-                  <div className="absolute top-[30%] right-2 sm:right-0 z-20">
-                    <div className="bg-white rounded-full px-3 py-1.5 sm:px-4 sm:py-2 shadow-xl flex items-center gap-2 animate-bounce-gentle border-2 border-rose-100">
-                      <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-rose-500 fill-rose-500 animate-pulse" />
-                      <span className="text-xs sm:text-sm font-bold text-foreground">+99 likes!</span>
+                  {/* Animated likes notification - responsive */}
+                  <div className="absolute top-[25%] right-0 sm:right-2 z-20">
+                    <div className="bg-white rounded-full px-2.5 py-1 sm:px-3 sm:py-1.5 shadow-lg flex items-center gap-1.5 animate-bounce-gentle border border-rose-100">
+                      <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-rose-500 fill-rose-500 animate-pulse" />
+                      <span className="text-[10px] sm:text-xs font-bold text-foreground">+99</span>
                     </div>
                   </div>
                   
-                  {/* New follower notification */}
-                  <div className="absolute top-[55%] -left-4 sm:-left-10 z-20 hidden sm:block">
-                    <div className="bg-white rounded-full px-3 py-1.5 shadow-xl flex items-center gap-2 animate-bounce-gentle border-2 border-accent/20" style={{ animationDelay: '1s' }}>
-                      <Users className="h-4 w-4 text-accent" />
-                      <span className="text-xs font-bold text-foreground">New follower!</span>
+                  {/* New follower notification - hidden on small mobile */}
+                  <div className="absolute top-[50%] -left-2 sm:-left-8 z-20 hidden sm:block">
+                    <div className="bg-white rounded-full px-2.5 py-1 sm:px-3 sm:py-1.5 shadow-lg flex items-center gap-1.5 animate-bounce-gentle border border-accent/20" style={{ animationDelay: '1s' }}>
+                      <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-accent" />
+                      <span className="text-[10px] sm:text-xs font-bold text-foreground">New!</span>
                     </div>
                   </div>
 
-                  {/* Main illustration with glow effect */}
+                  {/* Main illustration - responsive sizing */}
                   <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-b from-primary/20 to-transparent rounded-full blur-3xl scale-75" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-primary/15 to-transparent rounded-full blur-2xl scale-75" />
                     <img
                       src={heroCatSocial}
                       alt="Cute cat using VetMedix social app on smartphone, representing pet social media community"
@@ -266,27 +254,27 @@ const Index = () => {
                       height={400}
                       fetchPriority="high"
                       decoding="async"
-                      className="relative w-[260px] h-[260px] sm:w-[340px] sm:h-[340px] md:w-[400px] md:h-[400px] lg:w-[440px] lg:h-[440px] object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500"
+                      className="relative w-[180px] h-[180px] sm:w-[280px] sm:h-[280px] md:w-[340px] md:h-[340px] lg:w-[380px] lg:h-[380px] object-contain drop-shadow-xl"
                     />
                   </div>
 
-                  {/* Enhanced bottom stats badge */}
-                  <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 z-20">
-                    <div className="bg-white/95 backdrop-blur-sm rounded-2xl sm:rounded-3xl px-5 py-3 sm:px-8 sm:py-4 shadow-xl border border-primary/10">
-                      <div className="flex items-center gap-4 sm:gap-8">
-                        <div className="text-center group cursor-default">
-                          <p className="text-xl sm:text-2xl font-bold text-foreground group-hover:text-primary transition-colors">5K+</p>
-                          <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Pet Profiles</p>
+                  {/* Stats badge - responsive */}
+                  <div className="absolute -bottom-2 sm:-bottom-4 left-1/2 transform -translate-x-1/2 z-20">
+                    <div className="bg-white/95 backdrop-blur-sm rounded-xl sm:rounded-2xl px-3 py-2 sm:px-6 sm:py-3 shadow-lg border border-primary/10">
+                      <div className="flex items-center gap-3 sm:gap-6">
+                        <div className="text-center">
+                          <p className="text-base sm:text-xl font-bold text-foreground">5K+</p>
+                          <p className="text-[8px] sm:text-[10px] text-muted-foreground font-medium">Profiles</p>
                         </div>
-                        <div className="h-8 sm:h-10 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent" />
-                        <div className="text-center group cursor-default">
-                          <p className="text-xl sm:text-2xl font-bold text-foreground group-hover:text-accent transition-colors">20K+</p>
-                          <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Daily Posts</p>
+                        <div className="h-6 sm:h-8 w-px bg-foreground/10" />
+                        <div className="text-center">
+                          <p className="text-base sm:text-xl font-bold text-foreground">20K+</p>
+                          <p className="text-[8px] sm:text-[10px] text-muted-foreground font-medium">Posts</p>
                         </div>
-                        <div className="h-8 sm:h-10 w-px bg-gradient-to-b from-transparent via-foreground/20 to-transparent hidden sm:block" />
-                        <div className="text-center group cursor-default hidden sm:block">
-                          <p className="text-xl sm:text-2xl font-bold text-foreground group-hover:text-lavender transition-colors">50K+</p>
-                          <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">Happy Pets</p>
+                        <div className="h-6 sm:h-8 w-px bg-foreground/10 hidden xs:block sm:block" />
+                        <div className="text-center hidden xs:block sm:block">
+                          <p className="text-base sm:text-xl font-bold text-foreground">50K+</p>
+                          <p className="text-[8px] sm:text-[10px] text-muted-foreground font-medium">Pets</p>
                         </div>
                       </div>
                     </div>
@@ -297,7 +285,7 @@ const Index = () => {
           </div>
           
           {/* Decorative wave at bottom */}
-          <div className="absolute bottom-0 left-0 right-0 h-16 sm:h-24 overflow-hidden">
+          <div className="absolute bottom-0 left-0 right-0 h-12 sm:h-20 overflow-hidden">
             <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-full">
               <path 
                 d="M0,60 C300,100 400,20 600,60 C800,100 900,20 1200,60 L1200,120 L0,120 Z" 
