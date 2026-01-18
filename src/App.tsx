@@ -1,53 +1,73 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { PetProvider } from "@/contexts/PetContext";
+import { Loader2 } from "lucide-react";
+
+// Critical routes - loaded immediately
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
-import CartPage from "./pages/CartPage";
-import CheckoutPage from "./pages/CheckoutPage";
-import ProductDetailPage from "./pages/ProductDetailPage";
 import ShopPage from "./pages/ShopPage";
 import ClinicsPage from "./pages/ClinicsPage";
-import ClinicDetailPage from "./pages/ClinicDetailPage";
-import BookAppointmentPage from "./pages/BookAppointmentPage";
-import ProfilePage from "./pages/ProfilePage";
-import FeedPage from "./pages/FeedPage";
-import PetProfilePage from "./pages/PetProfilePage";
-import CreatePetPage from "./pages/CreatePetPage";
-import EditPetPage from "./pages/EditPetPage";
-import ExplorePage from "./pages/ExplorePage";
-import MessagesPage from "./pages/MessagesPage";
-import ChatPage from "./pages/ChatPage";
-import NotificationsPage from "./pages/NotificationsPage";
-import NotFound from "./pages/NotFound";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminProducts from "./pages/admin/AdminProducts";
-import AdminOrders from "./pages/admin/AdminOrders";
-import AdminCustomers from "./pages/admin/AdminCustomers";
-import AdminAnalytics from "./pages/admin/AdminAnalytics";
-import AdminSettings from "./pages/admin/AdminSettings";
-import AdminClinics from "./pages/admin/AdminClinics";
-import AdminSocial from "./pages/admin/AdminSocial";
-// Doctor pages
-import DoctorDashboard from "./pages/doctor/DoctorDashboard";
-import DoctorProfile from "./pages/doctor/DoctorProfile";
-// Clinic owner pages
-import ClinicDashboard from "./pages/clinic/ClinicDashboard";
-import ClinicProfile from "./pages/clinic/ClinicProfile";
-import ClinicServices from "./pages/clinic/ClinicServices";
-import ClinicDoctors from "./pages/clinic/ClinicDoctors";
-import ClinicVerificationPage from "./pages/clinic/ClinicVerificationPage";
-// OAuth role selection
-import SelectRolePage from "./pages/SelectRolePage";
-import TrackOrderPage from "./pages/TrackOrderPage";
-import { Navigate, useSearchParams } from "react-router-dom";
+
+// Lazy load non-critical routes for better performance
+const FeedPage = lazy(() => import("./pages/FeedPage"));
+const ExplorePage = lazy(() => import("./pages/ExplorePage"));
+const CartPage = lazy(() => import("./pages/CartPage"));
+const CheckoutPage = lazy(() => import("./pages/CheckoutPage"));
+const ProductDetailPage = lazy(() => import("./pages/ProductDetailPage"));
+const ClinicDetailPage = lazy(() => import("./pages/ClinicDetailPage"));
+const BookAppointmentPage = lazy(() => import("./pages/BookAppointmentPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const PetProfilePage = lazy(() => import("./pages/PetProfilePage"));
+const CreatePetPage = lazy(() => import("./pages/CreatePetPage"));
+const EditPetPage = lazy(() => import("./pages/EditPetPage"));
+const MessagesPage = lazy(() => import("./pages/MessagesPage"));
+const ChatPage = lazy(() => import("./pages/ChatPage"));
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const TrackOrderPage = lazy(() => import("./pages/TrackOrderPage"));
+const SelectRolePage = lazy(() => import("./pages/SelectRolePage"));
+
+// Admin routes - lazy loaded
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
+const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
+const AdminCustomers = lazy(() => import("./pages/admin/AdminCustomers"));
+const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
+const AdminClinics = lazy(() => import("./pages/admin/AdminClinics"));
+const AdminSocial = lazy(() => import("./pages/admin/AdminSocial"));
+
+// Doctor routes - lazy loaded
+const DoctorDashboard = lazy(() => import("./pages/doctor/DoctorDashboard"));
+const DoctorProfile = lazy(() => import("./pages/doctor/DoctorProfile"));
+
+// Clinic owner routes - lazy loaded
+const ClinicDashboard = lazy(() => import("./pages/clinic/ClinicDashboard"));
+const ClinicProfile = lazy(() => import("./pages/clinic/ClinicProfile"));
+const ClinicServices = lazy(() => import("./pages/clinic/ClinicServices"));
+const ClinicDoctors = lazy(() => import("./pages/clinic/ClinicDoctors"));
+const ClinicVerificationPage = lazy(() => import("./pages/clinic/ClinicVerificationPage"));
 
 const queryClient = new QueryClient();
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-16 h-16 rounded-full gradient-primary flex items-center justify-center animate-pulse">
+        <Loader2 className="h-8 w-8 animate-spin text-white" />
+      </div>
+      <p className="text-muted-foreground text-sm font-medium">Loading...</p>
+    </div>
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -58,56 +78,60 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <Routes>
-                {/* Public routes */}
-                <Route path="/" element={<Index />} />
-                <Route path="/feed" element={<FeedPage />} />
-                <Route path="/explore" element={<ExplorePage />} />
-                <Route path="/messages" element={<MessagesPage />} />
-                <Route path="/notifications" element={<NotificationsPage />} />
-                <Route path="/chat/:conversationId" element={<ChatPage />} />
-                <Route path="/pet/:id" element={<PetProfilePage />} />
-                <Route path="/pets/new" element={<CreatePetPage />} />
-                <Route path="/pets/:id/edit" element={<EditPetPage />} />
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="/cart" element={<CartPage />} />
-                <Route path="/checkout" element={<CheckoutPage />} />
-                <Route path="/product/:id" element={<ProductDetailPage />} />
-                <Route path="/shop" element={<ShopPage />} />
-                <Route path="/clinics" element={<ClinicsPage />} />
-                <Route path="/clinic/:id" element={<ClinicDetailPage />} />
-                <Route path="/book-appointment/:clinicId" element={<BookAppointmentPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/track-order" element={<TrackOrderPage />} />
-                
-                {/* Admin routes */}
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/admin/products" element={<AdminProducts />} />
-                <Route path="/admin/orders" element={<AdminOrders />} />
-                <Route path="/admin/customers" element={<AdminCustomers />} />
-                <Route path="/admin/clinics" element={<AdminClinics />} />
-                <Route path="/admin/social" element={<AdminSocial />} />
-                <Route path="/admin/analytics" element={<AdminAnalytics />} />
-                <Route path="/admin/settings" element={<AdminSettings />} />
-                
-                {/* OAuth Role Selection */}
-                <Route path="/select-role" element={<SelectRolePage />} />
-                
-                {/* Doctor routes */}
-                <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
-                <Route path="/doctor/profile" element={<DoctorProfile />} />
-                
-                {/* Clinic owner routes */}
-                <Route path="/clinic/verification" element={<ClinicVerificationPage />} />
-                <Route path="/clinic/dashboard" element={<ClinicDashboard />} />
-                <Route path="/clinic/profile" element={<ClinicProfile />} />
-                <Route path="/clinic/owner-profile" element={<Navigate to="/clinic/profile?tab=owner" replace />} />
-                <Route path="/clinic/services" element={<ClinicServices />} />
-                <Route path="/clinic/doctors" element={<ClinicDoctors />} />
-                
-                {/* 404 */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  {/* Public routes - critical paths loaded immediately */}
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/shop" element={<ShopPage />} />
+                  <Route path="/clinics" element={<ClinicsPage />} />
+                  
+                  {/* Public routes - lazy loaded */}
+                  <Route path="/feed" element={<FeedPage />} />
+                  <Route path="/explore" element={<ExplorePage />} />
+                  <Route path="/messages" element={<MessagesPage />} />
+                  <Route path="/notifications" element={<NotificationsPage />} />
+                  <Route path="/chat/:conversationId" element={<ChatPage />} />
+                  <Route path="/pet/:id" element={<PetProfilePage />} />
+                  <Route path="/pets/new" element={<CreatePetPage />} />
+                  <Route path="/pets/:id/edit" element={<EditPetPage />} />
+                  <Route path="/cart" element={<CartPage />} />
+                  <Route path="/checkout" element={<CheckoutPage />} />
+                  <Route path="/product/:id" element={<ProductDetailPage />} />
+                  <Route path="/clinic/:id" element={<ClinicDetailPage />} />
+                  <Route path="/book-appointment/:clinicId" element={<BookAppointmentPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/track-order" element={<TrackOrderPage />} />
+                  
+                  {/* Admin routes */}
+                  <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/admin/products" element={<AdminProducts />} />
+                  <Route path="/admin/orders" element={<AdminOrders />} />
+                  <Route path="/admin/customers" element={<AdminCustomers />} />
+                  <Route path="/admin/clinics" element={<AdminClinics />} />
+                  <Route path="/admin/social" element={<AdminSocial />} />
+                  <Route path="/admin/analytics" element={<AdminAnalytics />} />
+                  <Route path="/admin/settings" element={<AdminSettings />} />
+                  
+                  {/* OAuth Role Selection */}
+                  <Route path="/select-role" element={<SelectRolePage />} />
+                  
+                  {/* Doctor routes */}
+                  <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+                  <Route path="/doctor/profile" element={<DoctorProfile />} />
+                  
+                  {/* Clinic owner routes */}
+                  <Route path="/clinic/verification" element={<ClinicVerificationPage />} />
+                  <Route path="/clinic/dashboard" element={<ClinicDashboard />} />
+                  <Route path="/clinic/profile" element={<ClinicProfile />} />
+                  <Route path="/clinic/owner-profile" element={<Navigate to="/clinic/profile?tab=owner" replace />} />
+                  <Route path="/clinic/services" element={<ClinicServices />} />
+                  <Route path="/clinic/doctors" element={<ClinicDoctors />} />
+                  
+                  {/* 404 */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
             </BrowserRouter>
           </TooltipProvider>
         </PetProvider>

@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Fredoka:wght@400;500;600;700&display=swap');
-
+/* Fonts loaded via index.html for better performance */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -25,7 +24,8 @@
     --secondary-foreground: 210 60% 35%;
 
     --muted: 45 30% 94%;
-    --muted-foreground: 220 15% 50%;
+    /* Improved contrast for accessibility - darkened from 50% to 38% */
+    --muted-foreground: 220 20% 38%;
 
     /* Mint/Teal Accent - Fresh & Playful */
     --accent: 165 55% 50%;
@@ -98,7 +98,8 @@
     --secondary-foreground: 45 30% 90%;
 
     --muted: 220 20% 16%;
-    --muted-foreground: 220 15% 60%;
+    /* Improved contrast for dark mode accessibility */
+    --muted-foreground: 220 15% 70%;
 
     --accent: 165 50% 45%;
     --accent-foreground: 0 0% 100%;
