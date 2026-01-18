@@ -265,78 +265,106 @@ const ClinicProfile = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Hero Section - Clinic Preview Card */}
-          <Card className="bg-white border-border/50 shadow-lg overflow-hidden">
+          <Card className="bg-white border-border/50 shadow-xl overflow-hidden rounded-2xl sm:rounded-3xl">
             {/* Cover Photo Display */}
             <div 
               className={cn(
-                "h-32 sm:h-40 relative bg-cover bg-center transition-all duration-300",
-                !formData.cover_photo_url && "bg-gradient-to-br from-primary/30 via-orange-200/50 to-amber-100"
+                "h-36 sm:h-44 md:h-52 relative bg-cover bg-center transition-all duration-300",
+                !formData.cover_photo_url && "bg-gradient-to-br from-primary/20 via-accent/15 to-lavender/20"
               )}
               style={formData.cover_photo_url ? { backgroundImage: `url(${formData.cover_photo_url})` } : undefined}
             >
               {/* Overlay for better contrast */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
 
               {/* Quick Status Toggle - Top Right */}
-              <div className="absolute top-3 right-3">
+              <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, is_open: !prev.is_open }))}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-xl shadow-lg backdrop-blur-sm transition-all active:scale-95",
+                    "flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full shadow-lg backdrop-blur-md transition-all active:scale-95 border",
                     formData.is_open 
-                      ? "bg-emerald-500/90 text-white hover:bg-emerald-500" 
-                      : "bg-red-500/90 text-white hover:bg-red-500"
+                      ? "bg-emerald-500/95 text-white hover:bg-emerald-500 border-emerald-400/30" 
+                      : "bg-red-500/95 text-white hover:bg-red-500 border-red-400/30"
                   )}
                 >
                   <div className={cn(
-                    "w-2.5 h-2.5 rounded-full animate-pulse",
+                    "w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full animate-pulse",
                     formData.is_open ? "bg-white" : "bg-white/70"
                   )} />
-                  <span className="text-sm font-semibold">
+                  <span className="text-xs sm:text-sm font-semibold">
                     {formData.is_open ? 'Open' : 'Closed'}
                   </span>
                 </button>
               </div>
+
+              {/* Edit Cover Photo Button - Bottom Right */}
+              <button
+                type="button"
+                onClick={() => coverInputRef.current?.click()}
+                disabled={uploadingCover}
+                className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-full bg-white/90 backdrop-blur-sm text-foreground text-xs font-medium shadow-lg hover:bg-white transition-all active:scale-95 border border-white/50"
+              >
+                {uploadingCover ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Camera className="h-3.5 w-3.5" />
+                )}
+                <span className="hidden sm:inline">Edit Cover</span>
+              </button>
             </div>
             
             {/* Avatar and Info Section */}
-            <CardContent className="pt-0 -mt-12 sm:-mt-14 relative px-4 sm:px-6 pb-5 sm:pb-6">
-              <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4">
-                {/* Avatar Display */}
-                <div className="relative flex-shrink-0">
-                  <Avatar className="h-24 w-24 sm:h-28 sm:w-28 border-4 border-white shadow-2xl ring-4 ring-primary/10">
+            <CardContent className="pt-0 -mt-14 sm:-mt-16 md:-mt-18 relative px-4 sm:px-6 pb-5 sm:pb-6">
+              <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-5">
+                {/* Avatar Display with Edit Button */}
+                <div className="relative flex-shrink-0 group">
+                  <Avatar className="h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 border-4 border-white shadow-2xl ring-4 ring-primary/10">
                     <AvatarImage src={formData.image_url} className="object-cover" />
-                    <AvatarFallback className="text-3xl bg-gradient-to-br from-primary via-orange-400 to-amber-400 text-white">
-                      <Building2 className="h-10 w-10" />
+                    <AvatarFallback className="text-3xl sm:text-4xl bg-gradient-to-br from-primary via-orange-400 to-amber-400 text-white">
+                      <Building2 className="h-10 w-10 sm:h-12 sm:w-12" />
                     </AvatarFallback>
                   </Avatar>
+                  {/* Edit Avatar Button */}
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white shadow-lg border-2 border-white flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all active:scale-95"
+                  >
+                    {uploadingAvatar ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Camera className="h-4 w-4" />
+                    )}
+                  </button>
                 </div>
                 
                 {/* Clinic Info */}
-                <div className="flex-1 text-center sm:text-left pb-1 min-w-0">
-                  <h2 className="text-xl sm:text-2xl font-bold text-foreground truncate">
+                <div className="flex-1 text-center sm:text-left pb-1 min-w-0 space-y-2 sm:space-y-2.5">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground truncate leading-tight">
                     {formData.name || 'Your Clinic Name'}
                   </h2>
-                  <p className="text-muted-foreground text-sm sm:text-base truncate flex items-center justify-center sm:justify-start gap-1.5 mt-1">
-                    <MapPin className="h-4 w-4 flex-shrink-0" />
+                  <p className="text-muted-foreground text-sm sm:text-base truncate flex items-center justify-center sm:justify-start gap-1.5">
+                    <MapPin className="h-4 w-4 flex-shrink-0 text-primary/70" />
                     {formData.address || 'Add your clinic address'}
                   </p>
-                  <div className="flex items-center justify-center sm:justify-start gap-2 mt-3 flex-wrap">
+                  <div className="flex items-center justify-center sm:justify-start gap-2 mt-2 flex-wrap">
                     {ownedClinic?.is_verified ? (
-                      <Badge className="bg-emerald-500 hover:bg-emerald-500 gap-1.5 text-xs px-3 py-1">
+                      <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 gap-1.5 text-xs px-3 py-1.5 rounded-full shadow-sm">
                         <CheckCircle className="h-3.5 w-3.5" />
                         Verified Clinic
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 text-xs px-3 py-1">
+                      <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 text-xs px-3 py-1.5 rounded-full">
                         <Clock className="h-3 w-3 mr-1" />
                         Pending Verification
                       </Badge>
                     )}
                     {formData.phone && (
-                      <Badge variant="outline" className="text-muted-foreground text-xs px-3 py-1">
-                        <Phone className="h-3 w-3 mr-1" />
+                      <Badge variant="outline" className="text-muted-foreground text-xs px-3 py-1.5 rounded-full bg-muted/30">
+                        <Phone className="h-3 w-3 mr-1.5" />
                         {formData.phone}
                       </Badge>
                     )}
@@ -345,26 +373,27 @@ const ClinicProfile = () => {
               </div>
 
               {/* Quick Stats / Status Bar */}
-              <div className="mt-5 pt-4 border-t border-border/50">
-                <div className="flex items-center justify-between gap-4 flex-wrap">
-                  <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className={cn(
-                        "w-3 h-3 rounded-full",
-                        formData.is_open ? "bg-emerald-500 animate-pulse" : "bg-red-400"
-                      )} />
-                      <span className="font-medium">
-                        Status: <span className={formData.is_open ? "text-emerald-600" : "text-red-500"}>
-                          {formData.is_open ? 'Currently Open' : 'Currently Closed'}
-                        </span>
+              <div className="mt-5 sm:mt-6 pt-4 sm:pt-5 border-t border-border/50">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className={cn(
+                      "w-3 h-3 rounded-full",
+                      formData.is_open ? "bg-emerald-500 animate-pulse" : "bg-red-400"
+                    )} />
+                    <span className="font-medium text-foreground/80">
+                      Status: <span className={cn(
+                        "font-semibold",
+                        formData.is_open ? "text-emerald-600" : "text-red-500"
+                      )}>
+                        {formData.is_open ? 'Currently Open' : 'Currently Closed'}
                       </span>
-                    </div>
+                    </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, is_open: !prev.is_open }))}
                     className={cn(
-                      "flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-all active:scale-95",
+                      "flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-95 shadow-sm w-full sm:w-auto justify-center",
                       formData.is_open 
                         ? "bg-red-50 text-red-600 hover:bg-red-100 border border-red-200" 
                         : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200"
