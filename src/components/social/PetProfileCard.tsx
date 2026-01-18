@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Pet } from '@/types/social';
+import { compressImage, getCompressionMessage } from '@/lib/mediaCompression';
 
 interface PetProfileCardProps {
   pet: Pet;
@@ -79,19 +80,26 @@ export const PetProfileCard = ({ pet, postsCount, isOwner, onPetUpdate }: PetPro
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image must be less than 5MB');
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('Image must be less than 20MB');
       return;
     }
 
     setUploadingCover(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      // Compress image before upload
+      const compressed = await compressImage(file, 'feed');
+      
+      if (compressed.compressionRatio > 1) {
+        toast.success(getCompressionMessage(compressed.originalSize, compressed.compressedSize));
+      }
+
+      const fileExt = compressed.file.name.split('.').pop();
       const fileName = `${user.id}/covers/${pet.id}-${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('pet-media')
-        .upload(fileName, file);
+        .upload(fileName, compressed.file);
 
       if (uploadError) throw uploadError;
 
@@ -119,19 +127,26 @@ export const PetProfileCard = ({ pet, postsCount, isOwner, onPetUpdate }: PetPro
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image must be less than 5MB');
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('Image must be less than 20MB');
       return;
     }
 
     setUploadingAvatar(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      // Compress image before upload
+      const compressed = await compressImage(file, 'avatar');
+      
+      if (compressed.compressionRatio > 1) {
+        toast.success(getCompressionMessage(compressed.originalSize, compressed.compressedSize));
+      }
+
+      const fileExt = compressed.file.name.split('.').pop();
       const fileName = `${user.id}/avatars/${pet.id}-${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('pet-media')
-        .upload(fileName, file);
+        .upload(fileName, compressed.file);
 
       if (uploadError) throw uploadError;
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Conversation, Message, Pet } from '@/types/social';
+import { compressImage } from '@/lib/mediaCompression';
 
 export const useConversations = () => {
   const { user } = useAuth();
@@ -185,13 +186,21 @@ export const useMessages = (conversationId: string) => {
       let mediaType = null;
 
       if (mediaFile) {
-        const fileExt = mediaFile.name.split('.').pop();
-        const fileName = `${user.id}/messages/${Date.now()}.${fileExt}`;
+        let fileToUpload = mediaFile;
         mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image';
+
+        // Compress image before upload
+        if (mediaType === 'image') {
+          const compressed = await compressImage(mediaFile, 'feed');
+          fileToUpload = compressed.file;
+        }
+
+        const fileExt = fileToUpload.name.split('.').pop();
+        const fileName = `${user.id}/messages/${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('pet-media')
-          .upload(fileName, mediaFile);
+          .upload(fileName, fileToUpload);
 
         if (uploadError) throw uploadError;
 

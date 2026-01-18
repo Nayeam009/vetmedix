@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { compressImage, getCompressionMessage } from '@/lib/mediaCompression';
 
 interface ProfileHeaderProps {
   user: {
@@ -66,19 +67,26 @@ const ProfileHeader = ({
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Max 5MB allowed", variant: "destructive" });
+    if (file.size > 20 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Max 20MB allowed", variant: "destructive" });
       return;
     }
 
     setUploadingAvatar(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      // Compress image before upload
+      const compressed = await compressImage(file, 'avatar');
+      
+      if (compressed.compressionRatio > 1) {
+        toast({ title: "Image optimized", description: getCompressionMessage(compressed.originalSize, compressed.compressedSize) });
+      }
+
+      const fileExt = compressed.file.name.split('.').pop();
       const filePath = `${user.id}/avatar-${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, compressed.file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
@@ -111,19 +119,26 @@ const ProfileHeader = ({
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Max 5MB allowed", variant: "destructive" });
+    if (file.size > 20 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Max 20MB allowed", variant: "destructive" });
       return;
     }
 
     setUploadingCover(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      // Compress image before upload
+      const compressed = await compressImage(file, 'feed');
+      
+      if (compressed.compressionRatio > 1) {
+        toast({ title: "Image optimized", description: getCompressionMessage(compressed.originalSize, compressed.compressedSize) });
+      }
+
+      const fileExt = compressed.file.name.split('.').pop();
       const filePath = `${user.id}/cover-${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, compressed.file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
