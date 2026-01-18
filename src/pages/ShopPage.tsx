@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, Loader2, SlidersHorizontal, Grid3X3, LayoutGrid, Package, ChevronDown, X, Sparkles } from 'lucide-react';
 import Navbar from '@/components/Navbar';
@@ -23,6 +23,23 @@ import {
 } from "@/components/ui/sheet";
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+
+// Price range options outside component to prevent recreation
+const priceRangeOptions = [
+  { value: 'all', label: 'All Prices' },
+  { value: 'under500', label: 'Under ৳500' },
+  { value: '500to1000', label: '৳500 - ৳1000' },
+  { value: 'over1000', label: 'Over ৳1000' },
+];
+
+const sortOptions = [
+  { value: 'newest', label: 'Newest' },
+  { value: 'price-low', label: 'Price: Low to High' },
+  { value: 'price-high', label: 'Price: High to Low' },
+  { value: 'discount', label: 'Best Discount' },
+];
+
+const categoryOptions = ['All', 'Pet', 'Farm'];
 
 const ShopPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -91,18 +108,26 @@ const ShopPage = () => {
     searchQuery.length > 0
   ].filter(Boolean).length;
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setCategory('All');
     setPriceRange('all');
     setSearchQuery('');
-  };
+  }, []);
+
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  }, []);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+  }, []);
 
   return (
     <div className="min-h-screen bg-muted/30 pb-20 md:pb-0">
       <Navbar />
       
       {/* Hero Banner */}
-      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 border-b border-border">
+      <header className="bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 border-b border-border">
         <div className="container mx-auto px-4 py-6 sm:py-8 lg:py-10">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -114,34 +139,36 @@ const ShopPage = () => {
               </p>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Package className="h-4 w-4 text-primary" />
+              <Package className="h-4 w-4 text-primary" aria-hidden="true" />
               <span>{sortedProducts.length} products</span>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6" role="main" aria-label="Shop products">
         {/* Search, Filter & Sort Bar */}
         <div className="bg-background rounded-xl sm:rounded-2xl border border-border shadow-sm p-3 sm:p-4 mb-4 sm:mb-6">
           <div className="flex flex-col gap-3 sm:gap-4">
             {/* Search Row */}
             <div className="flex gap-2 sm:gap-3">
               <div className="relative flex-1">
-                <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 <input 
                   type="text" 
                   placeholder="Search products..." 
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={handleSearchChange}
                   className="w-full h-10 sm:h-11 pl-9 sm:pl-11 pr-4 rounded-lg sm:rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm transition-all"
+                  aria-label="Search products"
                 />
                 {searchQuery && (
                   <button 
-                    onClick={() => setSearchQuery('')}
+                    onClick={handleClearSearch}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label="Clear search"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-4 w-4" aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -149,10 +176,10 @@ const ShopPage = () => {
               {/* Mobile Filter Button */}
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="icon" className="sm:hidden h-10 w-10 relative">
-                    <SlidersHorizontal className="h-4 w-4" />
+                  <Button variant="outline" size="icon" className="sm:hidden h-10 w-10 relative" aria-label={`Filters${activeFiltersCount > 0 ? ` (${activeFiltersCount} active)` : ''}`}>
+                    <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
                     {activeFiltersCount > 0 && (
-                      <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center">
+                      <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center" aria-hidden="true">
                         {activeFiltersCount}
                       </span>
                     )}
@@ -165,9 +192,9 @@ const ShopPage = () => {
                   <div className="mt-6 space-y-6">
                     {/* Category Filter */}
                     <div className="space-y-3">
-                      <h3 className="font-semibold text-foreground">Category</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {['All', 'Pet', 'Farm'].map(cat => (
+                      <h3 className="font-semibold text-foreground" id="mobile-category-label">Category</h3>
+                      <div className="flex flex-wrap gap-2" role="group" aria-labelledby="mobile-category-label">
+                        {categoryOptions.map(cat => (
                           <button 
                             key={cat} 
                             onClick={() => setCategory(cat)}
@@ -176,6 +203,7 @@ const ShopPage = () => {
                                 ? 'bg-primary text-primary-foreground' 
                                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
                             }`}
+                            aria-pressed={category === cat}
                           >
                             {cat}
                           </button>
@@ -187,14 +215,9 @@ const ShopPage = () => {
                     
                     {/* Price Range Filter */}
                     <div className="space-y-3">
-                      <h3 className="font-semibold text-foreground">Price Range</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          { value: 'all', label: 'All Prices' },
-                          { value: 'under500', label: 'Under ৳500' },
-                          { value: '500to1000', label: '৳500 - ৳1000' },
-                          { value: 'over1000', label: 'Over ৳1000' },
-                        ].map(option => (
+                      <h3 className="font-semibold text-foreground" id="mobile-price-label">Price Range</h3>
+                      <div className="flex flex-wrap gap-2" role="group" aria-labelledby="mobile-price-label">
+                        {priceRangeOptions.map(option => (
                           <button 
                             key={option.value} 
                             onClick={() => setPriceRange(option.value as any)}
@@ -203,6 +226,7 @@ const ShopPage = () => {
                                 ? 'bg-primary text-primary-foreground' 
                                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
                             }`}
+                            aria-pressed={priceRange === option.value}
                           >
                             {option.label}
                           </button>
@@ -214,14 +238,9 @@ const ShopPage = () => {
                     
                     {/* Sort Options */}
                     <div className="space-y-3">
-                      <h3 className="font-semibold text-foreground">Sort By</h3>
-                      <div className="grid grid-cols-2 gap-2">
-                        {[
-                          { value: 'newest', label: 'Newest' },
-                          { value: 'price-low', label: 'Price: Low to High' },
-                          { value: 'price-high', label: 'Price: High to Low' },
-                          { value: 'discount', label: 'Best Discount' },
-                        ].map(option => (
+                      <h3 className="font-semibold text-foreground" id="mobile-sort-label">Sort By</h3>
+                      <div className="grid grid-cols-2 gap-2" role="group" aria-labelledby="mobile-sort-label">
+                        {sortOptions.map(option => (
                           <button 
                             key={option.value} 
                             onClick={() => setSortBy(option.value)}
@@ -230,6 +249,7 @@ const ShopPage = () => {
                                 ? 'bg-primary text-primary-foreground' 
                                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
                             }`}
+                            aria-pressed={sortBy === option.value}
                           >
                             {option.label}
                           </button>
@@ -251,8 +271,8 @@ const ShopPage = () => {
             <div className="hidden sm:flex items-center justify-between gap-4">
               {/* Category Filters */}
               <div className="flex items-center gap-2">
-                <div className="flex items-center bg-muted/50 rounded-xl p-1 border border-border">
-                  {['All', 'Pet', 'Farm'].map(cat => (
+                <div className="flex items-center bg-muted/50 rounded-xl p-1 border border-border" role="group" aria-label="Category filter">
+                  {categoryOptions.map(cat => (
                     <button 
                       key={cat} 
                       onClick={() => setCategory(cat)}
@@ -261,6 +281,7 @@ const ShopPage = () => {
                           ? 'bg-background text-foreground shadow-sm' 
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
+                      aria-pressed={category === cat}
                     >
                       {cat}
                     </button>
@@ -269,21 +290,20 @@ const ShopPage = () => {
                 
                 {/* Price Range Select */}
                 <Select value={priceRange} onValueChange={(v: any) => setPriceRange(v)}>
-                  <SelectTrigger className="w-[150px] h-10 rounded-lg">
+                  <SelectTrigger className="w-[150px] h-10 rounded-lg" aria-label="Price range filter">
                     <SelectValue placeholder="Price Range" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Prices</SelectItem>
-                    <SelectItem value="under500">Under ৳500</SelectItem>
-                    <SelectItem value="500to1000">৳500 - ৳1000</SelectItem>
-                    <SelectItem value="over1000">Over ৳1000</SelectItem>
+                    {priceRangeOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
 
                 {activeFiltersCount > 0 && (
-                  <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground" aria-label="Clear all filters">
                     Clear filters
-                    <X className="h-3 w-3 ml-1" />
+                    <X className="h-3 w-3 ml-1" aria-hidden="true" />
                   </Button>
                 )}
               </div>
@@ -292,7 +312,7 @@ const ShopPage = () => {
               <div className="flex items-center gap-3">
                 {/* Sort Select */}
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-[180px] h-10 rounded-lg">
+                  <SelectTrigger className="w-[180px] h-10 rounded-lg" aria-label="Sort products">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent>
@@ -305,22 +325,28 @@ const ShopPage = () => {
                 </Select>
 
                 {/* Grid View Toggle */}
-                <div className="hidden lg:flex items-center bg-muted/50 rounded-lg p-1 border border-border">
+                <div className="hidden lg:flex items-center bg-muted/50 rounded-lg p-1 border border-border" role="group" aria-label="Grid view options">
                   <button
                     onClick={() => setGridCols(2)}
                     className={`p-2 rounded transition-all ${gridCols === 2 ? 'bg-background shadow-sm' : 'hover:bg-muted'}`}
+                    aria-label="View as 2 columns"
+                    aria-pressed={gridCols === 2}
                   >
-                    <Grid3X3 className="h-4 w-4" />
+                    <Grid3X3 className="h-4 w-4" aria-hidden="true" />
                   </button>
                   <button
                     onClick={() => setGridCols(3)}
                     className={`p-2 rounded transition-all ${gridCols === 3 ? 'bg-background shadow-sm' : 'hover:bg-muted'}`}
+                    aria-label="View as 3 columns"
+                    aria-pressed={gridCols === 3}
                   >
-                    <LayoutGrid className="h-4 w-4" />
+                    <LayoutGrid className="h-4 w-4" aria-hidden="true" />
                   </button>
                   <button
                     onClick={() => setGridCols(4)}
                     className={`p-2 rounded transition-all ${gridCols === 4 ? 'bg-background shadow-sm' : 'hover:bg-muted'}`}
+                    aria-label="View as 4 columns"
+                    aria-pressed={gridCols === 4}
                   >
                     <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
                       <rect x="1" y="1" width="3" height="3" rx="0.5" />
@@ -341,28 +367,28 @@ const ShopPage = () => {
 
         {/* Active Filters Display */}
         {activeFiltersCount > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="flex flex-wrap gap-2 mb-4" role="list" aria-label="Active filters">
             {category !== 'All' && (
-              <Badge variant="secondary" className="gap-1 pr-1">
+              <Badge variant="secondary" className="gap-1 pr-1" role="listitem">
                 {category}
-                <button onClick={() => setCategory('All')} className="ml-1 hover:bg-muted rounded-full p-0.5">
-                  <X className="h-3 w-3" />
+                <button onClick={() => setCategory('All')} className="ml-1 hover:bg-muted rounded-full p-0.5" aria-label={`Remove ${category} filter`}>
+                  <X className="h-3 w-3" aria-hidden="true" />
                 </button>
               </Badge>
             )}
             {priceRange !== 'all' && (
-              <Badge variant="secondary" className="gap-1 pr-1">
+              <Badge variant="secondary" className="gap-1 pr-1" role="listitem">
                 {priceRange === 'under500' ? 'Under ৳500' : priceRange === '500to1000' ? '৳500-৳1000' : 'Over ৳1000'}
-                <button onClick={() => setPriceRange('all')} className="ml-1 hover:bg-muted rounded-full p-0.5">
-                  <X className="h-3 w-3" />
+                <button onClick={() => setPriceRange('all')} className="ml-1 hover:bg-muted rounded-full p-0.5" aria-label="Remove price filter">
+                  <X className="h-3 w-3" aria-hidden="true" />
                 </button>
               </Badge>
             )}
             {searchQuery && (
-              <Badge variant="secondary" className="gap-1 pr-1">
+              <Badge variant="secondary" className="gap-1 pr-1" role="listitem">
                 "{searchQuery}"
-                <button onClick={() => setSearchQuery('')} className="ml-1 hover:bg-muted rounded-full p-0.5">
-                  <X className="h-3 w-3" />
+                <button onClick={handleClearSearch} className="ml-1 hover:bg-muted rounded-full p-0.5" aria-label="Remove search filter">
+                  <X className="h-3 w-3" aria-hidden="true" />
                 </button>
               </Badge>
             )}
@@ -370,11 +396,11 @@ const ShopPage = () => {
         )}
 
         {/* Products Grid */}
-        <div className="flex-1">
+        <section className="flex-1" aria-label="Products list">
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4" aria-busy="true" aria-label="Loading products">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="bg-background rounded-xl sm:rounded-2xl border border-border overflow-hidden">
+                <div key={i} className="bg-background rounded-xl sm:rounded-2xl border border-border overflow-hidden" aria-hidden="true">
                   <div className="aspect-square bg-muted animate-pulse" />
                   <div className="p-3 sm:p-4 space-y-3">
                     <div className="h-4 bg-muted animate-pulse rounded w-3/4" />
@@ -385,8 +411,8 @@ const ShopPage = () => {
               ))}
             </div>
           ) : sortedProducts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 sm:py-24">
-              <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4">
+            <div className="flex flex-col items-center justify-center py-16 sm:py-24" role="status">
+              <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4" aria-hidden="true">
                 <Sparkles className="h-10 w-10 text-muted-foreground" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">No products found</h3>
@@ -419,7 +445,7 @@ const ShopPage = () => {
               ))}
             </div>
           )}
-        </div>
+        </section>
       </main>
       <Footer />
       <MobileNav />
