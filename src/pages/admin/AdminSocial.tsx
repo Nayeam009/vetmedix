@@ -12,8 +12,7 @@ import {
   Loader2,
   Filter,
   Calendar,
-  AlertCircle,
-  Flag,
+  PawPrint,
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -95,13 +94,18 @@ const AdminSocial = () => {
         { count: totalLikes },
         { count: totalComments },
         { count: postsToday },
+        { data: petParentsData },
       ] = await Promise.all([
         supabase.from('posts').select('*', { count: 'exact', head: true }),
         supabase.from('pets').select('*', { count: 'exact', head: true }),
         supabase.from('likes').select('*', { count: 'exact', head: true }),
         supabase.from('comments').select('*', { count: 'exact', head: true }),
         supabase.from('posts').select('*', { count: 'exact', head: true }).gte('created_at', today),
+        supabase.from('pets').select('user_id'),
       ]);
+
+      // Count unique pet parents (users who have at least one pet)
+      const uniquePetParents = new Set(petParentsData?.map(p => p.user_id) || []).size;
 
       return {
         totalPosts: totalPosts || 0,
@@ -109,6 +113,7 @@ const AdminSocial = () => {
         totalLikes: totalLikes || 0,
         totalComments: totalComments || 0,
         postsToday: postsToday || 0,
+        petParents: uniquePetParents,
       };
     },
     enabled: isAdmin,
@@ -187,68 +192,81 @@ const AdminSocial = () => {
   return (
     <AdminLayout title="Social Media Moderation" subtitle="Monitor and moderate pet social media content">
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <MessageSquare className="h-5 w-5 text-primary" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
+        <Card className="col-span-1">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 shrink-0">
+                <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{socialStats?.totalPosts || 0}</p>
-                <p className="text-sm text-muted-foreground">Total Posts</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-500/10">
-                <Calendar className="h-5 w-5 text-green-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{socialStats?.postsToday || 0}</p>
-                <p className="text-sm text-muted-foreground">Posts Today</p>
+              <div className="min-w-0">
+                <p className="text-lg sm:text-2xl font-bold truncate">{socialStats?.totalPosts || 0}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Total Posts</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/10">
-                <Users className="h-5 w-5 text-blue-500" />
+        <Card className="col-span-1">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-green-500/10 shrink-0">
+                <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{socialStats?.totalPets || 0}</p>
-                <p className="text-sm text-muted-foreground">Pet Profiles</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-500/10">
-                <Heart className="h-5 w-5 text-red-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{socialStats?.totalLikes || 0}</p>
-                <p className="text-sm text-muted-foreground">Total Likes</p>
+              <div className="min-w-0">
+                <p className="text-lg sm:text-2xl font-bold truncate">{socialStats?.postsToday || 0}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Posts Today</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/10">
-                <MessageSquare className="h-5 w-5 text-amber-500" />
+        <Card className="col-span-1">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-blue-500/10 shrink-0">
+                <PawPrint className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
               </div>
-              <div>
-                <p className="text-2xl font-bold">{socialStats?.totalComments || 0}</p>
-                <p className="text-sm text-muted-foreground">Comments</p>
+              <div className="min-w-0">
+                <p className="text-lg sm:text-2xl font-bold truncate">{socialStats?.totalPets || 0}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Pet Profiles</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="col-span-1">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-purple-500/10 shrink-0">
+                <Users className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-lg sm:text-2xl font-bold truncate">{socialStats?.petParents || 0}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Pet Parents</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="col-span-1">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-red-500/10 shrink-0">
+                <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-lg sm:text-2xl font-bold truncate">{socialStats?.totalLikes || 0}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Total Likes</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="col-span-1">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-amber-500/10 shrink-0">
+                <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-lg sm:text-2xl font-bold truncate">{socialStats?.totalComments || 0}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Comments</p>
               </div>
             </div>
           </CardContent>
