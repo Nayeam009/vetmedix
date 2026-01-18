@@ -39,7 +39,11 @@ export const Logo = ({
         <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-accent/30 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         <img
           src={logo}
-          alt="VET-MEDIX Logo"
+          alt="VET-MEDIX Logo - Pet care and veterinary services"
+          width={44}
+          height={44}
+          fetchPriority="high"
+          decoding="async"
           className={cn(
             "relative rounded-xl object-cover shadow-soft transition-all duration-300",
             "border-2 border-primary/20 group-hover:border-primary/40 group-hover:scale-105",
@@ -75,7 +79,7 @@ export const Logo = ({
   );
 
   if (to) {
-    return <Link to={to}>{content}</Link>;
+    return <Link to={to} aria-label="VET-MEDIX - Go to homepage">{content}</Link>;
   }
 
   return content;

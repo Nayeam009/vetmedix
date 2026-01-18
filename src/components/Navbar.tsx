@@ -84,7 +84,7 @@ const Navbar = () => {
             <div className="w-px h-6 bg-border mx-0.5 lg:mx-1" />
 
             {user && <Link to="/messages">
-                <Button variant="ghost" size="icon" className="h-9 w-9">
+                <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="View messages">
                   <MessageCircle className="h-4 w-4 lg:h-5 lg:w-5" />
                 </Button>
               </Link>}
@@ -94,25 +94,30 @@ const Navbar = () => {
 
             {user ? <div className="flex items-center gap-0.5">
                 <Link to="/profile">
-                  <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="View your profile">
                     <User className="h-4 w-4 lg:h-5 lg:w-5" />
                   </Button>
                 </Link>
-                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => {
+                <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="Sign out of your account" onClick={() => {
               signOut();
               navigate('/');
             }}>
                   <LogOut className="h-4 w-4 lg:h-5 lg:w-5" />
                 </Button>
               </div> : <Link to="/auth">
-                <Button variant="default" size="sm" className="h-9">Sign In</Button>
+                <Button variant="default" size="sm" className="h-11 px-4">Sign In</Button>
               </Link>}
           </div>
 
           {/* Mobile Menu Button */}
           <div className="flex md:hidden items-center gap-1.5 sm:gap-2">
             <NotificationBell />
-            <button className="p-2 rounded-lg hover:bg-muted transition-colors active:scale-95" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+            <button 
+              className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-muted transition-colors active:scale-95" 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={isMenuOpen}
+            >
               {isMenuOpen ? <X className="h-5 w-5 sm:h-6 sm:w-6" /> : <Menu className="h-5 w-5 sm:h-6 sm:w-6" />}
             </button>
           </div>

@@ -73,7 +73,11 @@ const HeroSection = () => {
             <div className="relative">
               <img
                 src={heroPets}
-                alt="Happy pets - dog and cat"
+                alt="Happy pets including a dog and cat together, representing VET-MEDIX pet care services"
+                width={600}
+                height={420}
+                fetchPriority="high"
+                decoding="async"
                 className="w-full h-[240px] sm:h-[300px] md:h-[360px] lg:h-[420px] object-cover rounded-2xl sm:rounded-3xl shadow-lg"
               />
               {/* Floating badge */}

@@ -15,21 +15,33 @@ const Footer = () => {
             <p className="text-xs sm:text-sm text-card/70 mb-3 sm:mb-4 max-w-xs">
               Your trusted partner for pet and farm animal care across Bangladesh.
             </p>
-            <div className="flex gap-2 sm:gap-3">
-              <a href="#" className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-card/10 flex items-center justify-center hover:bg-primary transition-colors active:scale-95">
-                <Facebook className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <nav aria-label="Social media links" className="flex gap-2 sm:gap-3">
+              <a 
+                href="#" 
+                className="h-11 w-11 rounded-full bg-card/10 flex items-center justify-center hover:bg-primary transition-colors active:scale-95"
+                aria-label="Visit our Facebook page"
+              >
+                <Facebook className="h-4 w-4 sm:h-5 sm:w-5" />
               </a>
-              <a href="#" className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-card/10 flex items-center justify-center hover:bg-primary transition-colors active:scale-95">
-                <Instagram className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <a 
+                href="#" 
+                className="h-11 w-11 rounded-full bg-card/10 flex items-center justify-center hover:bg-primary transition-colors active:scale-95"
+                aria-label="Visit our Instagram page"
+              >
+                <Instagram className="h-4 w-4 sm:h-5 sm:w-5" />
               </a>
-              <a href="#" className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-card/10 flex items-center justify-center hover:bg-primary transition-colors active:scale-95">
-                <Youtube className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <a 
+                href="#" 
+                className="h-11 w-11 rounded-full bg-card/10 flex items-center justify-center hover:bg-primary transition-colors active:scale-95"
+                aria-label="Visit our YouTube channel"
+              >
+                <Youtube className="h-4 w-4 sm:h-5 sm:w-5" />
               </a>
-            </div>
+            </nav>
           </div>
 
           {/* Quick Links */}
-          <div>
+          <nav aria-label="Quick links">
             <h4 className="font-semibold text-sm sm:text-base mb-3 sm:mb-4">Quick Links</h4>
             <ul className="space-y-1.5 sm:space-y-2">
               {[
@@ -40,16 +52,16 @@ const Footer = () => {
                 { label: 'FAQs', path: '/faq' },
               ].map((link) => (
                 <li key={link.label}>
-                  <Link to={link.path} className="text-xs sm:text-sm text-card/70 hover:text-primary transition-colors">
+                  <Link to={link.path} className="text-sm text-card/80 hover:text-primary transition-colors inline-block py-1">
                     {link.label}
                   </Link>
                 </li>
               ))}
             </ul>
-          </div>
+          </nav>
 
           {/* Categories */}
-          <div>
+          <nav aria-label="Product categories">
             <h4 className="font-semibold text-sm sm:text-base mb-3 sm:mb-4">Categories</h4>
             <ul className="space-y-1.5 sm:space-y-2">
               {[
@@ -60,13 +72,13 @@ const Footer = () => {
                 { label: 'Accessories', path: '/shop?type=accessory' },
               ].map((link) => (
                 <li key={link.label}>
-                  <Link to={link.path} className="text-xs sm:text-sm text-card/70 hover:text-primary transition-colors">
+                  <Link to={link.path} className="text-sm text-card/80 hover:text-primary transition-colors inline-block py-1">
                     {link.label}
                   </Link>
                 </li>
               ))}
             </ul>
-          </div>
+          </nav>
 
           {/* Contact */}
           <div className="col-span-2 sm:col-span-1">
