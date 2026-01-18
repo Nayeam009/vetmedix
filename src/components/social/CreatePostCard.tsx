@@ -14,15 +14,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Progress } from '@/components/ui/progress';
 import { Pet } from '@/types/social';
+import { 
+  compressImage, 
+  extractVideoPoster, 
+  getCompressionMessage,
+  type CompressedMedia 
+} from '@/lib/mediaCompression';
 
 interface CreatePostCardProps {
   onPostCreated: () => void;
 }
 
-// File size limits
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-const MAX_VIDEO_SIZE = 20 * 1024 * 1024; // 20MB
+// File size limits (post-compression targets)
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB (raw)
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB for videos
 const MAX_VIDEO_DURATION = 60; // 1 minute in seconds
 
 export const CreatePostCard = ({
@@ -39,6 +46,9 @@ export const CreatePostCard = ({
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [submitting, setSubmitting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [compressing, setCompressing] = useState(false);
+  const [compressionProgress, setCompressionProgress] = useState(0);
+  const [compressionStats, setCompressionStats] = useState<CompressedMedia[]>([]);
   
   // Track selected pet for this post (defaults to activePet)
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
@@ -129,11 +139,58 @@ export const CreatePostCard = ({
       }
     }
     if (validatedFiles.length === 0) return;
-    const newFiles = mediaType === 'video' ? validatedFiles.slice(0, 1) : [...mediaFiles, ...validatedFiles].slice(0, 4);
-    setMediaFiles(newFiles);
-    setIsExpanded(true);
-    const previews = newFiles.map(file => URL.createObjectURL(file));
-    setMediaPreviews(previews);
+
+    // Compress images
+    if (mediaType === 'image') {
+      setCompressing(true);
+      setCompressionProgress(0);
+      
+      const compressedFiles: File[] = [];
+      const stats: CompressedMedia[] = [];
+      let totalOriginal = 0;
+      let totalCompressed = 0;
+      
+      for (let i = 0; i < validatedFiles.length; i++) {
+        const file = validatedFiles[i];
+        setCompressionProgress(Math.round(((i + 0.5) / validatedFiles.length) * 100));
+        
+        try {
+          const result = await compressImage(file, 'feed');
+          compressedFiles.push(result.file);
+          stats.push(result);
+          totalOriginal += result.originalSize;
+          totalCompressed += result.compressedSize;
+        } catch {
+          compressedFiles.push(file);
+        }
+        
+        setCompressionProgress(Math.round(((i + 1) / validatedFiles.length) * 100));
+      }
+      
+      setCompressing(false);
+      setCompressionStats(stats);
+      
+      // Show compression summary
+      if (totalOriginal > totalCompressed) {
+        toast.success(getCompressionMessage(totalOriginal, totalCompressed));
+      }
+      
+      const newFiles = [...mediaFiles, ...compressedFiles].slice(0, 4);
+      setMediaFiles(newFiles);
+      setIsExpanded(true);
+      const previews = newFiles.map(file => URL.createObjectURL(file));
+      setMediaPreviews(previews);
+    } else {
+      // Videos - extract poster but don't compress
+      const newFiles = validatedFiles.slice(0, 1);
+      setMediaFiles(newFiles);
+      setIsExpanded(true);
+      const previews = newFiles.map(file => URL.createObjectURL(file));
+      setMediaPreviews(previews);
+      
+      // Extract video poster for faster preview
+      extractVideoPoster(newFiles[0]).catch(() => {});
+    }
   };
 
   const removeMedia = (index: number) => {
@@ -141,6 +198,7 @@ export const CreatePostCard = ({
     const newPreviews = mediaPreviews.filter((_, i) => i !== index);
     setMediaFiles(newFiles);
     setMediaPreviews(newPreviews);
+    setCompressionStats(compressionStats.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
@@ -336,8 +394,19 @@ export const CreatePostCard = ({
               maxLength={1000} 
             />
             
+            {/* Compression Progress */}
+            {compressing && (
+              <div className="border border-border rounded-xl p-3 mt-2 bg-muted/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Optimizing images...</span>
+                </div>
+                <Progress value={compressionProgress} className="h-2" />
+              </div>
+            )}
+            
             {/* Media Previews */}
-            {mediaPreviews.length > 0 && (
+            {!compressing && mediaPreviews.length > 0 && (
               <div className="border border-border rounded-xl p-2 mt-2 bg-muted/30">
                 <div className={`grid gap-2 ${mediaPreviews.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                   {mediaPreviews.map((preview, index) => (
@@ -352,14 +421,21 @@ export const CreatePostCard = ({
                         size="icon" 
                         className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-foreground/80 hover:bg-foreground text-background shadow-lg" 
                         onClick={() => removeMedia(index)}
+                        disabled={compressing}
                       >
                         <X className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
+                      {/* Show compression badge */}
+                      {compressionStats[index] && compressionStats[index].compressionRatio > 1 && (
+                        <div className="absolute bottom-1.5 left-1.5 sm:bottom-2 sm:left-2 bg-green-500/90 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
+                          {Math.round((1 - compressionStats[index].compressedSize / compressionStats[index].originalSize) * 100)}% smaller
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
                 <p className="text-[10px] sm:text-xs text-muted-foreground mt-2 text-center">
-                  {mediaType === 'image' ? 'Max 5MB per image • Up to 4 images' : 'Max 20MB • 1 min duration'}
+                  {mediaType === 'image' ? 'Auto-compressed for fast loading • Up to 4 images' : 'Max 50MB • 1 min duration'}
                 </p>
               </div>
             )}
@@ -396,11 +472,11 @@ export const CreatePostCard = ({
           {isExpanded && (
             <Button 
               onClick={handleSubmit} 
-              disabled={submitting || (!content.trim() && mediaFiles.length === 0)} 
+              disabled={submitting || compressing || (!content.trim() && mediaFiles.length === 0)} 
               size="sm" 
               className="h-8 sm:h-9 px-4 sm:px-6 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg text-xs sm:text-sm flex-shrink-0"
             >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Post'}
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : compressing ? 'Compressing...' : 'Post'}
             </Button>
           )}
         </div>
