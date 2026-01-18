@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,9 +16,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   Loader2, Users, Globe, PawPrint, 
   ArrowRight, Sparkles, Heart, Search, Camera, MessageCircle, 
-  Star, TrendingUp, Zap, Share2, Bell
+  Star, TrendingUp, Zap, Share2, Bell, Truck, ShieldCheck, Clock
 } from 'lucide-react';
 import type { Pet } from '@/types/social';
+
+// Lazy load the 3D cat for performance
+const AnimatedCat3D = lazy(() => import('@/components/AnimatedCat3D'));
 
 const Index = () => {
   const { user } = useAuth();
@@ -58,18 +61,13 @@ const Index = () => {
       <Navbar />
       
       <main>
-        {/* Hero Section - Playful & Social Media Focused */}
-        <section className="relative py-8 sm:py-12 md:py-16 lg:py-20 overflow-hidden">
-          {/* Animated Background */}
-          <div className="absolute inset-0 gradient-hero" />
-          
-          {/* Floating Decorative Elements */}
+        {/* Hero Section with 3D Animated Cat */}
+        <section className="relative overflow-hidden bg-gradient-to-b from-orange-50 via-amber-50/50 to-white">
+          {/* Subtle decorative blurs */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {/* Large blobs */}
-            <div className="absolute -top-20 -right-20 w-64 sm:w-80 h-64 sm:h-80 bg-coral-light/40 rounded-full blur-3xl animate-pulse-slow" />
-            <div className="absolute top-1/2 -left-20 w-48 sm:w-64 h-48 sm:h-64 bg-mint-light/40 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }} />
-            <div className="absolute -bottom-20 right-1/4 w-56 sm:w-72 h-56 sm:h-72 bg-lavender-light/40 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
-            <div className="absolute top-1/4 right-1/3 w-32 sm:w-40 h-32 sm:h-40 bg-sky-light/50 rounded-full blur-2xl animate-float" />
+            <div className="absolute -top-40 -right-40 w-80 h-80 bg-orange-200/30 rounded-full blur-3xl" />
+            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-teal-200/20 rounded-full blur-3xl" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
             
             {/* Floating icons */}
             <div className="absolute top-20 left-[10%] animate-float" style={{ animationDelay: '0.5s' }}>
@@ -93,101 +91,105 @@ const Index = () => {
               </div>
             </div>
           </div>
-          
-          <div className="container mx-auto px-4 sm:px-6 relative z-10">
-            <div className="text-center max-w-4xl mx-auto">
-              {/* Animated Badge */}
-              <div className="inline-flex items-center gap-2 bg-white/95 backdrop-blur-sm border-2 border-primary/20 text-primary px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-bold mb-4 sm:mb-6 shadow-lg animate-bounce-gentle">
-                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-accent animate-pulse" />
-                <span>🐾 Social Network for Pets</span>
-                <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-sunshine" />
-              </div>
-              
-              {/* Main Headline */}
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-display font-bold mb-4 sm:mb-6 leading-[1.1] px-2">
-                <span className="text-foreground">Your Pets</span>
-                <br />
-                <span className="text-gradient-fun">Deserve Fame</span>
-                <span className="inline-block ml-2 animate-wiggle">🌟</span>
-              </h1>
-              
-              {/* Tagline */}
-              <p className="text-lg sm:text-xl md:text-2xl font-bold text-primary mb-3 sm:mb-4">
-                Vetmedix — Your One Stop Pet Care
-              </p>
-              
-              {/* Subheadline */}
-              <p className="text-muted-foreground text-sm sm:text-base md:text-lg mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed px-4">
-                Create adorable profiles, share pawsome moments, connect with pet lovers, 
-                shop premium supplies, and book vet visits — all in one fun place! 🎉
-              </p>
-              
-              {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 px-4 mb-8 sm:mb-12">
-                {user && pets.length === 0 ? (
-                  <Link to="/pets/new" className="w-full sm:w-auto">
-                    <Button size="lg" className="w-full sm:w-auto btn-primary rounded-2xl gap-2 text-sm sm:text-base px-6 sm:px-8 h-12 sm:h-14 font-bold">
-                      <PawPrint className="h-4 w-4 sm:h-5 sm:w-5" />
-                      Add Your First Pet
+
+          <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-10 md:py-14 lg:py-16 relative">
+            <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 items-center">
+              {/* Content */}
+              <div className="space-y-4 sm:space-y-5 order-2 lg:order-1 text-center lg:text-left">
+                <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-white/90 border border-orange-100 text-primary text-xs sm:text-sm font-semibold shadow-sm">
+                  <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500 fill-red-500" />
+                  Trusted by 10,000+ Pet Owners
+                </div>
+                
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-display font-bold text-foreground leading-tight">
+                  Best Destination{' '}
+                  <br className="hidden sm:block" />
+                  <span className="text-primary">For Your Pets</span>
+                </h1>
+                
+                <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0 leading-relaxed">
+                  Premium pet food, medicine, accessories and farm supplies — all delivered to your doorstep across Bangladesh.
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-3 pt-1 sm:pt-2 justify-center lg:justify-start">
+                  <Link to="/shop" className="w-full sm:w-auto">
+                    <Button size="lg" className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white rounded-xl gap-2 text-sm sm:text-base px-6 sm:px-8 h-11 sm:h-12 font-semibold shadow-md">
+                      Shop Now
                       <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
                     </Button>
                   </Link>
-                ) : !user ? (
-                  <Link to="/auth" className="w-full sm:w-auto">
-                    <Button size="lg" className="w-full sm:w-auto btn-primary rounded-2xl gap-2 text-sm sm:text-base px-6 sm:px-8 h-12 sm:h-14 font-bold">
-                      Start Free Today
-                      <Zap className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <Link to="/clinics" className="w-full sm:w-auto">
+                    <Button variant="outline" size="lg" className="w-full sm:w-auto rounded-xl text-sm sm:text-base px-6 sm:px-8 h-11 sm:h-12 font-semibold border-2 hover:bg-muted/50">
+                      Find a Clinic
                     </Button>
                   </Link>
-                ) : null}
-                <Link to="/explore" className="w-full sm:w-auto">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto rounded-2xl gap-2 text-sm sm:text-base px-6 sm:px-8 h-12 sm:h-14 font-bold border-2 border-primary/30 hover:bg-primary/5 hover:border-primary transition-all">
-                    <Search className="h-4 w-4 sm:h-5 sm:w-5" />
-                    Explore Pets
-                  </Button>
-                </Link>
-              </div>
-
-              {/* Feature Pills */}
-              <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-8 sm:mb-12 px-2">
-                {[
-                  { icon: Camera, label: 'Share Photos', color: 'bg-primary/10 text-primary' },
-                  { icon: Heart, label: 'Get Likes', color: 'bg-destructive/10 text-destructive' },
-                  { icon: MessageCircle, label: 'Chat', color: 'bg-accent/10 text-accent' },
-                  { icon: Bell, label: 'Updates', color: 'bg-lavender/10 text-lavender' },
-                ].map((feature) => (
-                  <div 
-                    key={feature.label}
-                    className={`inline-flex items-center gap-1.5 sm:gap-2 ${feature.color} px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold`}
-                  >
-                    <feature.icon className="h-3 w-3 sm:h-4 sm:w-4" />
-                    {feature.label}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Stats Cards - Playful Design */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 md:gap-6 max-w-3xl mx-auto">
-              {[
-                { icon: PawPrint, count: `${trendingPets.length || 50}+`, label: 'Happy Pets', gradient: 'gradient-primary', iconBg: 'bg-white/20' },
-                { icon: Heart, count: '1K+', label: 'Daily Likes', gradient: 'bg-gradient-to-br from-destructive to-primary', iconBg: 'bg-white/20' },
-                { icon: Users, count: '500+', label: 'Pet Parents', gradient: 'gradient-accent', iconBg: 'bg-white/20' },
-                { icon: Camera, count: '2K+', label: 'Photos Shared', gradient: 'gradient-fun', iconBg: 'bg-white/20' },
-              ].map((stat, index) => (
-                <div 
-                  key={stat.label}
-                  className={`relative text-center p-4 sm:p-5 md:p-6 ${stat.gradient} rounded-2xl sm:rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden group`}
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors duration-300" />
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 rounded-xl ${stat.iconBg} flex items-center justify-center`}>
-                    <stat.icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                  </div>
-                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white">{stat.count}</p>
-                  <p className="text-[10px] sm:text-xs md:text-sm text-white/80 font-medium">{stat.label}</p>
                 </div>
-              ))}
+
+                {/* Trust badges */}
+                <div className="flex flex-wrap gap-4 sm:gap-6 pt-3 sm:pt-4 justify-center lg:justify-start">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-teal-500 flex items-center justify-center">
+                      <Truck className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                    </div>
+                    <span className="text-xs sm:text-sm font-medium text-foreground/80">Free Delivery</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-violet-500 flex items-center justify-center">
+                      <ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                    </div>
+                    <span className="text-xs sm:text-sm font-medium text-foreground/80">Genuine Products</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-amber-500 flex items-center justify-center">
+                      <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                    </div>
+                    <span className="text-xs sm:text-sm font-medium text-foreground/80">24/7 Support</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3D Animated Cat */}
+              <div className="relative order-1 lg:order-2 flex items-center justify-center">
+                <div className="relative w-full max-w-md lg:max-w-lg xl:max-w-xl">
+                  {/* Glow effect behind the cat */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-orange-300/10 to-amber-200/20 rounded-full blur-3xl scale-75" />
+                  
+                  {/* 3D Cat Container */}
+                  <Suspense fallback={
+                    <div className="w-full h-[200px] sm:h-[280px] md:h-[320px] lg:h-[380px] flex items-center justify-center">
+                      <div className="animate-pulse flex flex-col items-center gap-2">
+                        <div className="text-4xl">🐱</div>
+                        <span className="text-sm text-muted-foreground">Loading...</span>
+                      </div>
+                    </div>
+                  }>
+                    <AnimatedCat3D />
+                  </Suspense>
+                  
+                  {/* Floating stats badges */}
+                  <div className="absolute bottom-4 left-4 sm:bottom-8 sm:left-8 bg-white/95 backdrop-blur-sm px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl shadow-lg animate-fade-in">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-teal-500 flex items-center justify-center">
+                        <span className="text-sm sm:text-lg">🐾</span>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground text-xs sm:text-sm">500+ Clinics</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">Across Bangladesh</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="absolute top-4 right-4 sm:top-8 sm:right-8 bg-white/95 backdrop-blur-sm px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl shadow-lg animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                    <p className="text-lg sm:text-xl font-bold text-primary">2000+</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Products</p>
+                  </div>
+                  
+                  <div className="absolute top-1/2 right-0 sm:right-4 -translate-y-1/2 bg-white/95 backdrop-blur-sm px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl shadow-lg animate-fade-in hidden sm:block" style={{ animationDelay: '0.4s' }}>
+                    <p className="text-lg sm:text-xl font-bold text-teal-600">50+</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Vets Online</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
