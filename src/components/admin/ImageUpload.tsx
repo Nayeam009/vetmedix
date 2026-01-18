@@ -1,18 +1,30 @@
 import { useState, useRef, useCallback } from 'react';
 import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { compressImage, getCompressionMessage } from '@/lib/mediaCompression';
 
 interface ImageUploadProps {
   value?: string;
   onChange: (url: string) => void;
   className?: string;
+  bucket?: string;
+  folder?: string;
 }
 
-export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
+export function ImageUpload({ 
+  value, 
+  onChange, 
+  className, 
+  bucket = 'product-images',
+  folder = 'products'
+}: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
+  const [compressing, setCompressing] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -23,27 +35,47 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: 'Error', description: 'Image size must be less than 5MB', variant: 'destructive' });
+    // Allow larger files since we compress them
+    if (file.size > 20 * 1024 * 1024) {
+      toast({ title: 'Error', description: 'Image size must be less than 20MB', variant: 'destructive' });
       return;
     }
 
     setUploading(true);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `products/${fileName}`;
+    setCompressing(true);
+    setProgress(0);
 
+    try {
+      // Compress image first
+      setProgress(20);
+      const compressed = await compressImage(file, 'product');
+      setProgress(60);
+      setCompressing(false);
+
+      // Show compression results
+      if (compressed.compressionRatio > 1) {
+        toast({ 
+          title: 'Image optimized', 
+          description: getCompressionMessage(compressed.originalSize, compressed.compressedSize)
+        });
+      }
+
+      const fileExt = compressed.file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${folder}/${fileName}`;
+
+      setProgress(80);
       const { error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(filePath, file);
+        .from(bucket)
+        .upload(filePath, compressed.file);
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
+        .from(bucket)
         .getPublicUrl(filePath);
 
+      setProgress(100);
       onChange(publicUrl);
       toast({ title: 'Success', description: 'Image uploaded successfully' });
     } catch (error: unknown) {
@@ -56,6 +88,8 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
       });
     } finally {
       setUploading(false);
+      setCompressing(false);
+      setProgress(0);
     }
   };
 
@@ -128,12 +162,17 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
             onChange={handleChange}
             className="hidden"
           />
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground p-4">
             {uploading ? (
-              <>
-                <Loader2 className="h-8 w-8 animate-spin mb-2" />
-                <p className="text-sm">Uploading...</p>
-              </>
+              <div className="w-full max-w-[200px] space-y-3">
+                <div className="flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+                <Progress value={progress} className="h-2" />
+                <p className="text-sm text-center">
+                  {compressing ? 'Optimizing...' : 'Uploading...'}
+                </p>
+              </div>
             ) : (
               <>
                 <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center mb-3">
@@ -143,10 +182,10 @@ export function ImageUpload({ value, onChange, className }: ImageUploadProps) {
                     <Upload className="h-6 w-6" />
                   )}
                 </div>
-                <p className="text-sm font-medium">
+                <p className="text-sm font-medium text-center">
                   {dragActive ? 'Drop image here' : 'Click or drag image to upload'}
                 </p>
-                <p className="text-xs mt-1">PNG, JPG, WEBP up to 5MB</p>
+                <p className="text-xs mt-1 text-center">PNG, JPG, WEBP up to 20MB (auto-compressed)</p>
               </>
             )}
           </div>

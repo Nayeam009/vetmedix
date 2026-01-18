@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { compressImage, getCompressionMessage } from '@/lib/mediaCompression';
+import { toast } from 'sonner';
 import type { Story, StoryGroup, Pet } from '@/types/social';
 
 export const useStories = () => {
@@ -93,14 +95,26 @@ export const useStories = () => {
     if (!user) return null;
 
     try {
-      // Upload media
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/stories/${Date.now()}.${fileExt}`;
+      let fileToUpload = file;
       const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
+      
+      // Compress images before upload
+      if (mediaType === 'image') {
+        const result = await compressImage(file, 'story');
+        fileToUpload = result.file;
+        
+        if (result.compressionRatio > 1) {
+          toast.success(getCompressionMessage(result.originalSize, result.compressedSize));
+        }
+      }
+
+      // Upload media
+      const fileExt = fileToUpload.name.split('.').pop();
+      const fileName = `${user.id}/stories/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('pet-media')
-        .upload(fileName, file);
+        .upload(fileName, fileToUpload);
 
       if (uploadError) throw uploadError;
 

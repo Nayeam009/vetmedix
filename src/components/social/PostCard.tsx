@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, Globe, Bookmark, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { CommentsSection } from './CommentsSection';
+import { LazyImage, LazyVideo } from './LazyMedia';
 import type { Post } from '@/types/social';
 
 interface PostCardProps {
@@ -23,7 +24,7 @@ interface PostCardProps {
   onDelete?: () => void;
 }
 
-export const PostCard = ({ post, onLike, onUnlike, onDelete }: PostCardProps) => {
+const PostCardComponent = ({ post, onLike, onUnlike, onDelete }: PostCardProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showComments, setShowComments] = useState(false);
@@ -160,13 +161,16 @@ export const PostCard = ({ post, onLike, onUnlike, onDelete }: PostCardProps) =>
         </div>
       )}
       
-      {/* Media */}
+      {/* Media - Optimized with lazy loading */}
       {post.media_urls && post.media_urls.length > 0 && (
-        <div className={`grid ${
-          post.media_urls.length === 1 ? 'grid-cols-1' : 
-          post.media_urls.length === 2 ? 'grid-cols-2' :
-          post.media_urls.length === 3 ? 'grid-cols-2' : 'grid-cols-2'
-        } gap-[1px] sm:gap-0.5 bg-border/30`}>
+        <div 
+          className={`grid ${
+            post.media_urls.length === 1 ? 'grid-cols-1' : 
+            post.media_urls.length === 2 ? 'grid-cols-2' :
+            post.media_urls.length === 3 ? 'grid-cols-2' : 'grid-cols-2'
+          } gap-[1px] sm:gap-0.5 bg-border/30`}
+          style={{ contentVisibility: 'auto', containIntrinsicSize: '0 300px' }}
+        >
           {post.media_urls.slice(0, 4).map((url, index) => (
             <div 
               key={index} 
@@ -175,19 +179,15 @@ export const PostCard = ({ post, onLike, onUnlike, onDelete }: PostCardProps) =>
               } ${post.media_urls.length === 1 ? 'aspect-[4/3] sm:aspect-[16/10]' : 'aspect-square'}`}
             >
               {post.media_type === 'video' ? (
-                <video 
+                <LazyVideo 
                   src={url} 
-                  controls 
-                  className="w-full h-full object-cover"
-                  playsInline
-                  preload="metadata"
+                  className="w-full h-full"
                 />
               ) : (
-                <img 
+                <LazyImage 
                   src={url} 
-                  alt="" 
-                  loading="lazy"
-                  className="w-full h-full object-cover cursor-pointer hover:brightness-95 transition-all"
+                  alt={`${post.pet?.name}'s photo`}
+                  className="w-full h-full"
                 />
               )}
               {index === 3 && post.media_urls.length > 4 && (
@@ -283,3 +283,13 @@ export const PostCard = ({ post, onLike, onUnlike, onDelete }: PostCardProps) =>
     </article>
   );
 };
+
+// Memoize the PostCard to prevent unnecessary re-renders
+export const PostCard = memo(PostCardComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.post.id === nextProps.post.id &&
+    prevProps.post.likes_count === nextProps.post.likes_count &&
+    prevProps.post.comments_count === nextProps.post.comments_count &&
+    prevProps.post.liked_by_user === nextProps.post.liked_by_user
+  );
+});
