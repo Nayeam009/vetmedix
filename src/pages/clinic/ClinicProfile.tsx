@@ -22,6 +22,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { compressImage, getCompressionMessage } from '@/lib/mediaCompression';
 
 const serviceCategories = [
   'General Checkup',
@@ -128,8 +129,8 @@ const ClinicProfile = () => {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB');
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('Image size must be less than 20MB');
       return;
     }
 
@@ -137,14 +138,21 @@ const ClinicProfile = () => {
     setUploading(true);
 
     try {
-      const fileExt = file.name.split('.').pop();
+      // Compress image before upload
+      const compressed = await compressImage(file, 'clinic');
+      
+      if (compressed.compressionRatio > 1) {
+        toast.success(getCompressionMessage(compressed.originalSize, compressed.compressedSize));
+      }
+
+      const fileExt = compressed.file.name.split('.').pop();
       const fileName = `${type}-${Date.now()}.${fileExt}`;
       // Path must start with clinic ID for RLS policy
       const filePath = `${ownedClinic?.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('clinic-images')
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, compressed.file, { upsert: true });
 
       if (uploadError) {
         // Try to create bucket if it doesn't exist

@@ -32,6 +32,7 @@ import { usePets } from '@/contexts/PetContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Pet } from '@/types/social';
+import { compressImage, getCompressionMessage } from '@/lib/mediaCompression';
 
 const speciesOptions = [
   'Dog', 'Cat', 'Bird', 'Fish', 'Rabbit', 'Hamster', 
@@ -136,12 +137,19 @@ const EditPetPage = () => {
 
       // Upload new avatar if provided
       if (avatarFile) {
-        const fileExt = avatarFile.name.split('.').pop();
+        // Compress image before upload
+        const compressed = await compressImage(avatarFile, 'avatar');
+        
+        if (compressed.compressionRatio > 1) {
+          toast.success(getCompressionMessage(compressed.originalSize, compressed.compressedSize));
+        }
+
+        const fileExt = compressed.file.name.split('.').pop();
         const fileName = `${user.id}/avatars/${Date.now()}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
           .from('pet-media')
-          .upload(fileName, avatarFile);
+          .upload(fileName, compressed.file);
 
         if (uploadError) throw uploadError;
 
@@ -154,12 +162,19 @@ const EditPetPage = () => {
 
       // Upload new cover if provided
       if (coverFile) {
-        const fileExt = coverFile.name.split('.').pop();
+        // Compress image before upload
+        const compressed = await compressImage(coverFile, 'feed');
+        
+        if (compressed.compressionRatio > 1) {
+          toast.success(getCompressionMessage(compressed.originalSize, compressed.compressedSize));
+        }
+
+        const fileExt = compressed.file.name.split('.').pop();
         const fileName = `${user.id}/covers/${Date.now()}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
           .from('pet-media')
-          .upload(fileName, coverFile);
+          .upload(fileName, compressed.file);
 
         if (uploadError) throw uploadError;
 

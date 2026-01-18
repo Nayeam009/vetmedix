@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePets } from '@/contexts/PetContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { compressImage, getCompressionMessage } from '@/lib/mediaCompression';
 
 const speciesOptions = [
   'Dog', 'Cat', 'Bird', 'Fish', 'Rabbit', 'Hamster', 
@@ -27,7 +28,7 @@ const speciesOptions = [
 ];
 
 const MAX_PETS = 30;
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB (will be compressed)
 
 const CreatePetPage = () => {
   const navigate = useNavigate();
@@ -91,12 +92,19 @@ const CreatePetPage = () => {
 
       // Upload avatar if provided
       if (avatarFile) {
-        const fileExt = avatarFile.name.split('.').pop();
+        // Compress image before upload
+        const compressed = await compressImage(avatarFile, 'avatar');
+        
+        if (compressed.compressionRatio > 1) {
+          toast.success(getCompressionMessage(compressed.originalSize, compressed.compressedSize));
+        }
+
+        const fileExt = compressed.file.name.split('.').pop();
         const fileName = `${user.id}/avatars/${Date.now()}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
           .from('pet-media')
-          .upload(fileName, avatarFile);
+          .upload(fileName, compressed.file);
 
         if (uploadError) throw uploadError;
 
