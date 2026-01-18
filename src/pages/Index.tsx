@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,6 +20,40 @@ import {
 } from 'lucide-react';
 import type { Pet } from '@/types/social';
 import heroCatSocial from '@/assets/hero-cat-social.png';
+
+// Memoized feature cards to prevent unnecessary re-renders
+const FeatureCard = memo(({ icon: Icon, label, color, iconColor }: { 
+  icon: typeof Camera; 
+  label: string; 
+  color: string; 
+  iconColor: string;
+}) => (
+  <div 
+    className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-white/70 backdrop-blur-sm shadow-sm hover:shadow-md hover:scale-105 transition-all duration-300 cursor-default group"
+    role="listitem"
+  >
+    <div className={`h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br ${color} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
+      <Icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${iconColor}`} aria-hidden="true" />
+    </div>
+    <span className="text-[11px] sm:text-xs font-semibold text-foreground/80">{label}</span>
+  </div>
+));
+FeatureCard.displayName = 'FeatureCard';
+
+// Social features data - static, no need to recreate on each render
+const socialFeatures = [
+  { icon: Camera, label: 'Share Photos', color: 'from-primary/20 to-primary/5', iconColor: 'text-primary' },
+  { icon: Heart, label: 'Get Likes', color: 'from-rose-500/20 to-rose-500/5', iconColor: 'text-rose-500' },
+  { icon: MessageCircle, label: 'Connect', color: 'from-accent/20 to-accent/5', iconColor: 'text-accent' },
+] as const;
+
+// Highlight features data
+const highlightFeatures = [
+  { icon: Camera, title: 'Pet Profiles', desc: 'Create cute profiles', color: 'bg-primary/10', iconColor: 'text-primary' },
+  { icon: Share2, title: 'Share Stories', desc: '24hr pet moments', color: 'bg-accent/10', iconColor: 'text-accent' },
+  { icon: TrendingUp, title: 'Go Viral', desc: 'Get featured', color: 'bg-lavender/10', iconColor: 'text-lavender' },
+  { icon: Star, title: 'Pet Stars', desc: 'Follow favorites', color: 'bg-sunshine/10', iconColor: 'text-sunshine' },
+] as const;
 
 const Index = () => {
   const { user } = useAuth();
@@ -60,15 +94,21 @@ const Index = () => {
       
       <main>
         {/* Hero Section - Playful & Eye-Pleasing */}
-        <section className="relative overflow-hidden min-h-[calc(100vh-4rem)] sm:min-h-[85vh] lg:min-h-[90vh]">
-          {/* Animated gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[hsl(35,60%,95%)] via-[hsl(15,70%,95%)] to-[hsl(200,60%,95%)] animate-gradient-slow" />
+        <section 
+          className="relative overflow-hidden min-h-[calc(100vh-4rem)] sm:min-h-[85vh] lg:min-h-[90vh]"
+          aria-labelledby="hero-heading"
+        >
+          {/* Animated gradient background - using will-change for smoother animation */}
+          <div 
+            className="absolute inset-0 bg-gradient-to-br from-[hsl(35,60%,95%)] via-[hsl(15,70%,95%)] to-[hsl(200,60%,95%)] animate-gradient-slow will-change-auto"
+            aria-hidden="true"
+          />
           
           {/* Playful floating shapes - hidden on very small screens for performance */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {/* Large decorative circles */}
-            <div className="absolute -top-20 -right-20 w-48 h-48 sm:w-64 sm:h-64 md:w-96 md:h-96 rounded-full bg-gradient-to-br from-primary/20 to-accent/10 blur-3xl animate-pulse-slow" />
-            <div className="absolute -bottom-32 -left-32 w-56 h-56 sm:w-80 sm:h-80 md:w-[30rem] md:h-[30rem] rounded-full bg-gradient-to-tr from-accent/15 to-lavender/10 blur-3xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
+          <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+            {/* Large decorative circles - GPU accelerated with transform */}
+            <div className="absolute -top-20 -right-20 w-48 h-48 sm:w-64 sm:h-64 md:w-96 md:h-96 rounded-full bg-gradient-to-br from-primary/20 to-accent/10 blur-3xl animate-pulse-slow transform-gpu" />
+            <div className="absolute -bottom-32 -left-32 w-56 h-56 sm:w-80 sm:h-80 md:w-[30rem] md:h-[30rem] rounded-full bg-gradient-to-tr from-accent/15 to-lavender/10 blur-3xl animate-pulse-slow transform-gpu" style={{ animationDelay: '2s' }} />
             
             {/* Floating paw prints - responsive positioning */}
             <div className="absolute top-[5%] left-[3%] text-2xl sm:text-4xl lg:text-5xl opacity-15 animate-float rotate-[-15deg]">🐾</div>
@@ -108,7 +148,10 @@ const Index = () => {
                 </div>
                 
                 {/* Main headline with gradient text - responsive sizing */}
-                <h1 className="text-[1.75rem] leading-[1.1] sm:text-4xl md:text-5xl lg:text-[3.5rem] xl:text-6xl font-display font-bold tracking-tight">
+                <h1 
+                  id="hero-heading"
+                  className="text-[1.75rem] leading-[1.1] sm:text-4xl md:text-5xl lg:text-[3.5rem] xl:text-6xl font-display font-bold tracking-tight"
+                >
                   <span className="text-foreground block">VETMEDIX</span>
                   <span className="block mt-1 sm:mt-2">
                     <span className="bg-gradient-to-r from-primary via-accent to-lavender bg-clip-text text-transparent">One Stop Pet Care</span>
@@ -162,21 +205,19 @@ const Index = () => {
                 </div>
 
                 {/* Social features - better mobile layout */}
-                <div className="flex flex-wrap gap-2 sm:gap-3 pt-3 sm:pt-4 justify-center lg:justify-start px-2 sm:px-0">
-                  {[
-                    { icon: Camera, label: 'Share Photos', color: 'from-primary/20 to-primary/5', iconColor: 'text-primary' },
-                    { icon: Heart, label: 'Get Likes', color: 'from-rose-500/20 to-rose-500/5', iconColor: 'text-rose-500' },
-                    { icon: MessageCircle, label: 'Connect', color: 'from-accent/20 to-accent/5', iconColor: 'text-accent' },
-                  ].map((feature) => (
-                    <div 
+                <div 
+                  className="flex flex-wrap gap-2 sm:gap-3 pt-3 sm:pt-4 justify-center lg:justify-start px-2 sm:px-0"
+                  role="list"
+                  aria-label="Platform features"
+                >
+                  {socialFeatures.map((feature) => (
+                    <FeatureCard
                       key={feature.label}
-                      className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-white/70 backdrop-blur-sm shadow-sm hover:shadow-md hover:scale-105 transition-all duration-300 cursor-default group"
-                    >
-                      <div className={`h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br ${feature.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
-                        <feature.icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${feature.iconColor}`} />
-                      </div>
-                      <span className="text-[11px] sm:text-xs font-semibold text-foreground/80">{feature.label}</span>
-                    </div>
+                      icon={feature.icon}
+                      label={feature.label}
+                      color={feature.color}
+                      iconColor={feature.iconColor}
+                    />
                   ))}
                 </div>
               </div>
@@ -275,8 +316,8 @@ const Index = () => {
           </div>
           
           {/* Decorative wave at bottom */}
-          <div className="absolute bottom-0 left-0 right-0 h-12 sm:h-20 overflow-hidden">
-            <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-full">
+          <div className="absolute bottom-0 left-0 right-0 h-12 sm:h-20 overflow-hidden" aria-hidden="true">
+            <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-full" role="presentation">
               <path 
                 d="M0,60 C300,100 400,20 600,60 C800,100 900,20 1200,60 L1200,120 L0,120 Z" 
                 className="fill-white"
@@ -286,29 +327,25 @@ const Index = () => {
         </section>
 
         {/* Social Features Highlight */}
-        <section className="py-8 sm:py-12 bg-white border-y border-border/50">
+        <section className="py-8 sm:py-12 bg-white border-y border-border/50" aria-labelledby="features-heading">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="text-center mb-6 sm:mb-8">
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-2">
+              <h2 id="features-heading" className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-2">
                 Everything Your Pet Needs 
-                <span className="text-gradient ml-1">🐕</span>
+                <span className="text-gradient ml-1" aria-hidden="true">🐕</span>
               </h2>
               <p className="text-muted-foreground text-sm sm:text-base">Social media + Pet care in one pawfect app</p>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-              {[
-                { icon: Camera, title: 'Pet Profiles', desc: 'Create cute profiles', color: 'bg-primary/10', iconColor: 'text-primary' },
-                { icon: Share2, title: 'Share Stories', desc: '24hr pet moments', color: 'bg-accent/10', iconColor: 'text-accent' },
-                { icon: TrendingUp, title: 'Go Viral', desc: 'Get featured', color: 'bg-lavender/10', iconColor: 'text-lavender' },
-                { icon: Star, title: 'Pet Stars', desc: 'Follow favorites', color: 'bg-sunshine/10', iconColor: 'text-sunshine' },
-              ].map((feature) => (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4" role="list">
+              {highlightFeatures.map((feature) => (
                 <div 
                   key={feature.title}
-                  className={`${feature.color} rounded-2xl p-4 sm:p-5 text-center hover:scale-[1.02] transition-transform cursor-pointer active:scale-[0.98]`}
+                  className={`${feature.color} rounded-2xl p-4 sm:p-5 text-center hover:scale-[1.02] transition-transform cursor-pointer active:scale-[0.98] transform-gpu`}
+                  role="listitem"
                 >
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 rounded-xl bg-white shadow-sm flex items-center justify-center`}>
-                    <feature.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${feature.iconColor}`} />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 rounded-xl bg-white shadow-sm flex items-center justify-center">
+                    <feature.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${feature.iconColor}`} aria-hidden="true" />
                   </div>
                   <h3 className="font-bold text-sm sm:text-base text-foreground mb-0.5 sm:mb-1">{feature.title}</h3>
                   <p className="text-xs sm:text-sm text-muted-foreground">{feature.desc}</p>
