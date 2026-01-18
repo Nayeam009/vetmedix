@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, ShoppingCart, User, Menu, X, LogOut, Home, Store, Stethoscope, PawPrint, Compass, MessageCircle, Building2 } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, LogOut, Home, Store, Stethoscope, PawPrint, Compass, MessageCircle, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { NotificationBell } from '@/components/social/NotificationBell';
 import Logo from '@/components/Logo';
+import { GlobalSearch } from '@/components/GlobalSearch';
+
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const {
     user,
     signOut
@@ -23,13 +24,9 @@ const Navbar = () => {
   } = useUserRole();
   const navigate = useNavigate();
   const location = useLocation();
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/shop?search=${encodeURIComponent(searchQuery)}`);
-    }
-  };
+
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
+  
   return <nav className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border">
       <div className="container mx-auto px-3 sm:px-4">
         <div className="flex items-center justify-between h-14 sm:h-16 md:h-18">
@@ -37,12 +34,9 @@ const Navbar = () => {
           <Logo to="/" size="md" showText showSubtitle className="flex-shrink-0" />
 
           {/* Search Bar - Desktop */}
-          <form onSubmit={handleSearch} className="hidden lg:flex flex-1 max-w-md mx-4 xl:mx-6">
-            <div className="relative w-full">
-              <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input type="text" placeholder="Search pets, products..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full h-9 sm:h-10 pl-9 sm:pl-10 pr-4 rounded-full bg-secondary/50 border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm" />
-            </div>
-          </form>
+          <div className="hidden lg:flex flex-1 max-w-md mx-4 xl:mx-6">
+            <GlobalSearch variant="navbar" className="w-full" />
+          </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-0.5 lg:gap-1">
@@ -125,12 +119,9 @@ const Navbar = () => {
         </div>
 
         {/* Mobile Search */}
-        <form onSubmit={handleSearch} className="md:hidden pb-2 sm:pb-3">
-          <div className="relative">
-            <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input type="text" placeholder="Search pets, products..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full h-9 sm:h-10 pl-9 sm:pl-10 pr-4 rounded-full bg-secondary/50 border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm" />
-          </div>
-        </form>
+        <div className="md:hidden pb-2 sm:pb-3">
+          <GlobalSearch variant="navbar" className="w-full" />
+        </div>
 
         {/* Mobile Menu */}
         {isMenuOpen && <div className="md:hidden pb-3 sm:pb-4 border-t border-border animate-fade-in">
