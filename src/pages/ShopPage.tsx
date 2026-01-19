@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, memo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Search, Loader2, SlidersHorizontal, Grid3X3, LayoutGrid, Package, ChevronDown, X, Sparkles } from 'lucide-react';
+import { useSearchParams, Link } from 'react-router-dom';
+import { Search, Loader2, SlidersHorizontal, Grid3X3, LayoutGrid, Package, ChevronDown, X, Sparkles, ShoppingCart } from 'lucide-react';
+import { useCart } from '@/contexts/CartContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
@@ -42,6 +43,7 @@ const sortOptions = [
 const categoryOptions = ['All', 'Pet', 'Farm'];
 
 const ShopPage = () => {
+  const { totalItems } = useCart();
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,9 +140,23 @@ const ShopPage = () => {
                 Discover the best products for your pets and farm animals
               </p>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Package className="h-4 w-4 text-primary" aria-hidden="true" />
-              <span>{sortedProducts.length} products</span>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Package className="h-4 w-4 text-primary" aria-hidden="true" />
+                <span>{sortedProducts.length} products</span>
+              </div>
+              <Link 
+                to="/cart" 
+                className="relative p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+                aria-label={`View cart with ${totalItems} items`}
+              >
+                <ShoppingCart className="h-5 w-5 text-primary" />
+                {totalItems > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-5">
+                    {totalItems > 99 ? '99+' : totalItems}
+                  </span>
+                )}
+              </Link>
             </div>
           </div>
         </div>
