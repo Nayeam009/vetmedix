@@ -105,20 +105,26 @@ const ClinicCard = ({ name, rating, distance, services, image, isOpen = true, is
             </div>
           </div>
           
-          {/* Services - Simplified for mobile */}
+          {/* Services - Simplified for mobile, handles empty services */}
           <div className="flex flex-wrap gap-1 sm:gap-1.5 mb-2 sm:mb-3 flex-1">
-            {services.slice(0, 2).map((service, index) => (
+            {services.filter(s => s && s.trim()).slice(0, 2).map((service, index) => (
               <span 
                 key={index} 
                 className="inline-flex items-center gap-0.5 text-[9px] sm:text-[10px] lg:text-xs font-medium px-1.5 sm:px-2 py-0.5 sm:py-1 rounded sm:rounded-lg bg-primary/5 text-primary/80 border border-primary/10"
               >
-                <Stethoscope className="h-2 w-2 sm:h-2.5 sm:w-2.5 opacity-70" />
-                <span className="truncate max-w-[50px] sm:max-w-[70px] lg:max-w-[90px]">{service}</span>
+                <Stethoscope className="h-2 w-2 sm:h-2.5 sm:w-2.5 opacity-70 flex-shrink-0" />
+                <span className="truncate max-w-[60px] sm:max-w-[80px] lg:max-w-[100px]">{service}</span>
               </span>
             ))}
-            {services.length > 2 && (
+            {services.filter(s => s && s.trim()).length > 2 && (
               <span className="text-[9px] sm:text-[10px] lg:text-xs text-muted-foreground bg-muted/50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded sm:rounded-lg font-medium">
-                +{services.length - 2}
+                +{services.filter(s => s && s.trim()).length - 2}
+              </span>
+            )}
+            {/* Fallback if no valid services */}
+            {services.filter(s => s && s.trim()).length === 0 && (
+              <span className="text-[9px] sm:text-[10px] lg:text-xs text-muted-foreground italic">
+                Services available
               </span>
             )}
           </div>
