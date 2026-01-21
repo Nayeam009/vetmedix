@@ -117,6 +117,46 @@ export const divisions: Region[] = [
   }
 ];
 
+// Division coordinates for GPS-based location detection
+export const divisionCoordinates: Record<string, { lat: number; lng: number }> = {
+  'Dhaka': { lat: 23.8103, lng: 90.4125 },
+  'Chattogram': { lat: 22.3569, lng: 91.7832 },
+  'Rajshahi': { lat: 24.3745, lng: 88.6042 },
+  'Khulna': { lat: 22.8456, lng: 89.5403 },
+  'Barishal': { lat: 22.7010, lng: 90.3535 },
+  'Sylhet': { lat: 24.8949, lng: 91.8687 },
+  'Rangpur': { lat: 25.7439, lng: 89.2752 },
+  'Mymensingh': { lat: 24.7471, lng: 90.4203 }
+};
+
+// Calculate distance between two coordinates (Haversine formula)
+export const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+// Find nearest division based on GPS coordinates
+export const findNearestDivision = (lat: number, lng: number): string => {
+  let nearestDivision = 'Dhaka';
+  let minDistance = Infinity;
+
+  Object.entries(divisionCoordinates).forEach(([division, coords]) => {
+    const distance = calculateDistance(lat, lng, coords.lat, coords.lng);
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestDivision = division;
+    }
+  });
+
+  return nearestDivision;
+};
+
 export const getDivisions = (): string[] => {
   return divisions.map(d => d.name);
 };

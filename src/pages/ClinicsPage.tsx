@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Search, Loader2, MapPin, Filter, Star, 
   Building2, Clock, Shield, ChevronDown, X,
-  Stethoscope, Heart, Award
+  Stethoscope, Heart, Award, Navigation, MapPinned
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
+import { getDivisions, getDistricts, findNearestDivision } from '@/lib/bangladeshRegions';
 
 const serviceFilters = [
   'All Services',
@@ -39,6 +40,15 @@ const serviceFilters = [
   'X-Ray & Imaging',
 ];
 
+interface UserLocation {
+  type: 'default' | 'gps' | 'manual';
+  division: string;
+  district?: string;
+  displayName: string;
+}
+
+const LOCATION_STORAGE_KEY = 'vetmedix_user_location';
+
 const ClinicsPage = () => {
   const [clinics, setClinics] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +57,107 @@ const ClinicsPage = () => {
   const [sortBy, setSortBy] = useState('recommended');
   const [showOnlyOpen, setShowOnlyOpen] = useState(false);
   const [showOnlyVerified, setShowOnlyVerified] = useState(false);
+  const [locationSheetOpen, setLocationSheetOpen] = useState(false);
   const navigate = useNavigate();
+
+  // Location state
+  const [userLocation, setUserLocation] = useState<UserLocation>(() => {
+    const saved = localStorage.getItem(LOCATION_STORAGE_KEY);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return { type: 'default', division: 'Dhaka', displayName: 'Dhaka (Default)' };
+      }
+    }
+    return { type: 'default', division: 'Dhaka', displayName: 'Dhaka (Default)' };
+  });
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [selectedDivision, setSelectedDivision] = useState('');
+  const [selectedDistrict, setSelectedDistrict] = useState('');
+
+  // Save location to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(userLocation));
+  }, [userLocation]);
+
+  // Request GPS location
+  const requestGPSLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setLocationLoading(true);
+    setLocationError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const nearestDivision = findNearestDivision(latitude, longitude);
+        setUserLocation({
+          type: 'gps',
+          division: nearestDivision,
+          displayName: `${nearestDivision} (GPS)`
+        });
+        setLocationLoading(false);
+      },
+      (error) => {
+        let errorMessage = 'Unable to get your location';
+        if (error.code === error.PERMISSION_DENIED) {
+          errorMessage = 'Location permission denied. Please enable GPS.';
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          errorMessage = 'Location information unavailable';
+        } else if (error.code === error.TIMEOUT) {
+          errorMessage = 'Location request timed out';
+        }
+        setLocationError(errorMessage);
+        setLocationLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+    );
+  };
+
+  // Handle manual location selection
+  const handleLocationSelect = () => {
+    if (selectedDivision) {
+      const displayName = selectedDistrict 
+        ? `${selectedDistrict}, ${selectedDivision}`
+        : selectedDivision;
+      setUserLocation({
+        type: 'manual',
+        division: selectedDivision,
+        district: selectedDistrict || undefined,
+        displayName
+      });
+      setLocationSheetOpen(false);
+      setSelectedDivision('');
+      setSelectedDistrict('');
+    }
+  };
+
+  // Reset to default Dhaka
+  const resetToDefault = () => {
+    setUserLocation({ type: 'default', division: 'Dhaka', displayName: 'Dhaka (Default)' });
+    setLocationError(null);
+  };
+
+  // Calculate location match score for clinic
+  const calculateLocationScore = (clinicAddress: string | null): number => {
+    if (!clinicAddress) return 0;
+    const address = clinicAddress.toLowerCase();
+    
+    // Exact district match
+    if (userLocation.district && address.includes(userLocation.district.toLowerCase())) {
+      return 100;
+    }
+    // Division match
+    if (address.includes(userLocation.division.toLowerCase())) {
+      return 50;
+    }
+    return 0;
+  };
 
   useEffect(() => {
     fetchClinics();
@@ -80,13 +190,27 @@ const ClinicsPage = () => {
   };
 
   const filteredClinics = clinics
+    .map(clinic => ({
+      ...clinic,
+      locationScore: calculateLocationScore(clinic.address || clinic.name)
+    }))
     .filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
     .filter(c => selectedService === 'All Services' || c.services?.includes(selectedService))
     .filter(c => !showOnlyOpen || c.is_open)
     .filter(c => !showOnlyVerified || c.is_verified)
     .sort((a, b) => {
+      // Primary: Location score (higher = better match)
+      if (b.locationScore !== a.locationScore) {
+        return b.locationScore - a.locationScore;
+      }
+      // Secondary: Regular sorting
       if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
       if (sortBy === 'name') return a.name.localeCompare(b.name);
+      // Default: Keep Gopalganj at top for branding
+      const aIsGopalganj = a.name?.toLowerCase().includes('gopalganj');
+      const bIsGopalganj = b.name?.toLowerCase().includes('gopalganj');
+      if (aIsGopalganj && !bIsGopalganj) return -1;
+      if (!aIsGopalganj && bIsGopalganj) return 1;
       return 0;
     });
 
@@ -218,6 +342,153 @@ const ClinicsPage = () => {
         {/* Decorative elements */}
         <div className="absolute top-0 left-0 w-20 sm:w-32 h-20 sm:h-32 bg-primary/5 rounded-full blur-2xl sm:blur-3xl" />
         <div className="absolute bottom-0 right-0 w-24 sm:w-40 h-24 sm:h-40 bg-orange-200/30 rounded-full blur-2xl sm:blur-3xl" />
+      </div>
+
+      {/* Location Banner - Smart location awareness */}
+      <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-orange-50 border-b border-border/30">
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            {/* Location Display */}
+            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-center sm:justify-start">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <MapPinned className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              </div>
+              <div className="text-center sm:text-left">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs sm:text-sm text-muted-foreground">Showing clinics in</span>
+                  <span className="font-semibold text-sm sm:text-base text-foreground">{userLocation.displayName}</span>
+                </div>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
+                  {userLocation.type === 'default' 
+                    ? 'Enable GPS to find clinics near you' 
+                    : userLocation.type === 'gps' 
+                      ? 'Location detected automatically'
+                      : 'Manually selected location'}
+                </p>
+              </div>
+            </div>
+
+            {/* Location Actions */}
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
+              {/* GPS Button */}
+              <Button
+                variant={userLocation.type === 'gps' ? 'default' : 'outline'}
+                size="sm"
+                onClick={requestGPSLocation}
+                disabled={locationLoading}
+                className="gap-1.5 h-8 sm:h-9 text-xs sm:text-sm flex-1 sm:flex-none"
+              >
+                {locationLoading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Navigation className="h-3.5 w-3.5" />
+                )}
+                <span className="hidden xs:inline">{userLocation.type === 'gps' ? 'GPS Active' : 'Use GPS'}</span>
+                <span className="xs:hidden">GPS</span>
+              </Button>
+
+              {/* Location Selector */}
+              <Sheet open={locationSheetOpen} onOpenChange={setLocationSheetOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-8 sm:h-9 text-xs sm:text-sm flex-1 sm:flex-none"
+                  >
+                    <MapPin className="h-3.5 w-3.5" />
+                    <span className="hidden xs:inline">Change Location</span>
+                    <span className="xs:hidden">Location</span>
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="h-[70vh] sm:h-auto sm:max-h-[80vh]">
+                  <SheetHeader>
+                    <SheetTitle className="flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-primary" />
+                      Select Your Location
+                    </SheetTitle>
+                  </SheetHeader>
+                  <div className="mt-4 sm:mt-6 space-y-4">
+                    {/* Division Select */}
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">Division</label>
+                      <Select value={selectedDivision} onValueChange={(val) => {
+                        setSelectedDivision(val);
+                        setSelectedDistrict('');
+                      }}>
+                        <SelectTrigger className="w-full h-10 sm:h-11">
+                          <SelectValue placeholder="Select Division" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getDivisions().map((division) => (
+                            <SelectItem key={division} value={division}>{division}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* District Select */}
+                    {selectedDivision && (
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-2 block">District (Optional)</label>
+                        <Select value={selectedDistrict} onValueChange={setSelectedDistrict}>
+                          <SelectTrigger className="w-full h-10 sm:h-11">
+                            <SelectValue placeholder="Select District (Optional)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getDistricts(selectedDivision).map((district) => (
+                              <SelectItem key={district} value={district}>{district}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          resetToDefault();
+                          setLocationSheetOpen(false);
+                        }}
+                        className="flex-1"
+                      >
+                        Reset to Dhaka
+                      </Button>
+                      <Button
+                        onClick={handleLocationSelect}
+                        disabled={!selectedDivision}
+                        className="flex-1"
+                      >
+                        Apply Location
+                      </Button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+
+              {/* Reset Button (if not default) */}
+              {userLocation.type !== 'default' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetToDefault}
+                  className="h-8 sm:h-9 px-2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Error Message */}
+          {locationError && (
+            <div className="mt-2 text-center sm:text-left">
+              <p className="text-xs text-destructive">{locationError}</p>
+            </div>
+          )}
+        </div>
       </div>
 
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8">
