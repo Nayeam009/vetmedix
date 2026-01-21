@@ -23,9 +23,9 @@ const ClinicCard = ({ name, rating, distance, services, image, isOpen = true, is
   return (
     <div className="group bg-white rounded-xl sm:rounded-2xl overflow-hidden border border-border/60 hover:border-primary/40 transition-all duration-300 hover:shadow-lg sm:hover:shadow-xl hover:shadow-primary/5">
       <div className="flex">
-        {/* Image Section - Optimized for mobile */}
+        {/* Image Section - Full height to fill card */}
         <div 
-          className="relative w-24 h-24 sm:w-32 sm:h-32 md:w-36 md:h-36 lg:w-44 lg:h-44 flex-shrink-0 cursor-pointer overflow-hidden bg-gradient-to-br from-primary/5 to-orange-50"
+          className="relative w-24 sm:w-32 md:w-36 lg:w-44 flex-shrink-0 cursor-pointer overflow-hidden bg-gradient-to-br from-primary/5 to-orange-50"
           onClick={onViewDetails}
         >
           {isGopalganj ? (
