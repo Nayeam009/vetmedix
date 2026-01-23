@@ -537,9 +537,9 @@ const ClinicsPage = () => {
                 variant={showOnlyOpen ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setShowOnlyOpen(!showOnlyOpen)}
-                className="gap-1.5 h-9 text-sm"
+                className="gap-1.5 min-h-[44px] h-auto py-2 text-sm"
               >
-                <Clock className="h-3.5 w-3.5" />
+                <Clock className="h-4 w-4" />
                 Open Now
               </Button>
 
@@ -547,38 +547,38 @@ const ClinicsPage = () => {
                 variant={showOnlyVerified ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setShowOnlyVerified(!showOnlyVerified)}
-                className="gap-1.5 h-9 text-sm"
+                className="gap-1.5 min-h-[44px] h-auto py-2 text-sm"
               >
-                <Shield className="h-3.5 w-3.5" />
+                <Shield className="h-4 w-4" />
                 Verified
               </Button>
 
               {activeFiltersCount > 0 && (
-                <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground h-9 text-sm">
-                  <X className="h-3.5 w-3.5 mr-1" />
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground min-h-[44px] h-auto py-2 text-sm">
+                  <X className="h-4 w-4 mr-1" />
                   Clear
                 </Button>
               )}
             </div>
 
-            {/* Mobile Quick Filters */}
-            <div className="flex sm:hidden items-center gap-1.5 flex-shrink-0">
+            {/* Mobile Quick Filters - with proper touch targets */}
+            <div className="flex sm:hidden items-center gap-2 flex-shrink-0">
               <Button
                 variant={showOnlyOpen ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setShowOnlyOpen(!showOnlyOpen)}
-                className="gap-1 h-8 text-xs px-2.5"
+                className="gap-1.5 min-h-[44px] h-auto py-2 text-xs px-3"
               >
-                <Clock className="h-3 w-3" />
+                <Clock className="h-4 w-4" />
                 Open
               </Button>
               <Button
                 variant={showOnlyVerified ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setShowOnlyVerified(!showOnlyVerified)}
-                className="gap-1 h-8 text-xs px-2.5"
+                className="gap-1.5 min-h-[44px] h-auto py-2 text-xs px-3"
               >
-                <Shield className="h-3 w-3" />
+                <Shield className="h-4 w-4" />
                 Verified
               </Button>
             </div>

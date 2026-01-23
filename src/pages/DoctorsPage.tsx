@@ -113,7 +113,7 @@ const DoctorsPage = () => {
             <Badge
               key={spec}
               variant={selectedSpecialization === spec ? 'default' : 'outline'}
-              className="cursor-pointer transition-all hover:scale-105"
+              className="cursor-pointer transition-all hover:scale-105 min-h-[44px] px-3 flex items-center"
               onClick={() => setSelectedSpecialization(spec)}
             >
               {spec}
@@ -122,28 +122,27 @@ const DoctorsPage = () => {
         </div>
       </div>
 
-      {/* Status Filters */}
       <div>
         <h4 className="font-medium mb-3">Status</h4>
-        <div className="space-y-3">
-          <label className="flex items-center gap-3 cursor-pointer">
+        <div className="space-y-2">
+          <label className="flex items-center gap-3 cursor-pointer min-h-[44px]">
             <input
               type="checkbox"
               checked={showOnlyAvailable}
               onChange={(e) => setShowOnlyAvailable(e.target.checked)}
-              className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+              className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
             />
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-emerald-500" />
+              <Clock className="h-4 w-4 text-success" />
               <span className="text-sm">Available Now</span>
             </div>
           </label>
-          <label className="flex items-center gap-3 cursor-pointer">
+          <label className="flex items-center gap-3 cursor-pointer min-h-[44px]">
             <input
               type="checkbox"
               checked={showOnlyVerified}
               onChange={(e) => setShowOnlyVerified(e.target.checked)}
-              className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+              className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
             />
             <div className="flex items-center gap-2">
               <Award className="h-4 w-4 text-primary" />
@@ -265,9 +264,9 @@ const DoctorsPage = () => {
                 variant={showOnlyAvailable ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setShowOnlyAvailable(!showOnlyAvailable)}
-                className="gap-1.5 h-9"
+                className="gap-1.5 min-h-[44px] h-auto py-2"
               >
-                <Clock className="h-3.5 w-3.5" />
+                <Clock className="h-4 w-4" />
                 Available
               </Button>
 
@@ -275,9 +274,9 @@ const DoctorsPage = () => {
                 variant={showOnlyVerified ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setShowOnlyVerified(!showOnlyVerified)}
-                className="gap-1.5 h-9"
+                className="gap-1.5 min-h-[44px] h-auto py-2"
               >
-                <Award className="h-3.5 w-3.5" />
+                <Award className="h-4 w-4" />
                 Verified
               </Button>
             </div>
