@@ -237,13 +237,14 @@ export const createAdminNotification = async (params: {
   message: string;
   targetOrderId?: string;
   targetClinicId?: string;
+  targetDoctorId?: string;
 }) => {
   const adminIds = await getAdminUserIds();
   
   for (const adminId of adminIds) {
     await createNotification({
       userId: adminId,
-      type: params.type === 'new_order' ? 'order' : params.type === 'new_verification' ? 'clinic' : 'system',
+      type: params.type === 'new_order' ? 'order' : params.type === 'new_verification' ? 'verification' : 'system',
       title: params.title,
       message: params.message,
       targetOrderId: params.targetOrderId,

@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { 
   Stethoscope, Search, CheckCircle, XCircle, Clock, 
-  Eye, AlertCircle, Ban, Loader2, ExternalLink, Filter
+  Eye, AlertCircle, Ban, Loader2, ExternalLink, Filter, ShieldOff, ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -31,6 +41,7 @@ import { Label } from '@/components/ui/label';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { createNotification, getAdminUserIds } from '@/lib/notifications';
 
 interface Doctor {
   id: string;
@@ -47,6 +58,9 @@ interface Doctor {
   license_number: string | null;
   is_available: boolean;
   is_verified: boolean;
+  is_blocked?: boolean;
+  blocked_at?: string | null;
+  blocked_reason?: string | null;
   verification_status: string | null;
   verification_submitted_at: string | null;
   bvc_certificate_url: string | null;
@@ -63,7 +77,13 @@ const AdminDoctors = () => {
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isRejectOpen, setIsRejectOpen] = useState(false);
+  const [isBlockOpen, setIsBlockOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [blockReason, setBlockReason] = useState('');
+
+  useEffect(() => {
+    document.title = 'Doctor Management - VetMedix Admin';
+  }, []);
 
   // Fetch all doctors
   const { data: doctors, isLoading } = useQuery({
@@ -82,6 +102,7 @@ const AdminDoctors = () => {
   // Approve doctor mutation
   const approveMutation = useMutation({
     mutationFn: async (doctorId: string) => {
+      const doctor = doctors?.find(d => d.id === doctorId);
       const { error } = await supabase
         .from('doctors')
         .update({
@@ -92,6 +113,16 @@ const AdminDoctors = () => {
         .eq('id', doctorId);
 
       if (error) throw error;
+
+      // Notify doctor
+      if (doctor?.user_id) {
+        await createNotification({
+          userId: doctor.user_id,
+          type: 'verification',
+          title: '🎉 Verification Approved!',
+          message: 'Congratulations! Your doctor profile has been verified. You are now listed on the doctors directory.',
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-doctors'] });
@@ -107,6 +138,7 @@ const AdminDoctors = () => {
   // Reject doctor mutation
   const rejectMutation = useMutation({
     mutationFn: async ({ doctorId, reason }: { doctorId: string; reason: string }) => {
+      const doctor = doctors?.find(d => d.id === doctorId);
       const { error } = await supabase
         .from('doctors')
         .update({
@@ -118,6 +150,16 @@ const AdminDoctors = () => {
         .eq('id', doctorId);
 
       if (error) throw error;
+
+      // Notify doctor
+      if (doctor?.user_id) {
+        await createNotification({
+          userId: doctor.user_id,
+          type: 'verification',
+          title: '❌ Verification Rejected',
+          message: `Your doctor verification was rejected. Reason: ${reason}. Please review and resubmit.`,
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-doctors'] });
@@ -128,6 +170,46 @@ const AdminDoctors = () => {
     },
     onError: (error) => {
       toast.error('Failed to reject doctor');
+      console.error(error);
+    },
+  });
+
+  // Block/Unblock doctor mutation
+  const blockMutation = useMutation({
+    mutationFn: async ({ doctorId, block, reason }: { doctorId: string; block: boolean; reason?: string }) => {
+      const doctor = doctors?.find(d => d.id === doctorId);
+      const { error } = await supabase
+        .from('doctors')
+        .update({
+          is_blocked: block,
+          blocked_at: block ? new Date().toISOString() : null,
+          blocked_reason: block ? reason : null,
+        })
+        .eq('id', doctorId);
+
+      if (error) throw error;
+
+      // Notify doctor
+      if (doctor?.user_id) {
+        await createNotification({
+          userId: doctor.user_id,
+          type: 'verification',
+          title: block ? '🚫 Account Blocked' : '✅ Account Unblocked',
+          message: block 
+            ? `Your doctor account has been blocked.${reason ? ` Reason: ${reason}` : ''}` 
+            : 'Your doctor account has been unblocked. You can now access all features.',
+        });
+      }
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-doctors'] });
+      toast.success(variables.block ? 'Doctor blocked' : 'Doctor unblocked');
+      setIsBlockOpen(false);
+      setIsDetailsOpen(false);
+      setBlockReason('');
+    },
+    onError: (error) => {
+      toast.error('Failed to update block status');
       console.error(error);
     },
   });
@@ -143,14 +225,19 @@ const AdminDoctors = () => {
     if (statusFilter === 'pending') return matchesSearch && doctor.verification_status === 'pending';
     if (statusFilter === 'verified') return matchesSearch && doctor.is_verified;
     if (statusFilter === 'rejected') return matchesSearch && doctor.verification_status === 'rejected';
+    if (statusFilter === 'blocked') return matchesSearch && doctor.is_blocked;
     if (statusFilter === 'not_submitted') return matchesSearch && (!doctor.verification_status || doctor.verification_status === 'not_submitted');
     return matchesSearch;
   }) || [];
 
   const pendingCount = doctors?.filter(d => d.verification_status === 'pending').length || 0;
   const verifiedCount = doctors?.filter(d => d.is_verified).length || 0;
+  const blockedCount = doctors?.filter(d => d.is_blocked).length || 0;
 
   const getStatusBadge = (doctor: Doctor) => {
+    if (doctor.is_blocked) {
+      return <Badge className="bg-red-500/10 text-red-600">Blocked</Badge>;
+    }
     if (doctor.is_verified) {
       return <Badge className="bg-green-500/10 text-green-600">Verified</Badge>;
     }
@@ -209,10 +296,10 @@ const AdminDoctors = () => {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Clinic Doctors</p>
-                <p className="text-2xl font-bold">{doctors?.filter(d => d.created_by_clinic_id).length || 0}</p>
+                <p className="text-sm text-muted-foreground">Blocked</p>
+                <p className="text-2xl font-bold text-red-600">{blockedCount}</p>
               </div>
-              <AlertCircle className="h-8 w-8 text-blue-500/20" />
+              <Ban className="h-8 w-8 text-red-500/20" />
             </div>
           </CardContent>
         </Card>
@@ -241,6 +328,7 @@ const AdminDoctors = () => {
                 <SelectItem value="pending">Pending Review</SelectItem>
                 <SelectItem value="verified">Verified</SelectItem>
                 <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="blocked">Blocked</SelectItem>
                 <SelectItem value="not_submitted">Not Submitted</SelectItem>
               </SelectContent>
             </Select>
@@ -322,6 +410,32 @@ const AdminDoctors = () => {
                           Reject
                         </Button>
                       </>
+                    )}
+                    {doctor.is_blocked && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => blockMutation.mutate({ doctorId: doctor.id, block: false })}
+                        disabled={blockMutation.isPending}
+                        className="text-green-600"
+                      >
+                        <ShieldCheck className="h-4 w-4 mr-1" />
+                        Unblock
+                      </Button>
+                    )}
+                    {!doctor.is_blocked && doctor.is_verified && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedDoctor(doctor);
+                          setIsBlockOpen(true);
+                        }}
+                        className="text-red-600"
+                      >
+                        <ShieldOff className="h-4 w-4 mr-1" />
+                        Block
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -504,6 +618,51 @@ const AdminDoctors = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Block Doctor Dialog */}
+      <AlertDialog open={isBlockOpen} onOpenChange={setIsBlockOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <ShieldOff className="h-5 w-5 text-red-500" />
+              Block Doctor
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will prevent the doctor from appearing in the public directory and block their access to certain features.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-2">
+            <Label>Block Reason (Optional)</Label>
+            <Textarea
+              value={blockReason}
+              onChange={(e) => setBlockReason(e.target.value)}
+              placeholder="Enter reason for blocking..."
+              rows={3}
+            />
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setBlockReason('')}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => selectedDoctor && blockMutation.mutate({ 
+                doctorId: selectedDoctor.id, 
+                block: true,
+                reason: blockReason 
+              })}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={blockMutation.isPending}
+            >
+              {blockMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Ban className="h-4 w-4 mr-2" />
+              )}
+              Block Doctor
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 };

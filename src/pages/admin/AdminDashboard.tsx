@@ -20,7 +20,8 @@ import {
   CheckCircle2,
   XCircle,
   Truck,
-  Star
+  Star,
+  Stethoscope
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { StatCard } from '@/components/admin/StatCard';
@@ -37,6 +38,10 @@ const AdminDashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, roleLoading } = useAdmin();
   const { data: stats, isLoading: statsLoading } = useAdminStats();
+
+  useEffect(() => {
+    document.title = 'Dashboard - VetMedix Admin';
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -141,7 +146,15 @@ const AdminDashboard = () => {
       {/* Platform Stats */}
       <div className="mb-4 sm:mb-6">
         <h2 className="text-xs sm:text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 sm:mb-3">Platform Overview</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
+          <StatCard
+            title="Doctors"
+            value={stats?.totalDoctors || 0}
+            icon={<Stethoscope className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-600" />}
+            description={`${stats?.pendingDoctors || 0} pending`}
+            href="/admin/doctors"
+            className="bg-gradient-to-br from-cyan-50 to-sky-50/50 border-cyan-100 dark:from-cyan-950/30 dark:to-sky-950/20 dark:border-cyan-900/50"
+          />
           <StatCard
             title="Clinics"
             value={stats?.totalClinics || 0}
@@ -282,6 +295,20 @@ const AdminDashboard = () => {
               <Button 
                 className="w-full justify-start gap-2 sm:gap-3 h-auto py-2 sm:py-2.5" 
                 variant="outline"
+                onClick={() => navigate('/admin/doctors')}
+              >
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
+                  <Stethoscope className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-cyan-600" />
+                </div>
+                <span className="flex-1 text-left text-xs sm:text-sm truncate">Doctor Verifications</span>
+                <Badge variant="outline" className="bg-cyan-50 text-cyan-700 border-cyan-200 text-[10px] sm:text-xs px-1.5 sm:px-2 dark:bg-cyan-950/30 dark:text-cyan-400 dark:border-cyan-800">
+                  {stats?.pendingDoctors || 0} pending
+                </Badge>
+              </Button>
+              
+              <Button 
+                className="w-full justify-start gap-2 sm:gap-3 h-auto py-2 sm:py-2.5" 
+                variant="outline"
                 onClick={() => navigate('/admin/social')}
               >
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
@@ -291,18 +318,6 @@ const AdminDashboard = () => {
                 <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-[10px] sm:text-xs px-1.5 sm:px-2 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800">
                   {stats?.postsToday || 0} new
                 </Badge>
-              </Button>
-              
-              <Button 
-                className="w-full justify-start gap-2 sm:gap-3 h-auto py-2 sm:py-2.5" 
-                variant="outline"
-                onClick={() => navigate('/admin/products')}
-              >
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                  <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" />
-                </div>
-                <span className="flex-1 text-left text-xs sm:text-sm truncate">Add Products</span>
-                <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
               </Button>
             </CardContent>
           </Card>

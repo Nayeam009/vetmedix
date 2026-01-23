@@ -593,6 +593,8 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          blocked_at: string | null
+          blocked_reason: string | null
           bvc_certificate_url: string | null
           consultation_fee: number | null
           created_at: string
@@ -601,6 +603,7 @@ export type Database = {
           experience_years: number | null
           id: string
           is_available: boolean | null
+          is_blocked: boolean | null
           is_verified: boolean | null
           license_number: string | null
           name: string
@@ -618,6 +621,8 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          blocked_at?: string | null
+          blocked_reason?: string | null
           bvc_certificate_url?: string | null
           consultation_fee?: number | null
           created_at?: string
@@ -626,6 +631,7 @@ export type Database = {
           experience_years?: number | null
           id?: string
           is_available?: boolean | null
+          is_blocked?: boolean | null
           is_verified?: boolean | null
           license_number?: string | null
           name: string
@@ -643,6 +649,8 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          blocked_at?: string | null
+          blocked_reason?: string | null
           bvc_certificate_url?: string | null
           consultation_fee?: number | null
           created_at?: string
@@ -651,6 +659,7 @@ export type Database = {
           experience_years?: number | null
           id?: string
           is_available?: boolean | null
+          is_blocked?: boolean | null
           is_verified?: boolean | null
           license_number?: string | null
           name?: string
