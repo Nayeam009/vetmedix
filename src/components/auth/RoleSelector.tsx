@@ -1,8 +1,8 @@
-import { User, Building2 } from 'lucide-react';
+import { User, Building2, Stethoscope } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Doctors are now managed by clinic owners only - removed doctor self-registration
-export type SignupRole = 'user' | 'clinic_owner';
+// Support three roles: user, clinic_owner, and doctor
+export type SignupRole = 'user' | 'clinic_owner' | 'doctor';
 
 interface RoleSelectorProps {
   selectedRole: SignupRole;
@@ -15,6 +15,12 @@ const roles = [
     title: 'Pet Parent',
     description: 'I have pets and want to connect, shop, and book appointments',
     icon: User,
+  },
+  {
+    id: 'doctor' as SignupRole,
+    title: 'Veterinary Doctor',
+    description: 'I am a licensed veterinarian looking to practice',
+    icon: Stethoscope,
   },
   {
     id: 'clinic_owner' as SignupRole,

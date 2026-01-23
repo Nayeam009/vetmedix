@@ -238,6 +238,27 @@ const AuthPage = () => {
           }
         }
 
+        // Create doctor profile for doctor role
+        if (selectedRole === 'doctor') {
+          const { error: doctorError } = await supabase
+            .from('doctors')
+            .insert({
+              name: fullName,
+              user_id: newUser.id,
+              is_available: true,
+              is_verified: false,
+              verification_status: 'not_submitted',
+            });
+
+          if (doctorError) {
+            console.error('Failed to create doctor profile:', doctorError);
+            toast({
+              title: "Account created",
+              description: "However, there was an issue creating your doctor profile. Please set it up in your dashboard.",
+            });
+          }
+        }
+
         toast({
           title: "Account created!",
           description: "Welcome to VET-MEDIX. Let's get you started.",
@@ -246,6 +267,8 @@ const AuthPage = () => {
         // Redirect based on role
         if (selectedRole === 'clinic_owner') {
           navigate('/clinic/verification');
+        } else if (selectedRole === 'doctor') {
+          navigate('/doctor/verification');
         } else {
           navigate('/');
         }

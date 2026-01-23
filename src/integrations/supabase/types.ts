@@ -482,6 +482,71 @@ export type Database = {
         }
         Relationships: []
       }
+      doctor_join_requests: {
+        Row: {
+          clinic_id: string
+          created_at: string | null
+          doctor_id: string
+          id: string
+          message: string | null
+          requested_by: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string | null
+          doctor_id: string
+          id?: string
+          message?: string | null
+          requested_by: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string | null
+          doctor_id?: string
+          id?: string
+          message?: string | null
+          requested_by?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_join_requests_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_join_requests_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_join_requests_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_join_requests_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctor_schedules: {
         Row: {
           clinic_id: string
@@ -528,6 +593,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          bvc_certificate_url: string | null
           consultation_fee: number | null
           created_at: string
           created_by_clinic_id: string | null
@@ -538,15 +604,21 @@ export type Database = {
           is_verified: boolean | null
           license_number: string | null
           name: string
+          nid_number: string | null
           phone: string | null
           qualifications: string[] | null
+          rejection_reason: string | null
           specialization: string | null
           updated_at: string
           user_id: string | null
+          verification_reviewed_at: string | null
+          verification_status: string | null
+          verification_submitted_at: string | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          bvc_certificate_url?: string | null
           consultation_fee?: number | null
           created_at?: string
           created_by_clinic_id?: string | null
@@ -557,15 +629,21 @@ export type Database = {
           is_verified?: boolean | null
           license_number?: string | null
           name: string
+          nid_number?: string | null
           phone?: string | null
           qualifications?: string[] | null
+          rejection_reason?: string | null
           specialization?: string | null
           updated_at?: string
           user_id?: string | null
+          verification_reviewed_at?: string | null
+          verification_status?: string | null
+          verification_submitted_at?: string | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          bvc_certificate_url?: string | null
           consultation_fee?: number | null
           created_at?: string
           created_by_clinic_id?: string | null
@@ -576,11 +654,16 @@ export type Database = {
           is_verified?: boolean | null
           license_number?: string | null
           name?: string
+          nid_number?: string | null
           phone?: string | null
           qualifications?: string[] | null
+          rejection_reason?: string | null
           specialization?: string | null
           updated_at?: string
           user_id?: string | null
+          verification_reviewed_at?: string | null
+          verification_status?: string | null
+          verification_submitted_at?: string | null
         }
         Relationships: [
           {

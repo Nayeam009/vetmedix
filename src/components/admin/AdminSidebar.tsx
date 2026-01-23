@@ -12,7 +12,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
-  Shield
+  Shield,
+  Stethoscope
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/Logo';
@@ -56,6 +57,7 @@ const navSections: NavSection[] = [
     icon: Building2,
     items: [
       { icon: Building2, label: 'Clinics', path: '/admin/clinics' },
+      { icon: Stethoscope, label: 'Doctors', path: '/admin/doctors' },
       { icon: MessageSquare, label: 'Social', path: '/admin/social' },
       { icon: Users, label: 'Customers', path: '/admin/customers' },
     ]
