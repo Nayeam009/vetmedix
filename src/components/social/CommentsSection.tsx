@@ -71,9 +71,9 @@ export const CommentsSection = ({ postId }: CommentsSectionProps) => {
               size="icon"
               variant="ghost"
               disabled={!user || submitting}
-              className="absolute right-0.5 sm:right-1 top-1/2 -translate-y-1/2 h-6 w-6 sm:h-7 sm:w-7 rounded-full text-primary hover:bg-primary/10"
+              className="absolute right-0.5 sm:right-1 top-1/2 -translate-y-1/2 h-9 w-9 sm:h-10 sm:w-10 rounded-full text-primary hover:bg-primary/10 min-h-[44px] min-w-[44px]"
             >
-              <Send className="h-3 w-3 sm:h-4 sm:w-4" />
+              <Send className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
           )}
         </div>
@@ -107,20 +107,20 @@ export const CommentsSection = ({ postId }: CommentsSectionProps) => {
                   </span>
                   <p className="text-xs sm:text-[15px] text-foreground break-words">{comment.content}</p>
                 </div>
-                <div className="flex items-center gap-2 sm:gap-3 mt-0.5 sm:mt-1 px-2 sm:px-3">
+                <div className="flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1 px-2 sm:px-3">
                   <span className="text-[10px] sm:text-xs text-muted-foreground">
                     {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                   </span>
                   <button 
                     onClick={() => toast.info('Comment likes coming soon!', { duration: 2000 })}
-                    className="text-[10px] sm:text-xs font-semibold text-muted-foreground hover:text-destructive hover:underline transition-colors min-h-[28px] min-w-[28px] flex items-center justify-center -m-1 p-1"
+                    className="text-[10px] sm:text-xs font-semibold text-muted-foreground hover:text-destructive hover:underline transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                     aria-label="Like comment"
                   >
                     Like
                   </button>
                   <button 
                     onClick={() => toast.info('Replies coming soon!', { duration: 2000 })}
-                    className="text-[10px] sm:text-xs font-semibold text-muted-foreground hover:text-primary hover:underline transition-colors min-h-[28px] min-w-[28px] flex items-center justify-center -m-1 p-1"
+                    className="text-[10px] sm:text-xs font-semibold text-muted-foreground hover:text-primary hover:underline transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                     aria-label="Reply to comment"
                   >
                     Reply
@@ -128,7 +128,8 @@ export const CommentsSection = ({ postId }: CommentsSectionProps) => {
                   {user?.id === comment.user_id && (
                     <button
                       onClick={() => deleteComment(comment.id)}
-                      className="text-[10px] sm:text-xs font-semibold text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="text-[10px] sm:text-xs font-semibold text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      aria-label="Delete comment"
                     >
                       Delete
                     </button>

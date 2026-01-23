@@ -205,11 +205,11 @@ const PostCardComponent = ({ post, onLike, onUnlike, onDelete }: PostCardProps) 
       {/* Instagram-style Action Buttons */}
       <div className="px-3 sm:px-4 pt-2 sm:pt-3">
         <div className="flex items-center justify-between">
-          {/* Left actions: Like, Comment, Share */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          {/* Left actions: Like, Comment, Share - with proper touch targets */}
+          <div className="flex items-center gap-1 sm:gap-2">
             <button 
               onClick={handleLike}
-              className="p-0 hover:opacity-60 transition-opacity active:scale-90"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center hover:opacity-60 transition-opacity active:scale-90"
               aria-label={post.liked_by_user ? 'Unlike' : 'Like'}
             >
               <Heart className={`h-6 w-6 sm:h-7 sm:w-7 transition-all duration-200 ${
@@ -221,7 +221,7 @@ const PostCardComponent = ({ post, onLike, onUnlike, onDelete }: PostCardProps) 
             
             <button 
               onClick={() => setShowComments(!showComments)}
-              className="p-0 hover:opacity-60 transition-opacity active:scale-90"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center hover:opacity-60 transition-opacity active:scale-90"
               aria-label="Comment"
             >
               <MessageCircle className="h-6 w-6 sm:h-7 sm:w-7 text-foreground" />
@@ -229,7 +229,7 @@ const PostCardComponent = ({ post, onLike, onUnlike, onDelete }: PostCardProps) 
             
             <button 
               onClick={handleShare}
-              className="p-0 hover:opacity-60 transition-opacity active:scale-90"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center hover:opacity-60 transition-opacity active:scale-90"
               aria-label="Share"
             >
               <Send className="h-5 w-5 sm:h-6 sm:w-6 text-foreground -rotate-12" />
@@ -242,7 +242,7 @@ const PostCardComponent = ({ post, onLike, onUnlike, onDelete }: PostCardProps) 
               setIsBookmarked(!isBookmarked);
               toast.success(isBookmarked ? 'Removed from saved' : 'Saved to collection');
             }}
-            className="p-0 hover:opacity-60 transition-opacity active:scale-90"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center hover:opacity-60 transition-opacity active:scale-90"
             aria-label={isBookmarked ? 'Remove from saved' : 'Save'}
           >
             <Bookmark className={`h-6 w-6 sm:h-7 sm:w-7 transition-all ${
