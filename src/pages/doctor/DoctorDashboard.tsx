@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { 
   Calendar, Clock, Users, Star, TrendingUp, 
   CheckCircle, XCircle, AlertCircle, Settings,
-  Building2, ArrowLeft, Stethoscope
+  Building2, ArrowLeft, Stethoscope, Search, Bell
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,7 +16,8 @@ import MobileNav from '@/components/MobileNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDoctor } from '@/hooks/useDoctor';
 import { useUserRole } from '@/hooks/useUserRole';
-import logo from '@/assets/logo.jpeg';
+import { ClinicBrowser } from '@/components/doctor/ClinicBrowser';
+import { useDoctorJoinRequests } from '@/hooks/useDoctorJoinRequests';
 
 const DoctorDashboard = () => {
   const navigate = useNavigate();
@@ -148,9 +149,10 @@ const DoctorDashboard = () => {
         </div>
 
         <Tabs defaultValue="appointments" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsList className="grid w-full max-w-lg grid-cols-4">
             <TabsTrigger value="appointments">Appointments</TabsTrigger>
-            <TabsTrigger value="clinics">Clinics</TabsTrigger>
+            <TabsTrigger value="clinics">My Clinics</TabsTrigger>
+            <TabsTrigger value="find-clinics">Find Clinics</TabsTrigger>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
           </TabsList>
 
@@ -227,7 +229,7 @@ const DoctorDashboard = () => {
             </Card>
           </TabsContent>
 
-          {/* Clinics Tab */}
+          {/* My Clinics Tab */}
           <TabsContent value="clinics" className="space-y-4">
             <Card>
               <CardHeader>
@@ -240,7 +242,8 @@ const DoctorDashboard = () => {
                     {clinicAffiliations.map((affiliation) => (
                       <div 
                         key={affiliation.id}
-                        className="flex items-center justify-between p-4 rounded-lg border border-border"
+                        className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer"
+                        onClick={() => navigate(`/clinic/${affiliation.clinic?.id}`)}
                       >
                         <div className="flex items-center gap-4">
                           <Avatar className="h-12 w-12">
@@ -266,7 +269,30 @@ const DoctorDashboard = () => {
                   <div className="text-center py-12">
                     <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground mb-4">Not affiliated with any clinic yet</p>
-                    <Button variant="outline">Browse Clinics</Button>
+                    <p className="text-sm text-muted-foreground">Go to "Find Clinics" tab to browse and join clinics</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Find Clinics Tab */}
+          <TabsContent value="find-clinics" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="h-5 w-5" />
+                  Browse Clinics
+                </CardTitle>
+                <CardDescription>Find and request to join verified clinics</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {doctorProfile?.id ? (
+                  <ClinicBrowser doctorId={doctorProfile.id} />
+                ) : (
+                  <div className="text-center py-12">
+                    <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Complete your profile to browse clinics</p>
                   </div>
                 )}
               </CardContent>

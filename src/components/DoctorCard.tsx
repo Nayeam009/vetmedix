@@ -74,8 +74,8 @@ const DoctorCard = memo(({
               </AvatarFallback>
             </Avatar>
             {is_available && (
-              <div className="absolute -bottom-1 -right-1 h-5 w-5 sm:h-6 sm:w-6 bg-emerald-500 rounded-full border-2 border-card flex items-center justify-center">
-                <div className="h-2 w-2 bg-white rounded-full" />
+              <div className="absolute -bottom-1 -right-1 h-5 w-5 sm:h-6 sm:w-6 bg-success rounded-full border-2 border-card flex items-center justify-center">
+                <div className="h-2 w-2 bg-success-foreground rounded-full" />
               </div>
             )}
           </div>
@@ -136,20 +136,30 @@ const DoctorCard = memo(({
 
       {/* Clinic Info */}
       <div className="px-4 sm:px-5 py-3 mt-3 bg-muted/30 border-t border-border/50">
-        <div 
-          className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
-          onClick={() => navigate(`/clinic/${clinic_id}`)}
-        >
-          <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-          <span className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
-            {clinic_name}
-          </span>
-          {clinic_is_verified && (
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 gap-0.5 border-primary/30 text-primary">
-              <BadgeCheck className="h-2.5 w-2.5" />
-              Verified
-            </Badge>
-          )}
+        <div className="flex items-center justify-between gap-2">
+          <div 
+            className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors flex-1 min-w-0"
+            onClick={() => navigate(`/clinic/${clinic_id}`)}
+          >
+            <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+            <span className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
+              {clinic_name}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {is_verified && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 gap-0.5 border-success/30 text-success bg-success-light">
+                <Award className="h-2.5 w-2.5" />
+                Verified
+              </Badge>
+            )}
+            {clinic_is_verified && !is_verified && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 gap-0.5 border-primary/30 text-primary">
+                <BadgeCheck className="h-2.5 w-2.5" />
+                Clinic
+              </Badge>
+            )}
+          </div>
         </div>
         {clinic_address && (
           <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 line-clamp-1 ml-5">
