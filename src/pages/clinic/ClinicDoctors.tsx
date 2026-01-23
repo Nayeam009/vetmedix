@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { 
   Plus, Loader2, Stethoscope, Mail, Phone, Edit, Trash2, 
   GraduationCap, BadgeDollarSign, Calendar, Clock, ChevronLeft,
-  User, Star, CheckCircle, AlertCircle
+  User, Star, CheckCircle, AlertCircle, Users, UserPlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -44,6 +45,7 @@ import MobileNav from '@/components/MobileNav';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useClinicOwner } from '@/hooks/useClinicOwner';
 import AddDoctorWizard from '@/components/clinic/AddDoctorWizard';
+import { JoinRequestsTab } from '@/components/clinic/JoinRequestsTab';
 import { cn } from '@/lib/utils';
 
 interface DoctorFormData {
@@ -382,6 +384,21 @@ const ClinicDoctors = () => {
           </Dialog>
         </div>
 
+        {/* Tabs for Doctors and Join Requests */}
+        <Tabs defaultValue="doctors" className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="doctors" className="gap-2">
+              <Stethoscope className="h-4 w-4" />
+              My Doctors
+            </TabsTrigger>
+            <TabsTrigger value="requests" className="gap-2">
+              <UserPlus className="h-4 w-4" />
+              Join Requests
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="doctors">
+
         {/* Edit Dialog */}
         <Dialog open={isEditOpen} onOpenChange={(open) => {
           setIsEditOpen(open);
@@ -530,7 +547,7 @@ const ClinicDoctors = () => {
             ))}
           </div>
         ) : (
-          <Card className="bg-white border-border/50 shadow-sm">
+          <Card className="bg-card border-border/50 shadow-sm">
             <CardContent className="py-16 text-center">
               <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
                 <Stethoscope className="h-10 w-10 text-muted-foreground/50" />
@@ -546,6 +563,15 @@ const ClinicDoctors = () => {
             </CardContent>
           </Card>
         )}
+          </TabsContent>
+
+          {/* Join Requests Tab */}
+          <TabsContent value="requests">
+            {ownedClinic?.id && (
+              <JoinRequestsTab clinicId={ownedClinic.id} />
+            )}
+          </TabsContent>
+        </Tabs>
       </main>
       
       <MobileNav />
