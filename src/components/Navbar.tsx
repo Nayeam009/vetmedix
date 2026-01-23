@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, User, Menu, X, LogOut, Home, Store, Stethoscope, PawPrint, Compass, MessageCircle, Building2 } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, LogOut, Home, Store, Stethoscope, PawPrint, Compass, MessageCircle, Building2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
@@ -60,8 +60,14 @@ const Navbar = () => {
             </Link>
             <Link to="/clinics">
               <Button variant={isActive('/clinics') ? 'secondary' : 'ghost'} size="sm" className="gap-1.5 h-9 px-2.5 lg:px-3">
-                <Stethoscope className="h-4 w-4" />
+                <Building2 className="h-4 w-4" />
                 <span className="hidden lg:inline">Clinics</span>
+              </Button>
+            </Link>
+            <Link to="/doctors">
+              <Button variant={isActive('/doctors') ? 'secondary' : 'ghost'} size="sm" className="gap-1.5 h-9 px-2.5 lg:px-3">
+                <Users className="h-4 w-4" />
+                <span className="hidden lg:inline">Doctors</span>
               </Button>
             </Link>
 
@@ -144,8 +150,12 @@ const Navbar = () => {
                 Shop
               </Link>
               <Link to="/clinics" className={`px-3 sm:px-4 py-2.5 sm:py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-3 active:scale-[0.98] ${isActive('/clinics') ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted'}`} onClick={() => setIsMenuOpen(false)}>
-                <Stethoscope className="h-5 w-5" />
+                <Building2 className="h-5 w-5" />
                 Clinics
+              </Link>
+              <Link to="/doctors" className={`px-3 sm:px-4 py-2.5 sm:py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-3 active:scale-[0.98] ${isActive('/doctors') ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted'}`} onClick={() => setIsMenuOpen(false)}>
+                <Users className="h-5 w-5" />
+                Doctors
               </Link>
 
               <div className="h-px bg-border my-1.5 sm:my-2" />

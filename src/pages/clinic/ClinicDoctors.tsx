@@ -56,6 +56,7 @@ interface DoctorFormData {
   experience_years: string;
   consultation_fee: string;
   bio: string;
+  avatar_url: string;
 }
 
 const initialFormData: DoctorFormData = {
@@ -68,6 +69,7 @@ const initialFormData: DoctorFormData = {
   experience_years: '',
   consultation_fee: '',
   bio: '',
+  avatar_url: '',
 };
 
 const ClinicDoctors = () => {
@@ -113,6 +115,7 @@ const ClinicDoctors = () => {
       experience_years: formData.experience_years ? parseInt(formData.experience_years) : null,
       consultation_fee: formData.consultation_fee ? parseFloat(formData.consultation_fee) : null,
       bio: formData.bio || null,
+      avatar_url: formData.avatar_url || null,
     });
 
     setIsAddOpen(false);
@@ -160,6 +163,7 @@ const ClinicDoctors = () => {
       experience_years: doctor.experience_years?.toString() || '',
       consultation_fee: doctor.consultation_fee?.toString() || '',
       bio: doctor.bio || '',
+      avatar_url: doctor.avatar_url || '',
     });
     setIsEditOpen(true);
   };
