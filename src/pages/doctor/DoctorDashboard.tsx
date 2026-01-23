@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { 
   Calendar, Clock, Users, Star, TrendingUp, 
   CheckCircle, XCircle, AlertCircle, Settings,
-  Building2, ArrowLeft, Stethoscope, Search, Bell
+  Building2, ArrowLeft, Stethoscope, Search, Bell, Mail
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,6 +17,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDoctor } from '@/hooks/useDoctor';
 import { useUserRole } from '@/hooks/useUserRole';
 import { ClinicBrowser } from '@/components/doctor/ClinicBrowser';
+import { DoctorInvitationsTab } from '@/components/doctor/DoctorInvitationsTab';
+import { DoctorScheduleManager } from '@/components/doctor/DoctorScheduleManager';
 import { useDoctorJoinRequests } from '@/hooks/useDoctorJoinRequests';
 
 const DoctorDashboard = () => {
@@ -30,6 +32,8 @@ const DoctorDashboard = () => {
     doctorAppointments,
     updateAppointmentStatus 
   } = useDoctor();
+
+  const { pendingInvitations } = useDoctorJoinRequests(doctorProfile?.id);
 
   if (roleLoading || profileLoading) {
     return (
@@ -149,9 +153,17 @@ const DoctorDashboard = () => {
         </div>
 
         <Tabs defaultValue="appointments" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-4">
+          <TabsList className="grid w-full max-w-2xl grid-cols-5">
             <TabsTrigger value="appointments">Appointments</TabsTrigger>
             <TabsTrigger value="clinics">My Clinics</TabsTrigger>
+            <TabsTrigger value="invitations" className="relative">
+              Invitations
+              {pendingInvitations && pendingInvitations.length > 0 && (
+                <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs bg-warning text-warning-foreground">
+                  {pendingInvitations.length}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="find-clinics">Find Clinics</TabsTrigger>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
           </TabsList>
@@ -276,6 +288,20 @@ const DoctorDashboard = () => {
             </Card>
           </TabsContent>
 
+          {/* Invitations Tab */}
+          <TabsContent value="invitations" className="space-y-4">
+            {doctorProfile?.id ? (
+              <DoctorInvitationsTab doctorId={doctorProfile.id} />
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Complete your profile to view invitations</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
           {/* Find Clinics Tab */}
           <TabsContent value="find-clinics" className="space-y-4">
             <Card>
@@ -301,23 +327,27 @@ const DoctorDashboard = () => {
 
           {/* Schedule Tab */}
           <TabsContent value="schedule" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Availability Settings</CardTitle>
-                <CardDescription>Manage your working hours and availability</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
+            {doctorProfile?.id && clinicAffiliations ? (
+              <DoctorScheduleManager 
+                doctorId={doctorProfile.id} 
+                clinicAffiliations={clinicAffiliations} 
+              />
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center">
                   <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground mb-4">
-                    Schedule management coming soon
+                    {!doctorProfile?.id 
+                      ? 'Complete your profile to manage your schedule'
+                      : 'Join a clinic first to set up your schedule'
+                    }
                   </p>
                   <Button variant="outline" asChild>
                     <Link to="/doctor/profile">Update Profile</Link>
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </main>

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { createNotification, getClinicOwnerUserId } from '@/lib/notifications';
 
 export interface DoctorJoinRequest {
   id: string;
@@ -55,10 +56,22 @@ export const useDoctorJoinRequests = (doctorId: string | undefined) => {
     enabled: !!doctorId,
   });
 
+  // Get pending invitations from clinics
+  const pendingInvitations = joinRequests?.filter(
+    r => r.requested_by === 'clinic' && r.status === 'pending'
+  ) || [];
+
   // For doctors to request joining a clinic
   const requestJoinClinic = useMutation({
     mutationFn: async ({ clinicId, message }: { clinicId: string; message?: string }) => {
       if (!doctorId) throw new Error('No doctor profile');
+
+      // Get doctor name for notification
+      const { data: doctor } = await supabase
+        .from('doctors')
+        .select('name')
+        .eq('id', doctorId)
+        .single();
 
       const { data, error } = await supabase
         .from('doctor_join_requests')
@@ -73,6 +86,25 @@ export const useDoctorJoinRequests = (doctorId: string | undefined) => {
         .single();
 
       if (error) throw error;
+
+      // Notify clinic owner about new join request
+      const clinicOwnerId = await getClinicOwnerUserId(clinicId);
+      if (clinicOwnerId) {
+        const { data: clinic } = await supabase
+          .from('clinics')
+          .select('name')
+          .eq('id', clinicId)
+          .single();
+
+        await createNotification({
+          userId: clinicOwnerId,
+          type: 'clinic',
+          title: '👨‍⚕️ New Doctor Join Request',
+          message: `Dr. ${doctor?.name || 'A doctor'} has requested to join "${clinic?.name || 'your clinic'}".`,
+          targetClinicId: clinicId,
+        });
+      }
+
       return data;
     },
     onSuccess: () => {
@@ -109,11 +141,143 @@ export const useDoctorJoinRequests = (doctorId: string | undefined) => {
     },
   });
 
+  // For doctors to accept a clinic invitation
+  const acceptInvitation = useMutation({
+    mutationFn: async (requestId: string) => {
+      // Get the request details first
+      const { data: request, error: fetchError } = await supabase
+        .from('doctor_join_requests')
+        .select('doctor_id, clinic_id')
+        .eq('id', requestId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Update request status
+      const { error: updateError } = await supabase
+        .from('doctor_join_requests')
+        .update({
+          status: 'approved',
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: user?.id,
+        })
+        .eq('id', requestId);
+
+      if (updateError) throw updateError;
+
+      // Add doctor to clinic_doctors table
+      const { error: insertError } = await supabase
+        .from('clinic_doctors')
+        .insert({
+          doctor_id: request.doctor_id,
+          clinic_id: request.clinic_id,
+          status: 'active',
+        });
+
+      if (insertError && insertError.code !== '23505') throw insertError;
+
+      // Notify clinic owner
+      const clinicOwnerId = await getClinicOwnerUserId(request.clinic_id);
+      if (clinicOwnerId) {
+        const { data: clinic } = await supabase
+          .from('clinics')
+          .select('name')
+          .eq('id', request.clinic_id)
+          .single();
+
+        const { data: doctor } = await supabase
+          .from('doctors')
+          .select('name')
+          .eq('id', request.doctor_id)
+          .single();
+
+        await createNotification({
+          userId: clinicOwnerId,
+          type: 'clinic',
+          title: '✅ Doctor Accepted Invitation',
+          message: `Dr. ${doctor?.name || 'A doctor'} has accepted your invitation to join "${clinic?.name || 'your clinic'}".`,
+          targetClinicId: request.clinic_id,
+        });
+      }
+
+      return request;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['doctor-join-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['clinic-affiliations'] });
+      queryClient.invalidateQueries({ queryKey: ['doctor-affiliations'] });
+      toast.success('Invitation accepted! You are now affiliated with this clinic.');
+    },
+    onError: (error) => {
+      toast.error('Failed to accept invitation');
+      console.error(error);
+    },
+  });
+
+  // For doctors to reject a clinic invitation
+  const rejectInvitation = useMutation({
+    mutationFn: async (requestId: string) => {
+      const { data: request } = await supabase
+        .from('doctor_join_requests')
+        .select('doctor_id, clinic_id')
+        .eq('id', requestId)
+        .single();
+
+      const { error } = await supabase
+        .from('doctor_join_requests')
+        .update({
+          status: 'rejected',
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: user?.id,
+        })
+        .eq('id', requestId);
+
+      if (error) throw error;
+
+      // Notify clinic owner
+      if (request) {
+        const clinicOwnerId = await getClinicOwnerUserId(request.clinic_id);
+        if (clinicOwnerId) {
+          const { data: clinic } = await supabase
+            .from('clinics')
+            .select('name')
+            .eq('id', request.clinic_id)
+            .single();
+
+          const { data: doctor } = await supabase
+            .from('doctors')
+            .select('name')
+            .eq('id', request.doctor_id)
+            .single();
+
+          await createNotification({
+            userId: clinicOwnerId,
+            type: 'clinic',
+            title: '❌ Doctor Declined Invitation',
+            message: `Dr. ${doctor?.name || 'A doctor'} has declined your invitation to join "${clinic?.name || 'your clinic'}".`,
+            targetClinicId: request.clinic_id,
+          });
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['doctor-join-requests'] });
+      toast.success('Invitation declined');
+    },
+    onError: (error) => {
+      toast.error('Failed to decline invitation');
+      console.error(error);
+    },
+  });
+
   return {
     joinRequests,
+    pendingInvitations,
     isLoading,
     requestJoinClinic,
     cancelRequest,
+    acceptInvitation,
+    rejectInvitation,
   };
 };
 
@@ -177,6 +341,29 @@ export const useClinicJoinRequests = (clinicId: string | undefined) => {
 
       if (insertError && insertError.code !== '23505') throw insertError;
 
+      // Notify the doctor that their request was approved
+      const { data: doctor } = await supabase
+        .from('doctors')
+        .select('user_id, name')
+        .eq('id', request.doctor_id)
+        .single();
+
+      if (doctor?.user_id) {
+        const { data: clinic } = await supabase
+          .from('clinics')
+          .select('name')
+          .eq('id', request.clinic_id)
+          .single();
+
+        await createNotification({
+          userId: doctor.user_id,
+          type: 'clinic',
+          title: '🎉 Join Request Approved!',
+          message: `Your request to join "${clinic?.name || 'the clinic'}" has been approved. You are now affiliated with this clinic.`,
+          targetClinicId: request.clinic_id,
+        });
+      }
+
       return request;
     },
     onSuccess: () => {
@@ -193,6 +380,13 @@ export const useClinicJoinRequests = (clinicId: string | undefined) => {
   // For clinic owners to reject a join request
   const rejectRequest = useMutation({
     mutationFn: async (requestId: string) => {
+      // Get request details for notification
+      const { data: request } = await supabase
+        .from('doctor_join_requests')
+        .select('doctor_id, clinic_id')
+        .eq('id', requestId)
+        .single();
+
       const { error } = await supabase
         .from('doctor_join_requests')
         .update({
@@ -203,6 +397,31 @@ export const useClinicJoinRequests = (clinicId: string | undefined) => {
         .eq('id', requestId);
 
       if (error) throw error;
+
+      // Notify the doctor that their request was rejected
+      if (request) {
+        const { data: doctor } = await supabase
+          .from('doctors')
+          .select('user_id')
+          .eq('id', request.doctor_id)
+          .single();
+
+        if (doctor?.user_id) {
+          const { data: clinic } = await supabase
+            .from('clinics')
+            .select('name')
+            .eq('id', request.clinic_id)
+            .single();
+
+          await createNotification({
+            userId: doctor.user_id,
+            type: 'clinic',
+            title: '❌ Join Request Declined',
+            message: `Your request to join "${clinic?.name || 'the clinic'}" was not approved. You can try requesting to join other clinics.`,
+            targetClinicId: request.clinic_id,
+          });
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clinic-join-requests'] });
@@ -219,6 +438,19 @@ export const useClinicJoinRequests = (clinicId: string | undefined) => {
     mutationFn: async ({ doctorId, message }: { doctorId: string; message?: string }) => {
       if (!clinicId) throw new Error('No clinic');
 
+      // Get clinic and doctor details for notification
+      const { data: clinic } = await supabase
+        .from('clinics')
+        .select('name')
+        .eq('id', clinicId)
+        .single();
+
+      const { data: doctor } = await supabase
+        .from('doctors')
+        .select('user_id, name')
+        .eq('id', doctorId)
+        .single();
+
       const { data, error } = await supabase
         .from('doctor_join_requests')
         .insert({
@@ -232,6 +464,18 @@ export const useClinicJoinRequests = (clinicId: string | undefined) => {
         .single();
 
       if (error) throw error;
+
+      // Notify the doctor about the invitation
+      if (doctor?.user_id) {
+        await createNotification({
+          userId: doctor.user_id,
+          type: 'clinic',
+          title: '📩 Clinic Invitation Received',
+          message: `"${clinic?.name || 'A clinic'}" has invited you to join their team. View and respond in your dashboard.`,
+          targetClinicId: clinicId,
+        });
+      }
+
       return data;
     },
     onSuccess: () => {

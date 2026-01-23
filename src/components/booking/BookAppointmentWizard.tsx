@@ -55,12 +55,23 @@ interface BookAppointmentWizardProps {
   doctors: Doctor[];
   onCancel?: () => void;
   clinicName?: string;
+  preSelectedDoctorId?: string;
 }
 
-const BookAppointmentWizard = ({ onSubmit, isPending, doctors, onCancel, clinicName }: BookAppointmentWizardProps) => {
+const BookAppointmentWizard = ({ onSubmit, isPending, doctors, onCancel, clinicName, preSelectedDoctorId }: BookAppointmentWizardProps) => {
   const [step, setStep] = useState(0);
-  const [formData, setFormData] = useState<AppointmentFormData>(initialFormData);
+  const [formData, setFormData] = useState<AppointmentFormData>(() => ({
+    ...initialFormData,
+    doctorId: preSelectedDoctorId || '',
+  }));
   const [availableSlots, setAvailableSlots] = useState<string[]>(DEFAULT_TIME_SLOTS);
+
+  // Set pre-selected doctor if provided and exists in doctors list
+  useEffect(() => {
+    if (preSelectedDoctorId && doctors.some(d => d.id === preSelectedDoctorId)) {
+      setFormData(prev => ({ ...prev, doctorId: preSelectedDoctorId }));
+    }
+  }, [preSelectedDoctorId, doctors]);
 
   const steps = [
     { 
