@@ -45,10 +45,12 @@ const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const AdminClinics = lazy(() => import("./pages/admin/AdminClinics"));
 const AdminSocial = lazy(() => import("./pages/admin/AdminSocial"));
+const AdminDoctors = lazy(() => import("./pages/admin/AdminDoctors"));
 
 // Doctor routes - lazy loaded
 const DoctorDashboard = lazy(() => import("./pages/doctor/DoctorDashboard"));
 const DoctorProfile = lazy(() => import("./pages/doctor/DoctorProfile"));
+const DoctorVerificationPage = lazy(() => import("./pages/doctor/DoctorVerificationPage"));
 
 // Clinic owner routes - lazy loaded
 const ClinicDashboard = lazy(() => import("./pages/clinic/ClinicDashboard"));
@@ -116,6 +118,7 @@ const App = () => (
                   <Route path="/admin/social" element={<AdminSocial />} />
                   <Route path="/admin/analytics" element={<AdminAnalytics />} />
                   <Route path="/admin/settings" element={<AdminSettings />} />
+                  <Route path="/admin/doctors" element={<AdminDoctors />} />
                   
                   {/* OAuth Role Selection */}
                   <Route path="/select-role" element={<SelectRolePage />} />
@@ -123,6 +126,7 @@ const App = () => (
                   {/* Doctor routes */}
                   <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
                   <Route path="/doctor/profile" element={<DoctorProfile />} />
+                  <Route path="/doctor/verification" element={<DoctorVerificationPage />} />
                   
                   {/* Clinic owner routes */}
                   <Route path="/clinic/verification" element={<ClinicVerificationPage />} />
