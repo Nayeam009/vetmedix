@@ -49,6 +49,7 @@ export interface DoctorInput {
   experience_years: number | null;
   consultation_fee: number | null;
   bio: string | null;
+  avatar_url: string | null;
 }
 
 export const useClinicOwner = () => {

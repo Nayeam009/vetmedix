@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Loader2, User, Stethoscope, GraduationCap, FileText, Check, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Loader2, User, Stethoscope, GraduationCap, FileText, Check, ChevronRight, ChevronLeft, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import {
   Select,
@@ -16,6 +17,7 @@ import {
 import {
   DialogFooter,
 } from '@/components/ui/dialog';
+import { ImageUpload } from '@/components/admin/ImageUpload';
 
 interface DoctorFormData {
   name: string;
@@ -27,6 +29,7 @@ interface DoctorFormData {
   experience_years: string;
   consultation_fee: string;
   bio: string;
+  avatar_url: string;
 }
 
 const initialFormData: DoctorFormData = {
@@ -39,6 +42,7 @@ const initialFormData: DoctorFormData = {
   experience_years: '',
   consultation_fee: '',
   bio: '',
+  avatar_url: '',
 };
 
 const SPECIALIZATIONS = [
@@ -80,6 +84,7 @@ interface AddDoctorWizardProps {
     experience_years: number | null;
     consultation_fee: number | null;
     bio: string | null;
+    avatar_url: string | null;
   }) => Promise<void>;
   isPending: boolean;
   clinicName?: string;
@@ -173,6 +178,7 @@ const AddDoctorWizard = ({ onSubmit, isPending, clinicName, onCancel }: AddDocto
       experience_years: formData.experience_years ? parseInt(formData.experience_years) : null,
       consultation_fee: formData.consultation_fee ? parseFloat(formData.consultation_fee) : null,
       bio: formData.bio || null,
+      avatar_url: formData.avatar_url || null,
     });
   };
 
@@ -241,6 +247,46 @@ const AddDoctorWizard = ({ onSubmit, isPending, clinicName, onCancel }: AddDocto
       <div className="min-h-[280px]">
         {step === 0 && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+            {/* Profile Picture Upload */}
+            <div className="space-y-3">
+              <Label className="text-base">Profile Picture</Label>
+              <div className="flex flex-col items-center gap-4">
+                {formData.avatar_url ? (
+                  <div className="relative">
+                    <Avatar className="h-24 w-24 border-2 border-primary/20">
+                      <AvatarImage src={formData.avatar_url} alt="Doctor" className="object-cover" />
+                      <AvatarFallback className="bg-primary/10 text-primary text-2xl">
+                        {formData.name ? formData.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'DR'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6"
+                      onClick={() => handleInputChange('avatar_url', '')}
+                    >
+                      <span className="sr-only">Remove</span>
+                      ×
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="w-full max-w-xs">
+                    <ImageUpload
+                      value={formData.avatar_url}
+                      onChange={(url) => handleInputChange('avatar_url', url)}
+                      bucket="avatars"
+                      folder="doctors"
+                      className="[&>div]:aspect-square [&>div]:max-w-[120px] [&>div]:mx-auto [&>div]:rounded-full"
+                    />
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground text-center">
+                  Upload a professional photo (recommended)
+                </p>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="name" className="text-base">
                 Doctor Name <span className="text-destructive">*</span>
@@ -251,7 +297,6 @@ const AddDoctorWizard = ({ onSubmit, isPending, clinicName, onCancel }: AddDocto
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 placeholder="Dr. John Doe"
                 className="h-12 text-base"
-                autoFocus
               />
               <p className="text-sm text-muted-foreground">
                 Full name as it will appear on the profile
@@ -406,20 +451,28 @@ const AddDoctorWizard = ({ onSubmit, isPending, clinicName, onCancel }: AddDocto
             </div>
 
             {/* Summary Preview */}
-            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
               <h4 className="font-medium text-sm text-muted-foreground">Summary</h4>
-              <div className="space-y-1">
-                <p className="font-semibold">{formData.name || 'Doctor Name'}</p>
-                <p className="text-sm text-muted-foreground">
-                  {formData.specialization || 'General Veterinarian'}
-                  {formData.experience_years && ` • ${formData.experience_years} years exp.`}
-                </p>
-                {formData.consultation_fee && (
-                  <p className="text-sm text-primary font-medium">৳{formData.consultation_fee} per consultation</p>
-                )}
-                {formData.qualifications.length > 0 && (
-                  <p className="text-sm text-muted-foreground">{formData.qualifications.join(', ')}</p>
-                )}
+              <div className="flex items-start gap-3">
+                <Avatar className="h-14 w-14 border border-border">
+                  <AvatarImage src={formData.avatar_url || undefined} alt="Doctor" className="object-cover" />
+                  <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                    {formData.name ? formData.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'DR'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="space-y-1">
+                  <p className="font-semibold">{formData.name || 'Doctor Name'}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {formData.specialization || 'General Veterinarian'}
+                    {formData.experience_years && ` • ${formData.experience_years} years exp.`}
+                  </p>
+                  {formData.consultation_fee && (
+                    <p className="text-sm text-primary font-medium">৳{formData.consultation_fee} per consultation</p>
+                  )}
+                  {formData.qualifications.length > 0 && (
+                    <p className="text-xs text-muted-foreground">{formData.qualifications.join(', ')}</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>

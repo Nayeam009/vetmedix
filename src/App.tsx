@@ -14,6 +14,7 @@ import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
 import ShopPage from "./pages/ShopPage";
 import ClinicsPage from "./pages/ClinicsPage";
+import DoctorsPage from "./pages/DoctorsPage";
 
 // Lazy load non-critical routes for better performance
 const FeedPage = lazy(() => import("./pages/FeedPage"));
@@ -33,6 +34,7 @@ const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TrackOrderPage = lazy(() => import("./pages/TrackOrderPage"));
 const SelectRolePage = lazy(() => import("./pages/SelectRolePage"));
+const DoctorDetailPage = lazy(() => import("./pages/DoctorDetailPage"));
 
 // Admin routes - lazy loaded
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -85,6 +87,8 @@ const App = () => (
                   <Route path="/auth" element={<AuthPage />} />
                   <Route path="/shop" element={<ShopPage />} />
                   <Route path="/clinics" element={<ClinicsPage />} />
+                  <Route path="/doctors" element={<DoctorsPage />} />
+                  <Route path="/doctor/:id" element={<DoctorDetailPage />} />
                   
                   {/* Public routes - lazy loaded */}
                   <Route path="/feed" element={<FeedPage />} />
