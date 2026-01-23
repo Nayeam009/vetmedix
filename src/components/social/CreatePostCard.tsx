@@ -25,6 +25,7 @@ import {
 
 interface CreatePostCardProps {
   onPostCreated: () => void;
+  defaultPetId?: string;
 }
 
 // File size limits (post-compression targets)
@@ -33,7 +34,8 @@ const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB for videos
 const MAX_VIDEO_DURATION = 60; // 1 minute in seconds
 
 export const CreatePostCard = ({
-  onPostCreated
+  onPostCreated,
+  defaultPetId
 }: CreatePostCardProps) => {
   const { user } = useAuth();
   const { activePet, pets } = usePets();
@@ -50,15 +52,26 @@ export const CreatePostCard = ({
   const [compressionProgress, setCompressionProgress] = useState(0);
   const [compressionStats, setCompressionStats] = useState<CompressedMedia[]>([]);
   
-  // Track selected pet for this post (defaults to activePet)
+  // Track selected pet for this post (defaults to activePet or defaultPetId)
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
 
   // Sync selectedPet when activePet changes or on initial load
   useEffect(() => {
-    if (!selectedPet && activePet) {
-      setSelectedPet(activePet as Pet);
+    if (!selectedPet) {
+      // If defaultPetId is provided, find that pet first
+      if (defaultPetId && pets.length > 0) {
+        const defaultPet = pets.find(p => p.id === defaultPetId);
+        if (defaultPet) {
+          setSelectedPet(defaultPet as Pet);
+          return;
+        }
+      }
+      // Otherwise use activePet
+      if (activePet) {
+        setSelectedPet(activePet as Pet);
+      }
     }
-  }, [activePet, selectedPet]);
+  }, [activePet, selectedPet, defaultPetId, pets]);
 
   const validateFile = async (file: File, type: 'image' | 'video'): Promise<boolean> => {
     if (type === 'image') {

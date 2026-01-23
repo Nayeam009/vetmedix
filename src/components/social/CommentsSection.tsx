@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Send } from 'lucide-react';
+import { Send, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
@@ -111,10 +111,18 @@ export const CommentsSection = ({ postId }: CommentsSectionProps) => {
                   <span className="text-[10px] sm:text-xs text-muted-foreground">
                     {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                   </span>
-                  <button className="text-[10px] sm:text-xs font-semibold text-muted-foreground hover:underline">
+                  <button 
+                    onClick={() => toast.info('Comment likes coming soon!', { duration: 2000 })}
+                    className="text-[10px] sm:text-xs font-semibold text-muted-foreground hover:text-destructive hover:underline transition-colors min-h-[28px] min-w-[28px] flex items-center justify-center -m-1 p-1"
+                    aria-label="Like comment"
+                  >
                     Like
                   </button>
-                  <button className="text-[10px] sm:text-xs font-semibold text-muted-foreground hover:underline">
+                  <button 
+                    onClick={() => toast.info('Replies coming soon!', { duration: 2000 })}
+                    className="text-[10px] sm:text-xs font-semibold text-muted-foreground hover:text-primary hover:underline transition-colors min-h-[28px] min-w-[28px] flex items-center justify-center -m-1 p-1"
+                    aria-label="Reply to comment"
+                  >
                     Reply
                   </button>
                   {user?.id === comment.user_id && (

@@ -179,7 +179,7 @@ const PetProfilePage = () => {
         {/* Create Post (only for owner) */}
         {isOwner && (
           <div className="mt-3 sm:mt-4 px-2 sm:px-0">
-            <CreatePostCard onPostCreated={handleRefreshPosts} />
+            <CreatePostCard onPostCreated={handleRefreshPosts} defaultPetId={pet.id} />
           </div>
         )}
 
