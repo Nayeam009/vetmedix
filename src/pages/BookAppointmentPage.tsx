@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, Ban, MapPin, Clock, Phone, Star, BadgeCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -23,6 +23,8 @@ import { format } from 'date-fns';
 
 const BookAppointmentPage = () => {
   const { clinicId } = useParams();
+  const [searchParams] = useSearchParams();
+  const preSelectedDoctorId = searchParams.get('doctor');
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -248,6 +250,7 @@ const BookAppointmentPage = () => {
                 doctors={doctorsWithSchedules}
                 onCancel={() => navigate(-1)}
                 clinicName={clinic?.name}
+                preSelectedDoctorId={preSelectedDoctorId || undefined}
               />
             )}
           </CardContent>

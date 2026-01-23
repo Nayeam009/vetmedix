@@ -46,6 +46,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useClinicOwner } from '@/hooks/useClinicOwner';
 import AddDoctorWizard from '@/components/clinic/AddDoctorWizard';
 import { JoinRequestsTab } from '@/components/clinic/JoinRequestsTab';
+import { InviteDoctorDialog } from '@/components/clinic/InviteDoctorDialog';
 import { cn } from '@/lib/utils';
 
 interface DoctorFormData {
@@ -91,9 +92,13 @@ const ClinicDoctors = () => {
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [formData, setFormData] = useState<DoctorFormData>(initialFormData);
   const [editingDoctorId, setEditingDoctorId] = useState<string | null>(null);
+
+  // Get existing doctor IDs to filter out from invite list
+  const existingDoctorIds = clinicDoctors?.map(cd => cd.doctor_id) || [];
 
   const handleInputChange = (field: keyof DoctorFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -356,32 +361,53 @@ const ClinicDoctors = () => {
               <p className="text-sm text-muted-foreground">Add and manage doctors at your clinic</p>
             </div>
           </div>
-          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2 rounded-xl shadow-lg shadow-primary/25">
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Add Doctor</span>
-                <span className="sm:hidden">Add</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Add New Doctor</DialogTitle>
-                <DialogDescription>
-                  Create a doctor profile for {ownedClinic?.name}
-                </DialogDescription>
-              </DialogHeader>
-              <AddDoctorWizard 
-                onSubmit={async (data) => {
-                  await addDoctor.mutateAsync(data);
-                  setIsAddOpen(false);
-                }}
-                isPending={addDoctor.isPending}
-                clinicName={ownedClinic?.name}
-                onCancel={() => setIsAddOpen(false)}
-              />
-            </DialogContent>
-          </Dialog>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              className="gap-2 rounded-xl"
+              onClick={() => setIsInviteOpen(true)}
+            >
+              <UserPlus className="h-4 w-4" />
+              <span className="hidden sm:inline">Invite Doctor</span>
+            </Button>
+            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2 rounded-xl shadow-lg shadow-primary/25">
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Add Doctor</span>
+                  <span className="sm:hidden">Add</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Add New Doctor</DialogTitle>
+                  <DialogDescription>
+                    Create a doctor profile for {ownedClinic?.name}
+                  </DialogDescription>
+                </DialogHeader>
+                <AddDoctorWizard 
+                  onSubmit={async (data) => {
+                    await addDoctor.mutateAsync(data);
+                    setIsAddOpen(false);
+                  }}
+                  isPending={addDoctor.isPending}
+                  clinicName={ownedClinic?.name}
+                  onCancel={() => setIsAddOpen(false)}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Invite Doctor Dialog */}
+          {ownedClinic?.id && (
+            <InviteDoctorDialog
+              open={isInviteOpen}
+              onOpenChange={setIsInviteOpen}
+              clinicId={ownedClinic.id}
+              clinicName={ownedClinic.name}
+              existingDoctorIds={existingDoctorIds}
+            />
+          )}
         </div>
 
         {/* Tabs for Doctors and Join Requests */}
