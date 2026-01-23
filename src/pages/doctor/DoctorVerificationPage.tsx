@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Upload, FileCheck, AlertCircle, Clock, 
-  CheckCircle, XCircle, Loader2, Shield, FileText
+  CheckCircle, XCircle, Loader2, Shield, FileText, Stethoscope
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +37,7 @@ const DoctorVerificationPage = () => {
   const [bvcCertificate, setBvcCertificate] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [creatingProfile, setCreatingProfile] = useState(false);
 
   useEffect(() => {
     if (doctorProfile) {
@@ -138,6 +139,33 @@ const DoctorVerificationPage = () => {
     );
   }
 
+  // Handle case where doctor profile doesn't exist yet
+  const handleCreateProfile = async () => {
+    if (!user) return;
+    setCreatingProfile(true);
+    try {
+      const { error } = await supabase
+        .from('doctors')
+        .insert({
+          name: user.email?.split('@')[0] || 'Doctor',
+          user_id: user.id,
+          is_available: true,
+          is_verified: false,
+          verification_status: 'not_submitted',
+        });
+
+      if (error && error.code !== '23505') throw error;
+      
+      toast.success('Doctor profile created! You can now submit your verification.');
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Failed to create doctor profile:', error);
+      toast.error('Failed to create doctor profile. Please try again.');
+    } finally {
+      setCreatingProfile(false);
+    }
+  };
+
   if (!isDoctor) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -149,6 +177,37 @@ const DoctorVerificationPage = () => {
               This page is only accessible to registered doctors.
             </p>
             <Button onClick={() => navigate('/')}>Go to Home</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // If user is a doctor but no profile exists, offer to create one
+  if (!doctorProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <Stethoscope className="h-12 w-12 text-primary mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Complete Your Setup</h2>
+            <p className="text-muted-foreground mb-4">
+              Your doctor profile wasn't created during signup. Let's fix that!
+            </p>
+            <Button 
+              onClick={handleCreateProfile} 
+              disabled={creatingProfile}
+              className="w-full"
+            >
+              {creatingProfile ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating Profile...
+                </>
+              ) : (
+                'Create Doctor Profile'
+              )}
+            </Button>
           </CardContent>
         </Card>
       </div>

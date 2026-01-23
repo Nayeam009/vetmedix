@@ -238,24 +238,45 @@ const AuthPage = () => {
           }
         }
 
-        // Create doctor profile for doctor role
+        // Create doctor profile for doctor role with retry mechanism
         if (selectedRole === 'doctor') {
-          const { error: doctorError } = await supabase
-            .from('doctors')
-            .insert({
-              name: fullName,
-              user_id: newUser.id,
-              is_available: true,
-              is_verified: false,
-              verification_status: 'not_submitted',
-            });
+          let doctorCreated = false;
+          let retryCount = 0;
+          const maxRetries = 2;
 
-          if (doctorError) {
-            console.error('Failed to create doctor profile:', doctorError);
+          while (!doctorCreated && retryCount <= maxRetries) {
+            const { error: doctorError } = await supabase
+              .from('doctors')
+              .insert({
+                name: fullName,
+                user_id: newUser.id,
+                is_available: true,
+                is_verified: false,
+                verification_status: 'not_submitted',
+              });
+
+            if (!doctorError) {
+              doctorCreated = true;
+            } else if (doctorError.code === '23505') {
+              // Duplicate key - profile already exists, which is fine
+              doctorCreated = true;
+            } else {
+              retryCount++;
+              if (retryCount <= maxRetries) {
+                // Wait a bit before retrying
+                await new Promise(resolve => setTimeout(resolve, 500));
+              }
+            }
+          }
+
+          if (!doctorCreated) {
+            console.error('Failed to create doctor profile after retries');
             toast({
               title: "Account created",
-              description: "However, there was an issue creating your doctor profile. Please set it up in your dashboard.",
+              description: "Your account was created, but we couldn't set up your doctor profile automatically. You can complete this on the verification page.",
+              variant: "destructive",
             });
+            // Still navigate to verification page - they can create profile there
           }
         }
 
