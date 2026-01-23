@@ -60,6 +60,7 @@ export const useAdminStats = () => {
         { count: totalOrders },
         { count: totalUsers },
         { count: totalClinics },
+        { count: totalDoctors },
         { count: totalPosts },
         { count: totalAppointments },
         { data: recentOrders },
@@ -69,6 +70,7 @@ export const useAdminStats = () => {
         supabase.from('orders').select('*', { count: 'exact', head: true }),
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('clinics').select('*', { count: 'exact', head: true }),
+        supabase.from('doctors').select('*', { count: 'exact', head: true }),
         supabase.from('posts').select('*', { count: 'exact', head: true }),
         supabase.from('appointments').select('*', { count: 'exact', head: true }),
         supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(5),
@@ -78,6 +80,18 @@ export const useAdminStats = () => {
       // Get verified clinics count
       const { count: verifiedClinics } = await supabase
         .from('clinics')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_verified', true);
+
+      // Get pending doctors count
+      const { count: pendingDoctors } = await supabase
+        .from('doctors')
+        .select('*', { count: 'exact', head: true })
+        .eq('verification_status', 'pending');
+
+      // Get verified doctors count
+      const { count: verifiedDoctors } = await supabase
+        .from('doctors')
         .select('*', { count: 'exact', head: true })
         .eq('is_verified', true);
 
@@ -102,6 +116,9 @@ export const useAdminStats = () => {
         totalUsers: totalUsers || 0,
         totalClinics: totalClinics || 0,
         verifiedClinics: verifiedClinics || 0,
+        totalDoctors: totalDoctors || 0,
+        pendingDoctors: pendingDoctors || 0,
+        verifiedDoctors: verifiedDoctors || 0,
         totalPosts: totalPosts || 0,
         postsToday: postsToday || 0,
         totalAppointments: totalAppointments || 0,

@@ -35,6 +35,10 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const TrackOrderPage = lazy(() => import("./pages/TrackOrderPage"));
 const SelectRolePage = lazy(() => import("./pages/SelectRolePage"));
 const DoctorDetailPage = lazy(() => import("./pages/DoctorDetailPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const AboutPage = lazy(() => import("./pages/AboutPage"));
+const ContactPage = lazy(() => import("./pages/ContactPage"));
 
 // Admin routes - lazy loaded
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -87,6 +91,10 @@ const App = () => (
                   {/* Public routes - critical paths loaded immediately */}
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                  <Route path="/reset-password" element={<ResetPasswordPage />} />
+                  <Route path="/about" element={<AboutPage />} />
+                  <Route path="/contact" element={<ContactPage />} />
                   <Route path="/shop" element={<ShopPage />} />
                   <Route path="/clinics" element={<ClinicsPage />} />
                   <Route path="/doctors" element={<DoctorsPage />} />

@@ -18,6 +18,7 @@ import { useDoctor } from '@/hooks/useDoctor';
 import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { createAdminNotification } from '@/lib/notifications';
 
 const DoctorVerificationPage = () => {
   const navigate = useNavigate();
@@ -119,6 +120,13 @@ const DoctorVerificationPage = () => {
         .eq('id', doctorProfile.id);
 
       if (error) throw error;
+
+      // Notify all admins about new verification request
+      await createAdminNotification({
+        type: 'new_verification',
+        title: '🩺 New Doctor Verification Request',
+        message: `Dr. ${formData.name} has submitted a verification request for review.`,
+      });
 
       toast.success('Verification submitted successfully! We will review your documents shortly.');
       navigate('/doctor/dashboard');
