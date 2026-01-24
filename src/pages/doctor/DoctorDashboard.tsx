@@ -1,16 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { 
   Calendar, Clock, Users, Star, TrendingUp, 
   CheckCircle, XCircle, AlertCircle, Settings,
-  Building2, ArrowLeft, Stethoscope, Search, Bell, Mail
+  Building2, ArrowLeft, Stethoscope, Search, Bell, Mail,
+  ExternalLink, Shield, CheckCircle2, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,11 +22,18 @@ import { ClinicBrowser } from '@/components/doctor/ClinicBrowser';
 import { DoctorInvitationsTab } from '@/components/doctor/DoctorInvitationsTab';
 import { DoctorScheduleManager } from '@/components/doctor/DoctorScheduleManager';
 import { useDoctorJoinRequests } from '@/hooks/useDoctorJoinRequests';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 const DoctorDashboard = () => {
+  useDocumentTitle('Doctor Dashboard');
+  
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { isDoctor, isLoading: roleLoading } = useUserRole();
+  const queryClient = useQueryClient();
   const { 
     doctorProfile, 
     profileLoading, 
@@ -34,6 +43,34 @@ const DoctorDashboard = () => {
   } = useDoctor();
 
   const { pendingInvitations } = useDoctorJoinRequests(doctorProfile?.id);
+
+  // Realtime subscription for appointments
+  useEffect(() => {
+    if (!doctorProfile?.id) return;
+
+    const channel = supabase
+      .channel('doctor-appointments-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'appointments',
+          filter: `doctor_id=eq.${doctorProfile.id}`,
+        },
+        (payload) => {
+          queryClient.invalidateQueries({ queryKey: ['doctor-appointments', doctorProfile.id] });
+          if (payload.eventType === 'INSERT') {
+            toast.info('📅 New appointment received!');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [doctorProfile?.id, queryClient]);
 
   if (roleLoading || profileLoading) {
     return (
@@ -78,19 +115,71 @@ const DoctorDashboard = () => {
     }
   };
 
+  const getVerificationBanner = () => {
+    if (!doctorProfile) return null;
+
+    if (doctorProfile.is_verified) {
+      return (
+        <Alert className="border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800">
+          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+          <AlertTitle className="text-emerald-800 dark:text-emerald-400">Verified Doctor</AlertTitle>
+          <AlertDescription className="text-emerald-700 dark:text-emerald-500">
+            Your credentials have been verified. You are listed on the public doctors directory.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    return (
+      <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+        <Shield className="h-4 w-4 text-amber-600" />
+        <AlertTitle className="text-amber-800 dark:text-amber-400">Verification Pending</AlertTitle>
+        <AlertDescription className="text-amber-700 dark:text-amber-500 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <span>Complete your verification to be listed on the public doctors directory.</span>
+          <Button size="sm" variant="outline" className="w-fit" asChild>
+            <Link to="/doctor/verification">Complete Verification</Link>
+          </Button>
+        </AlertDescription>
+      </Alert>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0">
       <Navbar />
       
       <main className="container mx-auto px-4 py-6 max-w-7xl">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-            Welcome, Dr. {doctorProfile?.name?.split(' ')[0] || 'Doctor'}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {format(new Date(), 'EEEE, MMMM d, yyyy')}
-          </p>
+        {/* Welcome Section with Quick Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+              Welcome, Dr. {doctorProfile?.name?.split(' ')[0] || 'Doctor'}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {format(new Date(), 'EEEE, MMMM d, yyyy')}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/doctor/profile">
+                <Settings className="h-4 w-4 mr-2" />
+                Edit Profile
+              </Link>
+            </Button>
+            {doctorProfile?.id && (
+              <Button variant="outline" size="sm" asChild>
+                <a href={`/doctor/${doctorProfile.id}`} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  View Public Profile
+                </a>
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Verification Status Banner */}
+        <div className="mb-6">
+          {getVerificationBanner()}
         </div>
 
         {/* Stats Grid */}
@@ -206,26 +295,50 @@ const DoctorDashboard = () => {
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                className="text-green-600 hover:bg-green-50"
+                                className="h-10 w-10 p-0 text-green-600 hover:bg-green-50"
                                 onClick={() => updateAppointmentStatus.mutate({ 
                                   appointmentId: apt.id, 
                                   status: 'confirmed' 
                                 })}
+                                aria-label="Confirm appointment"
                               >
                                 <CheckCircle className="h-4 w-4" />
                               </Button>
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                className="text-red-600 hover:bg-red-50"
+                                className="h-10 w-10 p-0 text-red-600 hover:bg-red-50"
                                 onClick={() => updateAppointmentStatus.mutate({ 
                                   appointmentId: apt.id, 
                                   status: 'cancelled' 
                                 })}
+                                aria-label="Cancel appointment"
                               >
                                 <XCircle className="h-4 w-4" />
                               </Button>
                             </div>
+                          )}
+                          {apt.status === 'confirmed' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="h-10 min-w-[44px] text-blue-600 hover:bg-blue-50"
+                              onClick={() => updateAppointmentStatus.mutate({ 
+                                appointmentId: apt.id, 
+                                status: 'completed' 
+                              })}
+                              disabled={updateAppointmentStatus.isPending}
+                              aria-label="Mark as completed"
+                            >
+                              {updateAppointmentStatus.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                                  Complete
+                                </>
+                              )}
+                            </Button>
                           )}
                         </div>
                       </div>

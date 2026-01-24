@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import type { Notification } from '@/types/social';
 
@@ -80,20 +81,48 @@ const NotificationsPage = () => {
     }
   };
 
-  const handleNotificationClick = (notification: Notification) => {
+  const handleNotificationClick = async (notification: Notification) => {
     if (!notification.is_read) {
       markAsRead(notification.id);
     }
     
-    // Navigate based on notification type
+    // Check user role for context-aware navigation
+    const { data: userRole } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user?.id)
+      .single();
+    
+    const isDoctor = userRole?.role === 'doctor';
+    const isClinicOwner = userRole?.role === 'clinic_owner';
+    
+    // Navigate based on notification type and user role
     if (notification.type === 'verification') {
-      navigate('/clinic/dashboard');
+      if (isDoctor) {
+        navigate('/doctor/dashboard');
+      } else {
+        navigate('/clinic/dashboard');
+      }
     } else if (notification.type === 'new_appointment' && notification.target_clinic_id) {
-      navigate('/clinic/dashboard');
+      if (isDoctor) {
+        navigate('/doctor/dashboard');
+      } else {
+        navigate('/clinic/dashboard');
+      }
     } else if (notification.type === 'clinic' && notification.target_clinic_id) {
-      navigate('/admin/clinics');
+      if (isDoctor) {
+        navigate('/doctor/dashboard');
+      } else if (isClinicOwner) {
+        navigate('/clinic/dashboard');
+      } else {
+        navigate('/admin/clinics');
+      }
     } else if (notification.type === 'appointment' || notification.target_appointment_id) {
-      navigate('/profile?tab=appointments');
+      if (isDoctor) {
+        navigate('/doctor/dashboard');
+      } else {
+        navigate('/profile?tab=appointments');
+      }
     } else if (notification.type === 'order' || notification.target_order_id) {
       if (notification.title.includes('New Order') || notification.title.includes('New order')) {
         navigate('/admin/orders');

@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePublicDoctorById } from '@/hooks/usePublicDoctors';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -22,6 +23,8 @@ const DoctorDetailPage = () => {
   const [activeTab, setActiveTab] = useState('about');
 
   const { data: doctor, isLoading } = usePublicDoctorById(id);
+  
+  useDocumentTitle(doctor?.name ? `Dr. ${doctor.name}` : 'Doctor Profile');
 
   if (isLoading) {
     return (
