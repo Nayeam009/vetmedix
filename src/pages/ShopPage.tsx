@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/sheet";
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 // Price range options outside component to prevent recreation
 const priceRangeOptions = [
@@ -43,6 +44,7 @@ const sortOptions = [
 const categoryOptions = ['All', 'Pet', 'Farm'];
 
 const ShopPage = () => {
+  useDocumentTitle('Pet Shop');
   const { totalItems } = useCart();
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<any[]>([]);

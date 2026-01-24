@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { checkoutSchema } from '@/lib/validations';
 import { notifyAdminsOfNewOrder } from '@/lib/notifications';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const paymentMethods = [
   {
@@ -70,6 +71,7 @@ const getDeliveryCharge = (division: string): number => {
 };
 
 const CheckoutPage = () => {
+  useDocumentTitle('Checkout');
   const { items, totalAmount, clearCart, totalItems } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();

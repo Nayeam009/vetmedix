@@ -18,6 +18,7 @@ import {
 import Navbar from '@/components/Navbar';
 import { Separator } from '@/components/ui/separator';
 import MobileNav from '@/components/MobileNav';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 // Memoized cart item component
 const CartItem = memo(({ 
@@ -120,6 +121,7 @@ const CartItem = memo(({
 CartItem.displayName = 'CartItem';
 
 const CartPage = () => {
+  useDocumentTitle('Shopping Cart');
   const { items, updateQuantity, removeItem, totalAmount, clearCart, totalItems } = useCart();
   const navigate = useNavigate();
 

@@ -28,6 +28,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { getDivisions, getDistricts, findNearestDivision } from '@/lib/bangladeshRegions';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const serviceFilters = [
   'All Services',
@@ -50,6 +51,7 @@ interface UserLocation {
 const LOCATION_STORAGE_KEY = 'vetmedix_user_location';
 
 const ClinicsPage = () => {
+  useDocumentTitle('Find Clinics');
   const [clinics, setClinics] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');

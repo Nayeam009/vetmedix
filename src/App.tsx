@@ -39,6 +39,9 @@ const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
+const FAQPage = lazy(() => import("./pages/FAQPage"));
+const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
+const TermsPage = lazy(() => import("./pages/TermsPage"));
 
 // Admin routes - lazy loaded
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -95,6 +98,9 @@ const App = () => (
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
                   <Route path="/about" element={<AboutPage />} />
                   <Route path="/contact" element={<ContactPage />} />
+                  <Route path="/faq" element={<FAQPage />} />
+                  <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                  <Route path="/terms" element={<TermsPage />} />
                   <Route path="/shop" element={<ShopPage />} />
                   <Route path="/clinics" element={<ClinicsPage />} />
                   <Route path="/doctors" element={<DoctorsPage />} />

@@ -21,6 +21,8 @@ import ProfileHeader from '@/components/profile/ProfileHeader';
 import MyPetsSection from '@/components/profile/MyPetsSection';
 import OrderCard from '@/components/profile/OrderCard';
 import AppointmentCard from '@/components/profile/AppointmentCard';
+import { useAppointmentActions } from '@/hooks/useAppointments';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 interface Profile {
   id: string;
@@ -60,12 +62,14 @@ interface Appointment {
 }
 
 const ProfilePage = () => {
+  useDocumentTitle('My Profile');
   const { user, loading: authLoading } = useAuth();
   const { pets, loading: petsLoading } = usePets();
   const { isAdmin } = useAdmin();
   const { isClinicOwner } = useUserRole();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { cancelAppointment } = useAppointmentActions();
   
   const [profile, setProfile] = useState<Profile | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -493,7 +497,14 @@ const ProfilePage = () => {
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2">
                     {appointments.map((appointment) => (
-                      <AppointmentCard key={appointment.id} appointment={appointment} />
+                      <AppointmentCard 
+                        key={appointment.id} 
+                        appointment={appointment}
+                        onCancel={(id, clinicId, clinicName) => 
+                          cancelAppointment.mutate({ appointmentId: id, clinicId, clinicName })
+                        }
+                        isCancelling={cancelAppointment.isPending}
+                      />
                     ))}
                   </div>
                 )}
