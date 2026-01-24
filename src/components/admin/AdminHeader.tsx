@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, Menu, User, LogOut, Home, PanelLeft, ShoppingCart, Building2, RefreshCw } from 'lucide-react';
+import { Bell, Menu, User, LogOut, Home, PanelLeft, ShoppingCart, Building2, RefreshCw, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -26,6 +26,7 @@ interface AdminHeaderProps {
   collapsed?: boolean;
   pendingOrders?: number;
   pendingVerifications?: number;
+  pendingDoctors?: number;
 }
 
 export const AdminHeader = ({ 
@@ -34,13 +35,14 @@ export const AdminHeader = ({
   onToggleSidebar, 
   collapsed,
   pendingOrders = 0,
-  pendingVerifications = 0
+  pendingVerifications = 0,
+  pendingDoctors = 0
 }: AdminHeaderProps) => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const queryClient = useQueryClient();
 
-  const totalPending = pendingOrders + pendingVerifications;
+  const totalPending = pendingOrders + pendingVerifications + pendingDoctors;
 
   const handleRefresh = () => {
     queryClient.invalidateQueries();
@@ -68,7 +70,7 @@ export const AdminHeader = ({
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-[88vw] max-w-[340px] h-[100dvh] max-h-[100dvh] overflow-hidden border-r-0 shadow-2xl">
-              <AdminMobileNav pendingOrders={pendingOrders} pendingVerifications={pendingVerifications} />
+              <AdminMobileNav pendingOrders={pendingOrders} pendingVerifications={pendingVerifications} pendingDoctors={pendingDoctors} />
             </SheetContent>
           </Sheet>
 
@@ -166,8 +168,17 @@ export const AdminHeader = ({
               {pendingVerifications > 0 && (
                 <DropdownMenuItem onClick={() => navigate('/admin/clinics?filter=pending')} className="cursor-pointer py-3 px-3">
                   <Building2 className="h-4 w-4 mr-3 text-blue-500 flex-shrink-0" />
-                  <span className="flex-1 text-sm">{pendingVerifications} verification{pendingVerifications !== 1 ? 's' : ''}</span>
-                  <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-700 border-blue-200 text-[10px]">
+                  <span className="flex-1 text-sm">{pendingVerifications} clinic verification{pendingVerifications !== 1 ? 's' : ''}</span>
+                  <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-700 border-blue-200 text-[10px] dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800">
+                    Review
+                  </Badge>
+                </DropdownMenuItem>
+              )}
+              {pendingDoctors > 0 && (
+                <DropdownMenuItem onClick={() => navigate('/admin/doctors')} className="cursor-pointer py-3 px-3">
+                  <Stethoscope className="h-4 w-4 mr-3 text-cyan-500 flex-shrink-0" />
+                  <span className="flex-1 text-sm">{pendingDoctors} doctor verification{pendingDoctors !== 1 ? 's' : ''}</span>
+                  <Badge variant="outline" className="ml-2 bg-cyan-50 text-cyan-700 border-cyan-200 text-[10px] dark:bg-cyan-950/30 dark:text-cyan-400 dark:border-cyan-800">
                     Review
                   </Badge>
                 </DropdownMenuItem>

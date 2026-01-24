@@ -10,7 +10,8 @@ import {
   Loader2,
   AlertCircle,
   Package,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Download
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -56,7 +57,11 @@ import { ImageUpload } from '@/components/admin/ImageUpload';
 import { CSVImportDialog } from '@/components/admin/CSVImportDialog';
 import { productFormSchema } from '@/lib/validations';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { downloadCSV } from '@/lib/csvParser';
+
 const AdminProducts = () => {
+  useDocumentTitle('Products - Admin');
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -246,6 +251,27 @@ const AdminProducts = () => {
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
+  const handleExportCSV = () => {
+    if (!filteredProducts.length) return;
+    
+    const headers = ['Name', 'Description', 'Price', 'Category', 'Product Type', 'Stock', 'Badge', 'Discount', 'Created'];
+    const rows = filteredProducts.map(product => [
+      product.name,
+      product.description || '',
+      product.price,
+      product.category,
+      product.product_type || '',
+      product.stock,
+      product.badge || '',
+      product.discount || '',
+      product.created_at ? new Date(product.created_at).toISOString().split('T')[0] : ''
+    ]);
+    
+    const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
+    downloadCSV(csvContent, `products-${new Date().toISOString().split('T')[0]}.csv`);
+    toast({ title: 'Success', description: 'Products exported to CSV' });
+  };
+
   if (authLoading || roleLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -281,6 +307,15 @@ const AdminProducts = () => {
           />
         </div>
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleExportCSV}
+            disabled={!filteredProducts.length}
+            className="h-10 sm:h-11 rounded-xl text-sm"
+          >
+            <Download className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Export</span>
+          </Button>
           <Button variant="outline" onClick={() => setIsImportOpen(true)} className="h-10 sm:h-11 rounded-xl text-sm">
             <FileSpreadsheet className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Import CSV</span>

@@ -32,16 +32,19 @@ import { Progress } from '@/components/ui/progress';
 import { useAdmin, useAdminStats } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
+import { useQueryClient } from '@tanstack/react-query';
+
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const AdminDashboard = () => {
+  useDocumentTitle('Dashboard - Admin');
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, roleLoading } = useAdmin();
   const { data: stats, isLoading: statsLoading } = useAdminStats();
-
-  useEffect(() => {
-    document.title = 'Dashboard - VetMedix Admin';
-  }, []);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -50,6 +53,70 @@ const AdminDashboard = () => {
       navigate('/');
     }
   }, [user, authLoading, isAdmin, roleLoading, navigate]);
+
+  // Realtime subscriptions for new orders, clinic verifications, and doctor verifications
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const channel = supabase
+      .channel('admin-realtime-dashboard')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'orders',
+      }, (payload) => {
+        if ((payload.new as any).status === 'pending') {
+          queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+          queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+          queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] });
+          toast.info('🛒 New order received!', {
+            action: {
+              label: 'View',
+              onClick: () => navigate('/admin/orders'),
+            },
+          });
+        }
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'clinics',
+      }, (payload) => {
+        if ((payload.new as any).verification_status === 'pending') {
+          queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+          queryClient.invalidateQueries({ queryKey: ['admin-clinics'] });
+          queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] });
+          toast.info('🏥 New clinic verification request!', {
+            action: {
+              label: 'Review',
+              onClick: () => navigate('/admin/clinics'),
+            },
+          });
+        }
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'doctors',
+      }, (payload) => {
+        if ((payload.new as any).verification_status === 'pending') {
+          queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+          queryClient.invalidateQueries({ queryKey: ['admin-doctors'] });
+          queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] });
+          toast.info('👨‍⚕️ New doctor verification request!', {
+            action: {
+              label: 'Review',
+              onClick: () => navigate('/admin/doctors'),
+            },
+          });
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAdmin, queryClient, navigate]);
 
   if (authLoading || roleLoading) {
     return (

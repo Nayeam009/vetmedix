@@ -32,14 +32,17 @@ export const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => 
       const [
         { count: pendingOrders },
         { count: pendingVerifications },
+        { count: pendingDoctors },
       ] = await Promise.all([
         supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('clinics').select('*', { count: 'exact', head: true }).eq('verification_status', 'pending'),
+        supabase.from('doctors').select('*', { count: 'exact', head: true }).eq('verification_status', 'pending'),
       ]);
 
       return {
         pendingOrders: pendingOrders || 0,
         pendingVerifications: pendingVerifications || 0,
+        pendingDoctors: pendingDoctors || 0,
       };
     },
     enabled: isAdmin,
@@ -56,6 +59,7 @@ export const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => 
         onToggle={toggleSidebar}
         pendingOrders={pendingCounts?.pendingOrders}
         pendingVerifications={pendingCounts?.pendingVerifications}
+        pendingDoctors={pendingCounts?.pendingDoctors}
       />
       
       {/* Main Content Area - Offset by sidebar width on desktop */}
@@ -70,6 +74,7 @@ export const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => 
           collapsed={collapsed}
           pendingOrders={pendingCounts?.pendingOrders}
           pendingVerifications={pendingCounts?.pendingVerifications}
+          pendingDoctors={pendingCounts?.pendingDoctors}
         />
         <main className="flex-1 p-3 sm:p-4 lg:p-6 xl:p-8 overflow-x-hidden">
           {children}

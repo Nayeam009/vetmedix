@@ -12,7 +12,8 @@ import {
   XCircle,
   Package,
   CreditCard,
-  Ban
+  Ban,
+  Download
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -56,8 +57,11 @@ import { format } from 'date-fns';
 import { createOrderNotification } from '@/lib/notifications';
 import { AcceptOrderDialog } from '@/components/admin/AcceptOrderDialog';
 import { RejectOrderDialog } from '@/components/admin/RejectOrderDialog';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { downloadCSV } from '@/lib/csvParser';
 
 const AdminOrders = () => {
+  useDocumentTitle('Orders Management - Admin');
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -155,6 +159,26 @@ const AdminOrders = () => {
     return matchesSearch && matchesStatus;
   }) || [];
 
+  const handleExportCSV = () => {
+    if (!filteredOrders.length) return;
+    
+    const headers = ['Order ID', 'Date', 'Customer', 'Items', 'Payment Method', 'Tracking ID', 'Total', 'Status'];
+    const rows = filteredOrders.map(order => [
+      order.id.slice(0, 8),
+      format(new Date(order.created_at), 'yyyy-MM-dd HH:mm'),
+      order.shipping_address || 'N/A',
+      Array.isArray(order.items) ? order.items.length : 0,
+      (order as any).payment_method || 'COD',
+      (order as any).tracking_id || '',
+      order.total_amount,
+      order.status
+    ]);
+    
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+    downloadCSV(csvContent, `orders-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    toast({ title: 'Success', description: 'Orders exported to CSV' });
+  };
+
   if (authLoading || roleLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -204,6 +228,15 @@ const AdminOrders = () => {
             </SelectContent>
           </Select>
         </div>
+        <Button 
+          variant="outline" 
+          onClick={handleExportCSV}
+          disabled={!filteredOrders.length}
+          className="h-10 sm:h-11 rounded-xl text-sm gap-2"
+        >
+          <Download className="h-4 w-4" />
+          <span className="hidden sm:inline">Export CSV</span>
+        </Button>
       </div>
 
       {/* Orders - Mobile Cards / Desktop Table */}

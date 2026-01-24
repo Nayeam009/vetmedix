@@ -91,7 +91,10 @@ interface Clinic {
   opening_hours: string | null;
 }
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+
 const AdminClinics = () => {
+  useDocumentTitle('Clinics Management - Admin');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();

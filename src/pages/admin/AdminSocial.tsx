@@ -116,7 +116,10 @@ interface Comment {
 
 type ActiveView = 'overview' | 'posts' | 'posts_today' | 'pets' | 'parents' | 'likes' | 'comments';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+
 const AdminSocial = () => {
+  useDocumentTitle('Social Moderation - Admin');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { loading: authLoading } = useAuth();
