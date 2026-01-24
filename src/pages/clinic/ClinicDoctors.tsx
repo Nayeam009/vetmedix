@@ -44,6 +44,7 @@ import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useClinicOwner } from '@/hooks/useClinicOwner';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import AddDoctorWizard from '@/components/clinic/AddDoctorWizard';
 import { JoinRequestsTab } from '@/components/clinic/JoinRequestsTab';
 import { InviteDoctorDialog } from '@/components/clinic/InviteDoctorDialog';
@@ -89,6 +90,9 @@ const ClinicDoctors = () => {
     updateDoctor,
     removeDoctor,
   } = useClinicOwner();
+
+  // Set document title
+  useDocumentTitle('Manage Doctors');
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);

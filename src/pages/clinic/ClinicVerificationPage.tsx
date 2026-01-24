@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import logo from '@/assets/logo.jpeg';
@@ -33,6 +34,9 @@ const ClinicVerificationPage = () => {
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
   const { isClinicOwner, isLoading: roleLoading } = useUserRole();
+
+  // Set document title
+  useDocumentTitle('Clinic Verification');
 
   const [formData, setFormData] = useState({
     ownerName: '',
