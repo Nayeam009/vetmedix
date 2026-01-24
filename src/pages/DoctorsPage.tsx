@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePublicDoctors } from '@/hooks/usePublicDoctors';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const SPECIALIZATIONS = [
   'All Specializations',
@@ -46,6 +47,7 @@ const SPECIALIZATIONS = [
 ];
 
 const DoctorsPage = () => {
+  useDocumentTitle('Find Doctors');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialization, setSelectedSpecialization] = useState('All Specializations');
   const [sortBy, setSortBy] = useState('recommended');

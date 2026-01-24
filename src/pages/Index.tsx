@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import type { Pet } from '@/types/social';
 import heroCatSocial from '@/assets/hero-cat-social.png';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 // Memoized feature cards to prevent unnecessary re-renders
 const FeatureCard = memo(({ icon: Icon, label, color, iconColor }: { 
@@ -56,6 +57,7 @@ const highlightFeatures = [
 ] as const;
 
 const Index = () => {
+  useDocumentTitle('Home');
   const { user } = useAuth();
   const { pets } = usePets();
   const [feedType, setFeedType] = useState<'all' | 'following'>('all');

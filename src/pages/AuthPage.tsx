@@ -11,8 +11,10 @@ import { RoleSelector, SignupRole } from '@/components/auth/RoleSelector';
 import logo from '@/assets/logo.jpeg';
 import { Separator } from '@/components/ui/separator';
 import { loginSchema, signupSchema, clinicOwnerSignupSchema } from '@/lib/validations';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const AuthPage = () => {
+  useDocumentTitle('Sign In');
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -439,6 +441,14 @@ const AuthPage = () => {
               </div>
               {validationErrors.password && (
                 <p className="text-xs text-destructive">{validationErrors.password}</p>
+              )}
+              {isLogin && (
+                <Link 
+                  to="/forgot-password" 
+                  className="text-xs text-primary hover:underline mt-1 inline-block"
+                >
+                  Forgot password?
+                </Link>
               )}
             </div>
 

@@ -1,8 +1,20 @@
-import { Calendar, Clock, MapPin, Phone, CheckCircle, XCircle, AlertCircle, PawPrint } from 'lucide-react';
+import { useState } from 'react';
+import { Calendar, Clock, MapPin, Phone, CheckCircle, XCircle, AlertCircle, PawPrint, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format, isPast, isToday, isTomorrow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface AppointmentCardProps {
   appointment: {
@@ -20,10 +32,13 @@ interface AppointmentCardProps {
       phone: string | null;
     };
   };
+  onCancel?: (appointmentId: string, clinicId: string, clinicName?: string) => void;
+  isCancelling?: boolean;
 }
 
-const AppointmentCard = ({ appointment }: AppointmentCardProps) => {
+const AppointmentCard = ({ appointment, onCancel, isCancelling }: AppointmentCardProps) => {
   const navigate = useNavigate();
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const appointmentDate = new Date(appointment.appointment_date);
   const isAppointmentPast = isPast(appointmentDate) && !isToday(appointmentDate);
 
@@ -160,16 +175,51 @@ const AppointmentCard = ({ appointment }: AppointmentCardProps) => {
             size="sm" 
             variant="outline"
             onClick={() => navigate(`/book-appointment/${appointment.clinic_id}`)}
+            aria-label="Reschedule this appointment"
           >
             Reschedule
           </Button>
-          <Button 
-            size="sm" 
-            variant="ghost"
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-          >
-            Cancel
-          </Button>
+          <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+            <AlertDialogTrigger asChild>
+              <Button 
+                size="sm" 
+                variant="ghost"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                disabled={isCancelling}
+                aria-label="Cancel this appointment"
+              >
+                {isCancelling ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-1" aria-hidden="true" />
+                ) : null}
+                Cancel
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Cancel Appointment?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to cancel your appointment at{' '}
+                  <strong>{appointment.clinic?.name || 'this clinic'}</strong> on{' '}
+                  <strong>{format(appointmentDate, 'PPP')}</strong> at{' '}
+                  <strong>{appointment.appointment_time}</strong>?
+                  <br /><br />
+                  This action cannot be undone. The clinic will be notified of the cancellation.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Keep Appointment</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    onCancel?.(appointment.id, appointment.clinic_id, appointment.clinic?.name);
+                    setShowCancelDialog(false);
+                  }}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Yes, Cancel
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       )}
 

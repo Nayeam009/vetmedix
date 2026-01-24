@@ -7,8 +7,10 @@ import { PostCard } from '@/components/social/PostCard';
 import { usePosts } from '@/hooks/usePosts';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Users, Compass } from 'lucide-react';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const FeedPage = () => {
+  useDocumentTitle('Social Feed');
   const { user } = useAuth();
   const [feedType, setFeedType] = useState<'all' | 'following'>('all');
   

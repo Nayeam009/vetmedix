@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { useConversations } from '@/hooks/useMessages';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 // Memoized conversation card for performance
 const ConversationCard = memo(({ conv, onClick }: { conv: any; onClick: () => void }) => {
@@ -60,6 +61,7 @@ const ConversationCard = memo(({ conv, onClick }: { conv: any; onClick: () => vo
 ConversationCard.displayName = 'ConversationCard';
 
 const MessagesPage = () => {
+  useDocumentTitle('Messages');
   const navigate = useNavigate();
   const { user } = useAuth();
   const { conversations, loading } = useConversations();
