@@ -76,9 +76,10 @@ interface AdminSidebarProps {
   onToggle: () => void;
   pendingOrders?: number;
   pendingVerifications?: number;
+  pendingDoctors?: number;
 }
 
-export const AdminSidebar = ({ collapsed, onToggle, pendingOrders = 0, pendingVerifications = 0 }: AdminSidebarProps) => {
+export const AdminSidebar = ({ collapsed, onToggle, pendingOrders = 0, pendingVerifications = 0, pendingDoctors = 0 }: AdminSidebarProps) => {
   const location = useLocation();
 
   // Add badges dynamically
@@ -91,11 +92,14 @@ export const AdminSidebar = ({ collapsed, onToggle, pendingOrders = 0, pendingVe
       if (item.path === '/admin/clinics' && pendingVerifications > 0) {
         return { ...item, badge: pendingVerifications, badgeVariant: 'default' as const };
       }
+      if (item.path === '/admin/doctors' && pendingDoctors > 0) {
+        return { ...item, badge: pendingDoctors, badgeVariant: 'default' as const };
+      }
       return item;
     })
   }));
 
-  const totalPending = pendingOrders + pendingVerifications;
+  const totalPending = pendingOrders + pendingVerifications + pendingDoctors;
 
   return (
     <TooltipProvider delayDuration={0}>

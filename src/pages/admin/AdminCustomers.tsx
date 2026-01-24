@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
 import { 
   Search, 
   MoreHorizontal,
@@ -9,7 +8,8 @@ import {
   Users,
   Shield,
   ShieldCheck,
-  User
+  User,
+  Download
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -36,8 +36,11 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { downloadCSV } from '@/lib/csvParser';
 
 const AdminCustomers = () => {
+  useDocumentTitle('Customers - Admin');
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -106,6 +109,26 @@ const AdminCustomers = () => {
     customer.phone?.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
+  const handleExportCSV = () => {
+    if (!filteredCustomers.length) return;
+    
+    const headers = ['Name', 'Phone', 'Address', 'Division', 'District', 'Thana', 'Role', 'Joined'];
+    const rows = filteredCustomers.map(customer => [
+      customer.full_name || 'Unnamed',
+      customer.phone || '',
+      customer.address || '',
+      customer.division || '',
+      customer.district || '',
+      customer.thana || '',
+      customer.user_roles?.[0]?.role || 'user',
+      format(new Date(customer.created_at), 'yyyy-MM-dd')
+    ]);
+    
+    const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
+    downloadCSV(csvContent, `customers-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    toast({ title: 'Success', description: 'Customers exported to CSV' });
+  };
+
   if (authLoading || roleLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -140,6 +163,15 @@ const AdminCustomers = () => {
             className="pl-9 h-10 sm:h-11 rounded-xl text-sm"
           />
         </div>
+        <Button 
+          variant="outline" 
+          onClick={handleExportCSV}
+          disabled={!filteredCustomers.length}
+          className="h-10 sm:h-11 rounded-xl text-sm gap-2"
+        >
+          <Download className="h-4 w-4" />
+          <span className="hidden sm:inline">Export CSV</span>
+        </Button>
       </div>
 
       {/* Customers - Mobile Cards / Desktop Table */}

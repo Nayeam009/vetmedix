@@ -12,7 +12,8 @@ import {
   ChevronRight,
   Shield,
   Sparkles,
-  AlertCircle
+  AlertCircle,
+  Stethoscope
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/Logo';
@@ -56,6 +57,7 @@ const navSections: NavSection[] = [
     icon: Building2,
     items: [
       { icon: Building2, label: 'Clinics', path: '/admin/clinics', description: 'Verify & manage' },
+      { icon: Stethoscope, label: 'Doctors', path: '/admin/doctors', description: 'Verify doctors' },
       { icon: MessageSquare, label: 'Social', path: '/admin/social', description: 'Posts & content' },
       { icon: Users, label: 'Customers', path: '/admin/customers', description: 'User management' },
     ]
@@ -72,11 +74,12 @@ const navSections: NavSection[] = [
 interface AdminMobileNavProps {
   pendingOrders?: number;
   pendingVerifications?: number;
+  pendingDoctors?: number;
 }
 
-export const AdminMobileNav = ({ pendingOrders = 0, pendingVerifications = 0 }: AdminMobileNavProps) => {
+export const AdminMobileNav = ({ pendingOrders = 0, pendingVerifications = 0, pendingDoctors = 0 }: AdminMobileNavProps) => {
   const location = useLocation();
-  const totalPending = pendingOrders + pendingVerifications;
+  const totalPending = pendingOrders + pendingVerifications + pendingDoctors;
 
   // Add badges dynamically
   const sectionsWithBadges = navSections.map(section => ({
@@ -87,6 +90,9 @@ export const AdminMobileNav = ({ pendingOrders = 0, pendingVerifications = 0 }: 
       }
       if (item.path === '/admin/clinics' && pendingVerifications > 0) {
         return { ...item, badge: pendingVerifications, badgeVariant: 'default' as const };
+      }
+      if (item.path === '/admin/doctors' && pendingDoctors > 0) {
+        return { ...item, badge: pendingDoctors, badgeVariant: 'default' as const };
       }
       return item;
     })
@@ -128,8 +134,10 @@ export const AdminMobileNav = ({ pendingOrders = 0, pendingVerifications = 0 }: 
               </p>
               <p className="text-[10px] text-amber-600/80 dark:text-amber-400/80">
                 {pendingOrders > 0 && `${pendingOrders} order${pendingOrders !== 1 ? 's' : ''}`}
-                {pendingOrders > 0 && pendingVerifications > 0 && ' • '}
-                {pendingVerifications > 0 && `${pendingVerifications} verification${pendingVerifications !== 1 ? 's' : ''}`}
+                {pendingOrders > 0 && (pendingVerifications > 0 || pendingDoctors > 0) && ' • '}
+                {pendingVerifications > 0 && `${pendingVerifications} clinic${pendingVerifications !== 1 ? 's' : ''}`}
+                {pendingVerifications > 0 && pendingDoctors > 0 && ' • '}
+                {pendingDoctors > 0 && `${pendingDoctors} doctor${pendingDoctors !== 1 ? 's' : ''}`}
               </p>
             </div>
           </div>

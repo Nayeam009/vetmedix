@@ -42,7 +42,10 @@ import {
   Legend,
 } from 'recharts';
 
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+
 const AdminAnalytics = () => {
+  useDocumentTitle('Analytics - Admin');
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, roleLoading } = useAdmin();
