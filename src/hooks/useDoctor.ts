@@ -127,15 +127,41 @@ export const useDoctor = () => {
         .from('appointments')
         .update({ status })
         .eq('id', appointmentId)
-        .select()
+        .select('*, clinic:clinics(name)')
         .single();
 
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['doctor-appointments'] });
-      toast.success('Appointment status updated');
+      
+      // Notify the pet parent about the status change
+      if (data?.user_id) {
+        try {
+          const { createNotification } = await import('@/lib/notifications');
+          await createNotification({
+            userId: data.user_id,
+            type: 'appointment',
+            title: data.status === 'confirmed' 
+              ? '✅ Appointment Confirmed!'
+              : data.status === 'cancelled'
+              ? '❌ Appointment Cancelled'
+              : '✔️ Appointment Completed',
+            message: `Your appointment at ${data.clinic?.name || 'the clinic'} has been ${data.status}.`,
+            targetAppointmentId: data.id,
+          });
+        } catch (err) {
+          console.error('Failed to send notification:', err);
+        }
+      }
+      
+      const statusMessages: Record<string, string> = {
+        confirmed: 'Appointment confirmed! Patient has been notified.',
+        cancelled: 'Appointment cancelled. Patient has been notified.',
+        completed: 'Appointment marked as completed!',
+      };
+      toast.success(statusMessages[data.status] || 'Appointment status updated');
     },
     onError: (error) => {
       toast.error('Failed to update appointment');

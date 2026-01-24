@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Loader2, Camera, Stethoscope } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Camera, Stethoscope, ExternalLink, X, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,14 +14,26 @@ import MobileNav from '@/components/MobileNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDoctor } from '@/hooks/useDoctor';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import logo from '@/assets/logo.jpeg';
 
+const COMMON_QUALIFICATIONS = [
+  'DVM', 'BVSc', 'MVSc', 'PhD', 'DACVS', 'DACVIM', 'DECVS', 'MRCVS'
+];
+
 const DoctorProfile = () => {
+  useDocumentTitle('Edit Profile');
+  
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isDoctor, isLoading: roleLoading } = useUserRole();
   const { doctorProfile, profileLoading, updateProfile } = useDoctor();
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [newQualification, setNewQualification] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -33,6 +45,7 @@ const DoctorProfile = () => {
     experience_years: '',
     consultation_fee: '',
     is_available: true,
+    qualifications: [] as string[],
   });
 
   useEffect(() => {
@@ -47,9 +60,66 @@ const DoctorProfile = () => {
         experience_years: doctorProfile.experience_years?.toString() || '',
         consultation_fee: doctorProfile.consultation_fee?.toString() || '',
         is_available: doctorProfile.is_available ?? true,
+        qualifications: doctorProfile.qualifications || [],
       });
     }
   }, [doctorProfile]);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !doctorProfile?.id) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image must be less than 2MB');
+      return;
+    }
+
+    setAvatarUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const filePath = `doctors/${doctorProfile.id}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      await updateProfile.mutateAsync({ avatar_url: publicUrl });
+      toast.success('Profile photo updated!');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload photo');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  const addQualification = (qual: string) => {
+    if (qual && !formData.qualifications.includes(qual)) {
+      setFormData(prev => ({
+        ...prev,
+        qualifications: [...prev.qualifications, qual]
+      }));
+    }
+    setNewQualification('');
+  };
+
+  const removeQualification = (qual: string) => {
+    setFormData(prev => ({
+      ...prev,
+      qualifications: prev.qualifications.filter(q => q !== qual)
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +134,7 @@ const DoctorProfile = () => {
       experience_years: formData.experience_years ? parseInt(formData.experience_years) : null,
       consultation_fee: formData.consultation_fee ? parseFloat(formData.consultation_fee) : null,
       is_available: formData.is_available,
+      qualifications: formData.qualifications.length > 0 ? formData.qualifications : null,
     });
   };
 
@@ -97,18 +168,42 @@ const DoctorProfile = () => {
                       {formData.name.charAt(0) || 'D'}
                     </AvatarFallback>
                   </Avatar>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                  />
                   <button
                     type="button"
-                    className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={avatarUploading}
+                    className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    aria-label="Upload profile photo"
                   >
-                    <Camera className="h-4 w-4" />
+                    {avatarUploading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Camera className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
-                <div>
-                  <h2 className="text-xl font-semibold">{formData.name || 'Doctor Profile'}</h2>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-xl font-semibold">{formData.name || 'Doctor Profile'}</h2>
+                    {doctorProfile?.is_verified && (
+                      <Badge variant="default">Verified</Badge>
+                    )}
+                  </div>
                   <p className="text-muted-foreground">{formData.specialization || 'Veterinary Doctor'}</p>
-                  {doctorProfile?.is_verified && (
-                    <Badge className="mt-2" variant="default">Verified</Badge>
+                  {doctorProfile?.id && (
+                    <Button variant="link" size="sm" className="p-0 h-auto mt-1" asChild>
+                      <a href={`/doctor/${doctorProfile.id}`} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        View Public Profile
+                      </a>
+                    </Button>
                   )}
                 </div>
               </div>
@@ -173,6 +268,72 @@ const DoctorProfile = () => {
                     onChange={(e) => setFormData({ ...formData, experience_years: e.target.value })}
                   />
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Qualifications */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Qualifications</CardTitle>
+              <CardDescription>Add your degrees and certifications</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {formData.qualifications.map((qual) => (
+                  <Badge key={qual} variant="secondary" className="text-sm px-3 py-1.5 gap-1">
+                    {qual}
+                    <button
+                      type="button"
+                      onClick={() => removeQualification(qual)}
+                      className="ml-1 hover:text-destructive"
+                      aria-label={`Remove ${qual}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Common Qualifications</Label>
+                <div className="flex flex-wrap gap-2">
+                  {COMMON_QUALIFICATIONS.filter(q => !formData.qualifications.includes(q)).map((qual) => (
+                    <Button
+                      key={qual}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addQualification(qual)}
+                      className="h-8"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      {qual}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add custom qualification..."
+                  value={newQualification}
+                  onChange={(e) => setNewQualification(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addQualification(newQualification);
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => addQualification(newQualification)}
+                  disabled={!newQualification}
+                >
+                  Add
+                </Button>
               </div>
             </CardContent>
           </Card>
