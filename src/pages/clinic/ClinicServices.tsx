@@ -30,6 +30,7 @@ import MobileNav from '@/components/MobileNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicOwner, ClinicService } from '@/hooks/useClinicOwner';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import AddServiceWizard from '@/components/clinic/AddServiceWizard';
 
 const ClinicServices = () => {
@@ -45,6 +46,9 @@ const ClinicServices = () => {
     updateService,
     deleteService 
   } = useClinicOwner();
+
+  // Set document title
+  useDocumentTitle('Manage Services');
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);

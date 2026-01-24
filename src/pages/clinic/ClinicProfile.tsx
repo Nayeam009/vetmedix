@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { 
   Save, Loader2, Camera, Building2, MapPin, 
   Phone, Mail, Clock, CheckCircle, ChevronLeft,
@@ -19,6 +19,7 @@ import MobileNav from '@/components/MobileNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicOwner } from '@/hooks/useClinicOwner';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -84,6 +85,9 @@ const ClinicProfile = () => {
   const { user } = useAuth();
   const { isClinicOwner, isLoading: roleLoading } = useUserRole();
   const { ownedClinic, clinicLoading, updateClinic } = useClinicOwner();
+
+  // Set document title
+  useDocumentTitle('Clinic Profile');
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -248,19 +252,33 @@ const ClinicProfile = () => {
       
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-3xl">
         {/* Header */}
-        <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <div className="flex items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="rounded-xl h-10 w-10 sm:h-9 sm:w-9 flex-shrink-0 active:scale-95 transition-transform"
+              onClick={() => navigate('/clinic/dashboard')}
+              aria-label="Go back to dashboard"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-display font-bold text-foreground truncate">Edit Clinic Profile</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">Update your clinic's public information</p>
+            </div>
+          </div>
+          {/* View Public Profile Button */}
           <Button 
             variant="outline" 
-            size="icon" 
-            className="rounded-xl h-10 w-10 sm:h-9 sm:w-9 flex-shrink-0 active:scale-95 transition-transform"
-            onClick={() => navigate('/clinic/dashboard')}
+            asChild 
+            className="rounded-xl h-10 sm:h-9 gap-2 active:scale-95 transition-transform"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <Link to={`/clinics/${ownedClinic?.id}`} target="_blank">
+              <ExternalLink className="h-4 w-4" />
+              <span className="hidden sm:inline">View Public</span>
+            </Link>
           </Button>
-          <div className="min-w-0">
-            <h1 className="text-lg sm:text-2xl font-display font-bold text-foreground truncate">Edit Clinic Profile</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">Update your clinic's public information</p>
-          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { 
@@ -6,7 +6,8 @@ import {
   CheckCircle, XCircle, AlertCircle,
   Building2, Stethoscope, Package, Plus, Edit,
   ChevronRight, Activity, BarChart3, Bell, ArrowUpRight,
-  CalendarDays, UserCheck, DollarSign, Sparkles, Search
+  CalendarDays, UserCheck, DollarSign, Sparkles, Search,
+  ExternalLink, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -14,29 +15,90 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
 import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicOwner } from '@/hooks/useClinicOwner';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { cn } from '@/lib/utils';
 import ClinicAppointmentsList from '@/components/clinic/ClinicAppointmentsList';
 import QuickStatsOverview from '@/components/clinic/QuickStatsOverview';
 import { GlobalSearch } from '@/components/GlobalSearch';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+
+// Lazy load analytics charts for performance
+const ClinicAnalyticsCharts = lazy(() => import('@/components/clinic/ClinicAnalyticsCharts'));
 
 const ClinicDashboard = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user, signOut } = useAuth();
   const { isClinicOwner, isLoading: roleLoading } = useUserRole();
   const [activeTab, setActiveTab] = useState('appointments');
+  const [isTogglingOpen, setIsTogglingOpen] = useState(false);
   const { 
     ownedClinic, 
     clinicLoading, 
     clinicServices,
     clinicDoctors,
     clinicAppointments,
-    updateAppointmentStatus 
+    updateAppointmentStatus,
+    updateClinic
   } = useClinicOwner();
+
+  // Set document title
+  useDocumentTitle(ownedClinic?.name ? `${ownedClinic.name} Dashboard` : 'Clinic Dashboard');
+
+  // Toggle clinic open/close status
+  const handleToggleOpen = async () => {
+    if (!ownedClinic) return;
+    setIsTogglingOpen(true);
+    try {
+      await updateClinic.mutateAsync({ is_open: !ownedClinic.is_open });
+      toast.success(ownedClinic.is_open ? 'Clinic is now closed' : 'Clinic is now open');
+    } catch (error) {
+      toast.error('Failed to update clinic status');
+    } finally {
+      setIsTogglingOpen(false);
+    }
+  };
+
+  // Set up realtime subscription for appointments
+  useEffect(() => {
+    if (!ownedClinic?.id) return;
+
+    const channel = supabase
+      .channel('clinic-appointments-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'appointments',
+          filter: `clinic_id=eq.${ownedClinic.id}`,
+        },
+        (payload) => {
+          // Invalidate appointments query to refresh data
+          queryClient.invalidateQueries({ queryKey: ['clinic-appointments', ownedClinic.id] });
+          
+          // Show toast for new appointments
+          if (payload.eventType === 'INSERT') {
+            toast.info('📅 New appointment received!', {
+              description: 'Check your appointments tab',
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [ownedClinic?.id, queryClient]);
 
   if (roleLoading || clinicLoading) {
     return (
@@ -178,10 +240,20 @@ const ClinicDashboard = () => {
                 </div>
                 <p className="text-muted-foreground text-xs sm:text-sm truncate">{ownedClinic?.address || 'Add your address'}</p>
                 <div className="flex items-center gap-2 sm:gap-3 mt-1.5 sm:mt-2">
-                  <Badge variant={ownedClinic?.is_open ? 'default' : 'secondary'} className={cn("text-[10px] sm:text-xs", ownedClinic?.is_open ? 'bg-emerald-500 hover:bg-emerald-500' : '')}>
-                    <div className={`w-1.5 h-1.5 rounded-full mr-1 sm:mr-1.5 ${ownedClinic?.is_open ? 'bg-white animate-pulse' : 'bg-gray-400'}`} />
-                    {ownedClinic?.is_open ? 'Open' : 'Closed'}
-                  </Badge>
+                  {/* Open/Close Toggle */}
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={ownedClinic?.is_open ?? false}
+                      onCheckedChange={handleToggleOpen}
+                      disabled={isTogglingOpen}
+                      aria-label="Toggle clinic open/closed status"
+                      className="data-[state=checked]:bg-emerald-500"
+                    />
+                    <Badge variant={ownedClinic?.is_open ? 'default' : 'secondary'} className={cn("text-[10px] sm:text-xs", ownedClinic?.is_open ? 'bg-emerald-500 hover:bg-emerald-500' : '')}>
+                      <div className={`w-1.5 h-1.5 rounded-full mr-1 sm:mr-1.5 ${ownedClinic?.is_open ? 'bg-white animate-pulse' : 'bg-gray-400'}`} />
+                      {ownedClinic?.is_open ? 'Open' : 'Closed'}
+                    </Badge>
+                  </div>
                   <span className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
                     <Star className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500 fill-amber-500" />
                     {ownedClinic?.rating || 4.5}
@@ -195,6 +267,17 @@ const ClinicDashboard = () => {
                 <GlobalSearch variant="clinic" className="w-full h-9 sm:h-10" placeholder="Search appointments..." />
               </div>
               <div className="flex gap-2 sm:gap-3">
+                {/* View Public Profile Button */}
+                <Button 
+                  variant="outline" 
+                  asChild 
+                  className="rounded-lg sm:rounded-xl h-9 sm:h-10 px-3 sm:px-4"
+                >
+                  <Link to={`/clinics/${ownedClinic?.id}`} target="_blank">
+                    <ExternalLink className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">View Public</span>
+                  </Link>
+                </Button>
                 <Button asChild className="rounded-lg sm:rounded-xl shadow-lg shadow-primary/25 h-9 sm:h-10 px-3 sm:px-4 flex-1 sm:flex-none">
                   <Link to="/clinic/profile">
                     <Edit className="h-4 w-4 sm:mr-2" />
@@ -464,53 +547,18 @@ const ClinicDashboard = () => {
 
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="bg-white border-border/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Appointments</CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{clinicAppointments?.length || 0}</div>
-                  <p className="text-xs text-muted-foreground">All time</p>
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-white border-border/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Completed</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-emerald-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{completedAppointments.length}</div>
-                  <Progress value={(completedAppointments.length / (clinicAppointments?.length || 1)) * 100} className="mt-2 h-2" />
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white border-border/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Confirmed</CardTitle>
-                  <UserCheck className="h-4 w-4 text-blue-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{confirmedAppointments.length}</div>
-                  <p className="text-xs text-muted-foreground">Upcoming</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white border-border/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-emerald-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {clinicAppointments?.length ? Math.round((completedAppointments.length / clinicAppointments.length) * 100) : 0}%
-                  </div>
-                  <p className="text-xs text-muted-foreground">Completion rate</p>
-                </CardContent>
-              </Card>
-            </div>
+            <Suspense fallback={
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            }>
+              <ClinicAnalyticsCharts
+                appointments={clinicAppointments || []}
+                services={clinicServices || []}
+                doctors={clinicDoctors || []}
+                clinicRating={ownedClinic?.rating}
+              />
+            </Suspense>
           </TabsContent>
         </Tabs>
       </main>
