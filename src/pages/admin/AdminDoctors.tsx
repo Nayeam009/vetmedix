@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { 
@@ -42,6 +42,7 @@ import { AdminLayout } from '@/components/admin/AdminLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { createNotification, getAdminUserIds } from '@/lib/notifications';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 interface Doctor {
   id: string;
@@ -71,6 +72,7 @@ interface Doctor {
 }
 
 const AdminDoctors = () => {
+  useDocumentTitle('Doctor Management - Admin');
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -80,10 +82,6 @@ const AdminDoctors = () => {
   const [isBlockOpen, setIsBlockOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [blockReason, setBlockReason] = useState('');
-
-  useEffect(() => {
-    document.title = 'Doctor Management - VetMedix Admin';
-  }, []);
 
   // Fetch all doctors
   const { data: doctors, isLoading } = useQuery({

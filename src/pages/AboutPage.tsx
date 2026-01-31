@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, Shield, Users, Stethoscope, PawPrint, Building2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,11 +5,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import Footer from '@/components/Footer';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const AboutPage = () => {
-  useEffect(() => {
-    document.title = 'About Us - VetMedix';
-  }, []);
+  useDocumentTitle('About Us');
 
   const features = [
     {

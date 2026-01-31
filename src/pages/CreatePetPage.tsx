@@ -21,6 +21,7 @@ import { usePets } from '@/contexts/PetContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { compressImage, getCompressionMessage } from '@/lib/mediaCompression';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const speciesOptions = [
   'Dog', 'Cat', 'Bird', 'Fish', 'Rabbit', 'Hamster', 
@@ -31,6 +32,7 @@ const MAX_PETS = 30;
 const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB (will be compressed)
 
 const CreatePetPage = () => {
+  useDocumentTitle('Add New Pet');
   const navigate = useNavigate();
   const { user } = useAuth();
   const { refreshPets } = usePets();

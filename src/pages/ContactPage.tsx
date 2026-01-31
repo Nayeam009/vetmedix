@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Mail, Phone, MapPin, Send, Loader2, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,8 +9,11 @@ import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import Footer from '@/components/Footer';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const ContactPage = () => {
+  useDocumentTitle('Contact Us');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -20,10 +23,6 @@ const ContactPage = () => {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  useEffect(() => {
-    document.title = 'Contact Us - VetMedix';
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.message) {
@@ -32,11 +31,26 @@ const ContactPage = () => {
     }
 
     setLoading(true);
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setLoading(false);
-    setSubmitted(true);
-    toast.success('Message sent successfully! We\'ll get back to you soon.');
+    try {
+      const { error } = await supabase
+        .from('contact_messages')
+        .insert({
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          subject: formData.subject.trim() || null,
+          message: formData.message.trim(),
+        });
+
+      if (error) throw error;
+      
+      setSubmitted(true);
+      toast.success('Message sent successfully! We\'ll get back to you soon.');
+    } catch (error) {
+      console.error('Error submitting contact form:', error);
+      toast.error('Failed to send message. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const contactInfo = [

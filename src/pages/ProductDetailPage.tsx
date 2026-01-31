@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import type { Product, Review } from '@/types/database';
 import { Separator } from '@/components/ui/separator';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const ProductDetailPage = () => {
   const { id } = useParams();
@@ -37,6 +38,8 @@ const ProductDetailPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  
+  useDocumentTitle(product?.name || 'Product Details');
 
   useEffect(() => {
     const fetchProduct = async () => {
