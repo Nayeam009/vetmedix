@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Mail, Loader2, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,15 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Logo from '@/components/Logo';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const ForgotPasswordPage = () => {
+  useDocumentTitle('Forgot Password');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-
-  useEffect(() => {
-    document.title = 'Forgot Password - VetMedix';
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

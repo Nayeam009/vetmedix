@@ -16,6 +16,7 @@ import ClinicReviewsSection from '@/components/clinic/ClinicReviewsSection';
 import { useClinicReviews } from '@/hooks/useClinicReviews';
 import { useClinicDoctorsWithSchedules } from '@/hooks/useDoctorSchedules';
 import BookAppointmentDialog from '@/components/clinic/BookAppointmentDialog';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 // Clinic interface for clinics_public view (excludes sensitive fields like verification docs)
 interface Clinic {
@@ -45,6 +46,8 @@ const ClinicDetailPage = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showBookingDialog, setShowBookingDialog] = useState(false);
   const isGopalganj = clinic?.name?.toLowerCase().includes('gopalganj');
+  
+  useDocumentTitle(clinic?.name || 'Clinic Details');
   
   // Use the reviews hook for rating stats
   const { ratingStats } = useClinicReviews(id || '');

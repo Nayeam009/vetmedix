@@ -20,8 +20,10 @@ import {
   createAppointmentConfirmationNotification 
 } from '@/lib/notifications';
 import { format } from 'date-fns';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const BookAppointmentPage = () => {
+  useDocumentTitle('Book Appointment');
   const { clinicId } = useParams();
   const [searchParams] = useSearchParams();
   const preSelectedDoctorId = searchParams.get('doctor');

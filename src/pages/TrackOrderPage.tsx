@@ -22,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 interface TrackingStatus {
   status: number;
@@ -41,6 +42,7 @@ interface OrderDetails {
 }
 
 const TrackOrderPage = () => {
+  useDocumentTitle('Track Order');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();

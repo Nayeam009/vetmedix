@@ -12,6 +12,7 @@ import { Loader2, Grid3X3, ImageIcon, Film, Plus } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import type { Pet, Post } from '@/types/social';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 // Memoized photo grid item
 const PhotoGridItem = memo(({ url, postId, index, onClick }: { url: string; postId: string; index: number; onClick: () => void }) => (
@@ -67,6 +68,8 @@ const PetProfilePage = () => {
   const [pet, setPet] = useState<Pet | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('posts');
+  
+  useDocumentTitle(pet?.name ? `${pet.name}'s Profile` : 'Pet Profile');
   
   const { 
     posts, 

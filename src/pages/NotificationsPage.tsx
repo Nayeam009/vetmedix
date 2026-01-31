@@ -12,8 +12,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import type { Notification } from '@/types/social';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const NotificationsPage = () => {
+  useDocumentTitle('Notifications');
   const { user } = useAuth();
   const navigate = useNavigate();
   const { notifications, loading, markAsRead, markAllAsRead, unreadCount } = useNotifications();

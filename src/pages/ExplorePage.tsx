@@ -26,6 +26,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFollow } from '@/hooks/useFollow';
 import type { Pet } from '@/types/social';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const speciesOptions = ['All', 'Dog', 'Cat', 'Bird', 'Fish', 'Rabbit', 'Hamster', 'Other'];
 
@@ -183,6 +184,7 @@ const PetCard = memo(({ pet, onFollow }: { pet: Pet; onFollow?: () => void }) =>
 PetCard.displayName = 'PetCard';
 
 const ExplorePage = () => {
+  useDocumentTitle('Explore Pets');
   const [searchParams, setSearchParams] = useSearchParams();
   const [pets, setPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);

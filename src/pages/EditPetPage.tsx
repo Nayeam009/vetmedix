@@ -33,6 +33,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Pet } from '@/types/social';
 import { compressImage, getCompressionMessage } from '@/lib/mediaCompression';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const speciesOptions = [
   'Dog', 'Cat', 'Bird', 'Fish', 'Rabbit', 'Hamster', 
@@ -40,6 +41,7 @@ const speciesOptions = [
 ];
 
 const EditPetPage = () => {
+  useDocumentTitle('Edit Pet Profile');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();

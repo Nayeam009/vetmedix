@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import logo from '@/assets/logo.jpeg';
 import { cn } from '@/lib/utils';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 type SelectableRole = 'user' | 'clinic_owner';
 
@@ -29,6 +30,7 @@ const roles = [
 ];
 
 const SelectRolePage = () => {
+  useDocumentTitle('Complete Your Profile');
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
