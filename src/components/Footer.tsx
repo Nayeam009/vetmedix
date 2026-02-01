@@ -16,27 +16,33 @@ const Footer = () => {
               Your trusted partner for pet and farm animal care across Bangladesh.
             </p>
             <nav aria-label="Social media links" className="flex gap-2 sm:gap-3">
-              <a 
-                href="#" 
-                className="h-11 w-11 rounded-full bg-card/10 flex items-center justify-center hover:bg-primary transition-colors active:scale-95"
-                aria-label="Visit our Facebook page"
+              <button 
+                type="button"
+                onClick={(e) => e.preventDefault()}
+                className="h-11 w-11 rounded-full bg-card/10 flex items-center justify-center hover:bg-primary transition-colors active:scale-95 cursor-not-allowed opacity-60"
+                aria-label="Facebook page - Coming soon"
+                title="Coming soon"
               >
                 <Facebook className="h-4 w-4 sm:h-5 sm:w-5" />
-              </a>
-              <a 
-                href="#" 
-                className="h-11 w-11 rounded-full bg-card/10 flex items-center justify-center hover:bg-primary transition-colors active:scale-95"
-                aria-label="Visit our Instagram page"
+              </button>
+              <button 
+                type="button"
+                onClick={(e) => e.preventDefault()}
+                className="h-11 w-11 rounded-full bg-card/10 flex items-center justify-center hover:bg-primary transition-colors active:scale-95 cursor-not-allowed opacity-60"
+                aria-label="Instagram page - Coming soon"
+                title="Coming soon"
               >
                 <Instagram className="h-4 w-4 sm:h-5 sm:w-5" />
-              </a>
-              <a 
-                href="#" 
-                className="h-11 w-11 rounded-full bg-card/10 flex items-center justify-center hover:bg-primary transition-colors active:scale-95"
-                aria-label="Visit our YouTube channel"
+              </button>
+              <button 
+                type="button"
+                onClick={(e) => e.preventDefault()}
+                className="h-11 w-11 rounded-full bg-card/10 flex items-center justify-center hover:bg-primary transition-colors active:scale-95 cursor-not-allowed opacity-60"
+                aria-label="YouTube channel - Coming soon"
+                title="Coming soon"
               >
                 <Youtube className="h-4 w-4 sm:h-5 sm:w-5" />
-              </a>
+              </button>
             </nav>
           </div>
 
