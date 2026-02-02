@@ -74,6 +74,8 @@ export const useClinicOwner = () => {
       return data as Clinic | null;
     },
     enabled: !!user?.id,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const { data: clinicServices, isLoading: servicesLoading } = useQuery({
@@ -91,6 +93,8 @@ export const useClinicOwner = () => {
       return data as ClinicService[];
     },
     enabled: !!ownedClinic?.id,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const { data: clinicDoctors, isLoading: doctorsLoading } = useQuery({
@@ -110,6 +114,8 @@ export const useClinicOwner = () => {
       return data as ClinicDoctor[];
     },
     enabled: !!ownedClinic?.id,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const { data: clinicAppointments, isLoading: appointmentsLoading } = useQuery({
@@ -130,6 +136,8 @@ export const useClinicOwner = () => {
       return data;
     },
     enabled: !!ownedClinic?.id,
+    staleTime: 30 * 1000, // 30 seconds - appointments change frequently
+    gcTime: 2 * 60 * 1000, // 2 minutes
   });
 
   const updateClinic = useMutation({

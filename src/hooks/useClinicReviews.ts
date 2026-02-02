@@ -48,6 +48,8 @@ export const useClinicReviews = (clinicId: string) => {
       })) as ClinicReview[];
     },
     enabled: !!clinicId,
+    staleTime: 5 * 60 * 1000, // 5 minutes - reviews don't change often
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   // Fetch user's own review
@@ -67,6 +69,8 @@ export const useClinicReviews = (clinicId: string) => {
       return data;
     },
     enabled: !!clinicId && !!user?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   // Calculate rating stats

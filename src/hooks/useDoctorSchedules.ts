@@ -34,6 +34,8 @@ export const useDoctorSchedules = (clinicId?: string, doctorId?: string) => {
       return data as DoctorSchedule[];
     },
     enabled: !!(clinicId || doctorId),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const getAvailableSlotsForDate = (date: Date): string[] => {
@@ -94,5 +96,7 @@ export const useClinicDoctorsWithSchedules = (clinicId: string) => {
       })) || [];
     },
     enabled: !!clinicId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 };
