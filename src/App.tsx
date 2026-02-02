@@ -10,6 +10,7 @@ import { PetProvider } from "@/contexts/PetContext";
 import { Loader2 } from "lucide-react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useFocusManagement } from "@/hooks/useFocusManagement";
+import OfflineIndicator from "@/components/OfflineIndicator";
 
 // Critical routes - loaded immediately
 import Index from "./pages/Index";
@@ -111,6 +112,7 @@ const App = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
+            <OfflineIndicator />
             <BrowserRouter>
               <ScrollToTop />
               <ErrorBoundary>
