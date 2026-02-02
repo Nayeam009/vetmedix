@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useCart } from '@/contexts/CartContext';
@@ -24,6 +24,7 @@ import {
 import type { Product, Review } from '@/types/database';
 import { Separator } from '@/components/ui/separator';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import SEO from '@/components/SEO';
 
 const ProductDetailPage = () => {
   const { id } = useParams();
@@ -148,9 +149,34 @@ const ProductDetailPage = () => {
   const savings = product.discount 
     ? product.price - discountedPrice 
     : 0;
+    
+  // SEO structured data for product
+  const productSchema = {
+    type: 'Product' as const,
+    name: product.name,
+    description: product.description || undefined,
+    image: product.image_url || undefined,
+    price: discountedPrice,
+    priceCurrency: 'BDT',
+    availability: (product.stock && product.stock > 0 ? 'InStock' : 'OutOfStock') as 'InStock' | 'OutOfStock',
+    brand: 'VetMedix',
+    category: product.category,
+    rating: avgRating,
+    reviewCount: reviews.length || undefined,
+    sku: product.id,
+    url: `https://vetmedix.lovable.app/product/${product.id}`,
+  };
 
   return (
     <div className="min-h-screen bg-muted/30">
+      <SEO 
+        title={product.name}
+        description={product.description || `Buy ${product.name} at VetMedix. Premium ${product.category} products for your pets.`}
+        image={product.image_url || undefined}
+        url={`https://vetmedix.lovable.app/product/${product.id}`}
+        type="product"
+        schema={productSchema}
+      />
       <Navbar />
       
       {/* Breadcrumb */}

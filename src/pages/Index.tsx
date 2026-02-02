@@ -21,7 +21,7 @@ import {
 import type { Pet } from '@/types/social';
 import heroCatSocial from '@/assets/hero-cat-social.png';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-
+import SEO from '@/components/SEO';
 // Memoized feature cards to prevent unnecessary re-renders
 const FeatureCard = memo(({ icon: Icon, label, color, iconColor }: { 
   icon: typeof Camera; 
@@ -58,6 +58,16 @@ const highlightFeatures = [
 
 const Index = () => {
   useDocumentTitle('Home');
+  
+  // SEO structured data for homepage
+  const organizationSchema = {
+    type: 'Organization' as const,
+    name: 'VetMedix',
+    url: 'https://vetmedix.lovable.app',
+    logo: 'https://vetmedix.lovable.app/og-image.png',
+    description: "Bangladesh's premier pet care platform. Connect with pet parents, book vet appointments, and shop premium pet supplies.",
+    sameAs: ['https://facebook.com/vetmedix', 'https://instagram.com/vetmedix'],
+  };
   const { user } = useAuth();
   const { pets } = usePets();
   const [feedType, setFeedType] = useState<'all' | 'following'>('all');
@@ -92,6 +102,12 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
+      <SEO 
+        title="Pet Care, Social Network & Veterinary Services"
+        description="VetMedix is Bangladesh's premier pet care platform. Create pet profiles, share moments, shop premium pet supplies, and book veterinary appointments."
+        url="https://vetmedix.lovable.app"
+        schema={organizationSchema}
+      />
       <Navbar />
       
       <main>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, MapPin, Clock, Phone, Stethoscope, User, Calendar, ChevronRight, Award, Heart, Shield, Loader2, MessageSquare, Share2, ChevronLeft, CheckCircle, Building2, AlertCircle, Users, Sparkles, BadgeCheck, Copy } from 'lucide-react';
 import Navbar from '@/components/Navbar';
@@ -17,6 +17,7 @@ import { useClinicReviews } from '@/hooks/useClinicReviews';
 import { useClinicDoctorsWithSchedules } from '@/hooks/useDoctorSchedules';
 import BookAppointmentDialog from '@/components/clinic/BookAppointmentDialog';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import SEO from '@/components/SEO';
 
 // Clinic interface for clinics_public view (excludes sensitive fields like verification docs)
 interface Clinic {
@@ -54,6 +55,22 @@ const ClinicDetailPage = () => {
   
   // Fetch doctors for booking
   const { data: doctorsWithSchedules = [], isLoading: doctorsLoading } = useClinicDoctorsWithSchedules(id || '');
+  
+  // SEO structured data for clinic
+  const clinicSchema = useMemo(() => clinic ? {
+    type: 'VeterinaryCare' as const,
+    name: clinic.name,
+    address: clinic.address || undefined,
+    phone: clinic.phone || undefined,
+    email: clinic.email || undefined,
+    image: clinic.image_url || undefined,
+    rating: ratingStats.average || clinic.rating || undefined,
+    reviewCount: ratingStats.total || undefined,
+    openingHours: clinic.opening_hours || undefined,
+    url: `https://vetmedix.lovable.app/clinic/${clinic.id}`,
+    description: clinic.description || `${clinic.name} - Professional veterinary care for your pets in Bangladesh.`,
+    priceRange: '৳৳',
+  } : undefined, [clinic, ratingStats]);
 
   // Doctor info for Gopalganj Vet Care
   const doctorInfo = {
@@ -126,6 +143,15 @@ const ClinicDetailPage = () => {
       </div>;
   }
   return <div className="min-h-screen bg-background pb-20 md:pb-0">
+      {clinicSchema && (
+        <SEO 
+          title={clinic.name}
+          description={clinic.description || `Book an appointment at ${clinic.name}. Professional veterinary care for your pets.`}
+          image={clinic.image_url || undefined}
+          url={`https://vetmedix.lovable.app/clinic/${clinic.id}`}
+          schema={clinicSchema}
+        />
+      )}
       <Navbar />
       
       {/* Full-width Hero Section */}
