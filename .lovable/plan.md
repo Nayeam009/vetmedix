@@ -395,11 +395,17 @@ ON doctors(is_verified, is_available) WHERE is_verified = true;
 | Touch Targets | Medium | 30 min | ✅ Done - min-h-[44px] on buttons |
 | Sonner Accessibility | Low | 30 min | ✅ Done - closeButton, richColors |
 
-### Phase 5: Security & Quality (Pending)
+### Phase 5: Security Hardening (Week 5) ✅ COMPLETED
+| Task | Priority | Effort | Status |
+|------|----------|--------|--------|
+| Rate Limiting | Medium | 2 hours | ✅ Done - steadfast edge function with 30 req/min limit |
+| Input Sanitization | Medium | 2 hours | ✅ Done - src/lib/sanitize.ts with XSS prevention |
+| Content Security Policy | Medium | 1 hour | ✅ Done - CSP meta tag in index.html |
+| Apply Sanitization | Low | 1 hour | ✅ Done - CreatePostCard, useComments |
+
+### Phase 6: Code Quality & UX (Pending)
 | Task | Priority | Effort |
 |------|----------|--------|
-| Rate Limiting | Medium | 2 hours |
-| Input Sanitization | Medium | 2 hours |
 | Type Safety | Low | 3 hours |
 | Loading Skeletons | Low | 2 hours |
 

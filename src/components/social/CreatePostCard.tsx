@@ -22,6 +22,7 @@ import {
   getCompressionMessage,
   type CompressedMedia 
 } from '@/lib/mediaCompression';
+import { sanitizeText, isTextSafe } from '@/lib/sanitize';
 
 interface CreatePostCardProps {
   onPostCreated: () => void;
@@ -221,6 +222,14 @@ export const CreatePostCard = ({
       toast.error('Please add some content or media');
       return;
     }
+    
+    // Sanitize and validate content
+    const sanitizedContent = sanitizeText(content, { maxLength: 1000 });
+    if (!isTextSafe(sanitizedContent)) {
+      toast.error('Post contains invalid content. Please remove any special characters.');
+      return;
+    }
+    
     setSubmitting(true);
     try {
       const mediaUrls: string[] = [];
