@@ -8,6 +8,48 @@ const corsHeaders = {
 
 const STEADFAST_BASE_URL = "https://portal.packzy.com/api/v1";
 
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 30; // 30 requests per minute
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+// Clean up old entries periodically
+function cleanupRateLimitMap() {
+  const now = Date.now();
+  for (const [key, value] of rateLimitMap.entries()) {
+    if (value.resetTime < now) {
+      rateLimitMap.delete(key);
+    }
+  }
+}
+
+// Check rate limit for a user
+function checkRateLimit(userId: string): { allowed: boolean; remaining: number; resetIn: number } {
+  const now = Date.now();
+  const userLimit = rateLimitMap.get(userId);
+
+  // Cleanup old entries every 100 requests
+  if (rateLimitMap.size > 100) {
+    cleanupRateLimitMap();
+  }
+
+  if (!userLimit || userLimit.resetTime < now) {
+    // Start new window
+    rateLimitMap.set(userId, {
+      count: 1,
+      resetTime: now + RATE_LIMIT_WINDOW_MS,
+    });
+    return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - 1, resetIn: RATE_LIMIT_WINDOW_MS };
+  }
+
+  if (userLimit.count >= MAX_REQUESTS_PER_WINDOW) {
+    return { allowed: false, remaining: 0, resetIn: userLimit.resetTime - now };
+  }
+
+  userLimit.count++;
+  return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - userLimit.count, resetIn: userLimit.resetTime - now };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -54,6 +96,27 @@ serve(async (req) => {
     const userId = claimsData.claims.sub as string;
     console.log("Authenticated user:", userId);
 
+    // Apply rate limiting
+    const rateLimit = checkRateLimit(userId);
+    if (!rateLimit.allowed) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Rate limit exceeded. Please try again later.",
+          retryAfter: Math.ceil(rateLimit.resetIn / 1000)
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            "Content-Type": "application/json",
+            "Retry-After": String(Math.ceil(rateLimit.resetIn / 1000)),
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": String(Math.ceil(rateLimit.resetIn / 1000))
+          } 
+        }
+      );
+    }
+
     // Check if user is admin
     const { data: userRoles } = await supabase
       .from("user_roles")
@@ -81,6 +144,14 @@ serve(async (req) => {
       "Content-Type": "application/json",
     };
 
+    // Add rate limit headers to response
+    const responseHeaders = {
+      ...corsHeaders,
+      "Content-Type": "application/json",
+      "X-RateLimit-Remaining": String(rateLimit.remaining),
+      "X-RateLimit-Reset": String(Math.ceil(rateLimit.resetIn / 1000))
+    };
+
     let response;
     let result;
 
@@ -92,7 +163,7 @@ serve(async (req) => {
         if (!consignment_id || typeof consignment_id !== "string") {
           return new Response(
             JSON.stringify({ error: "Invalid consignment ID" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: responseHeaders }
           );
         }
 
@@ -106,14 +177,14 @@ serve(async (req) => {
         if (!order) {
           return new Response(
             JSON.stringify({ error: "Order not found" }),
-            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 404, headers: responseHeaders }
           );
         }
 
         if (order.user_id !== userId && !isAdmin) {
           return new Response(
             JSON.stringify({ error: "Unauthorized to track this order" }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 403, headers: responseHeaders }
           );
         }
 
@@ -132,7 +203,7 @@ serve(async (req) => {
         if (!tracking_code || typeof tracking_code !== "string") {
           return new Response(
             JSON.stringify({ error: "Invalid tracking code" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: responseHeaders }
           );
         }
 
@@ -146,14 +217,14 @@ serve(async (req) => {
         if (!order) {
           return new Response(
             JSON.stringify({ error: "Order not found" }),
-            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 404, headers: responseHeaders }
           );
         }
 
         if (order.user_id !== userId && !isAdmin) {
           return new Response(
             JSON.stringify({ error: "Unauthorized to track this order" }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 403, headers: responseHeaders }
           );
         }
 
@@ -172,7 +243,7 @@ serve(async (req) => {
         if (!invoice || typeof invoice !== "string") {
           return new Response(
             JSON.stringify({ error: "Invalid invoice ID" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: responseHeaders }
           );
         }
 
@@ -186,14 +257,14 @@ serve(async (req) => {
         if (!order) {
           return new Response(
             JSON.stringify({ error: "Order not found" }),
-            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 404, headers: responseHeaders }
           );
         }
 
         if (order.user_id !== userId && !isAdmin) {
           return new Response(
             JSON.stringify({ error: "Unauthorized to track this order" }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 403, headers: responseHeaders }
           );
         }
 
@@ -210,7 +281,7 @@ serve(async (req) => {
         if (!isAdmin) {
           return new Response(
             JSON.stringify({ error: "Admin access required" }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 403, headers: responseHeaders }
           );
         }
 
@@ -220,7 +291,7 @@ serve(async (req) => {
         if (!invoice || !recipient_name || !recipient_phone || !recipient_address) {
           return new Response(
             JSON.stringify({ error: "Missing required order fields" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: responseHeaders }
           );
         }
 
@@ -228,7 +299,7 @@ serve(async (req) => {
         if (typeof recipient_phone !== "string" || recipient_phone.length < 10) {
           return new Response(
             JSON.stringify({ error: "Invalid phone number" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: responseHeaders }
           );
         }
 
@@ -254,7 +325,7 @@ serve(async (req) => {
         if (!isAdmin) {
           return new Response(
             JSON.stringify({ error: "Admin access required" }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 403, headers: responseHeaders }
           );
         }
 
@@ -270,13 +341,13 @@ serve(async (req) => {
       default:
         return new Response(
           JSON.stringify({ error: "Invalid action" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 400, headers: responseHeaders }
         );
     }
 
     return new Response(JSON.stringify(result), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: responseHeaders,
     });
   } catch (error: unknown) {
     console.error("Steadfast API error:", error);

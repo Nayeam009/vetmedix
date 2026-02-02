@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePets } from '@/contexts/PetContext';
 import { createNotification, getPostOwnerUserId } from '@/lib/notifications';
 import { commentSchema } from '@/lib/validations';
+import { sanitizeText, isTextSafe } from '@/lib/sanitize';
 import type { Comment } from '@/types/social';
 
 export const useComments = (postId: string) => {
@@ -41,8 +42,16 @@ export const useComments = (postId: string) => {
   const addComment = async (content: string, commenterPetId?: string) => {
     if (!user) return { success: false, error: 'Not authenticated' };
 
+    // Sanitize content before validation
+    const sanitizedContent = sanitizeText(content, { maxLength: 2000, allowNewlines: false });
+    
+    // Check for dangerous content
+    if (!isTextSafe(sanitizedContent)) {
+      return { success: false, error: 'Comment contains invalid content' };
+    }
+
     // Validate content with Zod schema
-    const validation = commentSchema.safeParse({ content });
+    const validation = commentSchema.safeParse({ content: sanitizedContent });
     if (!validation.success) {
       const errorMessage = validation.error.errors[0]?.message || 'Invalid comment';
       return { success: false, error: errorMessage };
