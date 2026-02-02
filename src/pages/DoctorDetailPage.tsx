@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, MapPin, Phone, Clock, Award, BadgeCheck, Calendar,
@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePublicDoctorById } from '@/hooks/usePublicDoctors';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import SEO from '@/components/SEO';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -25,6 +26,21 @@ const DoctorDetailPage = () => {
   const { data: doctor, isLoading } = usePublicDoctorById(id);
   
   useDocumentTitle(doctor?.name ? `Dr. ${doctor.name}` : 'Doctor Profile');
+  
+  // SEO structured data for doctor
+  const doctorSchema = useMemo(() => doctor ? {
+    type: 'Physician' as const,
+    name: `Dr. ${doctor.name}`,
+    image: doctor.avatar_url || undefined,
+    description: doctor.bio || `${doctor.specialization || 'Veterinarian'} with ${doctor.experience_years || 0}+ years of experience.`,
+    medicalSpecialty: doctor.specialization || 'Veterinary Medicine',
+    qualification: doctor.qualifications || undefined,
+    worksFor: doctor.affiliations?.map((aff: any) => ({
+      name: aff.clinic.name,
+      url: `https://vetmedix.lovable.app/clinic/${aff.clinic.id}`,
+    })) || [],
+    url: `https://vetmedix.lovable.app/doctor/${doctor.id}`,
+  } : undefined, [doctor]);
 
   if (isLoading) {
     return (
@@ -70,6 +86,15 @@ const DoctorDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50/30 via-background to-background pb-24 md:pb-0">
+      {doctorSchema && (
+        <SEO 
+          title={`Dr. ${doctor.name}`}
+          description={doctor.bio || `Book an appointment with Dr. ${doctor.name}, ${doctor.specialization || 'Veterinarian'}.`}
+          image={doctor.avatar_url || undefined}
+          url={`https://vetmedix.lovable.app/doctor/${doctor.id}`}
+          schema={doctorSchema}
+        />
+      )}
       <Navbar />
 
       {/* Hero Section */}
