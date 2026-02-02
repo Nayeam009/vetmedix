@@ -43,11 +43,27 @@ const sortOptions = [
 
 const categoryOptions = ['All', 'Pet', 'Farm'];
 
+// Product type from database
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+  product_type: string | null;
+  description: string | null;
+  image_url: string | null;
+  images: string[] | null;
+  stock: number | null;
+  badge: string | null;
+  discount: number | null;
+  created_at: string;
+}
+
 const ShopPage = () => {
   useDocumentTitle('Pet Shop');
   const { totalItems } = useCart();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [category, setCategory] = useState(searchParams.get('category') || 'All');

@@ -9,10 +9,10 @@ interface ProductCardProps {
   id?: string;
   name: string;
   price: number;
-  category: 'Pet' | 'Farm';
+  category: string;
   image: string;
-  badge?: string;
-  discount?: number;
+  badge?: string | null;
+  discount?: number | null;
 }
 
 const ProductCard = memo(({ id, name, price, category, image, badge, discount }: ProductCardProps) => {

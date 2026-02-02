@@ -1,6 +1,7 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { trackError } from '@/lib/analytics';
 
 interface Props {
   children: ReactNode;
@@ -16,6 +17,7 @@ interface State {
 /**
  * Error Boundary component that catches JavaScript errors in child components.
  * Displays a user-friendly fallback UI and provides recovery options.
+ * Automatically logs errors to the analytics service for monitoring.
  */
 class ErrorBoundary extends Component<Props, State> {
   public state: State = {
@@ -37,8 +39,11 @@ class ErrorBoundary extends Component<Props, State> {
       console.error('Component stack:', errorInfo.componentStack);
     }
     
-    // In production, you could send this to an error tracking service
-    // Example: errorTrackingService.captureException(error, { extra: errorInfo });
+    // Track error for monitoring (works in both dev and prod)
+    trackError(error, {
+      componentStack: errorInfo.componentStack,
+      url: window.location.href,
+    });
   }
 
   private handleRetry = () => {
