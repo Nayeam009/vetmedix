@@ -28,6 +28,13 @@ const Navbar = () => {
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
   
   return <nav className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border">
+      {/* Skip to main content link for accessibility */}
+      <a 
+        href="#main-content" 
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+      >
+        Skip to main content
+      </a>
       <div className="container mx-auto px-3 sm:px-4">
         <div className="flex items-center justify-between h-14 sm:h-16 md:h-18">
           {/* Logo */}

@@ -56,6 +56,8 @@ export const useDoctor = () => {
       return data as Doctor | null;
     },
     enabled: !!user?.id,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const { data: clinicAffiliations, isLoading: affiliationsLoading } = useQuery({
@@ -75,6 +77,8 @@ export const useDoctor = () => {
       return data as ClinicDoctor[];
     },
     enabled: !!doctorProfile?.id,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const { data: doctorAppointments, isLoading: appointmentsLoading } = useQuery({
@@ -95,6 +99,8 @@ export const useDoctor = () => {
       return data;
     },
     enabled: !!doctorProfile?.id,
+    staleTime: 30 * 1000, // 30 seconds - appointments change frequently
+    gcTime: 2 * 60 * 1000, // 2 minutes
   });
 
   const updateProfile = useMutation({
@@ -200,6 +206,8 @@ export const useDoctorById = (doctorId: string | undefined) => {
       return data as Omit<Doctor, 'email' | 'phone' | 'license_number' | 'user_id'>;
     },
     enabled: !!doctorId,
+    staleTime: 5 * 60 * 1000, // 5 minutes - public data doesn't change often
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 };
 
@@ -225,5 +233,7 @@ export const useClinicDoctors = (clinicId: string | undefined) => {
       return data || [];
     },
     enabled: !!clinicId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 };
