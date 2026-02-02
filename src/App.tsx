@@ -9,6 +9,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import { PetProvider } from "@/contexts/PetContext";
 import { Loader2 } from "lucide-react";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { useFocusManagement } from "@/hooks/useFocusManagement";
 
 // Critical routes - loaded immediately
 import Index from "./pages/Index";
@@ -76,9 +77,12 @@ const queryClient = new QueryClient({
   },
 });
 
-// Scroll restoration component
+// Scroll restoration and focus management component
 const ScrollToTop = () => {
   const { pathname } = useLocation();
+  
+  // Focus management for accessibility
+  useFocusManagement();
   
   useEffect(() => {
     window.scrollTo(0, 0);

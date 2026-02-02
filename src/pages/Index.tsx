@@ -110,7 +110,7 @@ const Index = () => {
       />
       <Navbar />
       
-      <main>
+      <main id="main-content">
         {/* Hero Section - Playful & Eye-Pleasing */}
         <section 
           className="relative overflow-hidden min-h-[85vh] sm:min-h-[90vh]"
