@@ -393,10 +393,12 @@ const AuthPage = () => {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
+                  aria-invalid={!!validationErrors.fullName}
+                  aria-describedby={validationErrors.fullName ? 'fullName-error' : undefined}
                   className={`h-11 ${validationErrors.fullName ? 'border-destructive' : ''}`}
                 />
                 {validationErrors.fullName && (
-                  <p className="text-xs text-destructive">{validationErrors.fullName}</p>
+                  <p id="fullName-error" className="text-xs text-destructive" role="alert">{validationErrors.fullName}</p>
                 )}
               </div>
             )}
@@ -411,10 +413,12 @@ const AuthPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                aria-invalid={!!validationErrors.email}
+                aria-describedby={validationErrors.email ? 'email-error' : undefined}
                 className={`h-11 ${validationErrors.email ? 'border-destructive' : ''}`}
               />
               {validationErrors.email && (
-                <p className="text-xs text-destructive">{validationErrors.email}</p>
+                <p id="email-error" className="text-xs text-destructive" role="alert">{validationErrors.email}</p>
               )}
             </div>
 
@@ -429,18 +433,21 @@ const AuthPage = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  aria-invalid={!!validationErrors.password}
+                  aria-describedby={validationErrors.password ? 'password-error' : undefined}
                   className={`h-11 pr-10 ${validationErrors.password ? 'border-destructive' : ''}`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center -mr-3"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
               {validationErrors.password && (
-                <p className="text-xs text-destructive">{validationErrors.password}</p>
+                <p id="password-error" className="text-xs text-destructive" role="alert">{validationErrors.password}</p>
               )}
               {isLogin && (
                 <Link 

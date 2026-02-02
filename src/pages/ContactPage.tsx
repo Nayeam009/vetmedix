@@ -78,7 +78,7 @@ const ContactPage = () => {
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-8 sm:py-12">
+      <main id="main-content" className="container mx-auto px-4 py-8 sm:py-12">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="text-center mb-12">
@@ -146,8 +146,8 @@ const ContactPage = () => {
                 <CardContent>
                   {submitted ? (
                     <div className="text-center py-8">
-                      <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <CheckCircle className="h-8 w-8 text-green-600" />
+                      <div className="w-16 h-16 bg-success-light rounded-full flex items-center justify-center mx-auto mb-4">
+                        <CheckCircle className="h-8 w-8 text-success" />
                       </div>
                       <h3 className="text-lg font-semibold mb-2">Message Sent!</h3>
                       <p className="text-muted-foreground mb-4">
@@ -161,20 +161,21 @@ const ContactPage = () => {
                       </Button>
                     </div>
                   ) : (
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-4" aria-label="Contact form">
                       <div className="grid sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="name">Name *</Label>
+                          <Label htmlFor="name">Name <span aria-hidden="true">*</span></Label>
                           <Input
                             id="name"
                             placeholder="Your name"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             required
+                            aria-required="true"
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="email">Email *</Label>
+                          <Label htmlFor="email">Email <span aria-hidden="true">*</span></Label>
                           <Input
                             id="email"
                             type="email"
@@ -182,6 +183,7 @@ const ContactPage = () => {
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             required
+                            aria-required="true"
                           />
                         </div>
                       </div>
@@ -197,7 +199,7 @@ const ContactPage = () => {
                       </div>
                       
                       <div className="space-y-2">
-                        <Label htmlFor="message">Message *</Label>
+                        <Label htmlFor="message">Message <span aria-hidden="true">*</span></Label>
                         <Textarea
                           id="message"
                           placeholder="Tell us more about your inquiry..."
@@ -205,19 +207,20 @@ const ContactPage = () => {
                           value={formData.message}
                           onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                           required
+                          aria-required="true"
                         />
                       </div>
                       
-                      <Button type="submit" className="w-full sm:w-auto" disabled={loading}>
+                      <Button type="submit" className="w-full sm:w-auto min-h-[44px]" disabled={loading}>
                         {loading ? (
                           <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Sending...
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
+                            <span>Sending...</span>
                           </>
                         ) : (
                           <>
-                            <Send className="h-4 w-4 mr-2" />
-                            Send Message
+                            <Send className="h-4 w-4 mr-2" aria-hidden="true" />
+                            <span>Send Message</span>
                           </>
                         )}
                       </Button>
