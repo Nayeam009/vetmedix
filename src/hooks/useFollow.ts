@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePets } from '@/contexts/PetContext';
 import { createNotification, getPetOwnerUserId } from '@/lib/notifications';
 
+/**
+ * Hook for managing follow/unfollow state with optimistic updates
+ * Provides instant UI feedback while syncing with database in background
+ */
 export const useFollow = (petId: string) => {
   const { user } = useAuth();
   const { activePet } = usePets();
@@ -12,7 +16,7 @@ export const useFollow = (petId: string) => {
   const [followingCount, setFollowingCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const fetchFollowStatus = async () => {
+  const fetchFollowStatus = useCallback(async () => {
     try {
       // Check if current user follows this pet
       if (user) {
@@ -56,16 +60,23 @@ export const useFollow = (petId: string) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [petId, user]);
 
   useEffect(() => {
     if (petId) {
       fetchFollowStatus();
     }
-  }, [petId, user]);
+  }, [petId, fetchFollowStatus]);
 
-  const follow = async (followerPetId?: string) => {
+  const follow = useCallback(async (followerPetId?: string) => {
     if (!user) return;
+
+    // Optimistic update - update UI immediately
+    const previousIsFollowing = isFollowing;
+    const previousFollowersCount = followersCount;
+    
+    setIsFollowing(true);
+    setFollowersCount(prev => prev + 1);
 
     try {
       const { error } = await supabase
@@ -77,8 +88,6 @@ export const useFollow = (petId: string) => {
         });
 
       if (error) throw error;
-      setIsFollowing(true);
-      setFollowersCount(prev => prev + 1);
 
       // Create notification for the pet owner being followed
       const petOwnerId = await getPetOwnerUserId(petId);
@@ -94,14 +103,25 @@ export const useFollow = (petId: string) => {
         });
       }
     } catch (error) {
+      // Rollback on error
+      setIsFollowing(previousIsFollowing);
+      setFollowersCount(previousFollowersCount);
+      
       if (import.meta.env.DEV) {
         console.error('Error following:', error);
       }
     }
-  };
+  }, [user, petId, activePet, isFollowing, followersCount]);
 
-  const unfollow = async () => {
+  const unfollow = useCallback(async () => {
     if (!user) return;
+
+    // Optimistic update - update UI immediately
+    const previousIsFollowing = isFollowing;
+    const previousFollowersCount = followersCount;
+    
+    setIsFollowing(false);
+    setFollowersCount(prev => Math.max(0, prev - 1));
 
     try {
       const { error } = await supabase
@@ -111,14 +131,16 @@ export const useFollow = (petId: string) => {
         .eq('following_pet_id', petId);
 
       if (error) throw error;
-      setIsFollowing(false);
-      setFollowersCount(prev => Math.max(0, prev - 1));
     } catch (error) {
+      // Rollback on error
+      setIsFollowing(previousIsFollowing);
+      setFollowersCount(previousFollowersCount);
+      
       if (import.meta.env.DEV) {
         console.error('Error unfollowing:', error);
       }
     }
-  };
+  }, [user, petId, isFollowing, followersCount]);
 
   return { 
     isFollowing, 

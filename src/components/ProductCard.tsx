@@ -1,8 +1,9 @@
+import { memo, useState } from 'react';
 import { ShoppingCart, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
-import { useState } from 'react';
 
 interface ProductCardProps {
   id?: string;
@@ -14,7 +15,7 @@ interface ProductCardProps {
   discount?: number;
 }
 
-const ProductCard = ({ id, name, price, category, image, badge, discount }: ProductCardProps) => {
+const ProductCard = memo(({ id, name, price, category, image, badge, discount }: ProductCardProps) => {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const [isWishlisted, setIsWishlisted] = useState(false);
@@ -37,15 +38,18 @@ const ProductCard = ({ id, name, price, category, image, badge, discount }: Prod
       className="group bg-card rounded-xl sm:rounded-2xl overflow-hidden shadow-card hover:shadow-hover border border-border transition-all duration-300 hover:-translate-y-1 active:scale-[0.98] cursor-pointer"
       onClick={() => id && navigate(`/product/${id}`)}
     >
-      {/* Image Container */}
-      <div className="relative aspect-square overflow-hidden bg-secondary/30">
+      {/* Image Container with AspectRatio for CLS prevention */}
+      <AspectRatio ratio={1} className="overflow-hidden bg-secondary/30">
         <img
           src={image}
           alt={name}
+          loading="lazy"
+          width={300}
+          height={300}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         {/* Badges */}
-        <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1 sm:gap-2">
+        <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1 sm:gap-2 z-10">
           {badge && (
             <span className="badge-rx text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">{badge}</span>
           )}
@@ -56,16 +60,17 @@ const ProductCard = ({ id, name, price, category, image, badge, discount }: Prod
         {/* Wishlist Button */}
         <button 
           onClick={handleWishlist}
-          className={`absolute top-2 sm:top-3 right-2 sm:right-3 h-7 w-7 sm:h-9 sm:w-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${
+          className={`absolute top-2 sm:top-3 right-2 sm:right-3 h-7 w-7 sm:h-9 sm:w-9 rounded-full flex items-center justify-center transition-all active:scale-90 z-10 ${
             isWishlisted 
               ? 'bg-destructive text-destructive-foreground' 
               : 'bg-card/80 backdrop-blur-sm sm:opacity-0 sm:group-hover:opacity-100 hover:bg-card'
           }`}
+          aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
         >
           <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isWishlisted ? 'fill-current' : ''}`} />
         </button>
         {/* Category Tag */}
-        <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3">
+        <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 z-10">
           <span className={`text-[10px] sm:text-xs font-medium px-2 sm:px-3 py-0.5 sm:py-1 rounded-full ${
             category === 'Pet' 
               ? 'bg-primary/10 text-primary' 
@@ -74,7 +79,7 @@ const ProductCard = ({ id, name, price, category, image, badge, discount }: Prod
             {category}
           </span>
         </div>
-      </div>
+      </AspectRatio>
 
       {/* Content */}
       <div className="p-2.5 sm:p-4 space-y-2 sm:space-y-3">
@@ -101,6 +106,8 @@ const ProductCard = ({ id, name, price, category, image, badge, discount }: Prod
       </div>
     </div>
   );
-};
+});
+
+ProductCard.displayName = 'ProductCard';
 
 export default ProductCard;

@@ -1,17 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { createNotification, getPostOwnerUserId } from '@/lib/notifications';
 import { usePets } from '@/contexts/PetContext';
-import type { Post, Pet } from '@/types/social';
+import type { Post } from '@/types/social';
 
+/**
+ * Hook for managing posts with optimistic updates for likes
+ * Provides instant UI feedback while syncing with database in background
+ */
 export const usePosts = (petId?: string, feedType: 'all' | 'following' | 'pet' = 'all') => {
   const { user } = useAuth();
   const { activePet } = usePets();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -70,14 +74,21 @@ export const usePosts = (petId?: string, feedType: 'all' | 'following' | 'pet' =
     } finally {
       setLoading(false);
     }
-  };
+  }, [petId, feedType, user]);
 
   useEffect(() => {
     fetchPosts();
-  }, [petId, feedType, user]);
+  }, [fetchPosts]);
 
-  const likePost = async (postId: string, likerPetId?: string) => {
+  const likePost = useCallback(async (postId: string, likerPetId?: string) => {
     if (!user) return;
+
+    // Optimistic update - update UI immediately
+    setPosts(prev => prev.map(post => 
+      post.id === postId 
+        ? { ...post, likes_count: post.likes_count + 1, liked_by_user: true }
+        : post
+    ));
 
     try {
       const { error } = await supabase
@@ -85,35 +96,44 @@ export const usePosts = (petId?: string, feedType: 'all' | 'following' | 'pet' =
         .insert({ post_id: postId, user_id: user.id, pet_id: likerPetId });
 
       if (error) throw error;
-      
+
+      // Create notification for post owner (non-blocking)
+      getPostOwnerUserId(postId).then(async postOwnerId => {
+        if (postOwnerId && postOwnerId !== user.id) {
+          const actorPet = likerPetId || activePet?.id;
+          const actorName = activePet?.name || 'Someone';
+          await createNotification({
+            userId: postOwnerId,
+            type: 'like',
+            title: `${actorName} liked your post`,
+            actorPetId: actorPet,
+            targetPostId: postId,
+          });
+        }
+      });
+    } catch (error) {
+      // Rollback on error
       setPosts(prev => prev.map(post => 
         post.id === postId 
-          ? { ...post, likes_count: post.likes_count + 1, liked_by_user: true }
+          ? { ...post, likes_count: Math.max(0, post.likes_count - 1), liked_by_user: false }
           : post
       ));
-
-      // Create notification for post owner
-      const postOwnerId = await getPostOwnerUserId(postId);
-      if (postOwnerId && postOwnerId !== user.id) {
-        const actorPet = likerPetId || activePet?.id;
-        const actorName = activePet?.name || 'Someone';
-        await createNotification({
-          userId: postOwnerId,
-          type: 'like',
-          title: `${actorName} liked your post`,
-          actorPetId: actorPet,
-          targetPostId: postId,
-        });
-      }
-    } catch (error) {
+      
       if (import.meta.env.DEV) {
         console.error('Error liking post:', error);
       }
     }
-  };
+  }, [user, activePet]);
 
-  const unlikePost = async (postId: string) => {
+  const unlikePost = useCallback(async (postId: string) => {
     if (!user) return;
+
+    // Optimistic update - update UI immediately
+    setPosts(prev => prev.map(post => 
+      post.id === postId 
+        ? { ...post, likes_count: Math.max(0, post.likes_count - 1), liked_by_user: false }
+        : post
+    ));
 
     try {
       const { error } = await supabase
@@ -123,18 +143,19 @@ export const usePosts = (petId?: string, feedType: 'all' | 'following' | 'pet' =
         .eq('user_id', user.id);
 
       if (error) throw error;
-      
+    } catch (error) {
+      // Rollback on error
       setPosts(prev => prev.map(post => 
         post.id === postId 
-          ? { ...post, likes_count: Math.max(0, post.likes_count - 1), liked_by_user: false }
+          ? { ...post, likes_count: post.likes_count + 1, liked_by_user: true }
           : post
       ));
-    } catch (error) {
+      
       if (import.meta.env.DEV) {
         console.error('Error unliking post:', error);
       }
     }
-  };
+  }, [user]);
 
   return { posts, loading, likePost, unlikePost, refreshPosts: fetchPosts };
 };
