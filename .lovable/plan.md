@@ -1,463 +1,221 @@
 
-# VetMedix Complete Optimization Plan
+# Clinic Management System - Complete Audit and Fix Plan
 
-## Executive Summary
+## Current State Analysis
 
-This plan covers all optimization opportunities across the entire VetMedix webapp, organized into 8 major categories with prioritized implementation phases.
+After thoroughly testing the clinic management system and reviewing all related code files, I've identified several issues that need to be addressed to ensure all buttons/features work perfectly, the UI/UX is mobile-friendly, and the system is properly optimized with error handling.
 
 ---
 
-## Category 1: Performance Optimization
+## Issues Identified
 
-### 1.1 Add Error Boundaries (Critical)
-**Issue**: No error boundaries exist - a single component crash takes down the entire app.
+### 1. React forwardRef Warning in LazyImage Component
+**File:** `src/components/social/LazyMedia.tsx`
+**Issue:** The `LazyImage` component is used in places that pass refs, but the component doesn't forward refs. This causes the console warning: "Function components cannot be given refs."
 
-**Solution**: Create a reusable ErrorBoundary component and wrap critical route sections.
+**Fix:**
+- Wrap `LazyImage` with `React.forwardRef`
+- Add proper ref handling to the root element
 
-**Files to create/modify**:
-- Create `src/components/ErrorBoundary.tsx`
-- Modify `src/App.tsx` to wrap route groups
+---
 
-**Implementation**:
-```text
-ErrorBoundary
-├── Catches runtime errors in child components
-├── Shows user-friendly fallback UI
-├── Logs errors for debugging
-└── Provides "Try Again" action
+### 2. ClinicProfile.tsx - View Public Button Issue
+**File:** `src/pages/clinic/ClinicProfile.tsx` (line 272-281)
+**Issue:** The "View Public" button in the profile page still uses `target="_blank"` with Link, which can cause issues in preview environments. Additionally, the path should be consistent.
+
+**Fix:**
+- Change from `Link` with `target="_blank"` to programmatic navigation using `navigate()`
+- Remove `asChild` prop
+- Add disabled state when clinic ID is unavailable
+
+---
+
+### 3. ClinicDetailPage.tsx - Empty Button Issue
+**File:** `src/pages/ClinicDetailPage.tsx` (line 499-501)
+**Issue:** There's an empty `Button` component at the bottom of the Contact Card that renders nothing:
+```tsx
+<Button variant="outline" className="w-full mt-3 gap-2" asChild>
+                
+</Button>
 ```
 
-### 1.2 Query Cache Optimization
-**Issue**: Only 3 hooks use `staleTime` configuration. Most queries refetch unnecessarily.
+**Fix:**
+- Either remove this empty button or add proper content (e.g., "Get Directions")
 
-**Solution**: Add appropriate `staleTime` and `gcTime` to all React Query hooks.
+---
 
-**Files to modify**:
-- `src/hooks/useClinicOwner.ts` - Add staleTime: 2 min for clinic data
-- `src/hooks/usePosts.ts` - Add staleTime: 30 sec for feed
-- `src/hooks/useDoctor.ts` - Add staleTime: 2 min
-- `src/hooks/useMessages.ts` - Add staleTime: 10 sec
-- `src/hooks/useNotifications.ts` - Add staleTime: 30 sec
-- `src/hooks/useClinicReviews.ts` - Add staleTime: 5 min
-- `src/hooks/useDoctorSchedules.ts` - Add staleTime: 2 min
+### 4. Missing Touch Target Optimization in Several Components
+**Files:** Multiple clinic management components
+**Issue:** Some buttons and interactive elements don't meet the 44x44px minimum touch target for mobile.
 
-### 1.3 Image Optimization
-**Issue**: Hero images and product images lack proper sizing attributes.
+**Fix:**
+- Ensure all action buttons in `ClinicAppointmentsList.tsx` have minimum height/width of 44px on mobile
+- Add proper touch feedback classes (`active:scale-[0.98]`)
 
-**Solution**: Add explicit width/height to prevent layout shifts (CLS).
+---
 
-**Files to modify**:
-- `src/pages/Index.tsx` - Hero image (already has width/height)
-- `src/components/ProductCard.tsx` - Add aspect-ratio container
-- `src/components/DoctorCard.tsx` - Add aspect-ratio container
-- `src/components/ClinicCard.tsx` - Add aspect-ratio container
+### 5. BookAppointmentDialog - Missing Loading State Optimization
+**File:** `src/components/clinic/BookAppointmentDialog.tsx`
+**Issue:** When booking is in progress, there's no visual feedback preventing double-submission.
 
-### 1.4 Virtual List for Long Lists
-**Issue**: Feed, explore, and shop pages render all items at once.
+**Fix:**
+- Add disabled state to the entire wizard during submission
+- Add loading overlay to prevent interaction
 
-**Solution**: Implement windowing for lists with 50+ items.
+---
 
-**Files to modify**:
-- `src/pages/FeedPage.tsx` - Implement infinite scroll with virtualization
-- `src/pages/ExplorePage.tsx` - Add pagination or virtual scroll
-- `src/pages/ShopPage.tsx` - Already good, but add lazy loading for images below fold
+### 6. ClinicServices.tsx - Mobile Dialog Scroll Issues
+**File:** `src/pages/clinic/ClinicServices.tsx`
+**Issue:** The Add Service dialog might have scroll issues on mobile devices due to fixed max-height.
 
-### 1.5 Bundle Splitting for Admin/Dashboard Routes
-**Issue**: Admin, Doctor, and Clinic dashboards are already lazy-loaded but could benefit from further chunk optimization.
+**Fix:**
+- Use Drawer component on mobile (like BookAppointmentDialog does)
+- Improve responsive dialog sizing
 
-**Solution**: Group related routes for better caching.
+---
 
-**Files to modify**:
-- `vite.config.ts` - Add manual chunks configuration
+### 7. Error Handling Improvements
+**Files:** Multiple hooks and components
+**Issue:** Some error scenarios aren't handled gracefully (e.g., network failures during booking, image upload errors).
 
-```text
-manualChunks: {
-  'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-  'vendor-ui': ['@radix-ui/*', 'lucide-react'],
-  'vendor-query': ['@tanstack/react-query'],
-  'vendor-charts': ['recharts'],
-}
+**Fixes:**
+- Add retry mechanism for failed API calls
+- Improve error messages to be more user-friendly
+- Add fallback states for failed data loads
+
+---
+
+### 8. Performance Optimizations
+**Files:** Dashboard and list components
+**Issue:** Web Vitals showing poor LCP/FCP scores, indicating performance can be improved.
+
+**Fixes:**
+- Add skeleton loading states where missing
+- Implement proper image lazy loading with blur placeholders
+- Reduce bundle size by lazy loading more components
+
+---
+
+## Implementation Details
+
+### Task 1: Fix LazyImage forwardRef
+
+```typescript
+// src/components/social/LazyMedia.tsx
+export const LazyImage = React.forwardRef<HTMLDivElement, LazyImageProps>(
+  ({ src, alt = '', className, onClick }, ref) => {
+    // ... existing implementation
+    return (
+      <div ref={ref} className={cn('relative overflow-hidden bg-muted', className)}>
+        {/* ... rest of content */}
+      </div>
+    );
+  }
+);
+LazyImage.displayName = 'LazyImage';
 ```
 
 ---
 
-## Category 2: Database & Query Optimization
+### Task 2: Fix ClinicProfile View Public Button
 
-### 2.1 Add Database Indexes
-**Issue**: Complex queries on appointments, posts, and orders may be slow without indexes.
-
-**Migration to create**:
-```sql
--- Appointments performance
-CREATE INDEX IF NOT EXISTS idx_appointments_clinic_date 
-ON appointments(clinic_id, appointment_date);
-
-CREATE INDEX IF NOT EXISTS idx_appointments_doctor_date 
-ON appointments(doctor_id, appointment_date);
-
-CREATE INDEX IF NOT EXISTS idx_appointments_user 
-ON appointments(user_id, created_at DESC);
-
--- Posts feed performance
-CREATE INDEX IF NOT EXISTS idx_posts_pet_created 
-ON posts(pet_id, created_at DESC);
-
-CREATE INDEX IF NOT EXISTS idx_likes_user_post 
-ON likes(user_id, post_id);
-
--- Orders performance
-CREATE INDEX IF NOT EXISTS idx_orders_user_status 
-ON orders(user_id, status);
-
--- Doctor search
-CREATE INDEX IF NOT EXISTS idx_doctors_verified_available 
-ON doctors(is_verified, is_available) WHERE is_verified = true;
+```typescript
+// src/pages/clinic/ClinicProfile.tsx (lines 271-281)
+<Button 
+  variant="outline" 
+  className="rounded-xl h-10 sm:h-9 gap-2 active:scale-95 transition-transform"
+  onClick={() => ownedClinic?.id && navigate(`/clinic/${ownedClinic.id}`)}
+  disabled={!ownedClinic?.id}
+>
+  <ExternalLink className="h-4 w-4" />
+  <span className="hidden sm:inline">View Public</span>
+</Button>
 ```
 
-### 2.2 Fix Overly Permissive RLS Policy
-**Issue**: Database linter warns about RLS policies using `USING (true)` for INSERT operations.
+---
 
-**Solution**: Audit and tighten the specific policy (likely on contact_messages or similar public tables).
+### Task 3: Fix Empty Button in ClinicDetailPage
 
-### 2.3 Add Query Pagination
-**Issue**: Many queries fetch all rows, risking the 1000-row limit.
-
-**Files to modify**:
-- `src/hooks/usePosts.ts` - Already limits to 50, implement infinite scroll
-- `src/hooks/useClinicOwner.ts` - Add date range filter for appointments
-- `src/pages/admin/AdminOrders.tsx` - Implement cursor pagination
-- `src/pages/admin/AdminCustomers.tsx` - Add limit and pagination
-
-### 2.4 Optimistic Updates
-**Issue**: Like/unlike, follow/unfollow, and status changes wait for server response.
-
-**Solution**: Implement optimistic updates for immediate UI feedback.
-
-**Files to modify**:
-- `src/hooks/usePosts.ts` - likePost/unlikePost with optimistic update
-- `src/hooks/useFollow.ts` - follow/unfollow with optimistic update
-- `src/hooks/useAppointments.ts` - cancelAppointment with optimistic update
+```typescript
+// src/pages/ClinicDetailPage.tsx (lines 499-501)
+// Either remove or add content:
+<Button variant="outline" className="w-full mt-3 gap-2" asChild>
+  <a 
+    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(clinic.address || clinic.name)}`}
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    <MapPin className="h-4 w-4" />
+    Get Directions
+  </a>
+</Button>
+```
 
 ---
 
-## Category 3: SEO & Meta Tags
+### Task 4: Improve Touch Targets in ClinicAppointmentsList
 
-### 3.1 Structured Data (JSON-LD)
-**Issue**: No structured data for better search engine understanding.
-
-**Solution**: Add JSON-LD schemas to key pages.
-
-**Implementation**:
-- Homepage: Organization schema
-- Clinic pages: LocalBusiness schema
-- Doctor pages: Person/Physician schema
-- Product pages: Product schema with pricing
-
-**Files to create/modify**:
-- Create `src/components/SEO.tsx` - Reusable component for meta tags and JSON-LD
-- Modify page components to use SEO component
-
-### 3.2 Dynamic Meta Tags
-**Issue**: Open Graph and Twitter cards use static fallback values.
-
-**Solution**: Add dynamic meta tags per page.
-
-**Files to modify**:
-- `src/pages/ClinicDetailPage.tsx` - Add og:title, og:description, og:image
-- `src/pages/DoctorDetailPage.tsx` - Add physician-specific meta
-- `src/pages/ProductDetailPage.tsx` - Add product meta
-
-### 3.3 Sitemap Generation
-**Issue**: No sitemap.xml for search engine crawling.
-
-**Solution**: Create a sitemap generation script or edge function.
+```typescript
+// Ensure action buttons have minimum touch targets
+<Button
+  size="icon"
+  variant="ghost"
+  className="h-11 w-11 sm:h-8 sm:w-8 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0"
+  onClick={() => setSelectedAppointment(apt)}
+>
+  <Eye className="h-4 w-4" />
+</Button>
+```
 
 ---
 
-## Category 4: Accessibility (a11y)
+### Task 5: Use Drawer for Mobile in ClinicServices
 
-### 4.1 Skip Navigation Link
-**Issue**: No skip link for keyboard users to bypass navigation.
-
-**Solution**: Add skip link at the top of the page.
-
-**Files to modify**:
-- `src/components/Navbar.tsx` - Add visually hidden skip link
-- `src/index.css` - Add `.sr-only-focusable` class
-
-### 4.2 Focus Management
-**Issue**: Focus not properly managed after route changes and modal closes.
-
-**Solution**: Implement focus management.
-
-**Files to modify**:
-- `src/App.tsx` - Add scroll restoration and focus management on route change
-- Dialog/Sheet components - Ensure focus returns to trigger on close
-
-### 4.3 ARIA Live Regions
-**Issue**: Dynamic content changes (toast, loading states) not announced to screen readers.
-
-**Solution**: Add aria-live regions for important state changes.
-
-**Files to modify**:
-- `src/components/ui/sonner.tsx` - Verify aria-live is properly set
-- Create loading announcement component for async operations
-
-### 4.4 Form Labels & Validation
-**Issue**: Some form inputs may lack proper label associations.
-
-**Solution**: Audit all forms for proper labeling and error messaging.
-
-**Pages to audit**:
-- `AuthPage.tsx` - Ensure labels and error messages are associated
-- `ContactPage.tsx` - Add aria-describedby for validation
-- All wizard/form components
-
-### 4.5 Color Contrast
-**Issue**: Some text may not meet WCAA AA standards (already improved but verify).
-
-**Solution**: Test all color combinations with contrast checker.
+Add responsive dialog/drawer pattern similar to BookAppointmentDialog:
+- Use `useIsMobile()` hook
+- Render `Drawer` on mobile, `Dialog` on desktop
+- Ensure proper scroll handling
 
 ---
 
-## Category 5: Security Hardening
+### Task 6: Add Error Boundaries and Retry Logic
 
-### 5.1 Rate Limiting on Edge Functions
-**Issue**: Edge functions (like steadfast) have no rate limiting.
-
-**Solution**: Add rate limiting middleware.
-
-**Files to modify**:
-- `supabase/functions/steadfast/index.ts` - Add rate limit check
-- Create shared rate-limit utility
-
-### 5.2 Input Sanitization
-**Issue**: User-generated content needs consistent sanitization.
-
-**Solution**: Create sanitization utilities.
-
-**Files to create**:
-- `src/lib/sanitize.ts` - Text sanitization functions
-- Apply to post content, comments, messages, reviews
-
-### 5.3 Content Security Policy
-**Issue**: No CSP headers configured.
-
-**Solution**: Add CSP meta tag or headers.
-
-**Files to modify**:
-- `index.html` - Add CSP meta tag for development
-- Consider edge function for production headers
-
-### 5.4 Audit Authentication Flows
-**Solution**: 
-- Enable leaked password protection (Supabase setting)
-- Add login attempt limiting
-- Implement session timeout warning
+Add error boundary wrapper for clinic management sections with:
+- Retry button for failed requests
+- Clear error messages
+- Fallback UI states
 
 ---
 
-## Category 6: Code Quality & Maintainability
+### Task 7: Optimize Loading States
 
-### 6.1 Create Shared Hooks
-**Issue**: Some data fetching logic is duplicated.
-
-**Solution**: Create shared hooks.
-
-**Files to create**:
-- `src/hooks/useInfiniteScroll.ts` - Reusable infinite scroll logic
-- `src/hooks/usePagination.ts` - Reusable pagination state
-- `src/hooks/useDebounce.ts` - Already exists? Verify and use consistently
-
-### 6.2 Type Safety Improvements
-**Issue**: Some components use `any` types.
-
-**Solution**: Replace `any` with proper types.
-
-**Files to audit**:
-- `src/pages/ShopPage.tsx` - `products: any[]`
-- Various admin pages with `any` types
-
-### 6.3 Component Documentation
-**Solution**: Add JSDoc comments to complex components and hooks.
-
-### 6.4 Test Coverage
-**Issue**: No unit or integration tests.
-
-**Solution**: Add test infrastructure.
-
-**Files to create**:
-- Set up Vitest configuration
-- Create test utilities
-- Add tests for critical hooks (useAuth, useClinicOwner, etc.)
+Add skeleton loaders for:
+- Clinic dashboard stats cards (already present)
+- Service list cards
+- Doctor list cards
+- Appointment details dialog
 
 ---
 
-## Category 7: User Experience Enhancements
+## Files to Modify
 
-### 7.1 Offline Support
-**Issue**: App doesn't work offline.
-
-**Solution**: Add service worker for offline capability.
-
-**Implementation**:
-- Cache static assets
-- Queue failed requests for retry
-- Show offline indicator
-
-### 7.2 Loading States Consistency
-**Issue**: Mix of spinners and skeletons across the app.
-
-**Solution**: Standardize loading states.
-
-**Create skeleton components for**:
-- Product cards
-- Doctor cards
-- Clinic cards
-- Appointment cards
-- Post cards
-
-### 7.3 Toast Notification Consistency
-**Issue**: Some actions show toast, others don't.
-
-**Solution**: Audit and standardize toast messages.
-
-### 7.4 Keyboard Navigation
-**Issue**: Some interactive elements not fully keyboard accessible.
-
-**Solution**: Ensure all dropdowns, modals, and custom interactions are keyboard navigable.
-
-### 7.5 Dark Mode Improvements
-**Issue**: Dark mode exists but some elements may need refinement.
-
-**Solution**: Audit all components in dark mode for proper styling.
+1. `src/components/social/LazyMedia.tsx` - Add forwardRef
+2. `src/pages/clinic/ClinicProfile.tsx` - Fix View Public button
+3. `src/pages/ClinicDetailPage.tsx` - Fix empty button, optimize images
+4. `src/components/clinic/ClinicAppointmentsList.tsx` - Improve touch targets
+5. `src/pages/clinic/ClinicServices.tsx` - Add mobile-responsive drawer
+6. `src/pages/clinic/ClinicDoctors.tsx` - Add mobile-responsive drawer
+7. `src/components/clinic/BookAppointmentDialog.tsx` - Prevent double submission
 
 ---
 
-## Category 8: Monitoring & Analytics
+## Summary
 
-### 8.1 Error Tracking
-**Issue**: No error tracking in production.
+This plan addresses:
+- **3 console warnings/errors** (LazyImage ref, empty button)
+- **2 broken/inconsistent button behaviors** (View Public buttons)
+- **5+ mobile UX improvements** (touch targets, drawer patterns, loading states)
+- **Performance optimizations** (lazy loading, skeletons)
+- **Error handling improvements** (better messages, retry logic)
 
-**Solution**: Add error boundary with logging to backend.
-
-### 8.2 Performance Monitoring
-**Issue**: No performance metrics tracking.
-
-**Solution**: Add Web Vitals tracking.
-
-**Files to modify**:
-- `src/main.tsx` - Add web-vitals reporting
-
-### 8.3 User Analytics
-**Issue**: No user behavior tracking.
-
-**Solution**: Add privacy-respecting analytics.
-
----
-
-## Implementation Phases
-
-### Phase 1: Critical (Week 1) ✅ COMPLETED
-| Task | Priority | Effort | Status |
-|------|----------|--------|--------|
-| Error Boundaries | High | 2 hours | ✅ Done |
-| Database Indexes | High | 1 hour | ✅ Done |
-| Query Cache Optimization | High | 2 hours | ✅ Done |
-| Fix RLS Policy Warning | High | 30 min | ✅ Reviewed - Intentional |
-| Skip Navigation | Medium | 30 min | ✅ Done |
-| Scroll Restoration | Medium | 15 min | ✅ Done |
-
-### Phase 2: Performance (Week 2) ✅ COMPLETED
-| Task | Priority | Effort | Status |
-|------|----------|--------|--------|
-| Image Optimization | Medium | 1 hour | ✅ Done - AspectRatio + lazy loading |
-| Optimistic Updates | Medium | 3 hours | ✅ Done - usePosts, useFollow |
-| Bundle Splitting | Medium | 1 hour | ✅ Done - manual chunks in vite.config |
-| Query Pagination | Medium | 2 hours | ✅ Already implemented (50 limit) |
-
-### Phase 3: SEO & Accessibility (Week 3) ✅ COMPLETED
-| Task | Priority | Effort | Status |
-|------|----------|--------|--------|
-| Structured Data | Medium | 2 hours | ✅ Done - SEO.tsx with JSON-LD |
-| Dynamic Meta Tags | Medium | 1 hour | ✅ Done - All detail pages |
-| Sitemap Generation | Medium | 1 hour | ✅ Done - Edge function |
-| Focus Management | Medium | 2 hours | ✅ Done - useFocusManagement.ts |
-| ARIA Live Regions | Low | 1 hour | ✅ Done - Sonner + announceToScreenReader |
-
-### Phase 4: Accessibility (Week 4) ✅ COMPLETED
-| Task | Priority | Effort | Status |
-|------|----------|--------|--------|
-| Skip Navigation Link | High | 30 min | ✅ Done - Navbar.tsx with skip link |
-| Focus Management | High | 1 hour | ✅ Done - useFocusManagement hook |
-| ARIA Live Regions | Medium | 1 hour | ✅ Done - announceToScreenReader utility |
-| Form Labels & Validation | Medium | 1 hour | ✅ Done - aria-describedby, aria-invalid |
-| Touch Targets | Medium | 30 min | ✅ Done - min-h-[44px] on buttons |
-| Sonner Accessibility | Low | 30 min | ✅ Done - closeButton, richColors |
-
-### Phase 5: Security Hardening (Week 5) ✅ COMPLETED
-| Task | Priority | Effort | Status |
-|------|----------|--------|--------|
-| Rate Limiting | Medium | 2 hours | ✅ Done - steadfast edge function with 30 req/min limit |
-| Input Sanitization | Medium | 2 hours | ✅ Done - src/lib/sanitize.ts with XSS prevention |
-| Content Security Policy | Medium | 1 hour | ✅ Done - CSP meta tag in index.html |
-| Apply Sanitization | Low | 1 hour | ✅ Done - CreatePostCard, useComments |
-
-### Phase 6: Code Quality & Maintainability ✅ COMPLETED
-| Task | Priority | Effort | Status |
-|------|----------|--------|--------|
-| Shared Hooks | Medium | 2 hours | ✅ Done - useDebounce, useInfiniteScroll, usePagination |
-| Type Safety | Low | 1 hour | ✅ Done - Product type in ShopPage, CartContext |
-| Test Infrastructure | Medium | 1 hour | ✅ Done - Vitest config, test setup, example test |
-| Loading Skeletons | Low | 2 hours | ✅ Done - CardSkeleton.tsx with all skeleton variants |
-
-### Phase 7: User Experience Enhancements ✅ COMPLETED
-| Task | Priority | Effort | Status |
-|------|----------|--------|--------|
-| Offline Indicator | Medium | 1 hour | ✅ Done - OfflineIndicator.tsx with reconnect message |
-| Loading Skeletons | Low | 2 hours | ✅ Done - Product, Doctor, Clinic, Post skeletons |
-| Web Vitals Monitoring | Low | 30 min | ✅ Done - initWebVitals in main.tsx |
-
-### Phase 8: Monitoring & Analytics ✅ COMPLETED
-| Task | Priority | Effort | Status |
-|------|----------|--------|--------|
-| Error Tracking | Medium | 1 hour | ✅ Done - trackError in ErrorBoundary |
-| Performance Monitoring | Medium | 1 hour | ✅ Done - Web Vitals (LCP, FID, CLS, FCP, TTFB) |
-| Analytics Utility | Low | 1 hour | ✅ Done - src/lib/analytics.ts |
-
----
-
-## Files Summary
-
-### New Files to Create
-1. `src/components/ErrorBoundary.tsx`
-2. `src/components/SEO.tsx`
-3. `src/lib/sanitize.ts`
-4. `src/hooks/useInfiniteScroll.ts`
-5. `src/components/skeletons/` (directory with skeleton components)
-
-### Key Files to Modify
-1. `src/App.tsx` - Error boundaries, focus management
-2. `src/main.tsx` - Web vitals
-3. `vite.config.ts` - Bundle optimization
-4. `index.html` - CSP, additional meta tags
-5. `src/components/Navbar.tsx` - Skip link
-6. 7+ hook files - Cache optimization
-7. Database migration - Indexes
-
-### Database Migrations
-1. Add performance indexes
-2. Fix RLS policy warning
-
----
-
-## Expected Outcomes
-
-After implementing this plan:
-
-- **Performance**: 30-50% faster initial load, smoother interactions
-- **SEO**: Better search engine rankings with structured data
-- **Accessibility**: WCAG AA compliance
-- **Reliability**: Graceful error handling, no full-page crashes
-- **Maintainability**: Better type safety, shared utilities
-- **Security**: Rate limiting, input sanitization, CSP headers
+All changes follow existing project patterns, maintain type safety, and ensure responsive design works across all screen sizes.
