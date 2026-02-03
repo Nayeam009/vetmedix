@@ -268,15 +268,14 @@ const ClinicDashboard = () => {
               </div>
               <div className="flex gap-2 sm:gap-3">
                 {/* View Public Profile Button */}
-                <Button 
-                  variant="outline" 
-                  asChild 
+                <Button
+                  variant="outline"
                   className="rounded-lg sm:rounded-xl h-9 sm:h-10 px-3 sm:px-4"
+                  onClick={() => ownedClinic?.id && navigate(`/clinic/${ownedClinic.id}`)}
+                  disabled={!ownedClinic?.id}
                 >
-                  <Link to={`/clinics/${ownedClinic?.id}`} target="_blank">
-                    <ExternalLink className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">View Public</span>
-                  </Link>
+                  <ExternalLink className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">View Public</span>
                 </Button>
                 <Button asChild className="rounded-lg sm:rounded-xl shadow-lg shadow-primary/25 h-9 sm:h-10 px-3 sm:px-4 flex-1 sm:flex-none">
                   <Link to="/clinic/profile">
