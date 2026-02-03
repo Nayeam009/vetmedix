@@ -388,6 +388,56 @@ export const useClinicOwner = () => {
     },
   });
 
+  // Add walk-in appointment mutation
+  const addWalkInAppointment = useMutation({
+    mutationFn: async (data: {
+      petName: string;
+      petType: string;
+      ownerName: string;
+      ownerPhone: string;
+      doctorId: string | null;
+      appointmentDate: Date;
+      appointmentTime: string;
+      reason: string;
+    }) => {
+      if (!ownedClinic?.id || !user?.id) throw new Error('No clinic or user');
+
+      // Build reason with walk-in info
+      const reasonParts = ['[Walk-in]'];
+      if (data.ownerName) reasonParts.push(`Owner: ${data.ownerName}`);
+      if (data.ownerPhone) reasonParts.push(`Phone: ${data.ownerPhone}`);
+      if (data.reason) reasonParts.push(data.reason);
+      const fullReason = reasonParts.join(' | ');
+
+      const { data: appointment, error } = await supabase
+        .from('appointments')
+        .insert({
+          clinic_id: ownedClinic.id,
+          user_id: user.id, // Clinic owner as proxy
+          doctor_id: data.doctorId || null,
+          pet_name: data.petName,
+          pet_type: data.petType,
+          appointment_date: format(data.appointmentDate, 'yyyy-MM-dd'),
+          appointment_time: data.appointmentTime,
+          reason: fullReason,
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return appointment;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clinic-appointments'] });
+      toast.success('Walk-in appointment created successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to create appointment');
+      console.error(error);
+    },
+  });
+
   return {
     ownedClinic,
     clinicLoading,
@@ -406,5 +456,6 @@ export const useClinicOwner = () => {
     deleteService,
     updateDoctorStatus,
     updateAppointmentStatus,
+    addWalkInAppointment,
   };
 };
