@@ -1,19 +1,20 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   Plus, Loader2, Stethoscope, Mail, Phone, Edit, Trash2, 
-  GraduationCap, BadgeDollarSign, Calendar, Clock, ChevronLeft,
-  User, Star, CheckCircle, AlertCircle, Users, UserPlus
+  GraduationCap, BadgeDollarSign, ChevronLeft,
+  UserPlus, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerClose,
+  DrawerDescription,
+} from '@/components/ui/drawer';
 import {
   Select,
   SelectContent,
@@ -45,10 +54,41 @@ import MobileNav from '@/components/MobileNav';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useClinicOwner } from '@/hooks/useClinicOwner';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useIsMobile } from '@/hooks/use-mobile';
 import AddDoctorWizard from '@/components/clinic/AddDoctorWizard';
 import { JoinRequestsTab } from '@/components/clinic/JoinRequestsTab';
 import { InviteDoctorDialog } from '@/components/clinic/InviteDoctorDialog';
 import { cn } from '@/lib/utils';
+
+// Skeleton loader for doctor cards
+const DoctorCardSkeleton = () => (
+  <Card className="bg-white border-border/50 shadow-sm">
+    <CardContent className="p-5">
+      <div className="flex gap-4">
+        <Skeleton className="h-16 w-16 rounded-full flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="flex items-start justify-between">
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+            <Skeleton className="h-5 w-20 rounded-full" />
+          </div>
+          <div className="flex gap-3 mt-3">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+          <Skeleton className="h-4 w-40 mt-2" />
+          <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/50">
+            <Skeleton className="h-8 w-28 rounded-lg" />
+            <Skeleton className="h-8 w-16 rounded-lg" />
+            <Skeleton className="h-8 w-8 rounded-lg" />
+          </div>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
 
 interface DoctorFormData {
   name: string;
@@ -471,11 +511,10 @@ const ClinicDoctors = () => {
         </AlertDialog>
 
         {doctorsLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="text-center">
-              <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-              <p className="text-muted-foreground">Loading doctors...</p>
-            </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[1, 2, 3, 4].map((i) => (
+              <DoctorCardSkeleton key={i} />
+            ))}
           </div>
         ) : clinicDoctors && clinicDoctors.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2">
@@ -539,12 +578,12 @@ const ClinicDoctors = () => {
                         </div>
                       )}
 
-                      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/50">
+                      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/50 flex-wrap">
                         <Select
                           value={cd.status}
                           onValueChange={(value) => handleStatusChange(cd.id, value)}
                         >
-                          <SelectTrigger className="w-28 h-8 rounded-lg text-xs">
+                          <SelectTrigger className="w-28 h-10 sm:h-8 min-h-[44px] sm:min-h-0 rounded-lg text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -555,7 +594,7 @@ const ClinicDoctors = () => {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          className="h-8 rounded-lg"
+                          className="h-10 sm:h-8 min-h-[44px] sm:min-h-0 rounded-lg active:scale-95 transition-transform"
                           onClick={() => openEditDialog(cd.doctor)}
                         >
                           <Edit className="h-3.5 w-3.5 mr-1.5" />
@@ -564,8 +603,9 @@ const ClinicDoctors = () => {
                         <Button 
                           variant="outline" 
                           size="icon"
-                          className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/10"
+                          className="h-10 w-10 sm:h-8 sm:w-8 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 rounded-lg text-destructive hover:bg-destructive/10 active:scale-95 transition-transform"
                           onClick={() => setDeleteConfirm(cd.id)}
+                          aria-label="Remove doctor"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>

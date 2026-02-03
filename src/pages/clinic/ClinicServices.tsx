@@ -2,19 +2,27 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Edit, Trash2, Loader2, Package, ChevronLeft,
-  Clock, DollarSign, CheckCircle, XCircle, Stethoscope
+  Clock, DollarSign, CheckCircle, XCircle, Stethoscope, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerClose,
+  DrawerDescription,
+} from '@/components/ui/drawer';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,12 +39,41 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClinicOwner, ClinicService } from '@/hooks/useClinicOwner';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useIsMobile } from '@/hooks/use-mobile';
 import AddServiceWizard from '@/components/clinic/AddServiceWizard';
+
+// Skeleton loader for service cards
+const ServiceCardSkeleton = () => (
+  <Card className="bg-white border-border/50 shadow-sm">
+    <CardContent className="p-5">
+      <div className="flex items-start gap-4">
+        <Skeleton className="w-12 h-12 rounded-xl flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-5 w-16 rounded-full" />
+          </div>
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+          <div className="flex gap-4 mt-3">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-20" />
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border/50">
+        <Skeleton className="h-10 flex-1 rounded-lg" />
+        <Skeleton className="h-10 w-24 rounded-lg" />
+      </div>
+    </CardContent>
+  </Card>
+);
 
 const ClinicServices = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isClinicOwner, isLoading: roleLoading } = useUserRole();
+  const isMobile = useIsMobile();
   const { 
     ownedClinic,
     clinicLoading, 
@@ -102,6 +139,24 @@ const ClinicServices = () => {
     return null;
   }
 
+  // Service form content (shared between Dialog and Drawer)
+  const formContent = (
+    <AddServiceWizard 
+      onSubmit={handleSubmit}
+      isPending={addService.isPending || updateService.isPending}
+      onCancel={() => setIsDialogOpen(false)}
+      isEditing={!!editingService}
+      initialData={editingService ? {
+        name: editingService.name,
+        description: editingService.description || '',
+        price: editingService.price?.toString() || '',
+        duration_minutes: editingService.duration_minutes?.toString() || '',
+        is_active: editingService.is_active,
+        category: '',
+      } : undefined}
+    />
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-orange-50/30 via-background to-background pb-20 md:pb-0">
       <Navbar />
@@ -113,8 +168,9 @@ const ClinicServices = () => {
             <Button 
               variant="outline" 
               size="icon" 
-              className="rounded-xl"
+              className="rounded-xl min-h-[44px] min-w-[44px] active:scale-95 transition-transform"
               onClick={() => navigate('/clinic/dashboard')}
+              aria-label="Go back to dashboard"
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
@@ -123,16 +179,56 @@ const ClinicServices = () => {
               <p className="text-sm text-muted-foreground">Add and manage services offered at your clinic</p>
             </div>
           </div>
+          <Button 
+            onClick={openAddDialog} 
+            className="rounded-xl shadow-lg shadow-primary/25 min-h-[44px] active:scale-95 transition-transform"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Service
+          </Button>
+        </div>
+
+        {/* Mobile Drawer / Desktop Dialog for Add/Edit Service */}
+        {isMobile ? (
+          <Drawer open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) setEditingService(null);
+          }}>
+            <DrawerContent className="max-h-[95vh]">
+              <DrawerHeader className="border-b border-border/50 pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Stethoscope className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <DrawerTitle className="text-left text-lg">
+                        {editingService ? 'Edit Service' : 'Add New Service'}
+                      </DrawerTitle>
+                      <DrawerDescription className="text-left text-sm">
+                        {editingService 
+                          ? 'Update the service details below' 
+                          : `Add a new service to ${ownedClinic?.name || 'your clinic'}`}
+                      </DrawerDescription>
+                    </div>
+                  </div>
+                  <DrawerClose asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </DrawerClose>
+                </div>
+              </DrawerHeader>
+              <div className="overflow-y-auto px-4 pb-6 pt-4" style={{ maxHeight: 'calc(95vh - 100px)' }}>
+                {formContent}
+              </div>
+            </DrawerContent>
+          </Drawer>
+        ) : (
           <Dialog open={isDialogOpen} onOpenChange={(open) => {
             setIsDialogOpen(open);
             if (!open) setEditingService(null);
           }}>
-            <DialogTrigger asChild>
-              <Button onClick={openAddDialog} className="rounded-xl shadow-lg shadow-primary/25">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Service
-              </Button>
-            </DialogTrigger>
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
@@ -144,23 +240,10 @@ const ClinicServices = () => {
                     : `Add a new service to ${ownedClinic?.name || 'your clinic'}`}
                 </DialogDescription>
               </DialogHeader>
-              <AddServiceWizard 
-                onSubmit={handleSubmit}
-                isPending={addService.isPending || updateService.isPending}
-                onCancel={() => setIsDialogOpen(false)}
-                isEditing={!!editingService}
-                initialData={editingService ? {
-                  name: editingService.name,
-                  description: editingService.description || '',
-                  price: editingService.price?.toString() || '',
-                  duration_minutes: editingService.duration_minutes?.toString() || '',
-                  is_active: editingService.is_active,
-                  category: '',
-                } : undefined}
-              />
+              {formContent}
             </DialogContent>
           </Dialog>
-        </div>
+        )}
 
         {/* Delete Confirmation */}
         <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
@@ -172,10 +255,10 @@ const ClinicServices = () => {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+              <AlertDialogCancel className="rounded-xl min-h-[44px]">Cancel</AlertDialogCancel>
               <AlertDialogAction 
                 onClick={handleDelete} 
-                className="bg-destructive text-destructive-foreground rounded-xl"
+                className="bg-destructive text-destructive-foreground rounded-xl min-h-[44px]"
               >
                 Delete
               </AlertDialogAction>
@@ -184,11 +267,10 @@ const ClinicServices = () => {
         </AlertDialog>
 
         {servicesLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="text-center">
-              <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-              <p className="text-muted-foreground">Loading services...</p>
-            </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[1, 2, 3, 4].map((i) => (
+              <ServiceCardSkeleton key={i} />
+            ))}
           </div>
         ) : clinicServices && clinicServices.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2">
@@ -245,7 +327,7 @@ const ClinicServices = () => {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      className="flex-1 rounded-lg h-10 sm:h-9 text-sm active:scale-[0.98]"
+                      className="flex-1 rounded-lg h-11 sm:h-9 min-h-[44px] sm:min-h-0 text-sm active:scale-[0.98] transition-transform"
                       onClick={() => openEditDialog(service)}
                     >
                       <Edit className="h-4 w-4 mr-1.5" />
@@ -254,7 +336,7 @@ const ClinicServices = () => {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      className="rounded-lg h-10 sm:h-9 text-sm text-destructive hover:bg-destructive/10 hover:border-destructive/50 active:bg-destructive/20 active:scale-[0.98]"
+                      className="rounded-lg h-11 sm:h-9 min-h-[44px] sm:min-h-0 text-sm text-destructive hover:bg-destructive/10 hover:border-destructive/50 active:bg-destructive/20 active:scale-[0.98] transition-transform"
                       onClick={() => setDeleteConfirm(service.id)}
                     >
                       <Trash2 className="h-4 w-4 mr-1.5" />
@@ -275,7 +357,7 @@ const ClinicServices = () => {
               <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
                 Add services to let patients know what you offer
               </p>
-              <Button onClick={openAddDialog} className="rounded-xl">
+              <Button onClick={openAddDialog} className="rounded-xl min-h-[44px]">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Your First Service
               </Button>
