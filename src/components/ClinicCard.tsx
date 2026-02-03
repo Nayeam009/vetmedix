@@ -85,23 +85,23 @@ const ClinicCard = memo(({ name, rating, distance, services, image, isOpen = tru
         </div>
         
         {/* Content Section - Mobile optimized */}
-        <div className="flex-1 p-2.5 sm:p-4 lg:p-5 flex flex-col min-w-0">
+        <div className="flex-1 p-2 sm:p-4 lg:p-5 flex flex-col justify-between min-w-0">
           {/* Header */}
-          <div className="mb-1.5 sm:mb-2">
+          <div className="mb-1 sm:mb-2">
             <h3 
-              className="font-bold text-sm sm:text-base lg:text-lg text-foreground group-hover:text-primary cursor-pointer transition-colors line-clamp-1 mb-1"
+              className="font-bold text-sm sm:text-base lg:text-lg text-foreground group-hover:text-primary cursor-pointer transition-colors line-clamp-1 mb-0.5 sm:mb-1"
               onClick={onViewDetails}
             >
               {name}
             </h3>
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap">
               {/* Rating */}
-              <div className="flex items-center gap-1 bg-warning-light border border-warning/20 rounded px-1.5 py-0.5 sm:rounded-lg sm:px-2 sm:py-1">
+              <div className="flex items-center gap-0.5 sm:gap-1 bg-warning-light border border-warning/20 rounded px-1.5 py-0.5 sm:rounded-lg sm:px-2 sm:py-1">
                 <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-warning fill-warning" />
                 <span className="text-[10px] sm:text-xs font-bold text-warning-foreground">{rating.toFixed(1)}</span>
               </div>
               {/* Distance */}
-              <span className="flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-muted-foreground">
+              <span className="flex items-center gap-0.5 text-[10px] sm:text-xs text-muted-foreground">
                 <MapPin className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                 {distance}
               </span>
@@ -115,23 +115,22 @@ const ClinicCard = memo(({ name, rating, distance, services, image, isOpen = tru
             </div>
           </div>
           
-          {/* Services - Simplified for mobile, handles empty services */}
-          <div className="flex flex-wrap gap-1 sm:gap-1.5 mb-2 sm:mb-3 flex-1">
+          {/* Services - Compact for mobile */}
+          <div className="flex flex-wrap gap-1 sm:gap-1.5 mb-1.5 sm:mb-3">
             {services.filter(s => s && s.trim()).slice(0, 2).map((service, index) => (
               <span 
                 key={index} 
-                className="inline-flex items-center gap-0.5 text-[9px] sm:text-[10px] lg:text-xs font-medium px-1.5 sm:px-2 py-0.5 sm:py-1 rounded sm:rounded-lg bg-primary/5 text-primary/80 border border-primary/10"
+                className="inline-flex items-center gap-0.5 text-[9px] sm:text-[10px] lg:text-xs font-medium px-1.5 sm:px-2 py-0.5 rounded sm:rounded-lg bg-primary/5 text-primary/80 border border-primary/10"
               >
                 <Stethoscope className="h-2 w-2 sm:h-2.5 sm:w-2.5 opacity-70 flex-shrink-0" />
                 <span className="truncate max-w-[60px] sm:max-w-[80px] lg:max-w-[100px]">{service}</span>
               </span>
             ))}
             {services.filter(s => s && s.trim()).length > 2 && (
-              <span className="text-[9px] sm:text-[10px] lg:text-xs text-muted-foreground bg-muted/50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded sm:rounded-lg font-medium">
+              <span className="text-[9px] sm:text-[10px] lg:text-xs text-muted-foreground bg-muted/50 px-1.5 sm:px-2 py-0.5 rounded sm:rounded-lg font-medium">
                 +{services.filter(s => s && s.trim()).length - 2}
               </span>
             )}
-            {/* Fallback if no valid services */}
             {services.filter(s => s && s.trim()).length === 0 && (
               <span className="text-[9px] sm:text-[10px] lg:text-xs text-muted-foreground italic">
                 Services available
@@ -140,7 +139,7 @@ const ClinicCard = memo(({ name, rating, distance, services, image, isOpen = tru
           </div>
           
           {/* Actions - Compact for mobile */}
-          <div className="flex gap-1.5 sm:gap-2 pt-2 sm:pt-3 border-t border-border/40">
+          <div className="flex gap-1.5 sm:gap-2 pt-1.5 sm:pt-3 border-t border-border/40">
             <Button 
               variant="outline" 
               size="sm" 
