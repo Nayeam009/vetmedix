@@ -83,7 +83,16 @@ const BookAppointmentDialog = ({
   };
 
   const content = (
-    <div className="px-1">
+    <div className="px-1 relative">
+      {/* Loading overlay to prevent double-submission */}
+      {isBooking && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">Booking appointment...</p>
+          </div>
+        </div>
+      )}
       {doctorsLoading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />

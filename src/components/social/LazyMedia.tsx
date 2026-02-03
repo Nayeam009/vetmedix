@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface LazyImageProps {
@@ -11,68 +11,86 @@ interface LazyImageProps {
 /**
  * Lazy loading image with progressive loading effect
  * Uses Intersection Observer for efficient viewport detection
+ * Supports ref forwarding for use with DropdownMenu, Dialog triggers, etc.
  */
-export const LazyImage = ({ src, alt = '', className, onClick }: LazyImageProps) => {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isInView, setIsInView] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
+export const LazyImage = forwardRef<HTMLDivElement, LazyImageProps>(
+  ({ src, alt = '', className, onClick }, ref) => {
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [isInView, setIsInView] = useState(false);
+    const [hasError, setHasError] = useState(false);
+    const imgRef = useRef<HTMLImageElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!imgRef.current) return;
+    useEffect(() => {
+      const element = containerRef.current;
+      if (!element) return;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsInView(true);
-          observer.disconnect();
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setIsInView(true);
+            observer.disconnect();
+          }
+        },
+        {
+          rootMargin: '100px', // Start loading 100px before entering viewport
+          threshold: 0.01,
         }
-      },
-      {
-        rootMargin: '100px', // Start loading 100px before entering viewport
-        threshold: 0.01,
-      }
-    );
+      );
 
-    observer.observe(imgRef.current);
+      observer.observe(element);
 
-    return () => observer.disconnect();
-  }, []);
+      return () => observer.disconnect();
+    }, []);
 
-  return (
-    <div className={cn('relative overflow-hidden bg-muted', className)}>
-      {/* Placeholder skeleton */}
-      {!isLoaded && !hasError && (
-        <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-muted via-muted/80 to-muted" />
-      )}
-      
-      {/* Error state */}
-      {hasError && (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted text-muted-foreground">
-          <span className="text-xs">Failed to load</span>
-        </div>
-      )}
-      
-      {/* Actual image */}
-      <img
-        ref={imgRef}
-        src={isInView ? src : undefined}
-        data-src={src}
-        alt={alt}
-        loading="lazy"
-        decoding="async"
-        onLoad={() => setIsLoaded(true)}
-        onError={() => setHasError(true)}
-        onClick={onClick}
-        className={cn(
-          'w-full h-full object-cover transition-opacity duration-300',
-          isLoaded ? 'opacity-100' : 'opacity-0',
-          onClick && 'cursor-pointer hover:brightness-95'
+    return (
+      <div 
+        ref={(node) => {
+          // Handle both refs
+          containerRef.current = node;
+          if (typeof ref === 'function') {
+            ref(node);
+          } else if (ref) {
+            ref.current = node;
+          }
+        }}
+        className={cn('relative overflow-hidden bg-muted', className)}
+      >
+        {/* Placeholder skeleton */}
+        {!isLoaded && !hasError && (
+          <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-muted via-muted/80 to-muted" />
         )}
-      />
-    </div>
-  );
-};
+        
+        {/* Error state */}
+        {hasError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted text-muted-foreground">
+            <span className="text-xs">Failed to load</span>
+          </div>
+        )}
+        
+        {/* Actual image */}
+        <img
+          ref={imgRef}
+          src={isInView ? src : undefined}
+          data-src={src}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setIsLoaded(true)}
+          onError={() => setHasError(true)}
+          onClick={onClick}
+          className={cn(
+            'w-full h-full object-cover transition-opacity duration-300',
+            isLoaded ? 'opacity-100' : 'opacity-0',
+            onClick && 'cursor-pointer hover:brightness-95'
+          )}
+        />
+      </div>
+    );
+  }
+);
+
+LazyImage.displayName = 'LazyImage';
 
 interface LazyVideoProps {
   src: string;
