@@ -50,6 +50,7 @@ const AddWalkInAppointmentDialog = ({
 }: AddWalkInAppointmentDialogProps) => {
   const isMobile = useIsMobile();
   const [step, setStep] = useState(1);
+  const [datePopoverOpen, setDatePopoverOpen] = useState(false);
   const [formData, setFormData] = useState<WalkInAppointmentData>({
     petName: '',
     petType: '',
@@ -244,14 +245,14 @@ const AddWalkInAppointmentDialog = ({
           <div className="space-y-2">
             <Label htmlFor="doctor">Assign Doctor (Optional)</Label>
             <Select
-              value={formData.doctorId || ''}
-              onValueChange={(value) => setFormData({ ...formData, doctorId: value || null })}
+              value={formData.doctorId || 'none'}
+              onValueChange={(value) => setFormData({ ...formData, doctorId: value === 'none' ? null : value })}
             >
               <SelectTrigger className="h-11">
                 <SelectValue placeholder="Select a doctor" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No specific doctor</SelectItem>
+                <SelectItem value="none">No specific doctor</SelectItem>
                 {doctors
                   .filter(d => d.status === 'active' && d.doctor)
                   .map((d) => (
@@ -266,7 +267,7 @@ const AddWalkInAppointmentDialog = ({
           {/* Date Selection */}
           <div className="space-y-2">
             <Label>Appointment Date *</Label>
-            <Popover>
+            <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -279,11 +280,16 @@ const AddWalkInAppointmentDialog = ({
                   {formData.appointmentDate ? format(formData.appointmentDate, 'PPP') : 'Pick a date'}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className="w-auto p-0 z-[100]" align="start">
                 <Calendar
                   mode="single"
                   selected={formData.appointmentDate}
-                  onSelect={(date) => date && setFormData({ ...formData, appointmentDate: date })}
+                  onSelect={(date) => {
+                    if (date) {
+                      setFormData({ ...formData, appointmentDate: date });
+                      setDatePopoverOpen(false);
+                    }
+                  }}
                   disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
                   initialFocus
                   className="pointer-events-auto"
@@ -359,6 +365,8 @@ const AddWalkInAppointmentDialog = ({
     </div>
   );
 
+  // Always render Dialog on desktop, Drawer on mobile
+  // Handle isMobile being undefined on initial render
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={handleClose}>
@@ -369,7 +377,7 @@ const AddWalkInAppointmentDialog = ({
               Create an appointment for a walk-in patient without an account.
             </DrawerDescription>
           </DrawerHeader>
-          <div className="px-4 pb-6 overflow-y-auto">
+          <div className="px-4 pb-8 overflow-y-auto">
             {formContent}
           </div>
         </DrawerContent>
@@ -379,7 +387,7 @@ const AddWalkInAppointmentDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Walk-in Appointment</DialogTitle>
           <DialogDescription>

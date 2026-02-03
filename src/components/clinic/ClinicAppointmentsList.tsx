@@ -135,74 +135,85 @@ const ClinicAppointmentsList = ({
 
   return (
     <div className="space-y-4">
-      {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by pet name, reason, or doctor..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+      {/* Compact Header with Filters */}
+      <div className="space-y-3">
+        {/* Search and Status Dropdown in one row */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search pet, reason, or doctor..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 h-10 bg-background border-border/50"
+            />
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="gap-2 h-10 px-3 min-w-[130px] border-border/50 bg-background"
+              >
+                <Filter className="h-4 w-4" />
+                <span className="capitalize">{filterStatus === 'all' ? 'All Status' : filterStatus}</span>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {Object.entries(statusCounts).map(([status, count]) => (
+                <DropdownMenuItem
+                  key={status}
+                  onClick={() => setFilterStatus(status)}
+                  className={cn("justify-between", filterStatus === status && "bg-muted")}
+                >
+                  <span className="capitalize">{status}</span>
+                  <Badge variant="secondary" className="ml-2 font-normal">{count}</Badge>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <Filter className="h-4 w-4" />
-              {filterStatus === 'all' ? 'All Status' : filterStatus}
-              <ChevronDown className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
-            <DropdownMenuSeparator />
+
+        {/* Horizontal Scrollable Status Pills */}
+        <div className="relative">
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
             {Object.entries(statusCounts).map(([status, count]) => (
-              <DropdownMenuItem
+              <button
                 key={status}
                 onClick={() => setFilterStatus(status)}
-                className={cn(filterStatus === status && "bg-muted")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap min-h-[36px] active:scale-95 flex-shrink-0",
+                  filterStatus === status
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted/60 hover:bg-muted text-muted-foreground"
+                )}
               >
                 <span className="capitalize">{status}</span>
-                <Badge variant="secondary" className="ml-auto">{count}</Badge>
-              </DropdownMenuItem>
+                <span className={cn(
+                  "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
+                  filterStatus === status 
+                    ? "bg-primary-foreground/20 text-primary-foreground" 
+                    : "bg-background text-foreground/70"
+                )}>
+                  {count}
+                </span>
+              </button>
             ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      {/* Status Pills */}
-      <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-2 -mx-1 px-1">
-        {Object.entries(statusCounts).map(([status, count]) => (
-          <button
-            key={status}
-            onClick={() => setFilterStatus(status)}
-            className={cn(
-              "flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap min-h-[36px] sm:min-h-0 active:scale-95",
-              filterStatus === status
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted hover:bg-muted/80 text-muted-foreground"
-            )}
-          >
-            <span className="capitalize">{status}</span>
-            <span className={cn(
-              "px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs",
-              filterStatus === status ? "bg-primary-foreground/20" : "bg-background"
-            )}>
-              {count}
-            </span>
-          </button>
-        ))}
+          </div>
+        </div>
       </div>
 
       {/* Appointments List */}
       {Object.keys(groupedAppointments).length > 0 ? (
-        <div className="space-y-6">
+        <div className="space-y-5">
           {Object.entries(groupedAppointments).map(([date, apts]) => (
             <div key={date}>
+              {/* Date Header */}
               <div className="flex items-center gap-2 mb-3">
                 <div className={cn(
-                  "px-3 py-1 rounded-full text-sm font-medium",
+                  "px-3 py-1.5 rounded-lg text-sm font-medium",
                   isToday(parseISO(date)) 
                     ? "bg-primary text-primary-foreground" 
                     : "bg-muted text-muted-foreground"
@@ -214,111 +225,133 @@ const ClinicAppointmentsList = ({
                 </span>
               </div>
               
-              <div className="space-y-3">
+              {/* Appointment Cards */}
+              <div className="space-y-2.5">
                 {apts.map((apt) => {
                   const statusInfo = getStatusInfo(apt.status || 'pending');
                   const StatusIcon = statusInfo.icon;
                   const appointmentDateTime = new Date(`${apt.appointment_date}T${apt.appointment_time}`);
                   const isPastAppointment = isPast(appointmentDateTime);
+                  const isWalkIn = apt.reason?.startsWith('[Walk-in]');
                   
                   return (
                     <Card 
                       key={apt.id}
                       className={cn(
-                        "transition-all hover:shadow-md",
-                        isPastAppointment && apt.status === 'pending' && "border-amber-500/50"
+                        "transition-all hover:shadow-md border-border/50 bg-card",
+                        isPastAppointment && apt.status === 'pending' && "border-amber-500/50 bg-amber-50/30"
                       )}
                     >
-                      <CardContent className="p-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                          {/* Time & Pet Info */}
-                          <div className="flex items-start gap-3 flex-1">
-                            <div className="flex flex-col items-center justify-center bg-muted rounded-lg p-2 min-w-[60px]">
-                              <span className="text-lg font-bold">{apt.appointment_time}</span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-semibold truncate">
-                                  {apt.pet_name || 'Unknown Pet'}
-                                </span>
-                                <Badge variant="secondary" className="text-xs">
-                                  {apt.pet_type || 'Pet'}
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
-                                {apt.reason || 'General Checkup'}
-                              </p>
-                              {apt.doctor && (
-                                <div className="flex items-center gap-2 mt-2">
-                                  <Avatar className="h-5 w-5">
-                                    <AvatarImage src={apt.doctor.avatar_url} />
-                                    <AvatarFallback className="text-[10px]">
-                                      {apt.doctor.name?.charAt(0)}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <span className="text-sm text-muted-foreground">
-                                    Dr. {apt.doctor.name}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="flex items-start gap-3">
+                          {/* Time Badge */}
+                          <div className="flex flex-col items-center justify-center bg-muted/70 rounded-xl p-2.5 min-w-[65px] border border-border/30">
+                            <span className="text-base sm:text-lg font-bold text-foreground leading-tight">
+                              {apt.appointment_time.split(' ')[0]}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-medium">
+                              {apt.appointment_time.split(' ')[1]}
+                            </span>
                           </div>
-
-                          {/* Status & Actions */}
-                          <div className="flex items-center gap-1.5 sm:gap-2 ml-[72px] sm:ml-0 flex-wrap">
-                            <Badge className={cn(statusInfo.color, "text-[10px] sm:text-xs")}>
-                              <StatusIcon className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
-                              {statusInfo.label}
-                            </Badge>
-                            
-                            <div className="flex gap-0.5 sm:gap-1">
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-11 w-11 sm:h-8 sm:w-8 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 active:scale-95 transition-transform"
-                                onClick={() => setSelectedAppointment(apt)}
-                                aria-label="View appointment details"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              
-                              {apt.status === 'pending' && (
-                                <>
-                                  <Button 
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-11 w-11 sm:h-8 sm:w-8 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100 active:scale-95 transition-transform"
-                                    onClick={() => onStatusChange(apt.id, 'confirmed')}
-                                    disabled={isUpdating}
-                                    aria-label="Confirm appointment"
-                                  >
-                                    <CheckCircle className="h-4 w-4" />
-                                  </Button>
-                                  <Button 
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-11 w-11 sm:h-8 sm:w-8 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 text-red-600 hover:text-red-700 hover:bg-red-50 active:bg-red-100 active:scale-95 transition-transform"
-                                    onClick={() => onStatusChange(apt.id, 'cancelled')}
-                                    disabled={isUpdating}
-                                    aria-label="Cancel appointment"
-                                  >
-                                    <XCircle className="h-4 w-4" />
-                                  </Button>
-                                </>
-                              )}
-                              
-                              {apt.status === 'confirmed' && !isPastAppointment && (
-                                <Button 
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-11 sm:h-8 min-h-[44px] sm:min-h-0 text-xs sm:text-sm text-blue-600 hover:bg-blue-50 active:bg-blue-100 active:scale-95 transition-transform px-3 sm:px-3"
-                                  onClick={() => onStatusChange(apt.id, 'completed')}
-                                  disabled={isUpdating}
-                                >
-                                  Complete
-                                </Button>
+                          
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            {/* Pet Name & Type */}
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <span className="font-semibold text-foreground text-sm sm:text-base">
+                                {apt.pet_name || 'Unknown Pet'}
+                              </span>
+                              <Badge variant="secondary" className="text-[10px] sm:text-xs px-1.5 py-0">
+                                {apt.pet_type || 'Pet'}
+                              </Badge>
+                              {isWalkIn && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/50 text-primary">
+                                  Walk-in
+                                </Badge>
                               )}
                             </div>
+                            
+                            {/* Reason */}
+                            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1 mb-2">
+                              {isWalkIn 
+                                ? apt.reason?.replace('[Walk-in]', '').split('|').pop()?.trim() || 'General Checkup'
+                                : apt.reason || 'General Checkup'
+                              }
+                            </p>
+                            
+                            {/* Status Badge + Actions Row */}
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <Badge className={cn(statusInfo.color, "text-[10px] sm:text-xs gap-1")}>
+                                <StatusIcon className="h-3 w-3" />
+                                {statusInfo.label}
+                              </Badge>
+                              
+                              {/* Action Buttons */}
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 min-h-[32px] min-w-[32px] active:scale-95 transition-transform"
+                                  onClick={() => setSelectedAppointment(apt)}
+                                  aria-label="View appointment details"
+                                >
+                                  <Eye className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                                
+                                {apt.status === 'pending' && (
+                                  <>
+                                    <Button 
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8 min-h-[32px] min-w-[32px] text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 active:scale-95 transition-transform"
+                                      onClick={() => onStatusChange(apt.id, 'confirmed')}
+                                      disabled={isUpdating}
+                                      aria-label="Confirm appointment"
+                                    >
+                                      <CheckCircle className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8 min-h-[32px] min-w-[32px] text-red-600 hover:text-red-700 hover:bg-red-50 active:scale-95 transition-transform"
+                                      onClick={() => onStatusChange(apt.id, 'cancelled')}
+                                      disabled={isUpdating}
+                                      aria-label="Cancel appointment"
+                                    >
+                                      <XCircle className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
+                                
+                                {apt.status === 'confirmed' && (
+                                  <Button 
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 active:scale-95 transition-transform px-2.5"
+                                    onClick={() => onStatusChange(apt.id, 'completed')}
+                                    disabled={isUpdating}
+                                  >
+                                    <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                                    Complete
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Doctor Info (if assigned) */}
+                            {apt.doctor && (
+                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/30">
+                                <Avatar className="h-5 w-5">
+                                  <AvatarImage src={apt.doctor.avatar_url} />
+                                  <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
+                                    {apt.doctor.name?.charAt(0)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="text-xs text-muted-foreground">
+                                  Dr. {apt.doctor.name}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </CardContent>
@@ -330,9 +363,11 @@ const ClinicAppointmentsList = ({
           ))}
         </div>
       ) : (
-        <div className="text-center py-12">
-          <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="font-semibold mb-1">No appointments found</h3>
+        <div className="text-center py-12 px-4">
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+            <Calendar className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="font-semibold mb-1 text-foreground">No appointments found</h3>
           <p className="text-muted-foreground text-sm">
             {searchTerm || filterStatus !== 'all' 
               ? 'Try adjusting your search or filter'
