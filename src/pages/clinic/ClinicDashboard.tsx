@@ -29,6 +29,7 @@ import { GlobalSearch } from '@/components/GlobalSearch';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import AddWalkInAppointmentDialog, { WalkInAppointmentData } from '@/components/clinic/AddWalkInAppointmentDialog';
 
 // Lazy load analytics charts for performance
 const ClinicAnalyticsCharts = lazy(() => import('@/components/clinic/ClinicAnalyticsCharts'));
@@ -40,6 +41,7 @@ const ClinicDashboard = () => {
   const { isClinicOwner, isLoading: roleLoading } = useUserRole();
   const [activeTab, setActiveTab] = useState('appointments');
   const [isTogglingOpen, setIsTogglingOpen] = useState(false);
+  const [isAddAppointmentOpen, setIsAddAppointmentOpen] = useState(false);
   const { 
     ownedClinic, 
     clinicLoading, 
@@ -47,7 +49,8 @@ const ClinicDashboard = () => {
     clinicDoctors,
     clinicAppointments,
     updateAppointmentStatus,
-    updateClinic
+    updateClinic,
+    addWalkInAppointment
   } = useClinicOwner();
 
   // Set document title
@@ -216,77 +219,128 @@ const ClinicDashboard = () => {
       <Navbar />
       
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl">
-        {/* Dashboard Header */}
-        <div className="bg-white rounded-xl sm:rounded-2xl lg:rounded-3xl p-4 sm:p-5 lg:p-6 xl:p-8 shadow-lg shadow-black/5 border border-border/50 mb-4 sm:mb-6 lg:mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <Avatar className="h-14 w-14 sm:h-16 sm:w-16 lg:h-20 lg:w-20 border-2 sm:border-4 border-primary/10 shadow-lg flex-shrink-0">
-                <AvatarImage src={ownedClinic?.image_url || ''} />
-                <AvatarFallback className="bg-gradient-to-br from-primary to-orange-400 text-white text-lg sm:text-xl">
-                  <Building2 className="h-6 w-6 sm:h-8 sm:w-8" />
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-0.5 sm:mb-1">
-                  <h1 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-display font-bold text-foreground truncate">
-                    {ownedClinic?.name || 'My Clinic'}
-                  </h1>
-                  {ownedClinic?.is_verified && (
-                    <Badge className="bg-emerald-500 hover:bg-emerald-500 gap-1 text-xs flex-shrink-0">
-                      <CheckCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                      <span className="hidden xs:inline">Verified</span>
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-muted-foreground text-xs sm:text-sm truncate">{ownedClinic?.address || 'Add your address'}</p>
-                <div className="flex items-center gap-2 sm:gap-3 mt-1.5 sm:mt-2">
-                  {/* Open/Close Toggle */}
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={ownedClinic?.is_open ?? false}
-                      onCheckedChange={handleToggleOpen}
-                      disabled={isTogglingOpen}
-                      aria-label="Toggle clinic open/closed status"
-                      className="data-[state=checked]:bg-emerald-500"
-                    />
-                    <Badge variant={ownedClinic?.is_open ? 'default' : 'secondary'} className={cn("text-[10px] sm:text-xs", ownedClinic?.is_open ? 'bg-emerald-500 hover:bg-emerald-500' : '')}>
-                      <div className={`w-1.5 h-1.5 rounded-full mr-1 sm:mr-1.5 ${ownedClinic?.is_open ? 'bg-white animate-pulse' : 'bg-gray-400'}`} />
-                      {ownedClinic?.is_open ? 'Open' : 'Closed'}
-                    </Badge>
+        {/* Enhanced Hero Section */}
+        <div className="bg-gradient-to-br from-white via-white to-primary/5 rounded-xl sm:rounded-2xl lg:rounded-3xl p-4 sm:p-5 lg:p-6 xl:p-8 shadow-lg shadow-black/5 border border-border/50 mb-4 sm:mb-6 lg:mb-8 relative overflow-hidden">
+          {/* Decorative accent */}
+          <div className="absolute top-0 right-0 w-32 h-32 sm:w-48 sm:h-48 bg-gradient-to-br from-primary/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+          
+          <div className="relative flex flex-col gap-4">
+            {/* Top Row: Avatar, Name, Status */}
+            <div className="flex items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <Avatar className="h-14 w-14 sm:h-16 sm:w-16 lg:h-20 lg:w-20 border-2 sm:border-4 border-primary/10 shadow-lg flex-shrink-0 ring-2 ring-background">
+                  <AvatarImage src={ownedClinic?.image_url || ''} />
+                  <AvatarFallback className="bg-gradient-to-br from-primary to-orange-400 text-white text-lg sm:text-xl">
+                    <Building2 className="h-6 w-6 sm:h-8 sm:w-8" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-0.5 sm:mb-1">
+                    <h1 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-display font-bold text-foreground truncate">
+                      {ownedClinic?.name || 'My Clinic'}
+                    </h1>
+                    {ownedClinic?.is_verified && (
+                      <Badge className="bg-emerald-500 hover:bg-emerald-500 gap-1 text-xs flex-shrink-0">
+                        <CheckCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                        <span className="hidden xs:inline">Verified</span>
+                      </Badge>
+                    )}
                   </div>
-                  <span className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
-                    <Star className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500 fill-amber-500" />
-                    {ownedClinic?.rating || 4.5}
-                  </span>
+                  <p className="text-muted-foreground text-xs sm:text-sm truncate max-w-[200px] sm:max-w-[300px]">
+                    {ownedClinic?.address || 'Add your address'}
+                  </p>
+                  <div className="flex items-center gap-2 sm:gap-3 mt-1.5 sm:mt-2">
+                    {/* Open/Close Toggle */}
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={ownedClinic?.is_open ?? false}
+                        onCheckedChange={handleToggleOpen}
+                        disabled={isTogglingOpen}
+                        aria-label="Toggle clinic open/closed status"
+                        className="data-[state=checked]:bg-emerald-500"
+                      />
+                      <Badge 
+                        variant={ownedClinic?.is_open ? 'default' : 'secondary'} 
+                        className={cn(
+                          "text-[10px] sm:text-xs transition-colors",
+                          ownedClinic?.is_open ? 'bg-emerald-500 hover:bg-emerald-500' : ''
+                        )}
+                      >
+                        <div className={cn(
+                          "w-1.5 h-1.5 rounded-full mr-1 sm:mr-1.5",
+                          ownedClinic?.is_open ? 'bg-white animate-pulse' : 'bg-muted-foreground'
+                        )} />
+                        {ownedClinic?.is_open ? 'Open' : 'Closed'}
+                      </Badge>
+                    </div>
+                    <span className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
+                      <Star className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500 fill-amber-500" />
+                      {ownedClinic?.rating || 4.5}
+                    </span>
+                  </div>
                 </div>
+              </div>
+              
+              {/* Desktop-only search in header */}
+              <div className="hidden lg:block w-56">
+                <GlobalSearch variant="clinic" className="w-full h-10" placeholder="Search appointments..." />
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 self-start sm:self-auto w-full sm:w-auto">
-              {/* Clinic Search */}
-              <div className="w-full sm:w-48 lg:w-56">
-                <GlobalSearch variant="clinic" className="w-full h-9 sm:h-10" placeholder="Search appointments..." />
-              </div>
-              <div className="flex gap-2 sm:gap-3">
+            
+            {/* Mobile Search Bar - Full Width */}
+            <div className="lg:hidden w-full">
+              <GlobalSearch variant="clinic" className="w-full h-10" placeholder="Search appointments..." />
+            </div>
+
+            {/* Action Buttons Row */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-1">
+              {/* Add Appointment - Primary CTA */}
+              <Button
+                onClick={() => setIsAddAppointmentOpen(true)}
+                className="rounded-lg sm:rounded-xl h-11 sm:h-10 px-4 gap-2 shadow-lg shadow-primary/25 active:scale-95 transition-transform flex-1 sm:flex-none order-1"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Add Appointment</span>
+              </Button>
+              
+              <div className="flex gap-2 sm:gap-3 order-2">
                 {/* View Public Profile Button */}
                 <Button
                   variant="outline"
-                  className="rounded-lg sm:rounded-xl h-9 sm:h-10 px-3 sm:px-4"
+                  className="rounded-lg sm:rounded-xl h-11 sm:h-10 px-3 sm:px-4 active:scale-95 transition-transform flex-1 sm:flex-none"
                   onClick={() => ownedClinic?.id && navigate(`/clinic/${ownedClinic.id}`)}
                   disabled={!ownedClinic?.id}
                 >
                   <ExternalLink className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">View Public</span>
+                  <span className="sm:inline">View Public</span>
                 </Button>
-                <Button asChild className="rounded-lg sm:rounded-xl shadow-lg shadow-primary/25 h-9 sm:h-10 px-3 sm:px-4 flex-1 sm:flex-none">
+                
+                <Button 
+                  asChild 
+                  variant="secondary"
+                  className="rounded-lg sm:rounded-xl h-11 sm:h-10 px-3 sm:px-4 active:scale-95 transition-transform flex-1 sm:flex-none"
+                >
                   <Link to="/clinic/profile">
                     <Edit className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Edit Profile</span>
+                    <span className="sm:inline">Edit Profile</span>
                   </Link>
                 </Button>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Walk-in Appointment Dialog */}
+        <AddWalkInAppointmentDialog
+          open={isAddAppointmentOpen}
+          onOpenChange={setIsAddAppointmentOpen}
+          doctors={clinicDoctors || []}
+          onSubmit={async (data: WalkInAppointmentData) => {
+            await addWalkInAppointment.mutateAsync(data);
+            setIsAddAppointmentOpen(false);
+          }}
+          isSubmitting={addWalkInAppointment.isPending}
+        />
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 xl:gap-6 mb-4 sm:mb-6 lg:mb-8">
