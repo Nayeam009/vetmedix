@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
   Save, Loader2, Camera, Building2, MapPin, 
   Phone, Mail, Clock, CheckCircle, ChevronLeft,
@@ -271,13 +271,12 @@ const ClinicProfile = () => {
           {/* View Public Profile Button */}
           <Button 
             variant="outline" 
-            asChild 
-            className="rounded-xl h-10 sm:h-9 gap-2 active:scale-95 transition-transform"
+            className="rounded-xl h-10 sm:h-9 gap-2 active:scale-95 transition-transform min-h-[44px] sm:min-h-0"
+            onClick={() => ownedClinic?.id && navigate(`/clinic/${ownedClinic.id}`)}
+            disabled={!ownedClinic?.id}
           >
-            <Link to={`/clinic/${ownedClinic?.id}`} target="_blank">
-              <ExternalLink className="h-4 w-4" />
-              <span className="hidden sm:inline">View Public</span>
-            </Link>
+            <ExternalLink className="h-4 w-4" />
+            <span className="hidden sm:inline">View Public</span>
           </Button>
         </div>
 

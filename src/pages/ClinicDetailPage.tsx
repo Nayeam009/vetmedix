@@ -496,8 +496,15 @@ const ClinicDetailPage = () => {
                 <iframe src={`https://www.openstreetmap.org/export/embed.html?bbox=89.5,22.5,92,26&layer=mapnik`} className="w-full h-full" title="Map" />
               </div>
               
-              <Button variant="outline" className="w-full mt-3 gap-2" asChild>
-                
+              <Button variant="outline" className="w-full mt-3 gap-2 min-h-[44px]" asChild>
+                <a 
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(clinic.address || clinic.name)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MapPin className="h-4 w-4" />
+                  Get Directions
+                </a>
               </Button>
             </div>
           </div>

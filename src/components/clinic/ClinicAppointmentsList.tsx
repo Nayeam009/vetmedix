@@ -275,8 +275,9 @@ const ClinicAppointmentsList = ({
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                className="h-9 w-9 sm:h-8 sm:w-8"
+                                className="h-11 w-11 sm:h-8 sm:w-8 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 active:scale-95 transition-transform"
                                 onClick={() => setSelectedAppointment(apt)}
+                                aria-label="View appointment details"
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
@@ -286,18 +287,20 @@ const ClinicAppointmentsList = ({
                                   <Button 
                                     size="icon"
                                     variant="ghost"
-                                    className="h-9 w-9 sm:h-8 sm:w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100"
+                                    className="h-11 w-11 sm:h-8 sm:w-8 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100 active:scale-95 transition-transform"
                                     onClick={() => onStatusChange(apt.id, 'confirmed')}
                                     disabled={isUpdating}
+                                    aria-label="Confirm appointment"
                                   >
                                     <CheckCircle className="h-4 w-4" />
                                   </Button>
                                   <Button 
                                     size="icon"
                                     variant="ghost"
-                                    className="h-9 w-9 sm:h-8 sm:w-8 text-red-600 hover:text-red-700 hover:bg-red-50 active:bg-red-100"
+                                    className="h-11 w-11 sm:h-8 sm:w-8 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 text-red-600 hover:text-red-700 hover:bg-red-50 active:bg-red-100 active:scale-95 transition-transform"
                                     onClick={() => onStatusChange(apt.id, 'cancelled')}
                                     disabled={isUpdating}
+                                    aria-label="Cancel appointment"
                                   >
                                     <XCircle className="h-4 w-4" />
                                   </Button>
@@ -308,7 +311,7 @@ const ClinicAppointmentsList = ({
                                 <Button 
                                   size="sm"
                                   variant="outline"
-                                  className="h-9 sm:h-8 text-xs sm:text-sm text-blue-600 hover:bg-blue-50 active:bg-blue-100 px-2 sm:px-3"
+                                  className="h-11 sm:h-8 min-h-[44px] sm:min-h-0 text-xs sm:text-sm text-blue-600 hover:bg-blue-50 active:bg-blue-100 active:scale-95 transition-transform px-3 sm:px-3"
                                   onClick={() => onStatusChange(apt.id, 'completed')}
                                   disabled={isUpdating}
                                 >
