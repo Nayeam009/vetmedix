@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { Home, Search, MessageCircle, Bell, User, Shield, Stethoscope, Building2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -5,7 +6,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useUserRole } from '@/hooks/useUserRole';
 
-const MobileNav = () => {
+const MobileNav = forwardRef<HTMLElement, object>((_, ref) => {
   const location = useLocation();
   const { user } = useAuth();
   const { unreadCount } = useNotifications();
@@ -46,7 +47,7 @@ const MobileNav = () => {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+    <nav ref={ref} className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       <div className="flex items-center justify-around h-14 sm:h-16 max-w-lg mx-auto">
         {navItems.map((item, index) => {
           const active = isActive(item.path);
@@ -76,6 +77,8 @@ const MobileNav = () => {
       </div>
     </nav>
   );
-};
+});
+
+MobileNav.displayName = 'MobileNav';
 
 export default MobileNav;
