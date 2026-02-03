@@ -134,54 +134,23 @@ const ClinicDetailPage = () => {
   }, [mapQuery]);
 
   const openGoogleMaps = (url: string) => {
-    window.open(url, '_blank', 'noopener,noreferrer');
+    const popup = window.open(url, '_blank', 'noopener,noreferrer');
+    // If popup is blocked, fall back to same-tab navigation.
+    if (!popup) window.location.href = url;
   };
 
   const handleGetDirections = () => {
-    const destination = (clinic?.address || clinic?.name || '').trim();
-    if (!destination) {
+    if (!mapQuery) {
       toast.error('Clinic address is not available');
       return;
     }
 
-    // Open a blank tab immediately to avoid popup blockers (URL will be set after GPS resolves)
-    const popup = window.open('', '_blank', 'noopener,noreferrer');
-
-    // If GPS is available, open directions using user's current location
-    if (!navigator.geolocation) {
-      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destination)}`;
-      if (popup) popup.location.href = url;
-      else openGoogleMaps(url);
-      return;
-    }
-
+    // More reliable on mobile: let Google Maps handle GPS/current location.
+    // This avoids browser GPS permission issues and still gives true turn-by-turn directions.
     setDirectionsLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        const url = `https://www.google.com/maps/dir/?api=1&origin=${latitude},${longitude}&destination=${encodeURIComponent(destination)}`;
-        if (popup) popup.location.href = url;
-        else openGoogleMaps(url);
-        setDirectionsLoading(false);
-      },
-      (error) => {
-        // Fallback: open destination search even if GPS fails
-        if (error.code === error.PERMISSION_DENIED) {
-          toast.error('Location permission denied — opening map without GPS');
-        } else if (error.code === error.POSITION_UNAVAILABLE) {
-          toast.error('Location unavailable — opening map without GPS');
-        } else if (error.code === error.TIMEOUT) {
-          toast.error('GPS timed out — opening map without GPS');
-        } else {
-          toast.error('Could not access GPS — opening map without GPS');
-        }
-        const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destination)}`;
-        if (popup) popup.location.href = url;
-        else openGoogleMaps(url);
-        setDirectionsLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 },
-    );
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapQuery)}`;
+    openGoogleMaps(url);
+    window.setTimeout(() => setDirectionsLoading(false), 600);
   };
   if (loading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">
