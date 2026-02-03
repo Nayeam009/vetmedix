@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Star, MapPin, Clock, Phone, Stethoscope, User, Calendar, ChevronRight, Award, Heart, Shield, Loader2, MessageSquare, Share2, ChevronLeft, CheckCircle, Building2, AlertCircle, Users, Sparkles, BadgeCheck, Copy } from 'lucide-react';
+import { Star, MapPin, Clock, Phone, Stethoscope, User, Calendar, ChevronRight, Award, Heart, Shield, Loader2, MessageSquare, Share2, ChevronLeft, CheckCircle, Building2, AlertCircle, Users, Sparkles, BadgeCheck, Copy, Navigation } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
@@ -46,6 +46,7 @@ const ClinicDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showBookingDialog, setShowBookingDialog] = useState(false);
+  const [directionsLoading, setDirectionsLoading] = useState(false);
   const isGopalganj = clinic?.name?.toLowerCase().includes('gopalganj');
   
   useDocumentTitle(clinic?.name || 'Clinic Details');
@@ -118,6 +119,69 @@ const ClinicDetailPage = () => {
       navigator.clipboard.writeText(clinic.phone);
       toast.success('Phone number copied!');
     }
+  };
+
+  const mapQuery = useMemo(() => {
+    const base = (clinic?.address || clinic?.name || '').trim();
+    if (!base) return '';
+    // Helpful for more accurate results when address is short
+    return /bangladesh/i.test(base) ? base : `${base}, Bangladesh`;
+  }, [clinic?.address, clinic?.name]);
+
+  const mapEmbedUrl = useMemo(() => {
+    if (!mapQuery) return '';
+    return `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=15&output=embed`;
+  }, [mapQuery]);
+
+  const openGoogleMaps = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleGetDirections = () => {
+    const destination = (clinic?.address || clinic?.name || '').trim();
+    if (!destination) {
+      toast.error('Clinic address is not available');
+      return;
+    }
+
+    // Open a blank tab immediately to avoid popup blockers (URL will be set after GPS resolves)
+    const popup = window.open('', '_blank', 'noopener,noreferrer');
+
+    // If GPS is available, open directions using user's current location
+    if (!navigator.geolocation) {
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destination)}`;
+      if (popup) popup.location.href = url;
+      else openGoogleMaps(url);
+      return;
+    }
+
+    setDirectionsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const url = `https://www.google.com/maps/dir/?api=1&origin=${latitude},${longitude}&destination=${encodeURIComponent(destination)}`;
+        if (popup) popup.location.href = url;
+        else openGoogleMaps(url);
+        setDirectionsLoading(false);
+      },
+      (error) => {
+        // Fallback: open destination search even if GPS fails
+        if (error.code === error.PERMISSION_DENIED) {
+          toast.error('Location permission denied — opening map without GPS');
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          toast.error('Location unavailable — opening map without GPS');
+        } else if (error.code === error.TIMEOUT) {
+          toast.error('GPS timed out — opening map without GPS');
+        } else {
+          toast.error('Could not access GPS — opening map without GPS');
+        }
+        const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destination)}`;
+        if (popup) popup.location.href = url;
+        else openGoogleMaps(url);
+        setDirectionsLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 },
+    );
   };
   if (loading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">
@@ -492,19 +556,37 @@ const ClinicDetailPage = () => {
               <Separator className="my-4" />
 
               {/* Map Preview */}
-              <div className="rounded-xl overflow-hidden h-32 bg-muted border border-border/50">
-                <iframe src={`https://www.openstreetmap.org/export/embed.html?bbox=89.5,22.5,92,26&layer=mapnik`} className="w-full h-full" title="Map" />
+              <div className="rounded-xl overflow-hidden h-40 sm:h-44 bg-muted border border-border/50">
+                {mapEmbedUrl ? (
+                  <iframe
+                    src={mapEmbedUrl}
+                    className="w-full h-full"
+                    title="Clinic location"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                ) : (
+                  <div className="w-full h-full grid place-items-center p-4 text-center">
+                    <div>
+                      <MapPin className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">Map unavailable</p>
+                    </div>
+                  </div>
+                )}
               </div>
-              
-              <Button variant="outline" className="w-full mt-3 gap-2 min-h-[44px]" asChild>
-                <a 
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(clinic.address || clinic.name)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <MapPin className="h-4 w-4" />
-                  Get Directions
-                </a>
+
+              <Button
+                variant="outline"
+                className="w-full mt-3 gap-2 min-h-[44px]"
+                onClick={handleGetDirections}
+                disabled={directionsLoading}
+              >
+                {directionsLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Navigation className="h-4 w-4" />
+                )}
+                Get Directions
               </Button>
             </div>
           </div>
