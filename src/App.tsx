@@ -130,6 +130,8 @@ const App = () => (
                     <Route path="/terms" element={<TermsPage />} />
                     <Route path="/shop" element={<ShopPage />} />
                     <Route path="/clinics" element={<ClinicsPage />} />
+                     {/* Backward-compatible alias (some links use plural) */}
+                     <Route path="/clinics/:id" element={<ClinicDetailPage />} />
                     <Route path="/doctors" element={<DoctorsPage />} />
                     <Route path="/doctor/:id" element={<DoctorDetailPage />} />
                     
@@ -145,7 +147,7 @@ const App = () => (
                     <Route path="/cart" element={<CartPage />} />
                     <Route path="/checkout" element={<CheckoutPage />} />
                     <Route path="/product/:id" element={<ProductDetailPage />} />
-                    <Route path="/clinic/:id" element={<ClinicDetailPage />} />
+                     <Route path="/clinic/:id" element={<ClinicDetailPage />} />
                     <Route path="/book-appointment/:clinicId" element={<BookAppointmentPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
                     <Route path="/track-order" element={<TrackOrderPage />} />
