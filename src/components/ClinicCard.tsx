@@ -2,7 +2,6 @@ import { memo } from 'react';
 import { Star, MapPin, Stethoscope, ChevronRight, Phone, Shield, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { cn } from '@/lib/utils';
 import gopalganjLogo from '@/assets/gopalganj-vet-care-logo.png';
 
@@ -30,58 +29,56 @@ const ClinicCard = memo(({ name, rating, distance, services, image, isOpen = tru
           className="relative w-24 sm:w-32 md:w-36 lg:w-44 flex-shrink-0 cursor-pointer overflow-hidden bg-gradient-to-br from-primary/5 to-secondary"
           onClick={onViewDetails}
         >
-          <AspectRatio ratio={1} className="h-full">
-            {isGopalganj ? (
-              <img 
-                src={gopalganjLogo} 
-                alt={name}
-                loading="lazy"
-                width={176}
-                height={176}
-                className="w-full h-full object-cover bg-card group-hover:scale-105 transition-transform duration-500" 
-              />
-            ) : (
-              <img 
-                src={image} 
-                alt={name}
-                loading="lazy"
-                width={176}
-                height={176}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-              />
-            )}
-            
-            {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            
-            {/* Status Badge on Image */}
-            <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 z-10">
-              <Badge 
-                variant={isOpen ? "default" : "secondary"}
-                className={cn(
-                  "text-[8px] sm:text-[10px] font-semibold px-1.5 sm:px-2 py-0.5 shadow-md backdrop-blur-md border-0",
-                  isOpen 
-                    ? 'bg-success text-success-foreground hover:bg-success' 
-                    : 'bg-muted text-muted-foreground hover:bg-muted'
-                )}
-              >
-                <div className={cn(
-                  "w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full mr-1",
-                  isOpen ? "bg-success-foreground animate-pulse" : "bg-muted-foreground"
-                )} />
-                {isOpen ? 'Open' : 'Closed'}
-              </Badge>
-            </div>
+          {isGopalganj ? (
+            <img 
+              src={gopalganjLogo} 
+              alt={name}
+              loading="lazy"
+              width={176}
+              height={176}
+              className="w-full h-full object-cover bg-card group-hover:scale-105 transition-transform duration-500" 
+            />
+          ) : (
+            <img 
+              src={image} 
+              alt={name}
+              loading="lazy"
+              width={176}
+              height={176}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+            />
+          )}
+          
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          
+          {/* Status Badge on Image */}
+          <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 z-10">
+            <Badge 
+              variant={isOpen ? "default" : "secondary"}
+              className={cn(
+                "text-[8px] sm:text-[10px] font-semibold px-1.5 sm:px-2 py-0.5 shadow-md backdrop-blur-md border-0",
+                isOpen 
+                  ? 'bg-success text-success-foreground hover:bg-success' 
+                  : 'bg-muted text-muted-foreground hover:bg-muted'
+              )}
+            >
+              <div className={cn(
+                "w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full mr-1",
+                isOpen ? "bg-success-foreground animate-pulse" : "bg-muted-foreground"
+              )} />
+              {isOpen ? 'Open' : 'Closed'}
+            </Badge>
+          </div>
 
-            {/* Verified Badge */}
-            {isVerified && (
-              <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10">
-                <div className="bg-card/95 backdrop-blur-md text-primary rounded-full p-1 sm:p-1.5 shadow-md">
-                  <Shield className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                </div>
+          {/* Verified Badge */}
+          {isVerified && (
+            <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10">
+              <div className="bg-card/95 backdrop-blur-md text-primary rounded-full p-1 sm:p-1.5 shadow-md">
+                <Shield className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
               </div>
-            )}
-          </AspectRatio>
+            </div>
+          )}
         </div>
         
         {/* Content Section - Mobile optimized */}
