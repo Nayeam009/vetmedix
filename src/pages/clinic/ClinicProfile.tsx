@@ -274,7 +274,7 @@ const ClinicProfile = () => {
             asChild 
             className="rounded-xl h-10 sm:h-9 gap-2 active:scale-95 transition-transform"
           >
-            <Link to={`/clinics/${ownedClinic?.id}`} target="_blank">
+            <Link to={`/clinic/${ownedClinic?.id}`} target="_blank">
               <ExternalLink className="h-4 w-4" />
               <span className="hidden sm:inline">View Public</span>
             </Link>
