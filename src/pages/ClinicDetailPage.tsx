@@ -146,10 +146,18 @@ const ClinicDetailPage = () => {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
   }, [mapQuery]);
 
-  const openGoogleMaps = (url: string) => {
-    const popup = window.open(url, '_blank', 'noopener,noreferrer');
-    // If popup is blocked, fall back to same-tab navigation.
-    if (!popup) window.location.href = url;
+  const openGoogleMaps = (url: string, popup?: Window | null) => {
+    if (popup) {
+      try {
+        popup.location.href = url;
+        return;
+      } catch {
+        // ignore and fall back
+      }
+    }
+
+    const opened = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!opened) window.location.href = url;
   };
 
   const handleGetDirections = () => {
@@ -158,12 +166,34 @@ const ClinicDetailPage = () => {
       return;
     }
 
-    // More reliable on mobile: let Google Maps handle GPS/current location.
-    // This avoids browser GPS permission issues and still gives true turn-by-turn directions.
+    // Popup-blocker safe: open a blank tab immediately, then redirect it after GPS resolves.
+    const popup = window.open('', '_blank', 'noopener,noreferrer');
     setDirectionsLoading(true);
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapQuery)}`;
-    openGoogleMaps(url);
-    window.setTimeout(() => setDirectionsLoading(false), 600);
+
+    const openDestinationOnly = () => {
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapQuery)}`;
+      openGoogleMaps(url, popup);
+      setDirectionsLoading(false);
+    };
+
+    if (!navigator.geolocation) {
+      openDestinationOnly();
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const url = `https://www.google.com/maps/dir/?api=1&origin=${latitude},${longitude}&destination=${encodeURIComponent(mapQuery)}`;
+        openGoogleMaps(url, popup);
+        setDirectionsLoading(false);
+      },
+      () => {
+        // Permission denied / unavailable / timeout: still open destination so the user can start navigation.
+        openDestinationOnly();
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 },
+    );
   };
   if (loading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">
