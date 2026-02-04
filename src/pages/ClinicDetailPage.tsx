@@ -18,6 +18,7 @@ import { useClinicDoctorsWithSchedules } from '@/hooks/useDoctorSchedules';
 import BookAppointmentDialog from '@/components/clinic/BookAppointmentDialog';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import SEO from '@/components/SEO';
+import { useGeocode } from '@/hooks/useGeocode';
 
 // Clinic interface for clinics_public view (excludes sensitive fields like verification docs)
 interface Clinic {
@@ -135,16 +136,19 @@ const ClinicDetailPage = () => {
     return /bangladesh/i.test(base) ? base : `${base}, Bangladesh`;
   }, [clinic?.address, clinic?.name]);
 
-  const mapEmbedUrl = useMemo(() => {
-    if (!mapQuery) return '';
-    // More reliable embeddable endpoint than /maps?q=... on many mobile browsers.
-    return `https://maps.google.com/maps?hl=en&q=${encodeURIComponent(mapQuery)}&t=&z=15&ie=UTF8&iwloc=B&output=embed`;
-  }, [mapQuery]);
-
   const mapOpenUrl = useMemo(() => {
     if (!mapQuery) return '';
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
   }, [mapQuery]);
+
+  const { data: geocode, isLoading: geocodeLoading } = useGeocode(mapQuery);
+
+  const staticMapUrl = useMemo(() => {
+    if (!geocode?.lat || !geocode?.lng) return '';
+    // Static map image avoids iframe/CSP/embed issues on some mobile browsers.
+    const center = `${geocode.lat},${geocode.lng}`;
+    return `https://staticmap.openstreetmap.de/staticmap.php?center=${encodeURIComponent(center)}&zoom=15&size=640x320&markers=${encodeURIComponent(center)},red-pushpin`;
+  }, [geocode?.lat, geocode?.lng]);
 
   const openGoogleMaps = (url: string, popup?: Window | null) => {
     if (popup) {
@@ -170,8 +174,11 @@ const ClinicDetailPage = () => {
     const popup = window.open('', '_blank', 'noopener,noreferrer');
     setDirectionsLoading(true);
 
+    const destination = geocode?.lat && geocode?.lng ? `${geocode.lat},${geocode.lng}` : mapQuery;
+
     const openDestinationOnly = () => {
-      const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapQuery)}`;
+      // If we can't get GPS, open the place/search view (more reliable than dir with "Your location").
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destination)}`;
       openGoogleMaps(url, popup);
       setDirectionsLoading(false);
     };
@@ -184,7 +191,7 @@ const ClinicDetailPage = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        const url = `https://www.google.com/maps/dir/?api=1&origin=${latitude},${longitude}&destination=${encodeURIComponent(mapQuery)}`;
+        const url = `https://www.google.com/maps/dir/?api=1&origin=${latitude},${longitude}&destination=${encodeURIComponent(destination)}`;
         openGoogleMaps(url, popup);
         setDirectionsLoading(false);
       },
@@ -569,23 +576,32 @@ const ClinicDetailPage = () => {
 
                {/* Map Preview */}
                <div className="rounded-xl overflow-hidden h-40 sm:h-44 bg-muted border border-border/50">
-                {mapEmbedUrl ? (
-                  <iframe
-                    src={mapEmbedUrl}
-                    className="w-full h-full"
-                    title="Clinic location"
-                    loading="lazy"
-                     allowFullScreen
-                  />
-                ) : (
-                  <div className="w-full h-full grid place-items-center p-4 text-center">
-                    <div>
-                      <MapPin className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">Map unavailable</p>
-                    </div>
-                  </div>
-                )}
-              </div>
+                 {staticMapUrl ? (
+                   <a
+                     href={mapOpenUrl || undefined}
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     className="block w-full h-full"
+                     aria-label="Open clinic location in Google Maps"
+                   >
+                     <img
+                       src={staticMapUrl}
+                       alt={`Map preview of ${clinic.name}`}
+                       loading="lazy"
+                       className="w-full h-full object-cover"
+                     />
+                   </a>
+                 ) : geocodeLoading ? (
+                   <div className="w-full h-full animate-pulse bg-muted" />
+                 ) : (
+                   <div className="w-full h-full grid place-items-center p-4 text-center">
+                     <div>
+                       <MapPin className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+                       <p className="text-sm text-muted-foreground">Map unavailable</p>
+                     </div>
+                   </div>
+                 )}
+               </div>
 
                {mapOpenUrl && (
                  <Button variant="link" asChild className="px-0 mt-1">
