@@ -122,15 +122,28 @@ const ClinicDetailPage = () => {
   };
 
   const mapQuery = useMemo(() => {
-    const base = (clinic?.address || clinic?.name || '').trim();
+    const name = (clinic?.name || '').trim();
+    const address = (clinic?.address || '').trim();
+
+    const base = address
+      ? (name && !address.toLowerCase().includes(name.toLowerCase()) ? `${name}, ${address}` : address)
+      : name;
+
     if (!base) return '';
+
     // Helpful for more accurate results when address is short
     return /bangladesh/i.test(base) ? base : `${base}, Bangladesh`;
   }, [clinic?.address, clinic?.name]);
 
   const mapEmbedUrl = useMemo(() => {
     if (!mapQuery) return '';
-    return `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=15&output=embed`;
+    // More reliable embeddable endpoint than /maps?q=... on many mobile browsers.
+    return `https://maps.google.com/maps?hl=en&q=${encodeURIComponent(mapQuery)}&t=&z=15&ie=UTF8&iwloc=B&output=embed`;
+  }, [mapQuery]);
+
+  const mapOpenUrl = useMemo(() => {
+    if (!mapQuery) return '';
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
   }, [mapQuery]);
 
   const openGoogleMaps = (url: string) => {
@@ -524,15 +537,15 @@ const ClinicDetailPage = () => {
 
               <Separator className="my-4" />
 
-              {/* Map Preview */}
-              <div className="rounded-xl overflow-hidden h-40 sm:h-44 bg-muted border border-border/50">
+               {/* Map Preview */}
+               <div className="rounded-xl overflow-hidden h-40 sm:h-44 bg-muted border border-border/50">
                 {mapEmbedUrl ? (
                   <iframe
                     src={mapEmbedUrl}
                     className="w-full h-full"
                     title="Clinic location"
                     loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
+                     allowFullScreen
                   />
                 ) : (
                   <div className="w-full h-full grid place-items-center p-4 text-center">
@@ -543,6 +556,19 @@ const ClinicDetailPage = () => {
                   </div>
                 )}
               </div>
+
+               {mapOpenUrl && (
+                 <Button variant="link" asChild className="px-0 mt-1">
+                   <a
+                     href={mapOpenUrl}
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     aria-label="Open clinic location in Google Maps"
+                   >
+                     Open in Google Maps
+                   </a>
+                 </Button>
+               )}
 
               <Button
                 variant="outline"
