@@ -28,25 +28,13 @@ export const usePublicDoctors = () => {
       // 1. Doctors affiliated with verified clinics (via clinic_doctors)
       // 2. Independently verified doctors (is_verified = true)
 
-      // Fetch clinic-affiliated doctors
-      const { data: affiliatedData, error: affiliatedError } = await supabase
+      // Fetch clinic-affiliated doctors - use separate queries since view FKs don't work with PostgREST
+      const { data: clinicDoctorsData, error: cdError } = await supabase
         .from('clinic_doctors')
         .select(`
           clinic_id,
+          doctor_id,
           status,
-          doctor:doctors_public(
-            id,
-            name,
-            specialization,
-            qualifications,
-            experience_years,
-            consultation_fee,
-            is_available,
-            is_verified,
-            avatar_url,
-            bio,
-            created_at
-          ),
           clinic:clinics!inner(
             id,
             name,
@@ -57,80 +45,55 @@ export const usePublicDoctors = () => {
         `)
         .eq('status', 'active');
 
-      if (affiliatedError) throw affiliatedError;
+      if (cdError) throw cdError;
 
-      // Fetch independently verified doctors
-      const { data: verifiedDoctors, error: verifiedError } = await supabase
+      // Get doctor IDs from active clinic affiliations with verified clinics
+      const verifiedClinicDoctorIds = (clinicDoctorsData || [])
+        .filter((item: any) => item.clinic?.is_verified === true)
+        .map((item: any) => item.doctor_id);
+
+      // Fetch all doctors from the public view
+      const { data: allDoctors, error: doctorsError } = await supabase
         .from('doctors_public')
-        .select('*')
-        .eq('is_verified', true);
+        .select('*');
 
-      if (verifiedError) throw verifiedError;
+      if (doctorsError) throw doctorsError;
 
       // Build a map to deduplicate by doctor ID
       const doctorMap = new Map<string, PublicDoctor>();
 
+      // Create a clinic lookup map
+      const clinicLookup = new Map<string, any>();
+      (clinicDoctorsData || []).forEach((item: any) => {
+        if (item.clinic?.is_verified) {
+          clinicLookup.set(item.doctor_id, item.clinic);
+        }
+      });
+
       // Add clinic-affiliated doctors (from verified clinics only)
-      (affiliatedData || [])
-        .filter((item: any) => item.clinic?.is_verified === true && item.doctor)
-        .forEach((item: any) => {
-          doctorMap.set(item.doctor.id, {
-            id: item.doctor.id,
-            name: item.doctor.name,
-            specialization: item.doctor.specialization,
-            qualifications: item.doctor.qualifications,
-            experience_years: item.doctor.experience_years,
-            consultation_fee: item.doctor.consultation_fee,
-            is_available: item.doctor.is_available,
-            is_verified: item.doctor.is_verified,
-            avatar_url: item.doctor.avatar_url,
-            bio: item.doctor.bio,
-            created_at: item.doctor.created_at,
-            clinic_id: item.clinic.id,
-            clinic_name: item.clinic.name,
-            clinic_address: item.clinic.address,
-            clinic_image_url: item.clinic.image_url,
-            clinic_is_verified: item.clinic.is_verified,
-          });
-        });
-
-      // Add independently verified doctors (if not already in map)
-      // For these, we need to fetch their clinic affiliation if any
-      for (const doctor of verifiedDoctors || []) {
-        if (!doctorMap.has(doctor.id)) {
-          // Check if they have any clinic affiliation
-          const { data: affiliation } = await supabase
-            .from('clinic_doctors')
-            .select(`
-              clinic:clinics(id, name, address, image_url, is_verified)
-            `)
-            .eq('doctor_id', doctor.id)
-            .eq('status', 'active')
-            .limit(1)
-            .single();
-
-          const clinic = affiliation?.clinic as any;
-          
-          doctorMap.set(doctor.id, {
-            id: doctor.id,
-            name: doctor.name,
-            specialization: doctor.specialization,
-            qualifications: doctor.qualifications,
-            experience_years: doctor.experience_years,
-            consultation_fee: doctor.consultation_fee,
-            is_available: doctor.is_available,
-            is_verified: doctor.is_verified,
-            avatar_url: doctor.avatar_url,
-            bio: doctor.bio,
-            created_at: doctor.created_at,
+      (allDoctors || [])
+        .filter((doc: any) => verifiedClinicDoctorIds.includes(doc.id) || doc.is_verified)
+        .forEach((doc: any) => {
+          const clinic = clinicLookup.get(doc.id);
+          doctorMap.set(doc.id, {
+            id: doc.id,
+            name: doc.name,
+            specialization: doc.specialization,
+            qualifications: doc.qualifications,
+            experience_years: doc.experience_years,
+            consultation_fee: doc.consultation_fee,
+            is_available: doc.is_available,
+            is_verified: doc.is_verified,
+            avatar_url: doc.avatar_url,
+            bio: doc.bio,
+            created_at: doc.created_at,
             clinic_id: clinic?.id || '',
             clinic_name: clinic?.name || 'Independent Practice',
             clinic_address: clinic?.address || null,
             clinic_image_url: clinic?.image_url || null,
             clinic_is_verified: clinic?.is_verified || false,
           });
-        }
-      }
+        });
 
       return Array.from(doctorMap.values());
     },
