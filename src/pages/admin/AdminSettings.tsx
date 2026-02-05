@@ -22,6 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { Json } from '@/integrations/supabase/types';
 
 interface StoreSettings {
   name: string;
@@ -101,7 +102,7 @@ const AdminSettings = () => {
     mutationFn: async (data: StoreSettings) => {
       const { error } = await supabase
         .from('admin_settings')
-        .update({ value: data as unknown as Record<string, unknown>, updated_at: new Date().toISOString() })
+        .update({ value: data as unknown as Json, updated_at: new Date().toISOString() })
         .eq('key', 'store');
       if (error) throw error;
     },
@@ -118,7 +119,7 @@ const AdminSettings = () => {
     mutationFn: async (data: NotificationSettings) => {
       const { error } = await supabase
         .from('admin_settings')
-        .update({ value: data as unknown as Record<string, unknown>, updated_at: new Date().toISOString() })
+        .update({ value: data as unknown as Json, updated_at: new Date().toISOString() })
         .eq('key', 'notifications');
       if (error) throw error;
     },
