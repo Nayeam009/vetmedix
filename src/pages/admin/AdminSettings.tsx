@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Loader2,
   AlertCircle,
@@ -18,29 +19,75 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+interface StoreSettings {
+  name: string;
+  email: string;
+  currency: string;
+  taxRate: number;
+}
+
+interface NotificationSettings {
+  orderAlerts: boolean;
+  lowStockAlerts: boolean;
+  newCustomerAlerts: boolean;
+  emailNotifications: boolean;
+}
+
+const defaultStoreSettings: StoreSettings = {
+  name: 'VET-MEDIX',
+  email: 'support@vetmedix.com',
+  currency: 'BDT',
+  taxRate: 0,
+};
+
+const defaultNotifications: NotificationSettings = {
+  orderAlerts: true,
+  lowStockAlerts: true,
+  newCustomerAlerts: false,
+  emailNotifications: true,
+};
 
 const AdminSettings = () => {
   useDocumentTitle('Settings - Admin');
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, roleLoading } = useAdmin();
 
-  const [storeSettings, setStoreSettings] = useState({
-    storeName: 'PetConnect',
-    storeEmail: 'support@petconnect.com',
-    currency: 'BDT',
-    taxRate: '5',
+  const [storeSettings, setStoreSettings] = useState<StoreSettings>(defaultStoreSettings);
+  const [notifications, setNotifications] = useState<NotificationSettings>(defaultNotifications);
+
+  // Fetch settings from database
+  const { data: settings } = useQuery({
+    queryKey: ['admin-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('*');
+
+      if (error) throw error;
+      
+      const storeData = data?.find(s => s.key === 'store');
+      const notifData = data?.find(s => s.key === 'notifications');
+      
+      return {
+        store: storeData?.value ? (storeData.value as unknown as StoreSettings) : defaultStoreSettings,
+        notifications: notifData?.value ? (notifData.value as unknown as NotificationSettings) : defaultNotifications,
+      };
+    },
+    enabled: isAdmin,
   });
 
-  const [notifications, setNotifications] = useState({
-    orderAlerts: true,
-    lowStockAlerts: true,
-    newCustomerAlerts: false,
-    emailNotifications: true,
-  });
+  useEffect(() => {
+    if (settings) {
+      setStoreSettings(settings.store);
+      setNotifications(settings.notifications);
+    }
+  }, [settings]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -50,9 +97,39 @@ const AdminSettings = () => {
     }
   }, [user, authLoading, isAdmin, roleLoading, navigate]);
 
-  const handleSave = () => {
-    toast({ title: 'Settings Saved', description: 'Your settings have been updated successfully.' });
-  };
+  const saveStoreMutation = useMutation({
+    mutationFn: async (data: StoreSettings) => {
+      const { error } = await supabase
+        .from('admin_settings')
+        .update({ value: data as unknown as Record<string, unknown>, updated_at: new Date().toISOString() })
+        .eq('key', 'store');
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
+      toast.success('Store settings saved successfully');
+    },
+    onError: () => {
+      toast.error('Failed to save store settings');
+    },
+  });
+
+  const saveNotificationsMutation = useMutation({
+    mutationFn: async (data: NotificationSettings) => {
+      const { error } = await supabase
+        .from('admin_settings')
+        .update({ value: data as unknown as Record<string, unknown>, updated_at: new Date().toISOString() })
+        .eq('key', 'notifications');
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
+      toast.success('Notification preferences saved successfully');
+    },
+    onError: () => {
+      toast.error('Failed to save notification preferences');
+    },
+  });
 
   if (authLoading || roleLoading) {
     return (
@@ -94,7 +171,6 @@ const AdminSettings = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* General Settings */}
         <TabsContent value="general">
           <Card className="shadow-sm border-border/50">
             <CardHeader className="p-3 sm:p-4 lg:p-6">
@@ -107,8 +183,8 @@ const AdminSettings = () => {
                   <Label htmlFor="storeName" className="text-xs sm:text-sm">Store Name</Label>
                   <Input 
                     id="storeName"
-                    value={storeSettings.storeName}
-                    onChange={(e) => setStoreSettings({ ...storeSettings, storeName: e.target.value })}
+                    value={storeSettings.name}
+                    onChange={(e) => setStoreSettings({ ...storeSettings, name: e.target.value })}
                     className="h-10 sm:h-11 text-sm sm:text-base"
                   />
                 </div>
@@ -117,8 +193,8 @@ const AdminSettings = () => {
                   <Input 
                     id="storeEmail"
                     type="email"
-                    value={storeSettings.storeEmail}
-                    onChange={(e) => setStoreSettings({ ...storeSettings, storeEmail: e.target.value })}
+                    value={storeSettings.email}
+                    onChange={(e) => setStoreSettings({ ...storeSettings, email: e.target.value })}
                     className="h-10 sm:h-11 text-sm sm:text-base"
                   />
                 </div>
@@ -137,20 +213,23 @@ const AdminSettings = () => {
                     id="taxRate"
                     type="number"
                     value={storeSettings.taxRate}
-                    onChange={(e) => setStoreSettings({ ...storeSettings, taxRate: e.target.value })}
+                    onChange={(e) => setStoreSettings({ ...storeSettings, taxRate: parseFloat(e.target.value) || 0 })}
                     className="h-10 sm:h-11 text-sm sm:text-base"
                   />
                 </div>
               </div>
-              <Button onClick={handleSave} className="w-full sm:w-auto min-h-[44px] sm:min-h-0 gap-2 text-sm">
-                <Save className="h-4 w-4" />
+              <Button 
+                onClick={() => saveStoreMutation.mutate(storeSettings)} 
+                disabled={saveStoreMutation.isPending}
+                className="w-full sm:w-auto min-h-[44px] sm:min-h-0 gap-2 text-sm"
+              >
+                {saveStoreMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Save Changes
               </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Notification Settings */}
         <TabsContent value="notifications">
           <Card className="shadow-sm border-border/50">
             <CardHeader className="p-3 sm:p-4 lg:p-6">
@@ -204,15 +283,18 @@ const AdminSettings = () => {
                   />
                 </div>
               </div>
-              <Button onClick={handleSave} className="w-full sm:w-auto min-h-[44px] sm:min-h-0 gap-2 text-sm">
-                <Save className="h-4 w-4" />
+              <Button 
+                onClick={() => saveNotificationsMutation.mutate(notifications)} 
+                disabled={saveNotificationsMutation.isPending}
+                className="w-full sm:w-auto min-h-[44px] sm:min-h-0 gap-2 text-sm"
+              >
+                {saveNotificationsMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Save Preferences
               </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Security Settings */}
         <TabsContent value="security">
           <Card className="shadow-sm border-border/50">
             <CardHeader className="p-3 sm:p-4 lg:p-6">
