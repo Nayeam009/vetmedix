@@ -1,11 +1,9 @@
-import { useState, useEffect, useCallback, memo } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, Filter, Loader2, X, MapPin, Users, Heart, Sparkles, PawPrint } from 'lucide-react';
+import { useCallback, memo } from 'react';
+import { Search, X, MapPin, Sparkles, PawPrint } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -22,11 +20,10 @@ import {
   SheetTrigger,
   SheetClose,
 } from '@/components/ui/sheet';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { useFollow } from '@/hooks/useFollow';
-import type { Pet } from '@/types/social';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useExplorePets } from '@/hooks/useExplorePets';
+import ExplorePetCard from '@/components/explore/ExplorePetCard';
+import { PetGridSkeleton } from '@/components/explore/PetCardSkeleton';
 
 const speciesOptions = ['All', 'Dog', 'Cat', 'Bird', 'Fish', 'Rabbit', 'Hamster', 'Other'];
 
@@ -40,231 +37,44 @@ const speciesEmojis: Record<string, string> = {
   Other: '🐾',
 };
 
-const PetCard = memo(({ pet, onFollow }: { pet: Pet; onFollow?: () => void }) => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const { isFollowing, followersCount, follow, unfollow } = useFollow(pet.id);
-  const isOwner = user?.id === pet.user_id;
-
-  const handleFollowClick = useCallback(async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-    if (isFollowing) {
-      await unfollow();
-    } else {
-      await follow();
-    }
-    onFollow?.();
-  }, [user, isFollowing, unfollow, follow, onFollow, navigate]);
-
-  const handleCardClick = useCallback(() => {
-    navigate(`/pet/${pet.id}`);
-  }, [navigate, pet.id]);
-
-  return (
-    <Card 
-      className="group cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-border/50 bg-card transform-gpu"
-      onClick={handleCardClick}
-      role="article"
-      aria-label={`${pet.name}'s profile card`}
-    >
-      {/* Cover Photo Section */}
-      <div className="relative h-28 sm:h-32 md:h-36 overflow-hidden">
-        {/* Cover Image or Gradient Fallback */}
-        {pet.cover_photo_url ? (
-          <img 
-            src={pet.cover_photo_url} 
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 transform-gpu"
-            loading="lazy"
-          />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-accent/20 to-secondary/40" aria-hidden="true">
-            <div className="absolute inset-0 paw-pattern opacity-30" />
-          </div>
-        )}
-        
-        {/* Overlay for readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
-        
-        {/* Species Badge */}
-        <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3">
-          <Badge className="bg-card/95 backdrop-blur-sm text-foreground border-0 shadow-md text-xs font-medium px-2.5 py-1">
-            {speciesEmojis[pet.species] || '🐾'} {pet.species}
-          </Badge>
-        </div>
-
-        {/* Avatar - Positioned at bottom of cover */}
-        <div className="absolute -bottom-10 sm:-bottom-12 left-3 sm:left-4">
-          <div className="relative">
-            {/* Gradient Ring */}
-            <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-primary via-accent to-primary opacity-75 blur-sm" />
-            <div className="relative rounded-full p-[3px] bg-gradient-to-br from-primary to-accent">
-              <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-[3px] border-card shadow-lg">
-                <AvatarImage 
-                  src={pet.avatar_url || ''} 
-                  alt={pet.name}
-                  className="object-cover"
-                />
-                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-2xl sm:text-3xl font-bold text-primary">
-                  {pet.name.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <CardContent className="pt-12 sm:pt-14 pb-4 px-3 sm:px-4">
-        {/* Name & Follow Button Row */}
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="min-w-0 flex-1">
-            <h3 className="font-bold text-base sm:text-lg truncate group-hover:text-primary transition-colors">
-              {pet.name}
-            </h3>
-            {pet.breed && (
-              <p className="text-xs sm:text-sm text-muted-foreground truncate">{pet.breed}</p>
-            )}
-          </div>
-          {!isOwner && (
-            <Button
-              variant={isFollowing ? 'outline' : 'default'}
-              size="sm"
-              onClick={handleFollowClick}
-              className={`shrink-0 h-8 sm:h-9 text-xs sm:text-sm px-3 ${
-                isFollowing 
-                  ? 'hover:bg-destructive/10 hover:text-destructive hover:border-destructive' 
-                  : 'bg-primary hover:bg-primary/90 text-primary-foreground'
-              }`}
-            >
-              {isFollowing ? (
-                <>
-                  <Heart className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1 fill-current" />
-                  <span className="hidden xs:inline">Following</span>
-                  <span className="xs:hidden">✓</span>
-                </>
-              ) : (
-                <>
-                  <Heart className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
-                  Follow
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-
-        {/* Stats Row */}
-        <div className="flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground mb-2.5">
-          <span className="flex items-center gap-1 bg-muted/50 px-2 py-0.5 rounded-full">
-            <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-            <span className="font-medium">{followersCount}</span>
-          </span>
-          {pet.location && (
-            <span className="flex items-center gap-1 truncate">
-              <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0 text-primary/70" />
-              <span className="truncate">{pet.location}</span>
-            </span>
-          )}
-        </div>
-
-        {/* Bio */}
-        {pet.bio && (
-          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-            {pet.bio}
-          </p>
-        )}
-      </CardContent>
-    </Card>
-  );
-});
-
-PetCard.displayName = 'PetCard';
-
 const ExplorePage = () => {
   useDocumentTitle('Explore Pets');
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [pets, setPets] = useState<Pet[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
-  const [species, setSpecies] = useState(searchParams.get('species') || 'All');
-  const [location, setLocation] = useState(searchParams.get('location') || '');
 
-  const fetchPets = async () => {
-    setLoading(true);
-    try {
-      let query = supabase
-        .from('pets')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (searchQuery) {
-        query = query.or(`name.ilike.%${searchQuery}%,breed.ilike.%${searchQuery}%`);
-      }
-
-      if (species && species !== 'All') {
-        query = query.eq('species', species);
-      }
-
-      if (location) {
-        query = query.ilike('location', `%${location}%`);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      setPets((data || []) as Pet[]);
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error fetching pets:', error);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchPets();
-  }, [species]);
-
-  const handleSearch = useCallback(() => {
-    setSearchParams({
-      ...(searchQuery && { q: searchQuery }),
-      ...(species !== 'All' && { species }),
-      ...(location && { location }),
-    });
-    fetchPets();
-  }, [searchQuery, species, location, setSearchParams]);
-
-  const clearFilters = useCallback(() => {
-    setSearchQuery('');
-    setSpecies('All');
-    setLocation('');
-    setSearchParams({});
-    fetchPets();
-  }, [setSearchParams]);
+  const {
+    pets,
+    followDataMap,
+    loading,
+    searchQuery,
+    setSearchQuery,
+    species,
+    setSpecies,
+    location,
+    setLocation,
+    handleSearch,
+    clearFilters,
+    hasActiveFilters,
+    optimisticFollow,
+    optimisticUnfollow,
+  } = useExplorePets();
 
   const handleSearchInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-  }, []);
+  }, [setSearchQuery]);
 
   const handleLocationChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setLocation(e.target.value);
-  }, []);
+  }, [setLocation]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleSearch();
   }, [handleSearch]);
 
-  const hasActiveFilters = searchQuery || species !== 'All' || location;
   const activeFilterCount = [searchQuery, species !== 'All' ? species : null, location].filter(Boolean).length;
 
   return (
     <div className="min-h-screen bg-background pb-24 md:pb-8">
       <Navbar />
-      
+
       {/* Hero Header Section */}
       <header className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/20 border-b border-border/50">
         <div className="absolute inset-0 paw-pattern opacity-30" aria-hidden="true" />
@@ -286,7 +96,7 @@ const ExplorePage = () => {
 
       <main className="container mx-auto px-4 py-4 sm:py-6" role="main" aria-label="Explore pets">
         <div className="max-w-5xl mx-auto">
-          
+
           {/* Search & Filters - Sticky on Mobile */}
           <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm -mx-4 px-4 py-3 sm:static sm:bg-transparent sm:backdrop-blur-none sm:mx-0 sm:px-0 sm:py-0 sm:mb-6 border-b sm:border-none border-border/50">
             <div className="flex flex-col gap-3">
@@ -303,8 +113,8 @@ const ExplorePage = () => {
                     aria-label="Search pets"
                   />
                 </div>
-                <Button 
-                  onClick={handleSearch} 
+                <Button
+                  onClick={handleSearch}
                   className="btn-primary h-11 sm:h-10 px-4 sm:px-6"
                   aria-label="Search"
                 >
@@ -315,7 +125,6 @@ const ExplorePage = () => {
 
               {/* Filter Row */}
               <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-                {/* Species Pills - Mobile Horizontal Scroll */}
                 <div className="flex gap-1.5 sm:gap-2">
                   {speciesOptions.slice(0, 5).map((s) => (
                     <Button
@@ -324,8 +133,8 @@ const ExplorePage = () => {
                       size="sm"
                       onClick={() => setSpecies(s)}
                       className={`shrink-0 h-9 text-xs sm:text-sm ${
-                        species === s 
-                          ? 'bg-primary text-primary-foreground' 
+                        species === s
+                          ? 'bg-primary text-primary-foreground'
                           : 'bg-card hover:bg-secondary'
                       }`}
                     >
@@ -335,7 +144,6 @@ const ExplorePage = () => {
                   ))}
                 </div>
 
-                {/* More Species Dropdown */}
                 <Select value={species} onValueChange={setSpecies}>
                   <SelectTrigger className="w-auto h-9 shrink-0 bg-card border-border/50 text-xs sm:text-sm">
                     <span className="flex items-center gap-1">
@@ -356,9 +164,9 @@ const ExplorePage = () => {
                 {/* Location Filter Sheet */}
                 <Sheet>
                   <SheetTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className={`shrink-0 h-9 gap-1.5 bg-card border-border/50 ${
                         location ? 'border-primary text-primary' : ''
                       }`}
@@ -385,8 +193,8 @@ const ExplorePage = () => {
                       />
                       <div className="flex gap-2">
                         <SheetClose asChild>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             className="flex-1 h-12"
                             onClick={() => setLocation('')}
                           >
@@ -394,8 +202,8 @@ const ExplorePage = () => {
                           </Button>
                         </SheetClose>
                         <SheetClose asChild>
-                          <Button 
-                            onClick={handleSearch} 
+                          <Button
+                            onClick={handleSearch}
                             className="flex-1 h-12 btn-primary"
                           >
                             Apply Filter
@@ -414,8 +222,8 @@ const ExplorePage = () => {
             <div className="flex flex-wrap items-center gap-2 py-3 sm:py-4">
               <span className="text-xs text-muted-foreground">Active:</span>
               {searchQuery && (
-                <Badge 
-                  variant="secondary" 
+                <Badge
+                  variant="secondary"
                   className="gap-1.5 pl-2.5 pr-1.5 py-1 bg-primary/10 text-primary border-0 hover:bg-primary/20 cursor-pointer"
                   onClick={() => { setSearchQuery(''); handleSearch(); }}
                 >
@@ -425,8 +233,8 @@ const ExplorePage = () => {
                 </Badge>
               )}
               {species !== 'All' && (
-                <Badge 
-                  variant="secondary" 
+                <Badge
+                  variant="secondary"
                   className="gap-1.5 pl-2.5 pr-1.5 py-1 bg-accent/10 text-accent border-0 hover:bg-accent/20 cursor-pointer"
                   onClick={() => setSpecies('All')}
                 >
@@ -435,8 +243,8 @@ const ExplorePage = () => {
                 </Badge>
               )}
               {location && (
-                <Badge 
-                  variant="secondary" 
+                <Badge
+                  variant="secondary"
                   className="gap-1.5 pl-2.5 pr-1.5 py-1 bg-secondary text-secondary-foreground border-0 hover:bg-secondary/80 cursor-pointer"
                   onClick={() => { setLocation(''); handleSearch(); }}
                 >
@@ -445,9 +253,9 @@ const ExplorePage = () => {
                   <X className="h-3 w-3 ml-0.5" />
                 </Badge>
               )}
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={clearFilters}
                 className="text-xs h-7 px-2 text-muted-foreground hover:text-destructive"
               >
@@ -468,13 +276,7 @@ const ExplorePage = () => {
 
           {/* Results Grid */}
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-16 sm:py-20" aria-busy="true" aria-label="Loading pets">
-              <div className="relative">
-                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" aria-hidden="true" />
-                <Loader2 className="h-10 w-10 animate-spin text-primary relative" />
-              </div>
-              <p className="text-muted-foreground mt-4 text-sm">Finding adorable pets...</p>
-            </div>
+            <PetGridSkeleton count={6} />
           ) : pets.length === 0 ? (
             <Card className="border-dashed border-2 bg-card/50">
               <CardContent className="py-12 sm:py-16 text-center">
@@ -496,12 +298,17 @@ const ExplorePage = () => {
           ) : (
             <div className="grid gap-3 sm:gap-4 lg:gap-5 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3">
               {pets.map((pet, index) => (
-                <div 
-                  key={pet.id} 
+                <div
+                  key={pet.id}
                   className="animate-fade-in"
                   style={{ animationDelay: `${Math.min(index, 8) * 50}ms` }}
                 >
-                  <PetCard pet={pet} onFollow={fetchPets} />
+                  <ExplorePetCard
+                    pet={pet}
+                    followData={followDataMap[pet.id] || { followersCount: 0, isFollowing: false }}
+                    onFollow={optimisticFollow}
+                    onUnfollow={optimisticUnfollow}
+                  />
                 </div>
               ))}
             </div>
