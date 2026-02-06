@@ -41,7 +41,7 @@ const Navbar = () => {
           <Logo to="/" size="md" showText showSubtitle className="flex-shrink-0" />
 
           {/* Search Bar - Desktop */}
-          <div className="hidden lg:flex flex-1 max-w-md mx-4 xl:mx-6">
+          <div className="hidden lg:flex flex-1 max-w-sm xl:max-w-md mx-6 xl:mx-8 min-w-0">
             <GlobalSearch variant="navbar" className="w-full" />
           </div>
 
