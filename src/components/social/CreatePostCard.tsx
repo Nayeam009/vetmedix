@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, forwardRef } from 'react';
 import { Image, Video, X, Loader2, ChevronDown, Check, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -34,10 +34,10 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB (raw)
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB for videos
 const MAX_VIDEO_DURATION = 60; // 1 minute in seconds
 
-export const CreatePostCard = ({
+export const CreatePostCard = forwardRef<HTMLDivElement, CreatePostCardProps>(({
   onPostCreated,
   defaultPetId
-}: CreatePostCardProps) => {
+}, ref) => {
   const { user } = useAuth();
   const { activePet, pets } = usePets();
   const navigate = useNavigate();
@@ -322,7 +322,7 @@ export const CreatePostCard = ({
   }
 
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-border/50 mb-3 sm:mb-4 overflow-hidden">
+    <div ref={ref} className="bg-card rounded-xl shadow-sm border border-border/50 mb-3 sm:mb-4 overflow-hidden">
       {/* Composer Header */}
       <div className="p-3 sm:p-4 pb-2 sm:pb-3">
         <div className="flex items-center gap-2 sm:gap-3">
@@ -507,4 +507,6 @@ export const CreatePostCard = ({
       <input ref={fileInputRef} type="file" className="hidden" onChange={handleFilesChange} />
     </div>
   );
-};
+});
+
+CreatePostCard.displayName = 'CreatePostCard';

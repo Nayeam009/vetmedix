@@ -1,10 +1,11 @@
+import { forwardRef } from 'react';
 import { Phone, Mail, MapPin, Facebook, Instagram, Youtube, PawPrint } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Logo from '@/components/Logo';
 
-const Footer = () => {
+const Footer = forwardRef<HTMLElement>((_, ref) => {
   return (
-    <footer className="bg-foreground text-card">
+    <footer ref={ref} className="bg-foreground text-card">
       <div className="container mx-auto px-3 sm:px-4 py-8 sm:py-12 md:py-16">
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
           {/* Brand */}
@@ -118,6 +119,8 @@ const Footer = () => {
       </div>
     </footer>
   );
-};
+});
+
+Footer.displayName = 'Footer';
 
 export default Footer;
