@@ -61,6 +61,35 @@ const TrackOrderPage = () => {
     }
   }, [orderId, user]);
 
+  // Real-time order status updates on tracking page
+  useEffect(() => {
+    if (!orderId || !user) return;
+
+    const channel = supabase
+      .channel(`track-order-${orderId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `id=eq.${orderId}`,
+        },
+        (payload) => {
+          const updated = payload.new as unknown as OrderDetails;
+          setOrder((prev) => (prev ? { ...prev, ...updated } : prev));
+          if (updated.tracking_id && updated.tracking_id !== order?.tracking_id) {
+            setTrackingCode(updated.tracking_id);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [orderId, user]);
+
   const fetchOrder = async (id: string) => {
     setIsLoading(true);
     try {

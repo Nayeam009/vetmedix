@@ -43,6 +43,8 @@ interface Order {
   status: string;
   shipping_address: string | null;
   created_at: string;
+  tracking_id?: string | null;
+  rejection_reason?: string | null;
 }
 
 interface Appointment {
@@ -94,6 +96,34 @@ const ProfilePage = () => {
       fetchData();
     }
   }, [user, authLoading, navigate]);
+
+  // Real-time order status updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('user-orders-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as Order;
+          setOrders((prev) =>
+            prev.map((o) => (o.id === updated.id ? { ...o, ...updated } : o))
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const fetchData = async () => {
     if (!user) return;
