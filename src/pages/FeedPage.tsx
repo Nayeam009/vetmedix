@@ -5,24 +5,35 @@ import Footer from '@/components/Footer';
 import { CreatePostCard } from '@/components/social/CreatePostCard';
 import { PostCard } from '@/components/social/PostCard';
 import { StoriesBar } from '@/components/social/StoriesBar';
-import { FeedSkeletons } from '@/components/social/PostCardSkeleton';
+import { FeedSkeletons, PostCardSkeleton } from '@/components/social/PostCardSkeleton';
 import { usePosts } from '@/hooks/usePosts';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useAuth } from '@/contexts/AuthContext';
-import { Users, Compass } from 'lucide-react';
+import { Users, Compass, Loader2 } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const FeedPage = () => {
   useDocumentTitle('Social Feed');
   const { user } = useAuth();
   const [feedType, setFeedType] = useState<'all' | 'following'>('all');
-  
-  const { 
-    posts, 
-    loading, 
-    likePost, 
-    unlikePost, 
-    refreshPosts 
+
+  const {
+    posts,
+    loading,
+    loadingMore,
+    hasMore,
+    likePost,
+    unlikePost,
+    loadMore,
+    refreshPosts
   } = usePosts(undefined, feedType);
+
+  // Infinite scroll sentinel
+  const { sentinelRef } = useInfiniteScroll(loadMore, {
+    isLoading: loading || loadingMore,
+    hasMore,
+    threshold: 300,
+  });
 
   const handleLikePost = useCallback((postId: string) => {
     likePost(postId);
@@ -70,42 +81,60 @@ const FeedPage = () => {
     }
 
     return (
-      <div role="list" aria-label="Posts" className="space-y-3 sm:space-y-4">
-        {posts.map((post) => (
-          <div key={post.id} role="listitem">
+      <>
+        <div role="feed" aria-label="Posts" aria-busy={loadingMore} className="space-y-3 sm:space-y-4">
+          {posts.map((post) => (
             <PostCard
+              key={post.id}
               post={post}
               onLike={handleLikePost}
               onUnlike={handleUnlikePost}
               onDelete={handleRefreshPosts}
             />
+          ))}
+        </div>
+
+        {/* Loading more indicator */}
+        {loadingMore && (
+          <div className="py-4 sm:py-6 space-y-3 sm:space-y-4">
+            <PostCardSkeleton />
           </div>
-        ))}
-      </div>
+        )}
+
+        {/* Sentinel element for infinite scroll */}
+        <div ref={sentinelRef} className="h-1" aria-hidden="true" />
+
+        {/* End of feed message */}
+        {!hasMore && posts.length > 0 && (
+          <div className="text-center py-6 sm:py-8">
+            <p className="text-muted-foreground text-xs sm:text-sm">You've reached the end 🐾</p>
+          </div>
+        )}
+      </>
     );
   };
 
   return (
     <div className="min-h-screen bg-muted/40 flex flex-col">
       <Navbar />
-      
+
       <main className="container mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6 max-w-[680px] flex-1" role="main" aria-label="Pet Social Feed">
         {/* Stories */}
         <StoriesBar />
 
         <Tabs value={feedType} onValueChange={handleFeedTypeChange}>
           <TabsList className="grid w-full grid-cols-2 mb-3 sm:mb-4 p-1 bg-card border border-border/50 rounded-xl shadow-sm h-11 sm:h-12" aria-label="Feed type selection">
-            <TabsTrigger 
-              value="all" 
+            <TabsTrigger
+              value="all"
               className="flex items-center gap-2 rounded-lg font-semibold text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none transition-all"
               aria-label="Discover all posts"
             >
               <Compass className="h-4 w-4" aria-hidden="true" />
               <span className="hidden xs:inline">Discover</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="following" 
-              className="flex items-center gap-2 rounded-lg font-semibold text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none transition-all" 
+            <TabsTrigger
+              value="following"
+              className="flex items-center gap-2 rounded-lg font-semibold text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none transition-all"
               disabled={!user}
               aria-label="View posts from pets you follow"
             >
@@ -116,11 +145,11 @@ const FeedPage = () => {
 
           <CreatePostCard onPostCreated={handleRefreshPosts} />
 
-          <TabsContent value="all" className="mt-0" role="feed" aria-label="All posts feed">
+          <TabsContent value="all" className="mt-0">
             {renderPosts()}
           </TabsContent>
 
-          <TabsContent value="following" className="mt-0" role="feed" aria-label="Following feed">
+          <TabsContent value="following" className="mt-0">
             {renderPosts()}
           </TabsContent>
         </Tabs>
