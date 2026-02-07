@@ -256,68 +256,42 @@ const AdminDoctors = () => {
   return (
     <AdminLayout title="Doctor Management" subtitle="Review and manage doctor verifications">
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Doctors</p>
-                <p className="text-2xl font-bold">{doctors?.length || 0}</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+        {[
+          { label: 'Total Doctors', value: doctors?.length || 0, icon: Stethoscope, color: 'text-primary', iconBg: 'text-primary/20' },
+          { label: 'Pending', value: pendingCount, icon: Clock, color: 'text-yellow-600', iconBg: 'text-yellow-500/20' },
+          { label: 'Verified', value: verifiedCount, icon: CheckCircle, color: 'text-green-600', iconBg: 'text-green-500/20' },
+          { label: 'Blocked', value: blockedCount, icon: Ban, color: 'text-red-600', iconBg: 'text-red-500/20' },
+        ].map((stat) => (
+          <Card key={stat.label}>
+            <CardContent className="p-4 sm:pt-6">
+              <div className="flex items-center justify-between">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">{stat.label}</p>
+                  <p className={`text-xl sm:text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                </div>
+                <stat.icon className={`h-6 w-6 sm:h-8 sm:w-8 shrink-0 ${stat.iconBg}`} />
               </div>
-              <Stethoscope className="h-8 w-8 text-primary/20" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Pending</p>
-                <p className="text-2xl font-bold text-yellow-600">{pendingCount}</p>
-              </div>
-              <Clock className="h-8 w-8 text-yellow-500/20" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Verified</p>
-                <p className="text-2xl font-bold text-green-600">{verifiedCount}</p>
-              </div>
-              <CheckCircle className="h-8 w-8 text-green-500/20" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Blocked</p>
-                <p className="text-2xl font-bold text-red-600">{blockedCount}</p>
-              </div>
-              <Ban className="h-8 w-8 text-red-500/20" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Filters */}
-      <Card className="mb-6">
-        <CardContent className="py-4">
-          <div className="flex flex-col sm:flex-row gap-4">
+      <Card className="mb-4 sm:mb-6">
+        <CardContent className="p-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search doctors..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-10 sm:h-10"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px] h-10">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Filter status" />
               </SelectTrigger>
@@ -347,53 +321,57 @@ const AdminDoctors = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3 sm:gap-4">
           {filteredDoctors.map((doctor) => (
             <Card key={doctor.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-12 w-12">
+              <CardContent className="p-3 sm:p-4">
+                {/* Mobile: stacked layout, Desktop: horizontal */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                  {/* Doctor Info */}
+                  <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                    <Avatar className="h-10 w-10 sm:h-12 sm:w-12 shrink-0">
                       <AvatarImage src={doctor.avatar_url || ''} />
                       <AvatarFallback>
-                        <Stethoscope className="h-6 w-6" />
+                        <Stethoscope className="h-5 w-5 sm:h-6 sm:w-6" />
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">{doctor.name}</h3>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h3 className="font-semibold text-sm sm:text-base truncate">{doctor.name}</h3>
                         {getStatusBadge(doctor)}
                         {doctor.created_by_clinic_id && (
-                          <Badge variant="outline" className="text-xs">Clinic Doctor</Badge>
+                          <Badge variant="outline" className="text-[10px] sm:text-xs shrink-0">Clinic Doctor</Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">
                         {doctor.specialization || 'General Veterinarian'} • {doctor.experience_years || 0} yrs exp
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">
                         Registered: {format(new Date(doctor.created_at), 'MMM d, yyyy')}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:shrink-0 ml-[52px] sm:ml-0">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleViewDetails(doctor)}
+                      className="min-h-[36px] sm:min-h-[44px] text-xs sm:text-sm"
                     >
-                      <Eye className="h-4 w-4 mr-1" />
+                      <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
                       View
                     </Button>
                     {doctor.verification_status === 'pending' && (
                       <>
                         <Button
                           size="sm"
-                          className="bg-green-600 hover:bg-green-700"
+                          className="bg-green-600 hover:bg-green-700 min-h-[36px] sm:min-h-[44px] text-xs sm:text-sm"
                           onClick={() => approveMutation.mutate(doctor.id)}
                           disabled={approveMutation.isPending}
                         >
-                          <CheckCircle className="h-4 w-4 mr-1" />
+                          <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
                           Approve
                         </Button>
                         <Button
@@ -403,8 +381,9 @@ const AdminDoctors = () => {
                             setSelectedDoctor(doctor);
                             setIsRejectOpen(true);
                           }}
+                          className="min-h-[36px] sm:min-h-[44px] text-xs sm:text-sm"
                         >
-                          <XCircle className="h-4 w-4 mr-1" />
+                          <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
                           Reject
                         </Button>
                       </>
@@ -415,9 +394,9 @@ const AdminDoctors = () => {
                         variant="outline"
                         onClick={() => blockMutation.mutate({ doctorId: doctor.id, block: false })}
                         disabled={blockMutation.isPending}
-                        className="text-green-600"
+                        className="text-green-600 min-h-[36px] sm:min-h-[44px] text-xs sm:text-sm"
                       >
-                        <ShieldCheck className="h-4 w-4 mr-1" />
+                        <ShieldCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
                         Unblock
                       </Button>
                     )}
@@ -429,9 +408,9 @@ const AdminDoctors = () => {
                           setSelectedDoctor(doctor);
                           setIsBlockOpen(true);
                         }}
-                        className="text-red-600"
+                        className="text-red-600 min-h-[36px] sm:min-h-[44px] text-xs sm:text-sm"
                       >
-                        <ShieldOff className="h-4 w-4 mr-1" />
+                        <ShieldOff className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
                         Block
                       </Button>
                     )}
@@ -445,8 +424,8 @@ const AdminDoctors = () => {
 
       {/* Doctor Details Dialog */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-auto">
+          <DialogHeader className="gap-1">
             <DialogTitle className="flex items-center gap-2">
               <Avatar className="h-10 w-10">
                 <AvatarImage src={selectedDoctor?.avatar_url || ''} />
@@ -474,30 +453,30 @@ const AdminDoctors = () => {
               </div>
 
               {/* Basic Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="min-w-0">
                   <Label className="text-xs text-muted-foreground">Email</Label>
-                  <p className="font-medium">{selectedDoctor.email || 'N/A'}</p>
+                  <p className="font-medium text-sm truncate">{selectedDoctor.email || 'N/A'}</p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Phone</Label>
-                  <p className="font-medium">{selectedDoctor.phone || 'N/A'}</p>
+                  <p className="font-medium text-sm">{selectedDoctor.phone || 'N/A'}</p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">License Number</Label>
-                  <p className="font-medium">{selectedDoctor.license_number || 'N/A'}</p>
+                  <p className="font-medium text-sm">{selectedDoctor.license_number || 'N/A'}</p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">NID Number</Label>
-                  <p className="font-medium">{selectedDoctor.nid_number || 'N/A'}</p>
+                  <p className="font-medium text-sm">{selectedDoctor.nid_number || 'N/A'}</p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Experience</Label>
-                  <p className="font-medium">{selectedDoctor.experience_years || 0} years</p>
+                  <p className="font-medium text-sm">{selectedDoctor.experience_years || 0} years</p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Consultation Fee</Label>
-                  <p className="font-medium">৳{selectedDoctor.consultation_fee || 0}</p>
+                  <p className="font-medium text-sm">৳{selectedDoctor.consultation_fee || 0}</p>
                 </div>
               </div>
 
