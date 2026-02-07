@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, forwardRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Image, Video, X, Loader2, ChevronDown, Check, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -34,10 +34,10 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB (raw)
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB for videos
 const MAX_VIDEO_DURATION = 60; // 1 minute in seconds
 
-export const CreatePostCard = forwardRef<HTMLDivElement, CreatePostCardProps>(({
+export const CreatePostCard = ({
   onPostCreated,
   defaultPetId
-}, ref) => {
+}: CreatePostCardProps) => {
   const { user } = useAuth();
   const { activePet, pets } = usePets();
   const navigate = useNavigate();
@@ -322,7 +322,7 @@ export const CreatePostCard = forwardRef<HTMLDivElement, CreatePostCardProps>(({
   }
 
   return (
-    <div ref={ref} className="bg-card rounded-xl shadow-sm border border-border/50 mb-3 sm:mb-4 overflow-hidden">
+    <div className="bg-card rounded-xl shadow-sm border border-border/50 mb-3 sm:mb-4 overflow-hidden">
       {/* Composer Header */}
       <div className="p-3 sm:p-4 pb-2 sm:pb-3">
         <div className="flex items-center gap-2 sm:gap-3">
@@ -449,7 +449,7 @@ export const CreatePostCard = forwardRef<HTMLDivElement, CreatePostCardProps>(({
                       </Button>
                       {/* Show compression badge */}
                       {compressionStats[index] && compressionStats[index].compressionRatio > 1 && (
-                        <div className="absolute bottom-1.5 left-1.5 sm:bottom-2 sm:left-2 bg-green-500/90 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
+                        <div className="absolute bottom-1.5 left-1.5 sm:bottom-2 sm:left-2 bg-accent/90 text-accent-foreground text-[10px] px-1.5 py-0.5 rounded-full font-medium">
                           {Math.round((1 - compressionStats[index].compressedSize / compressionStats[index].originalSize) * 100)}% smaller
                         </div>
                       )}
@@ -474,7 +474,7 @@ export const CreatePostCard = forwardRef<HTMLDivElement, CreatePostCardProps>(({
               size="sm" 
               onClick={() => handleFileSelect('image')} 
               disabled={submitting} 
-              className="h-8 sm:h-9 gap-1 sm:gap-2 rounded-lg text-green-600 hover:bg-green-50 hover:text-green-700 font-medium text-xs sm:text-sm px-2 sm:px-3 flex-shrink-0"
+              className="h-8 sm:h-9 gap-1 sm:gap-2 rounded-lg text-accent hover:bg-accent/10 hover:text-accent font-medium text-xs sm:text-sm px-2 sm:px-3 flex-shrink-0"
             >
               <Image className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="hidden xs:inline">Photo</span>
@@ -484,7 +484,7 @@ export const CreatePostCard = forwardRef<HTMLDivElement, CreatePostCardProps>(({
               size="sm" 
               onClick={() => handleFileSelect('video')} 
               disabled={submitting} 
-              className="h-8 sm:h-9 gap-1 sm:gap-2 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-600 font-medium text-xs sm:text-sm px-2 sm:px-3 flex-shrink-0"
+              className="h-8 sm:h-9 gap-1 sm:gap-2 rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive font-medium text-xs sm:text-sm px-2 sm:px-3 flex-shrink-0"
             >
               <Video className="h-4 w-4 sm:h-5 sm:w-5" />
               <span className="hidden xs:inline">Video</span>
@@ -507,6 +507,4 @@ export const CreatePostCard = forwardRef<HTMLDivElement, CreatePostCardProps>(({
       <input ref={fileInputRef} type="file" className="hidden" onChange={handleFilesChange} />
     </div>
   );
-});
-
-CreatePostCard.displayName = 'CreatePostCard';
+};
