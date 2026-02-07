@@ -16,6 +16,7 @@ import {
   BarChart3,
   PieChartIcon,
   ArrowUpRight,
+  Stethoscope,
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AnalyticsStatCard } from '@/components/admin/AnalyticsStatCard';
@@ -132,10 +133,11 @@ const AdminAnalytics = () => {
         </h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
           <AnalyticsStatCard
-            title="Total Revenue"
+            title="Active Revenue"
             value={formatCurrency(analytics?.totalRevenue || 0)}
             icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />}
-            trend={{ value: analytics?.revenueGrowth || 0, label: 'vs last month' }}
+            trend={analytics?.revenueGrowth !== 0 ? { value: analytics?.revenueGrowth || 0, label: 'vs last month' } : undefined}
+            subtitle={analytics?.cancelledRevenue ? `৳${(analytics.cancelledRevenue).toLocaleString()} cancelled` : 'Excl. cancelled/rejected'}
             iconClassName="bg-emerald-100 dark:bg-emerald-900/30"
             className="bg-gradient-to-br from-emerald-50 to-green-50/50 border-emerald-100 dark:from-emerald-950/30 dark:to-green-950/20 dark:border-emerald-900/50"
           />
@@ -143,7 +145,8 @@ const AdminAnalytics = () => {
             title="Total Orders"
             value={analytics?.totalOrders || 0}
             icon={<ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />}
-            trend={{ value: analytics?.orderGrowth || 0, label: 'vs last month' }}
+            trend={analytics?.orderGrowth !== 0 ? { value: analytics?.orderGrowth || 0, label: 'vs last month' } : undefined}
+            subtitle={`${analytics?.activeOrders || 0} active · ${analytics?.cancelledOrders || 0} cancelled`}
             iconClassName="bg-blue-100 dark:bg-blue-900/30"
             className="bg-gradient-to-br from-blue-50 to-indigo-50/50 border-blue-100 dark:from-blue-950/30 dark:to-indigo-950/20 dark:border-blue-900/50"
           />
@@ -151,7 +154,7 @@ const AdminAnalytics = () => {
             title="Avg. Order Value"
             value={formatCurrency(Math.round(analytics?.averageOrderValue || 0))}
             icon={<TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />}
-            subtitle="Per order average"
+            subtitle="Active orders avg."
             iconClassName="bg-purple-100 dark:bg-purple-900/30"
             className="bg-gradient-to-br from-purple-50 to-violet-50/50 border-purple-100 dark:from-purple-950/30 dark:to-violet-950/20 dark:border-purple-900/50"
           />
@@ -159,7 +162,8 @@ const AdminAnalytics = () => {
             title="New Users"
             value={analytics?.newUsersThisMonth || 0}
             icon={<Users className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />}
-            trend={{ value: analytics?.userGrowth || 0, label: 'this month' }}
+            trend={analytics?.userGrowth !== 0 ? { value: analytics?.userGrowth || 0, label: 'this month' } : undefined}
+            subtitle={`${analytics?.totalUsers || 0} total users`}
             iconClassName="bg-orange-100 dark:bg-orange-900/30"
             className="bg-gradient-to-br from-orange-50 to-amber-50/50 border-orange-100 dark:from-orange-950/30 dark:to-amber-950/20 dark:border-orange-900/50"
           />
@@ -380,12 +384,20 @@ const AdminAnalytics = () => {
           <Building2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           Platform Overview
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 lg:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 lg:gap-4">
           <AnalyticsStatCard
             title="Total Users"
             value={analytics?.totalUsers || 0}
             icon={<Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />}
+            subtitle={`${analytics?.newUsersThisMonth || 0} new this month`}
             iconClassName="bg-blue-100 dark:bg-blue-900/30"
+          />
+          <AnalyticsStatCard
+            title="Doctors"
+            value={analytics?.totalDoctors || 0}
+            icon={<Stethoscope className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-600" />}
+            subtitle={`${analytics?.verifiedDoctors || 0} verified`}
+            iconClassName="bg-cyan-100 dark:bg-cyan-900/30"
           />
           <AnalyticsStatCard
             title="Clinics"
@@ -402,24 +414,18 @@ const AdminAnalytics = () => {
             iconClassName="bg-rose-100 dark:bg-rose-900/30"
           />
           <AnalyticsStatCard
-            title="Pets"
+            title="Products"
+            value={analytics?.totalProducts || 0}
+            icon={<Package className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />}
+            subtitle="Listed products"
+            iconClassName="bg-indigo-100 dark:bg-indigo-900/30"
+          />
+          <AnalyticsStatCard
+            title="Pets & Posts"
             value={analytics?.totalPets || 0}
             icon={<PawPrint className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />}
+            subtitle={`${analytics?.totalPosts || 0} posts`}
             iconClassName="bg-amber-100 dark:bg-amber-900/30"
-          />
-          <AnalyticsStatCard
-            title="Posts"
-            value={analytics?.totalPosts || 0}
-            icon={<MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />}
-            subtitle={`${analytics?.postsThisMonth || 0} this month`}
-            iconClassName="bg-purple-100 dark:bg-purple-900/30"
-          />
-          <AnalyticsStatCard
-            title="Products"
-            value={analytics?.topProducts?.length || 0}
-            icon={<Package className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />}
-            subtitle="Active products"
-            iconClassName="bg-indigo-100 dark:bg-indigo-900/30"
           />
         </div>
       </div>

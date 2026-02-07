@@ -49,9 +49,12 @@ export interface AppointmentStats {
 export interface AnalyticsData {
   // Revenue & Orders
   totalRevenue: number;
+  cancelledRevenue: number;
   previousMonthRevenue: number;
   revenueGrowth: number;
   totalOrders: number;
+  activeOrders: number;
+  cancelledOrders: number;
   previousMonthOrders: number;
   orderGrowth: number;
   averageOrderValue: number;
@@ -76,6 +79,10 @@ export interface AnalyticsData {
   // Clinics
   clinicStats: ClinicStats;
   
+  // Doctors
+  totalDoctors: number;
+  verifiedDoctors: number;
+  
   // Appointments
   appointmentStats: AppointmentStats;
   
@@ -83,6 +90,9 @@ export interface AnalyticsData {
   totalPosts: number;
   postsThisMonth: number;
   totalPets: number;
+  
+  // Products
+  totalProducts: number;
 }
 
 export const useAdminAnalytics = () => {
@@ -123,86 +133,86 @@ export const useAdminAnalytics = () => {
       const thisMonthStart = startOfMonth(now);
       const lastMonthStart = startOfMonth(subMonths(now, 1));
       const lastMonthEnd = endOfMonth(subMonths(now, 1));
-      const fourteenDaysAgo = subDays(now, 14);
 
-      // Fetch all orders
-      const { data: allOrders } = await supabase
-        .from('orders')
-        .select('id, total_amount, status, created_at, items');
+      // Parallel fetch all data
+      const [
+        { data: allOrders },
+        { data: allProducts },
+        { count: totalUsers },
+        { count: newUsersThisMonth },
+        { count: usersLastMonth },
+        { data: clinics },
+        { data: appointments },
+        { count: totalPosts },
+        { count: postsThisMonth },
+        { count: totalPets },
+        { count: totalProducts },
+        { count: totalDoctors },
+        { count: verifiedDoctors },
+      ] = await Promise.all([
+        supabase.from('orders').select('id, total_amount, status, created_at, items'),
+        supabase.from('products').select('id, name, category, image_url, price'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        supabase.from('profiles').select('*', { count: 'exact', head: true })
+          .gte('created_at', thisMonthStart.toISOString()),
+        supabase.from('profiles').select('*', { count: 'exact', head: true })
+          .gte('created_at', lastMonthStart.toISOString())
+          .lte('created_at', lastMonthEnd.toISOString()),
+        supabase.from('clinics').select('id, is_verified, is_blocked, verification_status'),
+        supabase.from('appointments').select('id, status'),
+        supabase.from('posts').select('*', { count: 'exact', head: true }),
+        supabase.from('posts').select('*', { count: 'exact', head: true })
+          .gte('created_at', thisMonthStart.toISOString()),
+        supabase.from('pets').select('*', { count: 'exact', head: true }),
+        supabase.from('products').select('*', { count: 'exact', head: true }),
+        supabase.from('doctors').select('*', { count: 'exact', head: true }),
+        supabase.from('doctors').select('*', { count: 'exact', head: true })
+          .eq('is_verified', true),
+      ]);
 
-      // Fetch all products
-      const { data: allProducts } = await supabase
-        .from('products')
-        .select('id, name, category, image_url, price');
-
-      // Fetch profiles for user count
-      const { count: totalUsers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: newUsersThisMonth } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', thisMonthStart.toISOString());
-
-      const { count: usersLastMonth } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', lastMonthStart.toISOString())
-        .lte('created_at', lastMonthEnd.toISOString());
-
-      // Fetch clinics
-      const { data: clinics } = await supabase
-        .from('clinics')
-        .select('id, is_verified, is_blocked, verification_status');
-
-      // Fetch appointments
-      const { data: appointments } = await supabase
-        .from('appointments')
-        .select('id, status');
-
-      // Fetch posts
-      const { count: totalPosts } = await supabase
-        .from('posts')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: postsThisMonth } = await supabase
-        .from('posts')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', thisMonthStart.toISOString());
-
-      // Fetch pets
-      const { count: totalPets } = await supabase
-        .from('pets')
-        .select('*', { count: 'exact', head: true });
-
-      // Calculate revenue and orders
       const orders = allOrders || [];
+      
+      // Separate active orders (non-cancelled, non-rejected) for revenue
+      const excludedStatuses = ['cancelled', 'rejected'];
+      const activeOrders = orders.filter(o => !excludedStatuses.includes(o.status || ''));
+      const cancelledOrders = orders.filter(o => excludedStatuses.includes(o.status || ''));
+
+      // Revenue from active orders only
+      const totalRevenue = activeOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+      const cancelledRevenue = cancelledOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+
+      // Monthly comparisons (active orders only)
+      const thisMonthActiveOrders = activeOrders.filter(o => new Date(o.created_at) >= thisMonthStart);
+      const lastMonthActiveOrders = activeOrders.filter(o => {
+        const date = new Date(o.created_at);
+        return date >= lastMonthStart && date <= lastMonthEnd;
+      });
+
+      const thisMonthRevenue = thisMonthActiveOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+      const previousMonthRevenue = lastMonthActiveOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+      
+      const revenueGrowth = previousMonthRevenue > 0 
+        ? ((thisMonthRevenue - previousMonthRevenue) / previousMonthRevenue) * 100 
+        : thisMonthRevenue > 0 ? 100 : 0;
+
+      // Order growth (all orders for volume tracking)
       const thisMonthOrders = orders.filter(o => new Date(o.created_at) >= thisMonthStart);
       const lastMonthOrders = orders.filter(o => {
         const date = new Date(o.created_at);
         return date >= lastMonthStart && date <= lastMonthEnd;
       });
-
-      const totalRevenue = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
-      const thisMonthRevenue = thisMonthOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
-      const previousMonthRevenue = lastMonthOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
-      
-      const revenueGrowth = previousMonthRevenue > 0 
-        ? ((thisMonthRevenue - previousMonthRevenue) / previousMonthRevenue) * 100 
-        : 0;
       
       const orderGrowth = lastMonthOrders.length > 0 
         ? ((thisMonthOrders.length - lastMonthOrders.length) / lastMonthOrders.length) * 100 
-        : 0;
+        : thisMonthOrders.length > 0 ? 100 : 0;
 
       const userGrowth = (usersLastMonth || 0) > 0
         ? (((newUsersThisMonth || 0) - (usersLastMonth || 0)) / (usersLastMonth || 1)) * 100
-        : 0;
+        : (newUsersThisMonth || 0) > 0 ? 100 : 0;
 
-      const averageOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
+      const averageOrderValue = activeOrders.length > 0 ? totalRevenue / activeOrders.length : 0;
 
-      // Daily trends (last 14 days)
+      // Daily trends (last 14 days) - show all orders for volume, active orders for revenue
       const dailyTrends: OrderAnalytics[] = [];
       for (let i = 13; i >= 0; i--) {
         const date = subDays(now, i);
@@ -213,11 +223,13 @@ export const useAdminAnalytics = () => {
           const orderDate = new Date(o.created_at);
           return orderDate >= dayStart && orderDate <= dayEnd;
         });
+        
+        const dayActiveOrders = dayOrders.filter(o => !excludedStatuses.includes(o.status || ''));
 
         dailyTrends.push({
           date: format(date, 'MMM d'),
           orders: dayOrders.length,
-          revenue: dayOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0),
+          revenue: dayActiveOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0),
         });
       }
 
@@ -243,11 +255,11 @@ export const useAdminAnalytics = () => {
         color: statusColors[name] || 'hsl(var(--muted))',
       }));
 
-      // Category sales
+      // Category sales (from active orders only)
       const productMap = new Map(allProducts?.map(p => [p.id, p]) || []);
       const categorySalesMap: Record<string, { sales: number; revenue: number }> = {};
 
-      orders.forEach(order => {
+      activeOrders.forEach(order => {
         if (order.items && Array.isArray(order.items)) {
           order.items.forEach((item: any) => {
             const product = productMap.get(item.id);
@@ -268,10 +280,10 @@ export const useAdminAnalytics = () => {
         .sort((a, b) => b.revenue - a.revenue)
         .slice(0, 6);
 
-      // Top products
+      // Top products (from active orders only)
       const productSalesMap: Record<string, { quantity: number; revenue: number }> = {};
 
-      orders.forEach(order => {
+      activeOrders.forEach(order => {
         if (order.items && Array.isArray(order.items)) {
           order.items.forEach((item: any) => {
             if (!productSalesMap[item.id]) {
@@ -317,9 +329,12 @@ export const useAdminAnalytics = () => {
 
       return {
         totalRevenue,
+        cancelledRevenue,
         previousMonthRevenue,
         revenueGrowth,
         totalOrders: orders.length,
+        activeOrders: activeOrders.length,
+        cancelledOrders: cancelledOrders.length,
         previousMonthOrders: lastMonthOrders.length,
         orderGrowth,
         averageOrderValue,
@@ -331,13 +346,16 @@ export const useAdminAnalytics = () => {
         newUsersThisMonth: newUsersThisMonth || 0,
         userGrowth,
         clinicStats,
+        totalDoctors: totalDoctors || 0,
+        verifiedDoctors: verifiedDoctors || 0,
         appointmentStats,
         totalPosts: totalPosts || 0,
         postsThisMonth: postsThisMonth || 0,
         totalPets: totalPets || 0,
+        totalProducts: totalProducts || 0,
       };
     },
     enabled: isAdmin,
-    staleTime: 1000 * 60 * 2, // 2 minutes - shorter for real-time responsiveness
+    staleTime: 1000 * 60 * 2,
   });
 };
