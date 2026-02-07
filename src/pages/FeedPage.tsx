@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import MobileNav from '@/components/MobileNav';
 import { CreatePostCard } from '@/components/social/CreatePostCard';
 import { PostCard } from '@/components/social/PostCard';
 import { StoriesBar } from '@/components/social/StoriesBar';
@@ -116,7 +117,7 @@ const FeedPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-muted/40 flex flex-col">
+    <div className="min-h-screen bg-muted/40 flex flex-col pb-20 md:pb-0">
       <SEO 
         title="Social Feed - Pet Community"
         description="Connect with pet parents, share adorable moments, and discover trending pet content on VetMedix social feed."
@@ -163,6 +164,7 @@ const FeedPage = () => {
       </main>
 
       <Footer />
+      <MobileNav />
     </div>
   );
 };

@@ -145,17 +145,17 @@ const DoctorDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-16 md:pb-0">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-6 max-w-7xl">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl">
         {/* Welcome Section with Quick Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
               Welcome, Dr. {doctorProfile?.name?.split(' ')[0] || 'Doctor'}
             </h1>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-muted-foreground text-sm mt-0.5 sm:mt-1">
               {format(new Date(), 'EEEE, MMMM d, yyyy')}
             </p>
           </div>
@@ -183,58 +183,58 @@ const DoctorDashboard = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-8">
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-3 sm:p-4 lg:pt-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Today's Appointments</p>
-                  <p className="text-2xl font-bold mt-1">{todayAppointments.length}</p>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Today's Appts</p>
+                  <p className="text-xl sm:text-2xl font-bold mt-0.5 sm:mt-1">{todayAppointments.length}</p>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Calendar className="h-6 w-6 text-primary" />
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-3 sm:p-4 lg:pt-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Pending</p>
-                  <p className="text-2xl font-bold mt-1">{pendingAppointments.length}</p>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Pending</p>
+                  <p className="text-xl sm:text-2xl font-bold mt-0.5 sm:mt-1">{pendingAppointments.length}</p>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-yellow-500/10 flex items-center justify-center">
-                  <Clock className="h-6 w-6 text-yellow-600" />
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-yellow-500/10 flex items-center justify-center flex-shrink-0">
+                  <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-3 sm:p-4 lg:pt-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Patients</p>
-                  <p className="text-2xl font-bold mt-1">{doctorAppointments?.length || 0}</p>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Total Patients</p>
+                  <p className="text-xl sm:text-2xl font-bold mt-0.5 sm:mt-1">{doctorAppointments?.length || 0}</p>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center">
-                  <Users className="h-6 w-6 text-green-600" />
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-3 sm:p-4 lg:pt-6">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Affiliations</p>
-                  <p className="text-2xl font-bold mt-1">{clinicAffiliations?.length || 0}</p>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Affiliations</p>
+                  <p className="text-xl sm:text-2xl font-bold mt-0.5 sm:mt-1">{clinicAffiliations?.length || 0}</p>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center">
-                  <Building2 className="h-6 w-6 text-blue-600" />
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                  <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                 </div>
               </div>
             </CardContent>
@@ -242,20 +242,22 @@ const DoctorDashboard = () => {
         </div>
 
         <Tabs defaultValue="appointments" className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-5">
-            <TabsTrigger value="appointments">Appointments</TabsTrigger>
-            <TabsTrigger value="clinics">My Clinics</TabsTrigger>
-            <TabsTrigger value="invitations" className="relative">
-              Invitations
-              {pendingInvitations && pendingInvitations.length > 0 && (
-                <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs bg-warning text-warning-foreground">
-                  {pendingInvitations.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="find-clinics">Find Clinics</TabsTrigger>
-            <TabsTrigger value="schedule">Schedule</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+            <TabsList className="inline-flex w-auto min-w-full sm:grid sm:w-full sm:max-w-2xl sm:grid-cols-5 h-auto p-1 gap-1">
+              <TabsTrigger value="appointments" className="text-xs sm:text-sm px-3 py-2 whitespace-nowrap">Appointments</TabsTrigger>
+              <TabsTrigger value="clinics" className="text-xs sm:text-sm px-3 py-2 whitespace-nowrap">My Clinics</TabsTrigger>
+              <TabsTrigger value="invitations" className="relative text-xs sm:text-sm px-3 py-2 whitespace-nowrap">
+                Invitations
+                {pendingInvitations && pendingInvitations.length > 0 && (
+                  <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs bg-warning text-warning-foreground">
+                    {pendingInvitations.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="find-clinics" className="text-xs sm:text-sm px-3 py-2 whitespace-nowrap">Find Clinics</TabsTrigger>
+              <TabsTrigger value="schedule" className="text-xs sm:text-sm px-3 py-2 whitespace-nowrap">Schedule</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Appointments Tab */}
           <TabsContent value="appointments" className="space-y-4">
@@ -270,23 +272,23 @@ const DoctorDashboard = () => {
                     {doctorAppointments.slice(0, 10).map((apt: any) => (
                       <div 
                         key={apt.id} 
-                        className="flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors"
+                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors gap-3"
                       >
-                        <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                            <Users className="h-6 w-6 text-primary" />
+                        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                           </div>
-                          <div>
-                            <p className="font-medium">{apt.pet_name || 'Unknown Pet'}</p>
-                            <p className="text-sm text-muted-foreground">
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm sm:text-base truncate">{apt.pet_name || 'Unknown Pet'}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground truncate">
                               {apt.pet_type} • {apt.reason || 'General Checkup'}
                             </p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-xs sm:text-sm text-muted-foreground">
                               {format(new Date(apt.appointment_date), 'MMM d, yyyy')} at {apt.appointment_time}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
                           <Badge className={getStatusColor(apt.status)}>
                             {apt.status}
                           </Badge>
@@ -295,7 +297,7 @@ const DoctorDashboard = () => {
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                className="h-10 w-10 p-0 text-green-600 hover:bg-green-50"
+                                className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-green-600 hover:bg-green-50"
                                 onClick={() => updateAppointmentStatus.mutate({ 
                                   appointmentId: apt.id, 
                                   status: 'confirmed' 
@@ -307,7 +309,7 @@ const DoctorDashboard = () => {
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                className="h-10 w-10 p-0 text-red-600 hover:bg-red-50"
+                                className="h-9 w-9 sm:h-10 sm:w-10 p-0 text-red-600 hover:bg-red-50"
                                 onClick={() => updateAppointmentStatus.mutate({ 
                                   appointmentId: apt.id, 
                                   status: 'cancelled' 
@@ -322,7 +324,7 @@ const DoctorDashboard = () => {
                             <Button 
                               size="sm" 
                               variant="outline"
-                              className="h-10 min-w-[44px] text-blue-600 hover:bg-blue-50"
+                              className="h-9 sm:h-10 min-w-[44px] text-blue-600 hover:bg-blue-50 text-xs sm:text-sm"
                               onClick={() => updateAppointmentStatus.mutate({ 
                                 appointmentId: apt.id, 
                                 status: 'completed' 
@@ -335,7 +337,7 @@ const DoctorDashboard = () => {
                               ) : (
                                 <>
                                   <CheckCircle2 className="h-4 w-4 mr-1" />
-                                  Complete
+                                  <span className="hidden sm:inline">Complete</span>
                                 </>
                               )}
                             </Button>
