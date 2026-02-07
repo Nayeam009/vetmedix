@@ -85,6 +85,30 @@ const AdminOrders = () => {
     }
   }, [user, authLoading, isAdmin, roleLoading, navigate]);
 
+  // Real-time order updates for admin
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const channel = supabase
+      .channel('admin-orders-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAdmin, queryClient]);
+
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
       // Get order details first for notification
