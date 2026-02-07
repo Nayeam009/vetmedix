@@ -54,7 +54,7 @@ export const StatCard = ({ title, value, icon, trend, description, className, hr
             </div>
           )}
           
-          {description && !trend && (
+          {description && (
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">{description}</p>
           )}
         </div>

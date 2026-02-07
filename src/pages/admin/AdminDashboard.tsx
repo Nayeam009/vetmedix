@@ -12,11 +12,7 @@ import {
   Building2,
   MessageSquare,
   CalendarDays,
-  ExternalLink,
   ArrowUpRight,
-  Heart,
-  PawPrint,
-  Image,
   CheckCircle2,
   XCircle,
   Truck,
@@ -178,10 +174,10 @@ const AdminDashboard = () => {
         <h2 className="text-xs sm:text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 sm:mb-3">E-Commerce Overview</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
           <StatCard
-            title="Total Revenue"
-            value={`৳${stats?.totalRevenue?.toLocaleString() || 0}`}
+            title="Active Revenue"
+            value={`৳${stats?.activeRevenue?.toLocaleString() || 0}`}
             icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />}
-            trend={{ value: 12.5, isPositive: true }}
+            description={stats?.cancelledRevenue ? `৳${stats.cancelledRevenue.toLocaleString()} cancelled` : undefined}
             href="/admin/analytics"
             className="bg-gradient-to-br from-emerald-50 to-green-50/50 border-emerald-100 dark:from-emerald-950/30 dark:to-green-950/20 dark:border-emerald-900/50"
           />
@@ -189,7 +185,7 @@ const AdminDashboard = () => {
             title="Total Orders"
             value={stats?.totalOrders || 0}
             icon={<ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />}
-            trend={{ value: 8.2, isPositive: true }}
+            description={`${stats?.activeOrders || 0} active · ${stats?.cancelledOrders || 0} cancelled`}
             href="/admin/orders"
             className="bg-gradient-to-br from-blue-50 to-indigo-50/50 border-blue-100 dark:from-blue-950/30 dark:to-indigo-950/20 dark:border-blue-900/50"
           />
@@ -250,7 +246,7 @@ const AdminDashboard = () => {
             title="Users"
             value={stats?.totalUsers || 0}
             icon={<Users className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />}
-            trend={{ value: 5.1, isPositive: true }}
+            description={`${stats?.postsToday || 0} posts today`}
             href="/admin/customers"
             className="bg-gradient-to-br from-orange-50 to-amber-50/50 border-orange-100 dark:from-orange-950/30 dark:to-amber-950/20 dark:border-orange-900/50"
           />

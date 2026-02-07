@@ -55,64 +55,55 @@ export const useAdminStats = () => {
   return useQuery({
     queryKey: ['admin-stats'],
     queryFn: async () => {
+      const excludedStatuses = ['cancelled', 'rejected'];
+
       const [
         { count: totalProducts },
-        { count: totalOrders },
         { count: totalUsers },
         { count: totalClinics },
         { count: totalDoctors },
         { count: totalPosts },
         { count: totalAppointments },
         { data: recentOrders },
-        { data: orderStats },
+        { data: allOrders },
+        { count: verifiedClinics },
+        { count: pendingDoctors },
+        { count: verifiedDoctors },
       ] = await Promise.all([
         supabase.from('products').select('*', { count: 'exact', head: true }),
-        supabase.from('orders').select('*', { count: 'exact', head: true }),
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('clinics').select('*', { count: 'exact', head: true }),
         supabase.from('doctors').select('*', { count: 'exact', head: true }),
         supabase.from('posts').select('*', { count: 'exact', head: true }),
         supabase.from('appointments').select('*', { count: 'exact', head: true }),
         supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(5),
-        supabase.from('orders').select('total_amount, status'),
+        supabase.from('orders').select('id, total_amount, status, created_at'),
+        supabase.from('clinics').select('*', { count: 'exact', head: true }).eq('is_verified', true),
+        supabase.from('doctors').select('*', { count: 'exact', head: true }).eq('verification_status', 'pending'),
+        supabase.from('doctors').select('*', { count: 'exact', head: true }).eq('is_verified', true),
       ]);
-
-      // Get verified clinics count
-      const { count: verifiedClinics } = await supabase
-        .from('clinics')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_verified', true);
-
-      // Get pending doctors count
-      const { count: pendingDoctors } = await supabase
-        .from('doctors')
-        .select('*', { count: 'exact', head: true })
-        .eq('verification_status', 'pending');
-
-      // Get verified doctors count
-      const { count: verifiedDoctors } = await supabase
-        .from('doctors')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_verified', true);
 
       // Get today's stats
       const today = new Date().toISOString().split('T')[0];
-      const { count: postsToday } = await supabase
-        .from('posts')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', today);
+      const [{ count: postsToday }, { count: appointmentsToday }] = await Promise.all([
+        supabase.from('posts').select('*', { count: 'exact', head: true }).gte('created_at', today),
+        supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('appointment_date', today),
+      ]);
 
-      const { count: appointmentsToday } = await supabase
-        .from('appointments')
-        .select('*', { count: 'exact', head: true })
-        .eq('appointment_date', today);
-
-      const totalRevenue = orderStats?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0;
-      const pendingOrders = orderStats?.filter(o => o.status === 'pending').length || 0;
+      const orders = allOrders || [];
+      const activeOrders = orders.filter(o => !excludedStatuses.includes(o.status || ''));
+      const pendingOrders = orders.filter(o => o.status === 'pending').length;
+      
+      // Revenue from active (non-cancelled/rejected) orders only
+      const activeRevenue = activeOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+      const totalRevenue = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+      const cancelledRevenue = totalRevenue - activeRevenue;
 
       return {
         totalProducts: totalProducts || 0,
-        totalOrders: totalOrders || 0,
+        totalOrders: orders.length,
+        activeOrders: activeOrders.length,
+        cancelledOrders: orders.length - activeOrders.length,
         totalUsers: totalUsers || 0,
         totalClinics: totalClinics || 0,
         verifiedClinics: verifiedClinics || 0,
@@ -123,12 +114,15 @@ export const useAdminStats = () => {
         postsToday: postsToday || 0,
         totalAppointments: totalAppointments || 0,
         appointmentsToday: appointmentsToday || 0,
+        activeRevenue,
         totalRevenue,
+        cancelledRevenue,
         pendingOrders,
         recentOrders: recentOrders || [],
       };
     },
     enabled: isAdmin,
+    staleTime: 1000 * 60 * 2,
   });
 };
 
