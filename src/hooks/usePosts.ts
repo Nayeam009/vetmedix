@@ -1,91 +1,148 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { createNotification, getPostOwnerUserId } from '@/lib/notifications';
 import { usePets } from '@/contexts/PetContext';
 import type { Post } from '@/types/social';
 
+const PAGE_SIZE = 10;
+
 /**
- * Hook for managing posts with optimistic updates for likes
- * Provides instant UI feedback while syncing with database in background
+ * Hook for managing posts with cursor-based infinite scroll and optimistic likes.
+ * Loads PAGE_SIZE posts at a time, triggered by `loadMore`.
  */
 export const usePosts = (petId?: string, feedType: 'all' | 'following' | 'pet' = 'all') => {
   const { user } = useAuth();
   const { activePet } = usePets();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
-  const fetchPosts = useCallback(async () => {
+  // Track followed pet IDs for the 'following' feed to avoid re-fetching
+  const followedIdsRef = useRef<string[] | null>(null);
+
+  // Reset state when feed type or pet changes
+  useEffect(() => {
+    setPosts([]);
+    setHasMore(true);
+    followedIdsRef.current = null;
+  }, [petId, feedType, user?.id]);
+
+  const fetchPage = useCallback(async (cursor?: string, isLoadMore = false) => {
     try {
-      setLoading(true);
-      
-      let query = supabase
-        .from('posts')
-        .select(`
-          *,
-          pet:pets(*)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      if (isLoadMore) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
 
-      if (feedType === 'pet' && petId) {
-        query = query.eq('pet_id', petId);
-      } else if (feedType === 'following' && user) {
-        // Get followed pet IDs first
-        const { data: follows } = await supabase
-          .from('follows')
-          .select('following_pet_id')
-          .eq('follower_user_id', user.id);
-        
-        const followedIds = follows?.map(f => f.following_pet_id) || [];
-        if (followedIds.length > 0) {
-          query = query.in('pet_id', followedIds);
-        } else {
+      // For 'following' feed, get followed pet IDs first (cached across pages)
+      if (feedType === 'following' && user) {
+        if (!followedIdsRef.current) {
+          const { data: follows } = await supabase
+            .from('follows')
+            .select('following_pet_id')
+            .eq('follower_user_id', user.id);
+
+          followedIdsRef.current = follows?.map(f => f.following_pet_id) || [];
+        }
+
+        if (followedIdsRef.current.length === 0) {
           setPosts([]);
+          setHasMore(false);
           setLoading(false);
+          setLoadingMore(false);
           return;
         }
+      }
+
+      let query = supabase
+        .from('posts')
+        .select(`*, pet:pets(*)`)
+        .order('created_at', { ascending: false })
+        .limit(PAGE_SIZE);
+
+      // Apply cursor for pagination
+      if (cursor) {
+        query = query.lt('created_at', cursor);
+      }
+
+      // Apply filters
+      if (feedType === 'pet' && petId) {
+        query = query.eq('pet_id', petId);
+      } else if (feedType === 'following' && followedIdsRef.current) {
+        query = query.in('pet_id', followedIdsRef.current);
       }
 
       const { data, error } = await query;
       if (error) throw error;
 
+      const newPosts = data || [];
+
       // Check if user liked each post
-      let postsWithLikes = data || [];
-      if (user && postsWithLikes.length > 0) {
+      let postsWithLikes = newPosts;
+      if (user && newPosts.length > 0) {
         const { data: likes } = await supabase
           .from('likes')
           .select('post_id')
           .eq('user_id', user.id)
-          .in('post_id', postsWithLikes.map(p => p.id));
+          .in('post_id', newPosts.map(p => p.id));
 
         const likedPostIds = new Set(likes?.map(l => l.post_id) || []);
-        postsWithLikes = postsWithLikes.map(post => ({
+        postsWithLikes = newPosts.map(post => ({
           ...post,
           liked_by_user: likedPostIds.has(post.id)
         }));
       }
 
-      setPosts(postsWithLikes as Post[]);
+      // Determine if there are more posts
+      setHasMore(newPosts.length === PAGE_SIZE);
+
+      if (isLoadMore) {
+        setPosts(prev => {
+          // Deduplicate in case of race conditions
+          const existingIds = new Set(prev.map(p => p.id));
+          const uniqueNew = postsWithLikes.filter(p => !existingIds.has(p.id));
+          return [...prev, ...uniqueNew] as Post[];
+        });
+      } else {
+        setPosts(postsWithLikes as Post[]);
+      }
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error fetching posts:', error);
       }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }, [petId, feedType, user]);
 
+  // Initial fetch
   useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
+    fetchPage();
+  }, [fetchPage]);
+
+  const loadMore = useCallback(() => {
+    if (loadingMore || !hasMore || posts.length === 0) return;
+    const lastPost = posts[posts.length - 1];
+    fetchPage(lastPost.created_at, true);
+  }, [loadingMore, hasMore, posts, fetchPage]);
+
+  const refreshPosts = useCallback(() => {
+    followedIdsRef.current = null;
+    setPosts([]);
+    setHasMore(true);
+    fetchPage();
+  }, [fetchPage]);
 
   const likePost = useCallback(async (postId: string, likerPetId?: string) => {
     if (!user) return;
 
-    // Optimistic update - update UI immediately
-    setPosts(prev => prev.map(post => 
-      post.id === postId 
+    // Optimistic update
+    setPosts(prev => prev.map(post =>
+      post.id === postId
         ? { ...post, likes_count: post.likes_count + 1, liked_by_user: true }
         : post
     ));
@@ -97,7 +154,7 @@ export const usePosts = (petId?: string, feedType: 'all' | 'following' | 'pet' =
 
       if (error) throw error;
 
-      // Create notification for post owner (non-blocking)
+      // Non-blocking notification
       getPostOwnerUserId(postId).then(async postOwnerId => {
         if (postOwnerId && postOwnerId !== user.id) {
           const actorPet = likerPetId || activePet?.id;
@@ -112,13 +169,12 @@ export const usePosts = (petId?: string, feedType: 'all' | 'following' | 'pet' =
         }
       });
     } catch (error) {
-      // Rollback on error
-      setPosts(prev => prev.map(post => 
-        post.id === postId 
+      // Rollback
+      setPosts(prev => prev.map(post =>
+        post.id === postId
           ? { ...post, likes_count: Math.max(0, post.likes_count - 1), liked_by_user: false }
           : post
       ));
-      
       if (import.meta.env.DEV) {
         console.error('Error liking post:', error);
       }
@@ -128,9 +184,9 @@ export const usePosts = (petId?: string, feedType: 'all' | 'following' | 'pet' =
   const unlikePost = useCallback(async (postId: string) => {
     if (!user) return;
 
-    // Optimistic update - update UI immediately
-    setPosts(prev => prev.map(post => 
-      post.id === postId 
+    // Optimistic update
+    setPosts(prev => prev.map(post =>
+      post.id === postId
         ? { ...post, likes_count: Math.max(0, post.likes_count - 1), liked_by_user: false }
         : post
     ));
@@ -144,18 +200,26 @@ export const usePosts = (petId?: string, feedType: 'all' | 'following' | 'pet' =
 
       if (error) throw error;
     } catch (error) {
-      // Rollback on error
-      setPosts(prev => prev.map(post => 
-        post.id === postId 
+      // Rollback
+      setPosts(prev => prev.map(post =>
+        post.id === postId
           ? { ...post, likes_count: post.likes_count + 1, liked_by_user: true }
           : post
       ));
-      
       if (import.meta.env.DEV) {
         console.error('Error unliking post:', error);
       }
     }
   }, [user]);
 
-  return { posts, loading, likePost, unlikePost, refreshPosts: fetchPosts };
+  return {
+    posts,
+    loading,
+    loadingMore,
+    hasMore,
+    likePost,
+    unlikePost,
+    loadMore,
+    refreshPosts,
+  };
 };
