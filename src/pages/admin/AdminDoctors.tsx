@@ -258,12 +258,16 @@ const AdminDoctors = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
         {[
-          { label: 'Total Doctors', value: doctors?.length || 0, icon: Stethoscope, color: 'text-primary', iconBg: 'text-primary/20' },
-          { label: 'Pending', value: pendingCount, icon: Clock, color: 'text-yellow-600', iconBg: 'text-yellow-500/20' },
-          { label: 'Verified', value: verifiedCount, icon: CheckCircle, color: 'text-green-600', iconBg: 'text-green-500/20' },
-          { label: 'Blocked', value: blockedCount, icon: Ban, color: 'text-red-600', iconBg: 'text-red-500/20' },
+          { label: 'Total Doctors', value: doctors?.length || 0, icon: Stethoscope, color: 'text-primary', iconBg: 'text-primary/20', filter: 'all' },
+          { label: 'Pending', value: pendingCount, icon: Clock, color: 'text-yellow-600', iconBg: 'text-yellow-500/20', filter: 'pending' },
+          { label: 'Verified', value: verifiedCount, icon: CheckCircle, color: 'text-green-600', iconBg: 'text-green-500/20', filter: 'verified' },
+          { label: 'Blocked', value: blockedCount, icon: Ban, color: 'text-red-600', iconBg: 'text-red-500/20', filter: 'blocked' },
         ].map((stat) => (
-          <Card key={stat.label}>
+          <Card 
+            key={stat.label} 
+            className={`cursor-pointer transition-all hover:shadow-md active:scale-[0.97] ${statusFilter === stat.filter ? 'ring-2 ring-primary' : ''}`}
+            onClick={() => setStatusFilter(stat.filter)}
+          >
             <CardContent className="p-4 sm:pt-6">
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
@@ -323,7 +327,11 @@ const AdminDoctors = () => {
       ) : (
         <div className="grid gap-3 sm:gap-4">
           {filteredDoctors.map((doctor) => (
-            <Card key={doctor.id} className="hover:shadow-md transition-shadow">
+            <Card 
+              key={doctor.id} 
+              className="hover:shadow-md transition-shadow cursor-pointer active:scale-[0.99]"
+              onClick={() => handleViewDetails(doctor)}
+            >
               <CardContent className="p-3 sm:p-4">
                 {/* Mobile: stacked layout, Desktop: horizontal */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
@@ -353,16 +361,7 @@ const AdminDoctors = () => {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:shrink-0 ml-[52px] sm:ml-0">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewDetails(doctor)}
-                      className="min-h-[36px] sm:min-h-[44px] text-xs sm:text-sm"
-                    >
-                      <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
-                      View
-                    </Button>
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:shrink-0 ml-[52px] sm:ml-0" onClick={(e) => e.stopPropagation()}>
                     {doctor.verification_status === 'pending' && (
                       <>
                         <Button
