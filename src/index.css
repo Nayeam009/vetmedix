@@ -146,6 +146,10 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Nunito', system-ui, sans-serif;
+    /* Improve text rendering */
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   h1,
@@ -156,6 +160,31 @@
   h6 {
     @apply font-bold tracking-tight;
     font-family: 'Fredoka', system-ui, sans-serif;
+  }
+
+  /* Reduce animations for users who prefer reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Improve tap highlight on mobile */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Ensure touch targets are large enough */
+  button, a, [role="button"], input[type="checkbox"], input[type="radio"] {
+    min-height: 32px;
+  }
+
+  /* Improve image rendering */
+  img {
+    content-visibility: auto;
   }
 }
 

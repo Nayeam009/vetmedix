@@ -12,3 +12,11 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /doctor/dashboard
+Disallow: /clinic/dashboard
+Disallow: /profile
+Disallow: /checkout
+Disallow: /select-role
+
+Sitemap: https://cucxodrbperhbpbdkoyj.supabase.co/functions/v1/sitemap

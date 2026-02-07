@@ -285,7 +285,7 @@ const PostCardComponent = ({ post, onLike, onUnlike, onDelete }: PostCardProps) 
 };
 
 // Memoize the PostCard to prevent unnecessary re-renders
-export const PostCard = memo(PostCardComponent, (prevProps, nextProps) => {
+const MemoizedPostCard = memo(PostCardComponent, (prevProps, nextProps) => {
   return (
     prevProps.post.id === nextProps.post.id &&
     prevProps.post.likes_count === nextProps.post.likes_count &&
@@ -293,3 +293,6 @@ export const PostCard = memo(PostCardComponent, (prevProps, nextProps) => {
     prevProps.post.liked_by_user === nextProps.post.liked_by_user
   );
 });
+MemoizedPostCard.displayName = 'PostCard';
+
+export { MemoizedPostCard as PostCard };
