@@ -422,25 +422,27 @@ const ClinicDashboard = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
-          <TabsList className="bg-white border border-border/50 rounded-lg sm:rounded-xl p-1 sm:p-1.5 h-auto w-full overflow-x-auto flex sm:inline-flex shadow-sm">
-            <TabsTrigger value="appointments" className="rounded-md sm:rounded-lg data-[state=active]:shadow-sm px-2 sm:px-4 lg:px-6 text-xs sm:text-sm whitespace-nowrap">
-              <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden xs:inline">Appointments</span>
-              <span className="xs:hidden">Appts</span>
-            </TabsTrigger>
-            <TabsTrigger value="doctors" className="rounded-md sm:rounded-lg data-[state=active]:shadow-sm px-2 sm:px-4 lg:px-6 text-xs sm:text-sm whitespace-nowrap">
-              <Stethoscope className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              Doctors
-            </TabsTrigger>
-            <TabsTrigger value="services" className="rounded-md sm:rounded-lg data-[state=active]:shadow-sm px-2 sm:px-4 lg:px-6 text-xs sm:text-sm whitespace-nowrap">
-              <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              Services
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="rounded-md sm:rounded-lg data-[state=active]:shadow-sm px-2 sm:px-4 lg:px-6 text-xs sm:text-sm whitespace-nowrap">
-              <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              Analytics
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
+            <TabsList className="bg-white border border-border/50 rounded-lg sm:rounded-xl p-1 sm:p-1.5 h-auto inline-flex w-auto min-w-full sm:w-full shadow-sm">
+              <TabsTrigger value="appointments" className="rounded-md sm:rounded-lg data-[state=active]:shadow-sm px-2.5 sm:px-4 lg:px-6 py-2 text-xs sm:text-sm whitespace-nowrap flex-1">
+                <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="hidden xs:inline">Appointments</span>
+                <span className="xs:hidden">Appts</span>
+              </TabsTrigger>
+              <TabsTrigger value="doctors" className="rounded-md sm:rounded-lg data-[state=active]:shadow-sm px-2.5 sm:px-4 lg:px-6 py-2 text-xs sm:text-sm whitespace-nowrap flex-1">
+                <Stethoscope className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                Doctors
+              </TabsTrigger>
+              <TabsTrigger value="services" className="rounded-md sm:rounded-lg data-[state=active]:shadow-sm px-2.5 sm:px-4 lg:px-6 py-2 text-xs sm:text-sm whitespace-nowrap flex-1">
+                <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                Services
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="rounded-md sm:rounded-lg data-[state=active]:shadow-sm px-2.5 sm:px-4 lg:px-6 py-2 text-xs sm:text-sm whitespace-nowrap flex-1">
+                <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                Analytics
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Appointments Tab */}
           <TabsContent value="appointments" className="space-y-6">

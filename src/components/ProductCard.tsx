@@ -60,14 +60,14 @@ const ProductCard = memo(({ id, name, price, category, image, badge, discount }:
         {/* Wishlist Button */}
         <button 
           onClick={handleWishlist}
-          className={`absolute top-2 sm:top-3 right-2 sm:right-3 h-7 w-7 sm:h-9 sm:w-9 rounded-full flex items-center justify-center transition-all active:scale-90 z-10 ${
+          className={`absolute top-2 sm:top-3 right-2 sm:right-3 h-9 w-9 sm:h-9 sm:w-9 rounded-full flex items-center justify-center transition-all active:scale-90 z-10 ${
             isWishlisted 
               ? 'bg-destructive text-destructive-foreground' 
               : 'bg-card/80 backdrop-blur-sm sm:opacity-0 sm:group-hover:opacity-100 hover:bg-card'
           }`}
           aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
         >
-          <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isWishlisted ? 'fill-current' : ''}`} />
+          <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-current' : ''}`} />
         </button>
         {/* Category Tag */}
         <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 z-10">
