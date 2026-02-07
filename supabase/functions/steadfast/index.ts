@@ -50,6 +50,21 @@ function checkRateLimit(userId: string): { allowed: boolean; remaining: number; 
   return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - userLimit.count, resetIn: userLimit.resetTime - now };
 }
 
+// Safely parse response from Steadfast API (handles non-JSON responses)
+async function safeParseResponse(response: Response): Promise<Record<string, unknown>> {
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    // Steadfast sometimes returns plain text errors
+    console.error("Non-JSON response from Steadfast:", response.status, text);
+    if (!response.ok) {
+      return { status: response.status, error: text || "Courier service returned an error" };
+    }
+    return { status: response.status, error: "Unexpected response from courier service" };
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -82,18 +97,17 @@ serve(async (req) => {
     });
 
     // Verify the token and get user
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     
-    if (claimsError || !claimsData?.claims) {
-      console.error("Auth claims error:", claimsError);
+    if (userError || !user) {
+      console.error("Auth error:", userError);
       return new Response(
         JSON.stringify({ error: "Invalid authentication token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
     console.log("Authenticated user:", userId);
 
     // Apply rate limiting
@@ -192,7 +206,7 @@ serve(async (req) => {
           method: "GET",
           headers,
         });
-        result = await response.json();
+        result = await safeParseResponse(response);
         break;
       }
 
@@ -232,7 +246,7 @@ serve(async (req) => {
           method: "GET",
           headers,
         });
-        result = await response.json();
+        result = await safeParseResponse(response);
         break;
       }
 
@@ -272,7 +286,7 @@ serve(async (req) => {
           method: "GET",
           headers,
         });
-        result = await response.json();
+        result = await safeParseResponse(response);
         break;
       }
 
@@ -315,7 +329,7 @@ serve(async (req) => {
             note: note ? String(note).slice(0, 500) : undefined,
           }),
         });
-        result = await response.json();
+        result = await safeParseResponse(response);
         console.log("Order created by admin:", userId, "invoice:", invoice);
         break;
       }
@@ -333,7 +347,7 @@ serve(async (req) => {
           method: "GET",
           headers,
         });
-        result = await response.json();
+        result = await safeParseResponse(response);
         console.log("Balance checked by admin:", userId);
         break;
       }
@@ -345,8 +359,10 @@ serve(async (req) => {
         );
     }
 
+    // If result contains an error from Steadfast, return appropriate status
+    const statusCode = result?.error ? (result.status as number || 502) : 200;
     return new Response(JSON.stringify(result), {
-      status: 200,
+      status: statusCode,
       headers: responseHeaders,
     });
   } catch (error: unknown) {
