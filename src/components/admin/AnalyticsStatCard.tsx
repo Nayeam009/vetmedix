@@ -47,7 +47,7 @@ export const AnalyticsStatCard = ({
     >
       <div className="flex items-start justify-between gap-2 sm:gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-0.5 sm:mb-1 uppercase tracking-wider truncate">
+          <p className="text-[10px] sm:text-xs font-medium text-muted-foreground mb-0.5 sm:mb-1 uppercase tracking-wider leading-tight line-clamp-2">
             {title}
           </p>
           <p className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-foreground truncate">

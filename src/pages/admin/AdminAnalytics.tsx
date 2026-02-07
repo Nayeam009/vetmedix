@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, forwardRef } from 'react';
 import {
   Loader2,
   AlertCircle,
@@ -44,6 +44,26 @@ import {
 
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
+const formatCurrency = (value: number) => `৳${value.toLocaleString()}`;
+
+// Custom tooltip - defined outside component with forwardRef to fix Recharts ref warnings
+const CustomTooltip = forwardRef<HTMLDivElement, any>(({ active, payload, label }, ref) => {
+  if (active && payload && payload.length) {
+    return (
+      <div ref={ref} className="bg-card border border-border rounded-lg p-2 sm:p-3 shadow-lg">
+        <p className="text-xs sm:text-sm font-medium text-foreground mb-1">{label}</p>
+        {payload.map((entry: any, index: number) => (
+          <p key={index} className="text-[10px] sm:text-xs" style={{ color: entry.color }}>
+            {entry.name}: {entry.name.toLowerCase().includes('revenue') ? formatCurrency(entry.value) : entry.value}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+});
+CustomTooltip.displayName = 'CustomTooltip';
+
 const AdminAnalytics = () => {
   useDocumentTitle('Analytics - Admin');
   const navigate = useNavigate();
@@ -58,25 +78,6 @@ const AdminAnalytics = () => {
       navigate('/');
     }
   }, [user, authLoading, isAdmin, roleLoading, navigate]);
-
-  const formatCurrency = (value: number) => `৳${value.toLocaleString()}`;
-
-  // Custom tooltip for charts
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-card border border-border rounded-lg p-2 sm:p-3 shadow-lg">
-          <p className="text-xs sm:text-sm font-medium text-foreground mb-1">{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-[10px] sm:text-xs" style={{ color: entry.color }}>
-              {entry.name}: {entry.name.toLowerCase().includes('revenue') ? formatCurrency(entry.value) : entry.value}
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
 
   // Appointment distribution for pie chart
   const appointmentDistribution = useMemo(() => {
@@ -379,7 +380,7 @@ const AdminAnalytics = () => {
           <Building2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
           Platform Overview
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 lg:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 lg:gap-4">
           <AnalyticsStatCard
             title="Total Users"
             value={analytics?.totalUsers || 0}
