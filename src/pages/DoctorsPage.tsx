@@ -27,6 +27,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePublicDoctors } from '@/hooks/usePublicDoctors';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import SEO from '@/components/SEO';
 
 const SPECIALIZATIONS = [
   'All Specializations',
@@ -165,6 +166,12 @@ const DoctorsPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50/50 via-background to-background pb-24 md:pb-0">
+      <SEO 
+        title="Find Veterinary Doctors"
+        description="Find verified veterinary doctors in Bangladesh. Browse by specialization, check availability, and book appointments with trusted vets online."
+        url="https://vetmedix.lovable.app/doctors"
+        schema={{ type: 'Organization', name: 'VetMedix Doctors', url: 'https://vetmedix.lovable.app/doctors', description: 'Verified veterinary doctors in Bangladesh' }}
+      />
       <Navbar />
       
       {/* Hero Banner */}

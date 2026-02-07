@@ -25,6 +25,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import SEO from '@/components/SEO';
 
 // Price range options outside component to prevent recreation
 const priceRangeOptions = [
@@ -144,6 +145,12 @@ const ShopPage = () => {
 
   return (
     <div className="min-h-screen bg-muted/30 pb-20 md:pb-0">
+      <SEO 
+        title="Pet Shop - Premium Pet & Farm Supplies"
+        description="Shop premium pet supplies, food, medicine, grooming tools, and farm animal products. Free delivery on orders over ৳2000 in Bangladesh."
+        url="https://vetmedix.lovable.app/shop"
+        schema={{ type: 'Organization', name: 'VetMedix Shop', url: 'https://vetmedix.lovable.app/shop', description: 'Premium pet and farm supplies in Bangladesh' }}
+      />
       <Navbar />
       
       {/* Hero Banner */}

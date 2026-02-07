@@ -11,6 +11,7 @@ import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useAuth } from '@/contexts/AuthContext';
 import { Users, Compass, Loader2 } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import SEO from '@/components/SEO';
 
 const FeedPage = () => {
   useDocumentTitle('Social Feed');
@@ -116,6 +117,12 @@ const FeedPage = () => {
 
   return (
     <div className="min-h-screen bg-muted/40 flex flex-col">
+      <SEO 
+        title="Social Feed - Pet Community"
+        description="Connect with pet parents, share adorable moments, and discover trending pet content on VetMedix social feed."
+        url="https://vetmedix.lovable.app/feed"
+        noIndex
+      />
       <Navbar />
 
       <main className="container mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6 max-w-[680px] flex-1" role="main" aria-label="Pet Social Feed">
