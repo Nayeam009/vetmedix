@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAdmin } from './useAdmin';
 import { startOfMonth, endOfMonth, subMonths, format, subDays, startOfDay, endOfDay } from 'date-fns';
@@ -86,6 +87,34 @@ export interface AnalyticsData {
 
 export const useAdminAnalytics = () => {
   const { isAdmin } = useAdmin();
+  const queryClient = useQueryClient();
+
+  // Real-time subscriptions for orders and appointments
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const channel = supabase
+      .channel('admin-analytics-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'appointments' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAdmin, queryClient]);
 
   return useQuery({
     queryKey: ['admin-analytics'],
@@ -309,6 +338,6 @@ export const useAdminAnalytics = () => {
       };
     },
     enabled: isAdmin,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 2, // 2 minutes - shorter for real-time responsiveness
   });
 };
