@@ -3,18 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
   MoreHorizontal,
-  Loader2,
   AlertCircle,
   ShoppingCart,
   Eye,
   CheckCircle,
   Truck,
   XCircle,
-  Package,
   CreditCard,
   Ban,
   Download,
   ShieldAlert,
+  Phone,
+  User,
+  Copy,
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -42,13 +43,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useAdmin, useAdminOrders } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -60,9 +54,11 @@ import { AcceptOrderDialog } from '@/components/admin/AcceptOrderDialog';
 import { RejectOrderDialog } from '@/components/admin/RejectOrderDialog';
 import { FraudRiskBadge } from '@/components/admin/FraudRiskBadge';
 import { FraudAnalysisPanel } from '@/components/admin/FraudAnalysisPanel';
+import { OrderStatsBar } from '@/components/admin/OrderStatsBar';
+import { OrderCardsSkeleton, OrderTableSkeleton, OrderStatsBarSkeleton } from '@/components/admin/OrdersSkeleton';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { downloadCSV } from '@/lib/csvParser';
-import { analyzeFraudRisk, type FraudAnalysis } from '@/lib/fraudDetection';
+import { analyzeFraudRisk, parseShippingAddress, type FraudAnalysis } from '@/lib/fraudDetection';
 
 const AdminOrders = () => {
   useDocumentTitle('Orders Management - Admin');
@@ -118,8 +114,6 @@ const AdminOrders = () => {
     if (!orders) return new Map<string, FraudAnalysis>();
 
     const map = new Map<string, FraudAnalysis>();
-
-    // Group orders by user_id for cross-order checks
     const ordersByUser = new Map<string, typeof orders>();
     for (const order of orders) {
       const userId = order.user_id;
@@ -138,6 +132,36 @@ const AdminOrders = () => {
 
     return map;
   }, [orders]);
+
+  // Order stats for the stats bar
+  const orderStats = useMemo(() => {
+    if (!orders) return { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, flagged: 0, total: 0, revenue: 0 };
+
+    const excludedStatuses = ['cancelled', 'rejected'];
+    let pending = 0, processing = 0, shipped = 0, delivered = 0, cancelled = 0, flagged = 0, revenue = 0;
+
+    for (const order of orders) {
+      switch (order.status) {
+        case 'pending': pending++; break;
+        case 'processing': processing++; break;
+        case 'shipped': shipped++; break;
+        case 'delivered': delivered++; break;
+        case 'cancelled':
+        case 'rejected': cancelled++; break;
+      }
+
+      if (!excludedStatuses.includes(order.status || '')) {
+        revenue += order.total_amount || 0;
+      }
+
+      const analysis = fraudAnalysisMap.get(order.id);
+      if (analysis && (analysis.level === 'medium' || analysis.level === 'high')) {
+        flagged++;
+      }
+    }
+
+    return { pending, processing, shipped, delivered, cancelled, flagged, total: orders.length, revenue };
+  }, [orders, fraudAnalysisMap]);
 
   // Count high-risk pending orders for alert banner
   const highRiskPendingCount = useMemo(() => {
@@ -214,10 +238,41 @@ const AdminOrders = () => {
     }
   };
 
+  /** Extract customer name from shipping address or profile */
+  const getCustomerName = (order: any): string => {
+    // Try profile name first
+    if (order.profile?.full_name) return order.profile.full_name;
+    // Fall back to parsing shipping address
+    if (order.shipping_address) {
+      const parsed = parseShippingAddress(order.shipping_address);
+      return parsed.name || 'Unknown';
+    }
+    return 'Unknown';
+  };
+
+  /** Extract customer phone from shipping address or profile */
+  const getCustomerPhone = (order: any): string => {
+    if (order.profile?.phone) return order.profile.phone;
+    if (order.shipping_address) {
+      const parsed = parseShippingAddress(order.shipping_address);
+      return parsed.phone || '';
+    }
+    return '';
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: 'Copied', description: 'Copied to clipboard' });
+  };
+
   const filteredOrders = useMemo(() => {
     return orders?.filter(order => {
-      const matchesSearch = order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.shipping_address?.toLowerCase().includes(searchQuery.toLowerCase());
+      const customerName = getCustomerName(order).toLowerCase();
+      const lowerQuery = searchQuery.toLowerCase();
+      const matchesSearch = !searchQuery || 
+        order.id.toLowerCase().includes(lowerQuery) ||
+        order.shipping_address?.toLowerCase().includes(lowerQuery) ||
+        customerName.includes(lowerQuery);
       
       if (statusFilter === 'flagged') {
         const analysis = fraudAnalysisMap.get(order.id);
@@ -232,13 +287,14 @@ const AdminOrders = () => {
   const handleExportCSV = () => {
     if (!filteredOrders.length) return;
     
-    const headers = ['Order ID', 'Date', 'Customer', 'Items', 'Payment Method', 'Tracking ID', 'Total', 'Status', 'Risk Level', 'Risk Score'];
+    const headers = ['Order ID', 'Date', 'Customer', 'Phone', 'Items', 'Payment Method', 'Tracking ID', 'Total', 'Status', 'Risk Level', 'Risk Score'];
     const rows = filteredOrders.map(order => {
       const analysis = fraudAnalysisMap.get(order.id);
       return [
         order.id.slice(0, 8),
         format(new Date(order.created_at), 'yyyy-MM-dd HH:mm'),
-        order.shipping_address || 'N/A',
+        `"${getCustomerName(order)}"`,
+        getCustomerPhone(order),
         Array.isArray(order.items) ? order.items.length : 0,
         (order as any).payment_method || 'COD',
         (order as any).tracking_id || '',
@@ -256,9 +312,11 @@ const AdminOrders = () => {
 
   if (authLoading || roleLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <AdminLayout title="Orders" subtitle="Manage customer orders">
+        <OrderStatsBarSkeleton />
+        <OrderCardsSkeleton />
+        <OrderTableSkeleton />
+      </AdminLayout>
     );
   }
 
@@ -300,44 +358,33 @@ const AdminOrders = () => {
         </div>
       )}
 
-      {/* Header Actions */}
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-between mb-4 sm:mb-6">
-        <div className="flex gap-2 sm:gap-3 flex-1">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search orders..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-10 sm:h-11 rounded-xl text-sm"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-28 sm:w-36 h-10 sm:h-11 rounded-xl text-sm">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="processing">Processing</SelectItem>
-              <SelectItem value="shipped">Shipped</SelectItem>
-              <SelectItem value="delivered">Delivered</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-              <SelectItem value="flagged">
-                <span className="flex items-center gap-1.5">
-                  <ShieldAlert className="h-3 w-3 text-red-500" />
-                  Flagged
-                </span>
-              </SelectItem>
-            </SelectContent>
-          </Select>
+      {/* Order Stats Bar */}
+      {isLoading ? (
+        <OrderStatsBarSkeleton />
+      ) : (
+        <OrderStatsBar
+          stats={orderStats}
+          activeFilter={statusFilter}
+          onFilterChange={setStatusFilter}
+        />
+      )}
+
+      {/* Search + Export */}
+      <div className="flex gap-2 sm:gap-3 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by ID, name, address..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-10 sm:h-11 rounded-xl text-sm"
+          />
         </div>
         <Button 
           variant="outline" 
           onClick={handleExportCSV}
           disabled={!filteredOrders.length}
-          className="h-10 sm:h-11 rounded-xl text-sm gap-2"
+          className="h-10 sm:h-11 rounded-xl text-sm gap-2 shrink-0"
         >
           <Download className="h-4 w-4" />
           <span className="hidden sm:inline">Export CSV</span>
@@ -345,22 +392,29 @@ const AdminOrders = () => {
       </div>
 
       {/* Result count */}
-      {statusFilter !== 'all' && (
+      {(statusFilter !== 'all' || searchQuery) && (
         <p className="text-xs text-muted-foreground mb-2">
-          Showing {filteredOrders.length} {statusFilter === 'flagged' ? 'flagged' : statusFilter} order{filteredOrders.length !== 1 ? 's' : ''}
+          Showing {filteredOrders.length} {statusFilter === 'flagged' ? 'flagged' : statusFilter !== 'all' ? statusFilter : ''} order{filteredOrders.length !== 1 ? 's' : ''}
+          {searchQuery && ` matching "${searchQuery}"`}
         </p>
       )}
 
       {/* Orders - Mobile Cards / Desktop Table */}
       <div className="bg-card rounded-xl sm:rounded-2xl border border-border overflow-hidden">
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
+          <>
+            <OrderCardsSkeleton />
+            <OrderTableSkeleton />
+          </>
         ) : filteredOrders.length === 0 ? (
           <div className="text-center py-12">
             <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">No orders found</p>
+            {statusFilter !== 'all' && (
+              <Button variant="link" size="sm" onClick={() => setStatusFilter('all')} className="mt-2">
+                Clear filter
+              </Button>
+            )}
           </div>
         ) : (
           <>
@@ -368,11 +422,17 @@ const AdminOrders = () => {
             <div className="sm:hidden divide-y divide-border">
               {filteredOrders.map((order) => {
                 const analysis = fraudAnalysisMap.get(order.id);
+                const customerName = getCustomerName(order);
                 return (
-                  <div key={order.id} className="p-3 space-y-2">
+                  <div 
+                    key={order.id} 
+                    className="p-3 space-y-2 active:bg-muted/30 transition-colors"
+                    onClick={() => { setSelectedOrder(order); setIsViewOpen(true); }}
+                  >
+                    {/* Row 1: Order ID + Risk + Status */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm font-medium">#{order.id.slice(0, 8)}</span>
+                        <span className="font-mono text-xs font-medium text-muted-foreground">#{order.id.slice(0, 8)}</span>
                         {analysis && analysis.level !== 'low' && (
                           <FraudRiskBadge analysis={analysis} compact />
                         )}
@@ -381,34 +441,39 @@ const AdminOrders = () => {
                         {order.status}
                       </Badge>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">{format(new Date(order.created_at), 'MMM d, yyyy')}</span>
-                      <span className="font-bold text-primary text-lg">৳{order.total_amount}</span>
+
+                    {/* Row 2: Customer name + amount */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="text-sm font-medium truncate">{customerName}</span>
+                      </div>
+                      <span className="font-bold text-primary text-lg shrink-0 ml-2">৳{order.total_amount}</span>
                     </div>
+
+                    {/* Row 3: Date + Items + Payment */}
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{Array.isArray(order.items) ? order.items.length : 0} items</span>
+                      <div className="flex items-center gap-2">
+                        <span>{format(new Date(order.created_at), 'MMM d, yyyy')}</span>
+                        <span>·</span>
+                        <span>{Array.isArray(order.items) ? order.items.length : 0} items</span>
+                      </div>
                       {getPaymentMethodBadge((order as any).payment_method || 'cod')}
                     </div>
+
                     {(order as any).tracking_id && (
-                      <code className="text-xs bg-secondary px-2 py-1 rounded block">
+                      <code className="text-xs bg-secondary px-2 py-1 rounded block truncate">
                         Tracking: {(order as any).tracking_id}
                       </code>
                     )}
-                    <div className="flex gap-2 pt-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex-1 h-10 rounded-xl text-sm"
-                        onClick={() => { setSelectedOrder(order); setIsViewOpen(true); }}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
                       {order.status === 'pending' && (
                         <>
                           <Button 
                             size="sm" 
-                            className="flex-1 h-10 rounded-xl text-sm bg-green-600 hover:bg-green-700"
+                            className="flex-1 h-11 rounded-xl text-sm bg-green-600 hover:bg-green-700 active:scale-95 transition-transform"
                             onClick={() => { setOrderForAction(order); setIsAcceptOpen(true); }}
                           >
                             <CheckCircle className="h-4 w-4 mr-1" />
@@ -417,7 +482,7 @@ const AdminOrders = () => {
                           <Button 
                             size="sm" 
                             variant="destructive"
-                            className="flex-1 h-10 rounded-xl text-sm"
+                            className="flex-1 h-11 rounded-xl text-sm active:scale-95 transition-transform"
                             onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}
                           >
                             <Ban className="h-4 w-4 mr-1" />
@@ -425,11 +490,12 @@ const AdminOrders = () => {
                           </Button>
                         </>
                       )}
-                      {order.status !== 'pending' && order.status !== 'cancelled' && order.status !== 'delivered' && (
+                      {order.status !== 'pending' && order.status !== 'cancelled' && order.status !== 'delivered' && order.status !== 'rejected' && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-10 rounded-xl">
-                              <MoreHorizontal className="h-4 w-4" />
+                            <Button variant="outline" size="sm" className="flex-1 h-11 rounded-xl text-sm">
+                              <MoreHorizontal className="h-4 w-4 mr-1" />
+                              Actions
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -457,6 +523,7 @@ const AdminOrders = () => {
                   <TableRow>
                     <TableHead>Order ID</TableHead>
                     <TableHead>Date</TableHead>
+                    <TableHead>Customer</TableHead>
                     <TableHead>Items</TableHead>
                     <TableHead>Payment</TableHead>
                     <TableHead>Tracking</TableHead>
@@ -469,10 +536,14 @@ const AdminOrders = () => {
                 <TableBody>
                   {filteredOrders.map((order) => {
                     const analysis = fraudAnalysisMap.get(order.id);
+                    const customerName = getCustomerName(order);
                     return (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-medium">#{order.id.slice(0, 8)}</TableCell>
-                        <TableCell>{format(new Date(order.created_at), 'PP')}</TableCell>
+                      <TableRow key={order.id} className="cursor-pointer" onClick={() => { setSelectedOrder(order); setIsViewOpen(true); }}>
+                        <TableCell className="font-mono text-sm">#{order.id.slice(0, 8)}</TableCell>
+                        <TableCell className="whitespace-nowrap">{format(new Date(order.created_at), 'MMM d, yy')}</TableCell>
+                        <TableCell>
+                          <span className="font-medium text-sm">{customerName}</span>
+                        </TableCell>
                         <TableCell>
                           {Array.isArray(order.items) ? order.items.length : 0} items
                         </TableCell>
@@ -497,10 +568,10 @@ const AdminOrders = () => {
                         <TableCell>
                           {analysis && <FraudRiskBadge analysis={analysis} />}
                         </TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -530,7 +601,7 @@ const AdminOrders = () => {
                                 </>
                               )}
                               
-                              {order.status !== 'pending' && order.status !== 'cancelled' && order.status !== 'delivered' && (
+                              {order.status !== 'pending' && order.status !== 'cancelled' && order.status !== 'delivered' && order.status !== 'rejected' && (
                                 <>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'shipped')}>
@@ -566,31 +637,69 @@ const AdminOrders = () => {
 
       {/* Order Details Dialog */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg">Order #{selectedOrder?.id.slice(0, 8)}</DialogTitle>
             <DialogDescription className="text-sm">
-              Placed on {selectedOrder && format(new Date(selectedOrder.created_at), 'PPP')}
+              Placed on {selectedOrder && format(new Date(selectedOrder.created_at), 'PPP p')}
             </DialogDescription>
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-4">
+              {/* Status & Payment row */}
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Status</span>
                 <Badge className={getStatusColor(selectedOrder.status)}>
                   {selectedOrder.status}
                 </Badge>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Payment Method</span>
                 {getPaymentMethodBadge(selectedOrder.payment_method || 'cod')}
               </div>
 
+              {/* Customer Info Card */}
+              <div className="p-3 bg-muted/50 rounded-xl space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Customer</p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium text-sm">{getCustomerName(selectedOrder)}</span>
+                  </div>
+                </div>
+                {getCustomerPhone(selectedOrder) && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <a 
+                        href={`tel:${getCustomerPhone(selectedOrder)}`} 
+                        className="text-sm text-primary hover:underline"
+                      >
+                        {getCustomerPhone(selectedOrder)}
+                      </a>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => copyToClipboard(getCustomerPhone(selectedOrder))}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+
               {selectedOrder.tracking_id && (
-                <div className="p-3 bg-secondary/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">Tracking ID (Steadfast)</p>
-                  <code className="font-mono font-bold">{selectedOrder.tracking_id}</code>
+                <div className="p-3 bg-secondary/50 rounded-xl">
+                  <p className="text-xs text-muted-foreground mb-1">Tracking ID (Steadfast)</p>
+                  <div className="flex items-center justify-between">
+                    <code className="font-mono font-bold text-sm">{selectedOrder.tracking_id}</code>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => copyToClipboard(selectedOrder.tracking_id)}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                   {selectedOrder.consignment_id && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Consignment: {selectedOrder.consignment_id}
@@ -600,8 +709,8 @@ const AdminOrders = () => {
               )}
 
               {selectedOrder.rejection_reason && (
-                <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
-                  <p className="text-sm text-muted-foreground">Rejection Reason</p>
+                <div className="p-3 bg-destructive/10 rounded-xl border border-destructive/20">
+                  <p className="text-xs text-muted-foreground mb-1">Rejection Reason</p>
                   <p className="text-sm text-destructive">{selectedOrder.rejection_reason}</p>
                 </div>
               )}
@@ -611,28 +720,30 @@ const AdminOrders = () => {
                 <FraudAnalysisPanel analysis={fraudAnalysisMap.get(selectedOrder.id)!} />
               )}
               
+              {/* Shipping Address */}
               <div>
-                <h4 className="font-medium mb-2">Shipping Address</h4>
-                <p className="text-sm text-muted-foreground">
+                <h4 className="font-medium text-sm mb-1.5">Shipping Address</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   {selectedOrder.shipping_address || 'No address provided'}
                 </p>
               </div>
 
+              {/* Order Items */}
               <div>
-                <h4 className="font-medium mb-2">Order Items</h4>
+                <h4 className="font-medium text-sm mb-2">Order Items</h4>
                 <div className="space-y-2">
                   {Array.isArray(selectedOrder.items) && selectedOrder.items.map((item: any, idx: number) => (
                     <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-secondary/50">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         {item.image && (
-                          <img src={item.image} alt={item.name} className="h-10 w-10 rounded-lg object-cover" />
+                          <img src={item.image} alt={item.name} className="h-10 w-10 rounded-lg object-cover shrink-0" />
                         )}
-                        <div>
-                          <p className="font-medium text-sm">{item.name}</p>
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{item.name}</p>
                           <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
                         </div>
                       </div>
-                      <span className="font-medium">৳{item.price * item.quantity}</span>
+                      <span className="font-medium shrink-0 ml-2">৳{item.price * item.quantity}</span>
                     </div>
                   ))}
                 </div>
@@ -647,7 +758,7 @@ const AdminOrders = () => {
               {selectedOrder.status === 'pending' && (
                 <div className="flex gap-2 pt-2">
                   <Button 
-                    className="flex-1"
+                    className="flex-1 h-11 active:scale-95 transition-transform"
                     onClick={() => {
                       setOrderForAction(selectedOrder);
                       setIsViewOpen(false);
@@ -659,7 +770,7 @@ const AdminOrders = () => {
                   </Button>
                   <Button 
                     variant="destructive"
-                    className="flex-1"
+                    className="flex-1 h-11 active:scale-95 transition-transform"
                     onClick={() => {
                       setOrderForAction(selectedOrder);
                       setIsViewOpen(false);
