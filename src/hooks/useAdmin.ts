@@ -55,8 +55,9 @@ export const useAdminStats = () => {
   return useQuery({
     queryKey: ['admin-stats'],
     queryFn: async () => {
-      const excludedStatuses = ['cancelled', 'rejected'];
+      const today = new Date().toISOString().split('T')[0];
 
+      // Single batch of all count + data queries
       const [
         { count: totalProducts },
         { count: totalUsers },
@@ -64,11 +65,15 @@ export const useAdminStats = () => {
         { count: totalDoctors },
         { count: totalPosts },
         { count: totalAppointments },
-        { data: recentOrders },
-        { data: allOrders },
         { count: verifiedClinics },
         { count: pendingDoctors },
-        { count: verifiedDoctors },
+        { count: totalOrders },
+        { count: pendingOrdersCount },
+        { count: cancelledOrdersCount },
+        { count: postsToday },
+        { count: appointmentsToday },
+        { data: recentOrders },
+        { data: revenueRows },
       ] = await Promise.all([
         supabase.from('products').select('*', { count: 'exact', head: true }),
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
@@ -76,48 +81,46 @@ export const useAdminStats = () => {
         supabase.from('doctors').select('*', { count: 'exact', head: true }),
         supabase.from('posts').select('*', { count: 'exact', head: true }),
         supabase.from('appointments').select('*', { count: 'exact', head: true }),
-        supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(5),
-        supabase.from('orders').select('id, total_amount, status, created_at'),
         supabase.from('clinics').select('*', { count: 'exact', head: true }).eq('is_verified', true),
         supabase.from('doctors').select('*', { count: 'exact', head: true }).eq('verification_status', 'pending'),
-        supabase.from('doctors').select('*', { count: 'exact', head: true }).eq('is_verified', true),
-      ]);
-
-      // Get today's stats
-      const today = new Date().toISOString().split('T')[0];
-      const [{ count: postsToday }, { count: appointmentsToday }] = await Promise.all([
+        supabase.from('orders').select('*', { count: 'exact', head: true }),
+        supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('orders').select('*', { count: 'exact', head: true }).in('status', ['cancelled', 'rejected']),
         supabase.from('posts').select('*', { count: 'exact', head: true }).gte('created_at', today),
         supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('appointment_date', today),
+        supabase.from('orders').select('id, total_amount, status, created_at').order('created_at', { ascending: false }).limit(5),
+        // Only fetch amount+status for revenue calc — minimal columns
+        supabase.from('orders').select('total_amount, status'),
       ]);
 
-      const orders = allOrders || [];
-      const activeOrders = orders.filter(o => !excludedStatuses.includes(o.status || ''));
-      const pendingOrders = orders.filter(o => o.status === 'pending').length;
-      
-      // Revenue from active (non-cancelled/rejected) orders only
-      const activeRevenue = activeOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
-      const totalRevenue = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
-      const cancelledRevenue = totalRevenue - activeRevenue;
+      const rows = revenueRows || [];
+      const activeRevenue = rows
+        .filter(o => !['cancelled', 'rejected'].includes(o.status || ''))
+        .reduce((sum, o) => sum + (o.total_amount || 0), 0);
+      const totalRevenue = rows.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+
+      const total = totalOrders || 0;
+      const cancelled = cancelledOrdersCount || 0;
+      const pending = pendingOrdersCount || 0;
 
       return {
         totalProducts: totalProducts || 0,
-        totalOrders: orders.length,
-        activeOrders: activeOrders.length,
-        cancelledOrders: orders.length - activeOrders.length,
+        totalOrders: total,
+        activeOrders: total - cancelled,
+        cancelledOrders: cancelled,
         totalUsers: totalUsers || 0,
         totalClinics: totalClinics || 0,
         verifiedClinics: verifiedClinics || 0,
         totalDoctors: totalDoctors || 0,
         pendingDoctors: pendingDoctors || 0,
-        verifiedDoctors: verifiedDoctors || 0,
         totalPosts: totalPosts || 0,
         postsToday: postsToday || 0,
         totalAppointments: totalAppointments || 0,
         appointmentsToday: appointmentsToday || 0,
         activeRevenue,
         totalRevenue,
-        cancelledRevenue,
-        pendingOrders,
+        cancelledRevenue: totalRevenue - activeRevenue,
+        pendingOrders: pending,
         recentOrders: recentOrders || [],
       };
     },
