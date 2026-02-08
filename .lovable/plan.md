@@ -1,184 +1,110 @@
 
-# Clinic Dashboard Design Improvement Plan
+# Admin Analytics Page -- Priority Improvements
 
-## Status: ✅ COMPLETED
-
-## Overview
-This plan improves the `/clinic/dashboard` page design and adds an "Add Appointment" button in the hero section for walk-in appointments (pets without pet parent accounts). All changes focus on mobile-first responsive design.
+Based on a thorough audit of the current analytics page, database state, and admin workflow, here are the most important improvements focused on what an admin actually needs day-to-day.
 
 ---
 
-## ✅ Changes Implemented
+## Current State Summary
 
-### 1. Enhanced Hero Section Design
-**Current Issues:**
-- The hero section looks basic and crowded on mobile
-- Action buttons are not prominent enough
-- Missing the requested "Add Appointment" feature
-
-**Improvements:**
-- Redesign hero card with a cleaner, more modern layout
-- Add gradient accent and visual polish
-- Improve spacing and hierarchy
-- Make status toggle more prominent
-- Add "Add Appointment" button for walk-in patients
-
-### 2. New "Add Walk-in Appointment" Feature
-**Purpose:** Allow clinic owners to manually add appointments for pets whose owners don't have accounts (walk-in patients).
-
-**Implementation:**
-- New button in hero section labeled "Add Appointment" with Plus icon
-- Opens a simplified wizard dialog/drawer (Drawer on mobile, Dialog on desktop)
-- Form captures: Pet Name, Pet Type, Owner Name (optional), Owner Phone (optional), Doctor (optional), Date, Time, Reason
-- Creates appointment with a placeholder user ID (the clinic owner's ID as proxy)
-- Mark these as "walk-in" appointments for tracking
-
-### 3. Mobile-Optimized Hero Layout
-**Mobile View (< 768px):**
-```text
-┌─────────────────────────────────────────┐
-│  [Avatar]  Clinic Name       [Verified] │
-│            Location                     │
-│            [Toggle] Open ★ 4.5          │
-├─────────────────────────────────────────┤
-│  [Search appointments...]               │
-├─────────────────────────────────────────┤
-│ [+ Add Appointment]  [View]  [Edit]     │
-└─────────────────────────────────────────┘
-```
-
-**Desktop View:**
-```text
-┌──────────────────────────────────────────────────────────────┐
-│  [Avatar]  Clinic Name [Verified]      [Search...          ] │
-│            Location                    [+ Add Apt] [View] [Edit]
-│            [Toggle] Open ★ 4.5                               │
-└──────────────────────────────────────────────────────────────┘
-```
+- **6 orders** (all cancelled/rejected -- so active revenue is 0)
+- **6 products with 0 stock** (out of 76 total)
+- **15 users**, **25 clinics**, **7 doctors**, **5 appointments**, **7 posts**
+- No date filtering, no export, no low-stock alerts, no contact message tracking
+- Full-page loading spinner instead of skeleton loading
+- Stat cards are not clickable (no quick navigation)
 
 ---
 
-## Technical Implementation
+## Priority 1: Actionable Admin Alerts (High Impact)
 
-### File Changes
+### Low Stock Product Alerts
+- Add a prominent alert section at the top of the analytics page showing products with stock <= 5 (currently 6 products at 0 stock)
+- Each alert row shows product name, current stock, and a link to edit that product
+- This is critical for an e-commerce admin to avoid missed sales
 
-#### 1. Create New Component: `src/components/clinic/AddWalkInAppointmentDialog.tsx`
-New component for adding walk-in appointments with:
-- Responsive modal (Drawer on mobile, Dialog on desktop)
-- Form wizard with 3 steps:
-  - Step 1: Pet Info (name, type)
-  - Step 2: Owner Info (name, phone - optional)
-  - Step 3: Schedule (doctor, date, time, reason)
-- Submits to appointments table with walk-in flag
-- Loading overlay to prevent double submission
-
-#### 2. Update: `src/pages/clinic/ClinicDashboard.tsx`
-Modifications:
-- Import new `AddWalkInAppointmentDialog` component
-- Add state for dialog visibility: `const [isAddAppointmentOpen, setIsAddAppointmentOpen] = useState(false)`
-- Redesign hero section with improved layout:
-  - Better visual hierarchy
-  - Cleaner mobile layout with stacked buttons
-  - Add "Add Appointment" primary action button
-- Improve button arrangements for mobile
-
-#### 3. Update: `src/hooks/useClinicOwner.ts`
-Add new mutation for walk-in appointments:
-- `addWalkInAppointment` mutation
-- Handles creating appointment with clinic owner as proxy user
-- Includes optional owner contact info in notes/reason field
+### Unread Contact Messages Counter
+- Query `contact_messages` where `status = 'unread'` and show the count
+- Display as a notification badge in the Platform Overview section
+- Add to the `useAdminAnalytics` hook data
 
 ---
 
-## UI/UX Improvements
+## Priority 2: Date Range Filter (High Impact)
 
-### Hero Section Styling
-- Increase padding on mobile for better touch targets
-- Use subtle gradient background for visual interest
-- Improve icon and badge sizing
-- Better responsive breakpoints
-
-### Button Hierarchy
-1. **Add Appointment** (Primary) - Most prominent, main CTA
-2. **View Public** (Outline) - Secondary action
-3. **Edit Profile** (Primary variant) - Management action
-
-### Touch Target Optimization
-- All buttons minimum 44px height on mobile
-- Proper spacing between interactive elements
-- `active:scale-95` feedback on all buttons
-
-### Search Bar Placement
-- Full width on mobile above action buttons
-- Inline with buttons on desktop
+- Add a filter bar at the top of the analytics page with preset buttons: **Today**, **7 Days**, **30 Days**, **90 Days**, **All Time**
+- All revenue, order, and trend charts will recalculate based on the selected range
+- The date range state is passed into the `useAdminAnalytics` hook to filter order data accordingly
+- Daily trends chart adapts its x-axis to the selected range
 
 ---
 
-## Database Considerations
+## Priority 3: CSV Export (Medium Impact)
 
-The current `appointments` table structure supports this feature:
-- `user_id`: Will use clinic owner's ID as proxy for walk-in
-- `pet_name`, `pet_type`: Already supported
-- `reason`: Can include owner contact info for walk-ins
-- `status`: Set to 'pending' initially
-
-No database migration required - use existing schema with a convention for walk-in identification (e.g., reason starts with "[Walk-in]" or we track owner info in the reason field).
+- Add an export button (download icon) in the analytics page header
+- Export options: **Revenue Report**, **Order Summary**, **User Data**
+- Generates and downloads a CSV file from the current analytics data
+- Uses the existing `csvParser.ts` utility pattern already in the codebase
 
 ---
 
-## Component Structure
+## Priority 4: Skeleton Loading States (UX Polish)
 
-```text
-ClinicDashboard.tsx
-├── Hero Section (redesigned)
-│   ├── Clinic Info Block
-│   │   ├── Avatar
-│   │   ├── Name + Verified Badge
-│   │   ├── Location
-│   │   └── Status Toggle + Rating
-│   ├── Search Bar
-│   └── Action Buttons
-│       ├── Add Appointment (NEW)
-│       ├── View Public
-│       └── Edit Profile
-├── Stats Grid
-├── Tabs
-│   ├── Appointments Tab
-│   │   ├── QuickStatsOverview
-│   │   └── ClinicAppointmentsList
-│   ├── Doctors Tab
-│   ├── Services Tab
-│   └── Analytics Tab
-└── AddWalkInAppointmentDialog (NEW)
-```
+- Replace the full-page `Loader2` spinner with skeleton placeholders that match the layout
+- 4 skeleton stat cards for the revenue row
+- 6 skeleton stat cards for the platform overview
+- Skeleton rectangles for chart areas
+- This makes the page feel much faster on load
 
 ---
 
-## Mobile-First Responsive Classes
+## Priority 5: Clickable Stat Cards with Navigation (UX Polish)
 
-Key breakpoint patterns to use:
-- `text-sm sm:text-base` - Text sizing
-- `p-3 sm:p-4 lg:p-6` - Padding scaling
-- `gap-2 sm:gap-3` - Gap scaling
-- `flex-col sm:flex-row` - Layout switching
-- `h-10 sm:h-11` - Touch target sizing
-- `w-full sm:w-auto` - Width control
-
----
-
-## Files to Create/Modify
-
-| File | Action | Description |
-|------|--------|-------------|
-| `src/components/clinic/AddWalkInAppointmentDialog.tsx` | Create | New walk-in appointment dialog |
-| `src/pages/clinic/ClinicDashboard.tsx` | Modify | Redesign hero, add button, integrate dialog |
-| `src/hooks/useClinicOwner.ts` | Modify | Add walk-in appointment mutation |
+- Make each `AnalyticsStatCard` clickable to navigate to its corresponding admin page:
+  - Revenue -> `/admin/orders`
+  - Orders -> `/admin/orders`
+  - Users -> `/admin/customers`
+  - Clinics -> `/admin/clinics`
+  - Doctors -> `/admin/doctors`
+  - Products -> `/admin/products`
+  - Appointments -> `/admin/clinics`
+- Add subtle hover cursor and visual feedback
+- Add a "Last updated" timestamp with a manual refresh button at the top
 
 ---
 
-## Accessibility Considerations
-- All buttons have proper `aria-label` attributes
-- Loading states announced to screen readers
-- Focus management in dialogs
-- Keyboard navigation support
-- Minimum 44px touch targets on mobile
+## Priority 6: Doctor & Clinic Verification Funnel (Admin Workflow)
+
+- Expand the existing clinic health section into a proper verification funnel:
+  - Show `not_submitted` / `pending` / `approved` / `rejected` counts for both doctors and clinics
+  - Progress bars for each stage
+- Add pending doctor verifications count (currently tracked but not prominently displayed)
+
+---
+
+## Technical Details
+
+### Files to modify:
+1. **`src/hooks/useAdminAnalytics.ts`** -- Add new data fields:
+   - `lowStockProducts: Array<{id, name, stock, price}>` (products with stock <= 5)
+   - `unreadMessages: number`
+   - `doctorVerificationFunnel: {not_submitted, pending, approved, rejected}`
+   - Accept `dateRange` parameter to filter order calculations
+
+2. **`src/components/admin/AnalyticsStatCard.tsx`** -- Add optional `href` and `onClick` props, wrap in a clickable container with cursor-pointer and hover effect
+
+3. **`src/pages/admin/AdminAnalytics.tsx`** -- Major updates:
+   - Add date range filter bar (state-managed with preset buttons)
+   - Add low stock alerts section (collapsible, shows product name + stock + edit link)
+   - Add CSV export dropdown button
+   - Replace loading spinner with skeleton cards
+   - Wire stat cards to navigate to their admin pages
+   - Add "Last updated" indicator with refresh button
+   - Add unread contact messages to platform overview
+
+4. **`src/components/admin/AnalyticsChartCard.tsx`** -- No changes needed (already well-structured)
+
+### New utility:
+- CSV export helper function (inline in analytics page or shared utility) to convert analytics data to downloadable CSV
+
+### No database migrations needed -- all data is already available in existing tables.
