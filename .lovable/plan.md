@@ -1,110 +1,115 @@
 
-# Admin Analytics Page -- Priority Improvements
 
-Based on a thorough audit of the current analytics page, database state, and admin workflow, here are the most important improvements focused on what an admin actually needs day-to-day.
+# Fraud Order Detection System
 
----
+## Problem
 
-## Current State Summary
+Currently, the admin has no way to identify potentially fraudulent orders before accepting them. Looking at actual order data, there are clear fraud signals that go unnoticed:
 
-- **6 orders** (all cancelled/rejected -- so active revenue is 0)
-- **6 products with 0 stock** (out of 76 total)
-- **15 users**, **25 clinics**, **7 doctors**, **5 appointments**, **7 posts**
-- No date filtering, no export, no low-stock alerts, no contact message tracking
-- Full-page loading spinner instead of skeleton loading
-- Stat cards are not clickable (no quick navigation)
+- Order from "Sakib" with gibberish address "Bdhdndnd, Behjd, Hdhd, Hdhd" and invalid phone "0273+39"
+- Same user placing duplicate orders 3 minutes apart (same items, same address)
+- Shipping name different from profile name (profile says "Admin" but order says "Test User")
+- All orders are Cash on Delivery (highest fraud risk payment method)
 
----
-
-## Priority 1: Actionable Admin Alerts (High Impact)
-
-### Low Stock Product Alerts
-- Add a prominent alert section at the top of the analytics page showing products with stock <= 5 (currently 6 products at 0 stock)
-- Each alert row shows product name, current stock, and a link to edit that product
-- This is critical for an e-commerce admin to avoid missed sales
-
-### Unread Contact Messages Counter
-- Query `contact_messages` where `status = 'unread'` and show the count
-- Display as a notification badge in the Platform Overview section
-- Add to the `useAdminAnalytics` hook data
+Without detection, the admin wastes time processing fake orders and risks shipping products that will never be paid for.
 
 ---
 
-## Priority 2: Date Range Filter (High Impact)
+## Solution Overview
 
-- Add a filter bar at the top of the analytics page with preset buttons: **Today**, **7 Days**, **30 Days**, **90 Days**, **All Time**
-- All revenue, order, and trend charts will recalculate based on the selected range
-- The date range state is passed into the `useAdminAnalytics` hook to filter order data accordingly
-- Daily trends chart adapts its x-axis to the selected range
+A client-side fraud scoring engine that automatically analyzes every order against multiple risk signals, assigns a risk level (Low / Medium / High), and surfaces flagged orders prominently so the admin can prioritize review.
 
----
-
-## Priority 3: CSV Export (Medium Impact)
-
-- Add an export button (download icon) in the analytics page header
-- Export options: **Revenue Report**, **Order Summary**, **User Data**
-- Generates and downloads a CSV file from the current analytics data
-- Uses the existing `csvParser.ts` utility pattern already in the codebase
+No AI or external APIs needed -- this uses rule-based heuristics on data already available in the database.
 
 ---
 
-## Priority 4: Skeleton Loading States (UX Polish)
+## Fraud Signals to Detect
 
-- Replace the full-page `Loader2` spinner with skeleton placeholders that match the layout
-- 4 skeleton stat cards for the revenue row
-- 6 skeleton stat cards for the platform overview
-- Skeleton rectangles for chart areas
-- This makes the page feel much faster on load
+| Signal | What It Catches | Risk Points |
+|--------|----------------|-------------|
+| Gibberish address | Random keyboard characters, repeated chars, too-short fields | +30 |
+| Invalid phone | Not matching Bangladesh format (01XXXXXXXXX, 11 digits) | +25 |
+| Name mismatch | Shipping name differs from profile name | +15 |
+| Rapid repeat orders | Same user placed another order within 1 hour | +20 |
+| High cancellation rate | User has >50% cancelled orders historically | +15 |
+| Suspicious address length | Address fields under 3 characters | +20 |
+| Very high first order | New user's first order exceeds a threshold (e.g., 5000 BDT) | +10 |
 
----
-
-## Priority 5: Clickable Stat Cards with Navigation (UX Polish)
-
-- Make each `AnalyticsStatCard` clickable to navigate to its corresponding admin page:
-  - Revenue -> `/admin/orders`
-  - Orders -> `/admin/orders`
-  - Users -> `/admin/customers`
-  - Clinics -> `/admin/clinics`
-  - Doctors -> `/admin/doctors`
-  - Products -> `/admin/products`
-  - Appointments -> `/admin/clinics`
-- Add subtle hover cursor and visual feedback
-- Add a "Last updated" timestamp with a manual refresh button at the top
+**Risk Levels:**
+- 0-19 points: Low risk (green)
+- 20-39 points: Medium risk (yellow/amber)
+- 40+ points: High risk (red)
 
 ---
 
-## Priority 6: Doctor & Clinic Verification Funnel (Admin Workflow)
+## What the Admin Sees
 
-- Expand the existing clinic health section into a proper verification funnel:
-  - Show `not_submitted` / `pending` / `approved` / `rejected` counts for both doctors and clinics
-  - Progress bars for each stage
-- Add pending doctor verifications count (currently tracked but not prominently displayed)
+### 1. Risk Badge on Every Order
+Each order in both the mobile card view and desktop table gets a small colored badge:
+- Green shield icon = Low Risk
+- Amber warning icon = Medium Risk  
+- Red alert icon = High Risk
+
+### 2. "Flagged" Quick Filter
+A new filter option alongside the existing status filter that shows only Medium and High risk orders, so the admin can review suspicious orders first.
+
+### 3. Fraud Details in Order Dialog
+When viewing order details, a new "Risk Analysis" section appears showing:
+- Overall risk score and level
+- Each triggered signal with a short explanation (e.g., "Phone number format invalid: 0273+39")
+- Recommendation text (e.g., "Review carefully before accepting" or "Consider rejecting")
+
+### 4. Risk Summary in Order Stats
+If there are any high-risk pending orders, show a count at the top of the page as an alert.
 
 ---
 
 ## Technical Details
 
-### Files to modify:
-1. **`src/hooks/useAdminAnalytics.ts`** -- Add new data fields:
-   - `lowStockProducts: Array<{id, name, stock, price}>` (products with stock <= 5)
-   - `unreadMessages: number`
-   - `doctorVerificationFunnel: {not_submitted, pending, approved, rejected}`
-   - Accept `dateRange` parameter to filter order calculations
+### New Files
 
-2. **`src/components/admin/AnalyticsStatCard.tsx`** -- Add optional `href` and `onClick` props, wrap in a clickable container with cursor-pointer and hover effect
+1. **`src/lib/fraudDetection.ts`** -- Core fraud scoring engine
+   - `analyzeFraudRisk(order, profile, userOrders)` function
+   - Returns `{ score: number, level: 'low' | 'medium' | 'high', signals: FraudSignal[] }`
+   - Contains all heuristic functions:
+     - `isGibberishText(text)` -- detects random character sequences (consonant clusters, repeated chars)
+     - `isValidBDPhone(phone)` -- validates Bangladesh phone format
+     - `parseShippingAddress(address)` -- extracts name, phone, and address parts from the concatenated string
+     - `checkNameMismatch(shippingName, profileName)` -- fuzzy comparison
+     - `checkRapidOrders(orders, currentOrder)` -- finds orders within 1 hour window
+     - `checkCancellationRate(orders)` -- calculates historical cancel percentage
 
-3. **`src/pages/admin/AdminAnalytics.tsx`** -- Major updates:
-   - Add date range filter bar (state-managed with preset buttons)
-   - Add low stock alerts section (collapsible, shows product name + stock + edit link)
-   - Add CSV export dropdown button
-   - Replace loading spinner with skeleton cards
-   - Wire stat cards to navigate to their admin pages
-   - Add "Last updated" indicator with refresh button
-   - Add unread contact messages to platform overview
+2. **`src/components/admin/FraudRiskBadge.tsx`** -- Visual risk indicator component
+   - Compact badge with icon + color for table/card views
+   - Tooltip showing brief risk summary on hover
 
-4. **`src/components/admin/AnalyticsChartCard.tsx`** -- No changes needed (already well-structured)
+3. **`src/components/admin/FraudAnalysisPanel.tsx`** -- Detailed risk breakdown panel
+   - Used inside the Order Details dialog
+   - Shows each triggered signal with icon, description, and point value
+   - Shows overall score with progress bar visualization
+   - Recommendation text based on risk level
 
-### New utility:
-- CSV export helper function (inline in analytics page or shared utility) to convert analytics data to downloadable CSV
+### Modified Files
 
-### No database migrations needed -- all data is already available in existing tables.
+1. **`src/hooks/useAdmin.ts`** -- Update `useAdminOrders` hook
+   - Join `profiles` table to get `full_name` and `phone` for name-mismatch detection
+   - The query becomes: `supabase.from('orders').select('*, profile:profiles!user_id(full_name, phone)')` 
+
+2. **`src/pages/admin/AdminOrders.tsx`** -- Integrate fraud detection
+   - Import and run `analyzeFraudRisk` on each order when data loads (memoized)
+   - Add "Risk" column to desktop table (between Status and Actions)
+   - Add `FraudRiskBadge` to mobile card view
+   - Add "Flagged" option to the status filter dropdown
+   - Add `FraudAnalysisPanel` inside the Order Details dialog
+   - Show alert banner if high-risk pending orders exist
+
+### No Database Changes Required
+
+All fraud analysis runs client-side using existing order data, profile data, and order history. No new tables, columns, or migrations needed.
+
+### Performance Considerations
+
+- Fraud analysis is computed via `useMemo` -- only recalculates when orders data changes
+- The gibberish detection uses lightweight string analysis (character frequency, consonant clusters), not external API calls
+- Profile data is fetched in the same query as orders (single round-trip)
+
