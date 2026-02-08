@@ -83,8 +83,8 @@ export const AnalyticsStatCard = ({
             </div>
           )}
 
-          {subtitle && !trend && (
-            <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">{subtitle}</p>
+          {subtitle && (
+            <p className={cn('text-[10px] sm:text-xs text-muted-foreground', trend ? 'mt-0.5' : 'mt-1')}>{subtitle}</p>
           )}
         </div>
 
