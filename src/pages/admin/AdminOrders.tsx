@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
@@ -13,7 +13,8 @@ import {
   Package,
   CreditCard,
   Ban,
-  Download
+  Download,
+  ShieldAlert,
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -57,8 +58,11 @@ import { format } from 'date-fns';
 import { createOrderNotification } from '@/lib/notifications';
 import { AcceptOrderDialog } from '@/components/admin/AcceptOrderDialog';
 import { RejectOrderDialog } from '@/components/admin/RejectOrderDialog';
+import { FraudRiskBadge } from '@/components/admin/FraudRiskBadge';
+import { FraudAnalysisPanel } from '@/components/admin/FraudAnalysisPanel';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { downloadCSV } from '@/lib/csvParser';
+import { analyzeFraudRisk, type FraudAnalysis } from '@/lib/fraudDetection';
 
 const AdminOrders = () => {
   useDocumentTitle('Orders Management - Admin');
@@ -109,9 +113,43 @@ const AdminOrders = () => {
     };
   }, [isAdmin, queryClient]);
 
+  // Compute fraud analysis for all orders (memoized)
+  const fraudAnalysisMap = useMemo(() => {
+    if (!orders) return new Map<string, FraudAnalysis>();
+
+    const map = new Map<string, FraudAnalysis>();
+
+    // Group orders by user_id for cross-order checks
+    const ordersByUser = new Map<string, typeof orders>();
+    for (const order of orders) {
+      const userId = order.user_id;
+      if (!ordersByUser.has(userId)) {
+        ordersByUser.set(userId, []);
+      }
+      ordersByUser.get(userId)!.push(order);
+    }
+
+    for (const order of orders) {
+      const profile = (order as any).profile || null;
+      const userOrders = ordersByUser.get(order.user_id) || [];
+      const analysis = analyzeFraudRisk(order, profile, userOrders);
+      map.set(order.id, analysis);
+    }
+
+    return map;
+  }, [orders]);
+
+  // Count high-risk pending orders for alert banner
+  const highRiskPendingCount = useMemo(() => {
+    if (!orders) return 0;
+    return orders.filter(o => {
+      const analysis = fraudAnalysisMap.get(o.id);
+      return o.status === 'pending' && analysis?.level === 'high';
+    }).length;
+  }, [orders, fraudAnalysisMap]);
+
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
-      // Get order details first for notification
       const { data: order, error: fetchError } = await supabase
         .from('orders')
         .select('*')
@@ -127,7 +165,6 @@ const AdminOrders = () => {
 
       if (error) throw error;
 
-      // Send notification to user
       if (order && ['processing', 'shipped', 'delivered', 'cancelled'].includes(status)) {
         await createOrderNotification({
           userId: order.user_id,
@@ -157,6 +194,7 @@ const AdminOrders = () => {
       case 'shipped':
         return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
       case 'cancelled':
+      case 'rejected':
         return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
@@ -176,27 +214,40 @@ const AdminOrders = () => {
     }
   };
 
-  const filteredOrders = orders?.filter(order => {
-    const matchesSearch = order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.shipping_address?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  }) || [];
+  const filteredOrders = useMemo(() => {
+    return orders?.filter(order => {
+      const matchesSearch = order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.shipping_address?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      if (statusFilter === 'flagged') {
+        const analysis = fraudAnalysisMap.get(order.id);
+        return matchesSearch && analysis && (analysis.level === 'medium' || analysis.level === 'high');
+      }
+      
+      const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    }) || [];
+  }, [orders, searchQuery, statusFilter, fraudAnalysisMap]);
 
   const handleExportCSV = () => {
     if (!filteredOrders.length) return;
     
-    const headers = ['Order ID', 'Date', 'Customer', 'Items', 'Payment Method', 'Tracking ID', 'Total', 'Status'];
-    const rows = filteredOrders.map(order => [
-      order.id.slice(0, 8),
-      format(new Date(order.created_at), 'yyyy-MM-dd HH:mm'),
-      order.shipping_address || 'N/A',
-      Array.isArray(order.items) ? order.items.length : 0,
-      (order as any).payment_method || 'COD',
-      (order as any).tracking_id || '',
-      order.total_amount,
-      order.status
-    ]);
+    const headers = ['Order ID', 'Date', 'Customer', 'Items', 'Payment Method', 'Tracking ID', 'Total', 'Status', 'Risk Level', 'Risk Score'];
+    const rows = filteredOrders.map(order => {
+      const analysis = fraudAnalysisMap.get(order.id);
+      return [
+        order.id.slice(0, 8),
+        format(new Date(order.created_at), 'yyyy-MM-dd HH:mm'),
+        order.shipping_address || 'N/A',
+        Array.isArray(order.items) ? order.items.length : 0,
+        (order as any).payment_method || 'COD',
+        (order as any).tracking_id || '',
+        order.total_amount,
+        order.status,
+        analysis?.level || 'unknown',
+        analysis?.score || 0,
+      ];
+    });
     
     const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
     downloadCSV(csvContent, `orders-${format(new Date(), 'yyyy-MM-dd')}.csv`);
@@ -226,6 +277,29 @@ const AdminOrders = () => {
 
   return (
     <AdminLayout title="Orders" subtitle="Manage customer orders">
+      {/* High-Risk Pending Alert Banner */}
+      {highRiskPendingCount > 0 && (
+        <div className="mb-4 flex items-center gap-3 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3 sm:p-4">
+          <ShieldAlert className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-red-800 dark:text-red-300">
+              {highRiskPendingCount} high-risk pending order{highRiskPendingCount > 1 ? 's' : ''} detected
+            </p>
+            <p className="text-xs text-red-600 dark:text-red-400">
+              Review flagged orders before processing
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0 border-red-300 text-red-700 hover:bg-red-100 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/40"
+            onClick={() => setStatusFilter('flagged')}
+          >
+            View Flagged
+          </Button>
+        </div>
+      )}
+
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-between mb-4 sm:mb-6">
         <div className="flex gap-2 sm:gap-3 flex-1">
@@ -249,6 +323,13 @@ const AdminOrders = () => {
               <SelectItem value="shipped">Shipped</SelectItem>
               <SelectItem value="delivered">Delivered</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+              <SelectItem value="flagged">
+                <span className="flex items-center gap-1.5">
+                  <ShieldAlert className="h-3 w-3 text-red-500" />
+                  Flagged
+                </span>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -262,6 +343,13 @@ const AdminOrders = () => {
           <span className="hidden sm:inline">Export CSV</span>
         </Button>
       </div>
+
+      {/* Result count */}
+      {statusFilter !== 'all' && (
+        <p className="text-xs text-muted-foreground mb-2">
+          Showing {filteredOrders.length} {statusFilter === 'flagged' ? 'flagged' : statusFilter} order{filteredOrders.length !== 1 ? 's' : ''}
+        </p>
+      )}
 
       {/* Orders - Mobile Cards / Desktop Table */}
       <div className="bg-card rounded-xl sm:rounded-2xl border border-border overflow-hidden">
@@ -278,80 +366,88 @@ const AdminOrders = () => {
           <>
             {/* Mobile Card View */}
             <div className="sm:hidden divide-y divide-border">
-              {filteredOrders.map((order) => (
-                <div key={order.id} className="p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-sm font-medium">#{order.id.slice(0, 8)}</span>
-                    <Badge className={getStatusColor(order.status)}>
-                      {order.status}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{format(new Date(order.created_at), 'MMM d, yyyy')}</span>
-                    <span className="font-bold text-primary text-lg">৳{order.total_amount}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{Array.isArray(order.items) ? order.items.length : 0} items</span>
-                    {getPaymentMethodBadge((order as any).payment_method || 'cod')}
-                  </div>
-                  {(order as any).tracking_id && (
-                    <code className="text-xs bg-secondary px-2 py-1 rounded block">
-                      Tracking: {(order as any).tracking_id}
-                    </code>
-                  )}
-                  <div className="flex gap-2 pt-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex-1 h-10 rounded-xl text-sm"
-                      onClick={() => { setSelectedOrder(order); setIsViewOpen(true); }}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
-                    {order.status === 'pending' && (
-                      <>
-                        <Button 
-                          size="sm" 
-                          className="flex-1 h-10 rounded-xl text-sm bg-green-600 hover:bg-green-700"
-                          onClick={() => { setOrderForAction(order); setIsAcceptOpen(true); }}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Accept
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="destructive"
-                          className="flex-1 h-10 rounded-xl text-sm"
-                          onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}
-                        >
-                          <Ban className="h-4 w-4 mr-1" />
-                          Reject
-                        </Button>
-                      </>
+              {filteredOrders.map((order) => {
+                const analysis = fraudAnalysisMap.get(order.id);
+                return (
+                  <div key={order.id} className="p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-sm font-medium">#{order.id.slice(0, 8)}</span>
+                        {analysis && analysis.level !== 'low' && (
+                          <FraudRiskBadge analysis={analysis} compact />
+                        )}
+                      </div>
+                      <Badge className={getStatusColor(order.status)}>
+                        {order.status}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">{format(new Date(order.created_at), 'MMM d, yyyy')}</span>
+                      <span className="font-bold text-primary text-lg">৳{order.total_amount}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{Array.isArray(order.items) ? order.items.length : 0} items</span>
+                      {getPaymentMethodBadge((order as any).payment_method || 'cod')}
+                    </div>
+                    {(order as any).tracking_id && (
+                      <code className="text-xs bg-secondary px-2 py-1 rounded block">
+                        Tracking: {(order as any).tracking_id}
+                      </code>
                     )}
-                    {order.status !== 'pending' && order.status !== 'cancelled' && order.status !== 'delivered' && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm" className="h-10 rounded-xl">
-                            <MoreHorizontal className="h-4 w-4" />
+                    <div className="flex gap-2 pt-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1 h-10 rounded-xl text-sm"
+                        onClick={() => { setSelectedOrder(order); setIsViewOpen(true); }}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                      {order.status === 'pending' && (
+                        <>
+                          <Button 
+                            size="sm" 
+                            className="flex-1 h-10 rounded-xl text-sm bg-green-600 hover:bg-green-700"
+                            onClick={() => { setOrderForAction(order); setIsAcceptOpen(true); }}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Accept
                           </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'shipped')}>
-                            <Truck className="h-4 w-4 mr-2" />
-                            Mark Shipped
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'delivered')}>
-                            <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                            Mark Delivered
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            className="flex-1 h-10 rounded-xl text-sm"
+                            onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}
+                          >
+                            <Ban className="h-4 w-4 mr-1" />
+                            Reject
+                          </Button>
+                        </>
+                      )}
+                      {order.status !== 'pending' && order.status !== 'cancelled' && order.status !== 'delivered' && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-10 rounded-xl">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'shipped')}>
+                              <Truck className="h-4 w-4 mr-2" />
+                              Mark Shipped
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'delivered')}>
+                              <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                              Mark Delivered
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Desktop Table View */}
@@ -366,94 +462,101 @@ const AdminOrders = () => {
                     <TableHead>Tracking</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Risk</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">#{order.id.slice(0, 8)}</TableCell>
-                      <TableCell>{format(new Date(order.created_at), 'PP')}</TableCell>
-                      <TableCell>
-                        {Array.isArray(order.items) ? order.items.length : 0} items
-                      </TableCell>
-                      <TableCell>
-                        {getPaymentMethodBadge((order as any).payment_method || 'cod')}
-                      </TableCell>
-                      <TableCell>
-                        {(order as any).tracking_id ? (
-                          <code className="text-xs bg-secondary px-2 py-1 rounded">
-                            {(order as any).tracking_id}
-                          </code>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-bold text-primary">৳{order.total_amount}</TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(order.status)}>
-                          {order.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => { setSelectedOrder(order); setIsViewOpen(true); }}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            
-                            {order.status === 'pending' && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                  className="text-green-600"
-                                  onClick={() => { setOrderForAction(order); setIsAcceptOpen(true); }}
-                                >
-                                  <CheckCircle className="h-4 w-4 mr-2" />
-                                  Accept Order
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  className="text-destructive"
-                                  onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}
-                                >
-                                  <Ban className="h-4 w-4 mr-2" />
-                                  Reject Order
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            
-                            {order.status !== 'pending' && order.status !== 'cancelled' && order.status !== 'delivered' && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'shipped')}>
-                                  <Truck className="h-4 w-4 mr-2" />
-                                  Mark Shipped
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'delivered')}>
-                                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                                  Mark Delivered
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                  className="text-destructive"
-                                  onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}
-                                >
-                                  <XCircle className="h-4 w-4 mr-2" />
-                                  Cancel Order
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {filteredOrders.map((order) => {
+                    const analysis = fraudAnalysisMap.get(order.id);
+                    return (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">#{order.id.slice(0, 8)}</TableCell>
+                        <TableCell>{format(new Date(order.created_at), 'PP')}</TableCell>
+                        <TableCell>
+                          {Array.isArray(order.items) ? order.items.length : 0} items
+                        </TableCell>
+                        <TableCell>
+                          {getPaymentMethodBadge((order as any).payment_method || 'cod')}
+                        </TableCell>
+                        <TableCell>
+                          {(order as any).tracking_id ? (
+                            <code className="text-xs bg-secondary px-2 py-1 rounded">
+                              {(order as any).tracking_id}
+                            </code>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-bold text-primary">৳{order.total_amount}</TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(order.status)}>
+                            {order.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {analysis && <FraudRiskBadge analysis={analysis} />}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => { setSelectedOrder(order); setIsViewOpen(true); }}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              
+                              {order.status === 'pending' && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    className="text-green-600"
+                                    onClick={() => { setOrderForAction(order); setIsAcceptOpen(true); }}
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Accept Order
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="text-destructive"
+                                    onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}
+                                  >
+                                    <Ban className="h-4 w-4 mr-2" />
+                                    Reject Order
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              
+                              {order.status !== 'pending' && order.status !== 'cancelled' && order.status !== 'delivered' && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'shipped')}>
+                                    <Truck className="h-4 w-4 mr-2" />
+                                    Mark Shipped
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'delivered')}>
+                                    <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                                    Mark Delivered
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    className="text-destructive"
+                                    onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}
+                                  >
+                                    <XCircle className="h-4 w-4 mr-2" />
+                                    Cancel Order
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -501,6 +604,11 @@ const AdminOrders = () => {
                   <p className="text-sm text-muted-foreground">Rejection Reason</p>
                   <p className="text-sm text-destructive">{selectedOrder.rejection_reason}</p>
                 </div>
+              )}
+
+              {/* Fraud Risk Analysis Panel */}
+              {fraudAnalysisMap.get(selectedOrder.id) && (
+                <FraudAnalysisPanel analysis={fraudAnalysisMap.get(selectedOrder.id)!} />
               )}
               
               <div>
