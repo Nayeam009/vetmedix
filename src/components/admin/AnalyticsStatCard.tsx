@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
@@ -13,6 +14,8 @@ interface AnalyticsStatCardProps {
   subtitle?: string;
   className?: string;
   iconClassName?: string;
+  href?: string;
+  onClick?: () => void;
 }
 
 export const AnalyticsStatCard = ({
@@ -23,7 +26,11 @@ export const AnalyticsStatCard = ({
   subtitle,
   className,
   iconClassName,
+  href,
+  onClick,
 }: AnalyticsStatCardProps) => {
+  const navigate = useNavigate();
+
   const getTrendIcon = () => {
     if (!trend) return null;
     if (trend.value > 0) return <TrendingUp className="h-3 w-3 sm:h-3.5 sm:w-3.5" />;
@@ -38,10 +45,22 @@ export const AnalyticsStatCard = ({
     return 'text-muted-foreground';
   };
 
+  const isClickable = !!(href || onClick);
+
+  const handleClick = () => {
+    if (onClick) onClick();
+    else if (href) navigate(href);
+  };
+
   return (
     <div
+      role={isClickable ? 'button' : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      onClick={isClickable ? handleClick : undefined}
+      onKeyDown={isClickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') handleClick(); } : undefined}
       className={cn(
         'bg-card rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-5 border border-border shadow-sm transition-all hover:shadow-md',
+        isClickable && 'cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none',
         className
       )}
     >

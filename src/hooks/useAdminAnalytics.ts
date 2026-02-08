@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAdmin } from './useAdmin';
 import { startOfMonth, endOfMonth, subMonths, format, subDays, startOfDay, endOfDay } from 'date-fns';
 
+export type DateRangePreset = 'today' | '7days' | '30days' | '90days' | 'all';
+
 export interface OrderAnalytics {
   date: string;
   orders: number;
@@ -46,6 +48,21 @@ export interface AppointmentStats {
   cancelled: number;
 }
 
+export interface LowStockProduct {
+  id: string;
+  name: string;
+  stock: number;
+  price: number;
+  image_url: string | null;
+}
+
+export interface VerificationFunnel {
+  not_submitted: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+}
+
 export interface AnalyticsData {
   // Revenue & Orders
   totalRevenue: number;
@@ -59,7 +76,7 @@ export interface AnalyticsData {
   orderGrowth: number;
   averageOrderValue: number;
   
-  // Daily trends (last 14 days)
+  // Daily trends
   dailyTrends: OrderAnalytics[];
   
   // Order status distribution
@@ -93,32 +110,63 @@ export interface AnalyticsData {
   
   // Products
   totalProducts: number;
+
+  // NEW: Low stock alerts
+  lowStockProducts: LowStockProduct[];
+
+  // NEW: Unread contact messages
+  unreadMessages: number;
+
+  // NEW: Verification funnels
+  clinicVerificationFunnel: VerificationFunnel;
+  doctorVerificationFunnel: VerificationFunnel;
+
+  // NEW: Fetch timestamp
+  fetchedAt: string;
 }
 
-export const useAdminAnalytics = () => {
+function getDateRangeStart(preset: DateRangePreset): Date | null {
+  const now = new Date();
+  switch (preset) {
+    case 'today': return startOfDay(now);
+    case '7days': return startOfDay(subDays(now, 7));
+    case '30days': return startOfDay(subDays(now, 30));
+    case '90days': return startOfDay(subDays(now, 90));
+    case 'all': return null;
+  }
+}
+
+function getTrendDays(preset: DateRangePreset): number {
+  switch (preset) {
+    case 'today': return 1;
+    case '7days': return 7;
+    case '30days': return 30;
+    case '90days': return 90;
+    case 'all': return 14;
+  }
+}
+
+export const useAdminAnalytics = (dateRange: DateRangePreset = 'all') => {
   const { isAdmin } = useAdmin();
   const queryClient = useQueryClient();
 
-  // Real-time subscriptions for orders and appointments
   useEffect(() => {
     if (!isAdmin) return;
 
     const channel = supabase
       .channel('admin-analytics-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'appointments' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contact_messages' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
+      })
       .subscribe();
 
     return () => {
@@ -127,14 +175,14 @@ export const useAdminAnalytics = () => {
   }, [isAdmin, queryClient]);
 
   return useQuery({
-    queryKey: ['admin-analytics'],
+    queryKey: ['admin-analytics', dateRange],
     queryFn: async (): Promise<AnalyticsData> => {
       const now = new Date();
       const thisMonthStart = startOfMonth(now);
       const lastMonthStart = startOfMonth(subMonths(now, 1));
       const lastMonthEnd = endOfMonth(subMonths(now, 1));
+      const rangeStart = getDateRangeStart(dateRange);
 
-      // Parallel fetch all data
       const [
         { data: allOrders },
         { data: allProducts },
@@ -147,8 +195,9 @@ export const useAdminAnalytics = () => {
         { count: postsThisMonth },
         { count: totalPets },
         { count: totalProducts },
-        { count: totalDoctors },
-        { count: verifiedDoctors },
+        { data: doctors },
+        { count: unreadMessages },
+        { data: lowStockProducts },
       ] = await Promise.all([
         supabase.from('orders').select('id, total_amount, status, created_at, items'),
         supabase.from('products').select('id, name, category, image_url, price'),
@@ -165,25 +214,33 @@ export const useAdminAnalytics = () => {
           .gte('created_at', thisMonthStart.toISOString()),
         supabase.from('pets').select('*', { count: 'exact', head: true }),
         supabase.from('products').select('*', { count: 'exact', head: true }),
-        supabase.from('doctors').select('*', { count: 'exact', head: true }),
-        supabase.from('doctors').select('*', { count: 'exact', head: true })
-          .eq('is_verified', true),
+        supabase.from('doctors').select('id, is_verified, verification_status'),
+        supabase.from('contact_messages').select('*', { count: 'exact', head: true })
+          .eq('status', 'unread'),
+        supabase.from('products').select('id, name, stock, price, image_url')
+          .lte('stock', 5)
+          .order('stock', { ascending: true })
+          .limit(20),
       ]);
 
-      const orders = allOrders || [];
+      // Filter orders by date range
+      let orders = allOrders || [];
+      if (rangeStart) {
+        orders = orders.filter(o => new Date(o.created_at) >= rangeStart);
+      }
       
-      // Separate active orders (non-cancelled, non-rejected) for revenue
       const excludedStatuses = ['cancelled', 'rejected'];
-      const activeOrders = orders.filter(o => !excludedStatuses.includes(o.status || ''));
-      const cancelledOrders = orders.filter(o => excludedStatuses.includes(o.status || ''));
+      const activeOrdersList = orders.filter(o => !excludedStatuses.includes(o.status || ''));
+      const cancelledOrdersList = orders.filter(o => excludedStatuses.includes(o.status || ''));
 
-      // Revenue from active orders only
-      const totalRevenue = activeOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
-      const cancelledRevenue = cancelledOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+      const totalRevenue = activeOrdersList.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+      const cancelledRevenue = cancelledOrdersList.reduce((sum, o) => sum + (o.total_amount || 0), 0);
 
-      // Monthly comparisons (active orders only)
-      const thisMonthActiveOrders = activeOrders.filter(o => new Date(o.created_at) >= thisMonthStart);
-      const lastMonthActiveOrders = activeOrders.filter(o => {
+      // Monthly comparisons (always use full dataset for growth)
+      const allOrdersFull = allOrders || [];
+      const activeAll = allOrdersFull.filter(o => !excludedStatuses.includes(o.status || ''));
+      const thisMonthActiveOrders = activeAll.filter(o => new Date(o.created_at) >= thisMonthStart);
+      const lastMonthActiveOrders = activeAll.filter(o => {
         const date = new Date(o.created_at);
         return date >= lastMonthStart && date <= lastMonthEnd;
       });
@@ -195,9 +252,8 @@ export const useAdminAnalytics = () => {
         ? ((thisMonthRevenue - previousMonthRevenue) / previousMonthRevenue) * 100 
         : thisMonthRevenue > 0 ? 100 : 0;
 
-      // Order growth (all orders for volume tracking)
-      const thisMonthOrders = orders.filter(o => new Date(o.created_at) >= thisMonthStart);
-      const lastMonthOrders = orders.filter(o => {
+      const thisMonthOrders = allOrdersFull.filter(o => new Date(o.created_at) >= thisMonthStart);
+      const lastMonthOrders = allOrdersFull.filter(o => {
         const date = new Date(o.created_at);
         return date >= lastMonthStart && date <= lastMonthEnd;
       });
@@ -210,11 +266,12 @@ export const useAdminAnalytics = () => {
         ? (((newUsersThisMonth || 0) - (usersLastMonth || 0)) / (usersLastMonth || 1)) * 100
         : (newUsersThisMonth || 0) > 0 ? 100 : 0;
 
-      const averageOrderValue = activeOrders.length > 0 ? totalRevenue / activeOrders.length : 0;
+      const averageOrderValue = activeOrdersList.length > 0 ? totalRevenue / activeOrdersList.length : 0;
 
-      // Daily trends (last 14 days) - show all orders for volume, active orders for revenue
+      // Daily trends - adapt to date range
+      const trendDays = getTrendDays(dateRange);
       const dailyTrends: OrderAnalytics[] = [];
-      for (let i = 13; i >= 0; i--) {
+      for (let i = trendDays - 1; i >= 0; i--) {
         const date = subDays(now, i);
         const dayStart = startOfDay(date);
         const dayEnd = endOfDay(date);
@@ -227,13 +284,13 @@ export const useAdminAnalytics = () => {
         const dayActiveOrders = dayOrders.filter(o => !excludedStatuses.includes(o.status || ''));
 
         dailyTrends.push({
-          date: format(date, 'MMM d'),
+          date: trendDays <= 7 ? format(date, 'EEE') : format(date, 'MMM d'),
           orders: dayOrders.length,
           revenue: dayActiveOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0),
         });
       }
 
-      // Order status distribution
+      // Order status distribution (from filtered orders)
       const statusCounts = orders.reduce((acc, o) => {
         const status = o.status || 'pending';
         acc[status] = (acc[status] || 0) + 1;
@@ -255,11 +312,11 @@ export const useAdminAnalytics = () => {
         color: statusColors[name] || 'hsl(var(--muted))',
       }));
 
-      // Category sales (from active orders only)
+      // Category sales
       const productMap = new Map(allProducts?.map(p => [p.id, p]) || []);
       const categorySalesMap: Record<string, { sales: number; revenue: number }> = {};
 
-      activeOrders.forEach(order => {
+      activeOrdersList.forEach(order => {
         if (order.items && Array.isArray(order.items)) {
           order.items.forEach((item: any) => {
             const product = productMap.get(item.id);
@@ -280,10 +337,10 @@ export const useAdminAnalytics = () => {
         .sort((a, b) => b.revenue - a.revenue)
         .slice(0, 6);
 
-      // Top products (from active orders only)
+      // Top products
       const productSalesMap: Record<string, { quantity: number; revenue: number }> = {};
 
-      activeOrders.forEach(order => {
+      activeOrdersList.forEach(order => {
         if (order.items && Array.isArray(order.items)) {
           order.items.forEach((item: any) => {
             if (!productSalesMap[item.id]) {
@@ -310,12 +367,27 @@ export const useAdminAnalytics = () => {
         .sort((a, b) => b.revenue - a.revenue)
         .slice(0, 5);
 
-      // Clinic stats
+      // Clinic stats & verification funnel
       const clinicStats: ClinicStats = {
         total: clinics?.length || 0,
         verified: clinics?.filter(c => c.is_verified).length || 0,
         pending: clinics?.filter(c => c.verification_status === 'pending').length || 0,
         blocked: clinics?.filter(c => c.is_blocked).length || 0,
+      };
+
+      const clinicVerificationFunnel: VerificationFunnel = {
+        not_submitted: clinics?.filter(c => c.verification_status === 'not_submitted' || !c.verification_status).length || 0,
+        pending: clinics?.filter(c => c.verification_status === 'pending').length || 0,
+        approved: clinics?.filter(c => c.verification_status === 'approved').length || 0,
+        rejected: clinics?.filter(c => c.verification_status === 'rejected').length || 0,
+      };
+
+      // Doctor verification funnel
+      const doctorVerificationFunnel: VerificationFunnel = {
+        not_submitted: doctors?.filter(d => d.verification_status === 'not_submitted' || !d.verification_status).length || 0,
+        pending: doctors?.filter(d => d.verification_status === 'pending').length || 0,
+        approved: doctors?.filter(d => d.verification_status === 'approved' || d.is_verified).length || 0,
+        rejected: doctors?.filter(d => d.verification_status === 'rejected').length || 0,
       };
 
       // Appointment stats
@@ -333,8 +405,8 @@ export const useAdminAnalytics = () => {
         previousMonthRevenue,
         revenueGrowth,
         totalOrders: orders.length,
-        activeOrders: activeOrders.length,
-        cancelledOrders: cancelledOrders.length,
+        activeOrders: activeOrdersList.length,
+        cancelledOrders: cancelledOrdersList.length,
         previousMonthOrders: lastMonthOrders.length,
         orderGrowth,
         averageOrderValue,
@@ -346,13 +418,24 @@ export const useAdminAnalytics = () => {
         newUsersThisMonth: newUsersThisMonth || 0,
         userGrowth,
         clinicStats,
-        totalDoctors: totalDoctors || 0,
-        verifiedDoctors: verifiedDoctors || 0,
+        totalDoctors: doctors?.length || 0,
+        verifiedDoctors: doctors?.filter(d => d.is_verified).length || 0,
         appointmentStats,
         totalPosts: totalPosts || 0,
         postsThisMonth: postsThisMonth || 0,
         totalPets: totalPets || 0,
         totalProducts: totalProducts || 0,
+        lowStockProducts: (lowStockProducts || []).map(p => ({
+          id: p.id,
+          name: p.name,
+          stock: p.stock ?? 0,
+          price: p.price,
+          image_url: p.image_url,
+        })),
+        unreadMessages: unreadMessages || 0,
+        clinicVerificationFunnel,
+        doctorVerificationFunnel,
+        fetchedAt: new Date().toISOString(),
       };
     },
     enabled: isAdmin,
