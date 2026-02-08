@@ -150,13 +150,29 @@ export const useAdminOrders = () => {
   return useQuery({
     queryKey: ['admin-orders'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data;
+      if (ordersError) throw ordersError;
+
+      // Fetch profiles for all unique user_ids for fraud detection
+      const userIds = [...new Set((ordersData || []).map(o => o.user_id))];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, phone')
+        .in('user_id', userIds);
+
+      const profileMap = new Map(
+        (profilesData || []).map(p => [p.user_id, { full_name: p.full_name, phone: p.phone }])
+      );
+
+      // Attach profile to each order
+      return (ordersData || []).map(order => ({
+        ...order,
+        profile: profileMap.get(order.user_id) || null,
+      }));
     },
     enabled: isAdmin,
   });
