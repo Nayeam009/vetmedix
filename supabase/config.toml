@@ -2,3 +2,6 @@ project_id = "cucxodrbperhbpbdkoyj"
 
 [functions.sitemap]
 verify_jwt = false
+
+[functions.parse-product-pdf]
+verify_jwt = false

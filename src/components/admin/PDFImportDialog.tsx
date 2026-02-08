@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Upload, FileText, AlertCircle, CheckCircle2, Loader2, Sparkles, X } from 'lucide-react';
+import { FileText, AlertCircle, CheckCircle2, Loader2, Sparkles, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -43,6 +43,15 @@ interface PDFImportDialogProps {
 
 type Step = 'upload' | 'extracting' | 'preview' | 'importing';
 
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
 export function PDFImportDialog({ open, onOpenChange }: PDFImportDialogProps) {
   const [step, setStep] = useState<Step>('upload');
   const [products, setProducts] = useState<ExtractedProduct[]>([]);
@@ -54,57 +63,6 @@ export function PDFImportDialog({ open, onOpenChange }: PDFImportDialogProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  const extractTextFromPDF = async (file: File): Promise<string> => {
-    // Use pdf.js-like approach: read as text first, if that fails, try ArrayBuffer
-    const text = await file.text();
-    
-    // Basic PDF text extraction - extract readable text between stream markers
-    // This is a simplified approach; for complex PDFs, the AI will do the heavy lifting
-    const lines: string[] = [];
-    
-    // Try to extract text from PDF content streams
-    const textMatches = text.match(/\(([^)]+)\)/g);
-    if (textMatches) {
-      textMatches.forEach(match => {
-        const cleaned = match.slice(1, -1).trim();
-        if (cleaned.length > 1 && !/^[\\\/\d.]+$/.test(cleaned)) {
-          lines.push(cleaned);
-        }
-      });
-    }
-    
-    // Also try BT/ET text blocks
-    const btBlocks = text.match(/BT[\s\S]*?ET/g);
-    if (btBlocks) {
-      btBlocks.forEach(block => {
-        const tjMatches = block.match(/\(([^)]+)\)\s*Tj/g);
-        if (tjMatches) {
-          tjMatches.forEach(m => {
-            const t = m.replace(/\)\s*Tj$/, '').replace(/^\(/, '').trim();
-            if (t.length > 1) lines.push(t);
-          });
-        }
-      });
-    }
-
-    // If we got some text, return it
-    if (lines.length > 5) {
-      return lines.join('\n');
-    }
-
-    // Fallback: just return the raw text (AI can handle some noise)
-    // Filter to only printable characters
-    const printable = text.replace(/[^\x20-\x7E\n\r\t]/g, ' ')
-      .replace(/\s{3,}/g, '\n')
-      .trim();
-    
-    if (printable.length < 20) {
-      throw new Error('Could not extract text from this PDF. The file may be image-based or encrypted. Try a text-based PDF or use CSV import instead.');
-    }
-    
-    return printable.substring(0, 50000);
-  };
 
   const handleFile = async (file: File) => {
     if (!file.name.toLowerCase().endsWith('.pdf')) {
@@ -123,14 +81,15 @@ export function PDFImportDialog({ open, onOpenChange }: PDFImportDialogProps) {
     setProgress(10);
 
     try {
-      // Step 1: Extract text from PDF
+      // Convert PDF to base64 and send directly to AI (Gemini supports native PDF)
       setProgress(20);
-      const pdfText = await extractTextFromPDF(file);
+      const arrayBuffer = await file.arrayBuffer();
+      const pdfBase64 = arrayBufferToBase64(arrayBuffer);
       setProgress(40);
 
-      // Step 2: Send to AI for product extraction
+      // Send to AI edge function for extraction
       const { data, error: fnError } = await supabase.functions.invoke('parse-product-pdf', {
-        body: { pdfText },
+        body: { pdfBase64 },
       });
 
       setProgress(80);
@@ -279,7 +238,11 @@ export function PDFImportDialog({ open, onOpenChange }: PDFImportDialogProps) {
                   ref={inputRef}
                   type="file"
                   accept=".pdf"
-                  onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) handleFile(e.target.files[0]);
+                    // Reset input so the same file can be selected again
+                    e.target.value = '';
+                  }}
                   className="hidden"
                 />
                 <div className="flex flex-col items-center text-center">
@@ -298,7 +261,7 @@ export function PDFImportDialog({ open, onOpenChange }: PDFImportDialogProps) {
               <div className="p-3 bg-muted/50 rounded-xl">
                 <p className="text-xs text-muted-foreground">
                   <Sparkles className="h-3.5 w-3.5 inline mr-1" />
-                  AI will automatically detect product names, prices, categories, and descriptions from your PDF.
+                  AI reads the PDF directly — works with both digital and scanned documents.
                 </p>
               </div>
             </>
@@ -317,16 +280,16 @@ export function PDFImportDialog({ open, onOpenChange }: PDFImportDialogProps) {
               <div className="w-full max-w-xs">
                 <Progress value={progress} className="h-2" />
               </div>
-              <p className="text-xs text-muted-foreground mt-2">This may take 10-30 seconds</p>
+              <p className="text-xs text-muted-foreground mt-2">This may take 15-45 seconds</p>
             </div>
           )}
 
           {/* Preview Step */}
           {step === 'preview' && (
             <div className="space-y-3">
-              <div className="p-3 bg-green-500/10 rounded-xl border border-green-500/20 flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-                <span className="text-sm font-medium text-green-700">
+              <div className="p-3 bg-success/10 rounded-xl border border-success/20 flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-success flex-shrink-0" />
+                <span className="text-sm font-medium">
                   {products.length} product{products.length !== 1 ? 's' : ''} extracted from "{fileName}"
                 </span>
               </div>
@@ -341,8 +304,8 @@ export function PDFImportDialog({ open, onOpenChange }: PDFImportDialogProps) {
                 {/* Mobile Cards */}
                 <div className="sm:hidden divide-y divide-border">
                   {products.map((product, index) => (
-                    <div 
-                      key={index} 
+                    <div
+                      key={index}
                       className={cn(
                         'p-3 flex items-start gap-3 transition-opacity',
                         removedIndices.has(index) && 'opacity-40'
@@ -350,7 +313,7 @@ export function PDFImportDialog({ open, onOpenChange }: PDFImportDialogProps) {
                     >
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">{product.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <Badge variant="outline" className="text-[10px]">{product.category}</Badge>
                           <span className="text-xs font-medium text-primary">৳{product.price}</span>
                           {product.product_type && (
@@ -361,7 +324,7 @@ export function PDFImportDialog({ open, onOpenChange }: PDFImportDialogProps) {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 flex-shrink-0"
+                        className="h-8 w-8 flex-shrink-0"
                         onClick={() => toggleRemoveProduct(index)}
                       >
                         <X className="h-3.5 w-3.5" />
@@ -385,7 +348,7 @@ export function PDFImportDialog({ open, onOpenChange }: PDFImportDialogProps) {
                     </TableHeader>
                     <TableBody>
                       {products.map((product, index) => (
-                        <TableRow 
+                        <TableRow
                           key={index}
                           className={cn(removedIndices.has(index) && 'opacity-40')}
                         >
