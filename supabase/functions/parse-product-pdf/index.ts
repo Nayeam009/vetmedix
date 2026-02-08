@@ -10,11 +10,12 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { pdfText } = await req.json();
-    
-    if (!pdfText || typeof pdfText !== "string" || pdfText.trim().length < 10) {
+    const { pdfBase64, pdfText } = await req.json();
+
+    // Support both base64 PDF (preferred) and pre-extracted text (fallback)
+    if (!pdfBase64 && (!pdfText || typeof pdfText !== "string" || pdfText.trim().length < 10)) {
       return new Response(
-        JSON.stringify({ error: "PDF text content is required and must be meaningful" }),
+        JSON.stringify({ error: "PDF content is required. Send pdfBase64 or pdfText." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -22,21 +23,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Truncate very long PDFs to avoid token limits
-    const truncatedText = pdfText.substring(0, 30000);
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "system",
-            content: `You are a product data extraction AI. Extract product information from text that was extracted from a PDF document (like a product catalog, price list, invoice, or inventory sheet).
+    const systemPrompt = `You are a product data extraction AI. Extract product information from this PDF document (like a product catalog, price list, invoice, or inventory sheet).
 
 Return a JSON array of products. Each product object must have these fields:
 - "name": string (product name, clean and descriptive)
@@ -49,7 +36,7 @@ Return a JSON array of products. Each product object must have these fields:
 - "discount": number or null (discount percentage if mentioned, otherwise null)
 
 Rules:
-1. Extract ALL products found in the text
+1. Extract ALL products found in the document
 2. Clean up product names - remove extra whitespace, standardize capitalization
 3. If a product has multiple variants (sizes, colors), create separate entries
 4. If price is not found for a product, set it to 0
@@ -58,12 +45,43 @@ Rules:
 7. Maximum 200 products per extraction
 
 Example output:
-[{"name":"Premium Dog Food 5kg","description":"High quality nutrition for adult dogs","price":1200,"category":"Pet","product_type":"Food","stock":100,"badge":null,"discount":null}]`,
-          },
-          {
-            role: "user",
-            content: `Extract all products from this PDF text content:\n\n${truncatedText}`,
-          },
+[{"name":"Premium Dog Food 5kg","description":"High quality nutrition for adult dogs","price":1200,"category":"Pet","product_type":"Food","stock":100,"badge":null,"discount":null}]`;
+
+    // Build the message parts
+    const userParts: any[] = [];
+
+    if (pdfBase64) {
+      // Send PDF directly to Gemini as inline data (native PDF understanding)
+      userParts.push({
+        type: "image_url",
+        image_url: {
+          url: `data:application/pdf;base64,${pdfBase64}`,
+        },
+      });
+      userParts.push({
+        type: "text",
+        text: "Extract all products from this PDF document. Return only a JSON array.",
+      });
+    } else {
+      // Fallback: send extracted text
+      const truncatedText = pdfText!.substring(0, 30000);
+      userParts.push({
+        type: "text",
+        text: `Extract all products from this PDF text content:\n\n${truncatedText}`,
+      });
+    }
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userParts },
         ],
         stream: false,
       }),
@@ -85,7 +103,7 @@ Example output:
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
       return new Response(
-        JSON.stringify({ error: "Failed to process PDF with AI" }),
+        JSON.stringify({ error: "Failed to process PDF with AI. Please try again." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -102,7 +120,7 @@ Example output:
         jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
       }
       products = JSON.parse(jsonStr);
-      
+
       if (!Array.isArray(products)) {
         throw new Error("Expected an array of products");
       }
@@ -121,11 +139,12 @@ Example output:
           discount: p.discount ? Math.min(100, Math.max(0, Number(p.discount))) : null,
         }))
         .slice(0, 200);
-
     } catch (parseError) {
-      console.error("Failed to parse AI response:", content);
+      console.error("Failed to parse AI response:", content.substring(0, 500));
       return new Response(
-        JSON.stringify({ error: "Could not extract products from this PDF. The content may not contain recognizable product data." }),
+        JSON.stringify({
+          error: "Could not extract products from this PDF. The content may not contain recognizable product data.",
+        }),
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -134,7 +153,6 @@ Example output:
       JSON.stringify({ products, count: products.length }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-
   } catch (e) {
     console.error("parse-product-pdf error:", e);
     return new Response(
