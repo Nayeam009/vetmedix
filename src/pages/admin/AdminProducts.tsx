@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Edit2, 
-  Trash2, 
+import {
+  Plus,
+  Search,
+  Edit2,
+  Trash2,
   MoreHorizontal,
   Loader2,
   AlertCircle,
@@ -14,6 +14,8 @@ import {
   Download,
   FileText,
   AlertTriangle,
+  PackageMinus,
+  PackagePlus,
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -41,31 +43,34 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useAdmin, useAdminProducts } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { ImageUpload } from '@/components/admin/ImageUpload';
 import { CSVImportDialog } from '@/components/admin/CSVImportDialog';
 import { PDFImportDialog } from '@/components/admin/PDFImportDialog';
 import { ProductStatsBar } from '@/components/admin/ProductStatsBar';
 import { ProductsStatsSkeleton, ProductsTableSkeleton } from '@/components/admin/ProductsSkeleton';
+import { ProductFormFields, type ProductFormData } from '@/components/admin/ProductFormFields';
 import { productFormSchema } from '@/lib/validations';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { downloadCSV } from '@/lib/csvParser';
 import { cn } from '@/lib/utils';
 
 const LOW_STOCK_THRESHOLD = 10;
+
+const emptyFormData: ProductFormData = {
+  name: '',
+  description: '',
+  price: '',
+  category: 'Pet',
+  product_type: '',
+  image_url: '',
+  stock: '',
+  badge: '',
+  discount: '',
+};
 
 const AdminProducts = () => {
   useDocumentTitle('Products - Admin');
@@ -75,7 +80,7 @@ const AdminProducts = () => {
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, roleLoading } = useAdmin();
   const { data: products, isLoading } = useAdminProducts();
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [stockFilter, setStockFilter] = useState('all');
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -85,18 +90,8 @@ const AdminProducts = () => {
   const [isPDFImportOpen, setIsPDFImportOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [saving, setSaving] = useState(false);
-  
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    category: 'Pet' as 'Pet' | 'Farm',
-    product_type: '',
-    image_url: '',
-    stock: '',
-    badge: '',
-    discount: '',
-  });
+  const [quickStockEdit, setQuickStockEdit] = useState<{ id: string; stock: string } | null>(null);
+  const [formData, setFormData] = useState<ProductFormData>(emptyFormData);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -122,18 +117,15 @@ const AdminProducts = () => {
   // Filter products
   const filteredProducts = useMemo(() => {
     let list = products || [];
-
-    // Search filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter(p =>
         p.name.toLowerCase().includes(q) ||
         (p.product_type || '').toLowerCase().includes(q) ||
-        (p.description || '').toLowerCase().includes(q)
+        (p.description || '').toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q)
       );
     }
-
-    // Stock/Category filter
     switch (stockFilter) {
       case 'in-stock':
         list = list.filter(p => (p.stock ?? 0) > 0);
@@ -149,26 +141,13 @@ const AdminProducts = () => {
         list = list.filter(p => p.category === stockFilter);
         break;
     }
-
     return list;
   }, [products, searchQuery, stockFilter]);
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      description: '',
-      price: '',
-      category: 'Pet',
-      product_type: '',
-      image_url: '',
-      stock: '',
-      badge: '',
-      discount: '',
-    });
-  };
+  const resetForm = useCallback(() => setFormData(emptyFormData), []);
 
-  const handleAdd = async () => {
-    const validationResult = productFormSchema.safeParse({
+  const validateAndParse = () => {
+    return productFormSchema.safeParse({
       name: formData.name,
       description: formData.description || null,
       price: formData.price ? parseFloat(formData.price) : 0,
@@ -179,36 +158,34 @@ const AdminProducts = () => {
       badge: formData.badge || null,
       discount: formData.discount ? parseFloat(formData.discount) : null,
     });
+  };
 
-    if (!validationResult.success) {
-      const errorMessage = validationResult.error.errors.map(e => e.message).join(', ');
-      toast({ title: 'Validation Error', description: errorMessage, variant: 'destructive' });
+  const handleAdd = async () => {
+    const result = validateAndParse();
+    if (!result.success) {
+      toast({ title: 'Validation Error', description: result.error.errors.map(e => e.message).join(', '), variant: 'destructive' });
       return;
     }
-
     setSaving(true);
     try {
       const { error } = await supabase.from('products').insert({
-        name: validationResult.data.name,
-        description: validationResult.data.description || null,
-        price: validationResult.data.price,
-        category: validationResult.data.category,
-        product_type: validationResult.data.product_type || null,
-        image_url: validationResult.data.image_url || null,
-        stock: validationResult.data.stock,
-        badge: validationResult.data.badge || null,
-        discount: validationResult.data.discount,
+        name: result.data.name,
+        description: result.data.description || null,
+        price: result.data.price,
+        category: result.data.category,
+        product_type: result.data.product_type || null,
+        image_url: result.data.image_url || null,
+        stock: result.data.stock,
+        badge: result.data.badge || null,
+        discount: result.data.discount,
       });
-
       if (error) throw error;
-
       toast({ title: 'Success', description: 'Product added successfully' });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setIsAddOpen(false);
       resetForm();
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to add product';
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
+      toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed to add product', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -216,49 +193,32 @@ const AdminProducts = () => {
 
   const handleEdit = async () => {
     if (!selectedProduct) return;
-
-    const validationResult = productFormSchema.safeParse({
-      name: formData.name,
-      description: formData.description || null,
-      price: formData.price ? parseFloat(formData.price) : 0,
-      category: formData.category,
-      product_type: formData.product_type || null,
-      image_url: formData.image_url || null,
-      stock: formData.stock ? parseInt(formData.stock) : 0,
-      badge: formData.badge || null,
-      discount: formData.discount ? parseFloat(formData.discount) : null,
-    });
-
-    if (!validationResult.success) {
-      const errorMessage = validationResult.error.errors.map(e => e.message).join(', ');
-      toast({ title: 'Validation Error', description: errorMessage, variant: 'destructive' });
+    const result = validateAndParse();
+    if (!result.success) {
+      toast({ title: 'Validation Error', description: result.error.errors.map(e => e.message).join(', '), variant: 'destructive' });
       return;
     }
-
     setSaving(true);
     try {
       const { error } = await supabase.from('products').update({
-        name: validationResult.data.name,
-        description: validationResult.data.description || null,
-        price: validationResult.data.price,
-        category: validationResult.data.category,
-        product_type: validationResult.data.product_type || null,
-        image_url: validationResult.data.image_url || null,
-        stock: validationResult.data.stock,
-        badge: validationResult.data.badge || null,
-        discount: validationResult.data.discount,
+        name: result.data.name,
+        description: result.data.description || null,
+        price: result.data.price,
+        category: result.data.category,
+        product_type: result.data.product_type || null,
+        image_url: result.data.image_url || null,
+        stock: result.data.stock,
+        badge: result.data.badge || null,
+        discount: result.data.discount,
       }).eq('id', selectedProduct.id);
-
       if (error) throw error;
-
       toast({ title: 'Success', description: 'Product updated successfully' });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setIsEditOpen(false);
       setSelectedProduct(null);
       resetForm();
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update product';
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
+      toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed to update product', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -266,22 +226,30 @@ const AdminProducts = () => {
 
   const handleDelete = async () => {
     if (!selectedProduct) return;
-
     setSaving(true);
     try {
       const { error } = await supabase.from('products').delete().eq('id', selectedProduct.id);
-
       if (error) throw error;
-
       toast({ title: 'Success', description: 'Product deleted successfully' });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setIsDeleteOpen(false);
       setSelectedProduct(null);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete product';
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
+      toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed to delete product', variant: 'destructive' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleQuickStockUpdate = async (productId: string, newStock: number) => {
+    try {
+      const { error } = await supabase.from('products').update({ stock: newStock }).eq('id', productId);
+      if (error) throw error;
+      toast({ title: 'Stock updated', description: `Stock set to ${newStock}` });
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      setQuickStockEdit(null);
+    } catch (error: unknown) {
+      toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed to update stock', variant: 'destructive' });
     }
   };
 
@@ -303,7 +271,6 @@ const AdminProducts = () => {
 
   const handleExportCSV = () => {
     if (!filteredProducts.length) return;
-    
     const headers = ['Name', 'Description', 'Price', 'Category', 'Product Type', 'Stock', 'Badge', 'Discount', 'Created'];
     const rows = filteredProducts.map(product => [
       product.name,
@@ -316,7 +283,6 @@ const AdminProducts = () => {
       product.discount || '',
       product.created_at ? new Date(product.created_at).toISOString().split('T')[0] : ''
     ]);
-    
     const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
     downloadCSV(csvContent, `products-${new Date().toISOString().split('T')[0]}.csv`);
     toast({ title: 'Success', description: 'Products exported to CSV' });
@@ -324,17 +290,17 @@ const AdminProducts = () => {
 
   const getStockBadge = (stock: number) => {
     if (stock === 0) {
-      return <Badge variant="destructive" className="text-xs">Out of Stock</Badge>;
+      return <Badge variant="destructive" className="text-[10px] sm:text-xs">Out of Stock</Badge>;
     }
     if (stock <= LOW_STOCK_THRESHOLD) {
       return (
-        <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-800 text-xs">
+        <Badge className="bg-warning/15 text-warning-foreground border-warning/30 text-[10px] sm:text-xs">
           Low: {stock}
         </Badge>
       );
     }
     return (
-      <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs">
+      <Badge className="bg-success/15 text-success border-success/30 text-[10px] sm:text-xs">
         In Stock
       </Badge>
     );
@@ -361,69 +327,32 @@ const AdminProducts = () => {
     );
   }
 
-  // Product form component (reused for Add & Edit)
-  const ProductFormFields = () => (
-    <div className="space-y-4 py-2 sm:py-4">
-      <div>
-        <Label>Product Image</Label>
-        <ImageUpload 
-          value={formData.image_url} 
-          onChange={(url) => setFormData({ ...formData, image_url: url })} 
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="col-span-2">
-          <Label>Name *</Label>
-          <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-        </div>
-        <div className="col-span-2">
-          <Label>Description</Label>
-          <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
-        </div>
-        <div>
-          <Label>Price (৳) *</Label>
-          <Input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} />
-        </div>
-        <div>
-          <Label>Stock</Label>
-          <Input type="number" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: e.target.value })} />
-        </div>
-        <div>
-          <Label>Category</Label>
-          <Select value={formData.category} onValueChange={(v: 'Pet' | 'Farm') => setFormData({ ...formData, category: v })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Pet">Pet</SelectItem>
-              <SelectItem value="Farm">Farm</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label>Product Type</Label>
-          <Input value={formData.product_type} onChange={(e) => setFormData({ ...formData, product_type: e.target.value })} placeholder="e.g., Food, Toys" />
-        </div>
-        <div>
-          <Label>Badge</Label>
-          <Input value={formData.badge} onChange={(e) => setFormData({ ...formData, badge: e.target.value })} placeholder="e.g., New, Sale" />
-        </div>
-        <div>
-          <Label>Discount %</Label>
-          <Input type="number" value={formData.discount} onChange={(e) => setFormData({ ...formData, discount: e.target.value })} />
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <AdminLayout title="Products" subtitle="Manage your product catalog">
-      {/* Low Stock Alert */}
-      {stats.outOfStock > 0 && (
-        <div className="mb-4 p-3 bg-destructive/5 border border-destructive/20 rounded-xl flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
-          <p className="text-sm text-destructive font-medium">
-            {stats.outOfStock} product{stats.outOfStock !== 1 ? 's' : ''} out of stock
-            {stats.lowStock > 0 && ` · ${stats.lowStock} low stock`}
-          </p>
+      {/* Low Stock Alert Banner */}
+      {!isLoading && (stats.outOfStock > 0 || stats.lowStock > 0) && (
+        <div className="mb-4 p-3 sm:p-4 bg-destructive/5 border border-destructive/20 rounded-xl flex items-center gap-3">
+          <div className="h-9 w-9 rounded-lg bg-destructive/10 flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground">
+              {stats.outOfStock > 0 && `${stats.outOfStock} out of stock`}
+              {stats.outOfStock > 0 && stats.lowStock > 0 && ' · '}
+              {stats.lowStock > 0 && `${stats.lowStock} low stock`}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {stats.outOfStock + stats.lowStock} product{(stats.outOfStock + stats.lowStock) !== 1 ? 's' : ''} need attention
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-xl text-xs flex-shrink-0 h-8"
+            onClick={() => setStockFilter(stats.outOfStock > 0 ? 'out-of-stock' : 'low-stock')}
+          >
+            View
+          </Button>
         </div>
       )}
 
@@ -433,34 +362,47 @@ const AdminProducts = () => {
       )}
 
       {/* Header Actions */}
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-between mb-4 sm:mb-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 justify-between mb-4 sm:mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search products, type..."
+            placeholder="Search products, type, category..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 h-10 sm:h-11 rounded-xl text-sm"
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
+            >
+              ✕
+            </button>
+          )}
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button 
-            variant="outline" 
-            onClick={handleExportCSV}
-            disabled={!filteredProducts.length}
-            className="h-10 sm:h-11 rounded-xl text-sm"
-          >
-            <Download className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Export</span>
-          </Button>
-          <Button variant="outline" onClick={() => setIsImportOpen(true)} className="h-10 sm:h-11 rounded-xl text-sm">
-            <FileSpreadsheet className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Import CSV</span>
-          </Button>
-          <Button variant="outline" onClick={() => setIsPDFImportOpen(true)} className="h-10 sm:h-11 rounded-xl text-sm">
-            <FileText className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Import PDF</span>
-          </Button>
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="h-10 sm:h-11 rounded-xl text-sm">
+                <Download className="h-4 w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">Import/Export</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={handleExportCSV} disabled={!filteredProducts.length}>
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsImportOpen(true)}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Import CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsPDFImportOpen(true)}>
+                <FileText className="h-4 w-4 mr-2" />
+                Import PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button onClick={() => { resetForm(); setIsAddOpen(true); }} className="h-10 sm:h-11 rounded-xl text-sm flex-1 sm:flex-none">
             <Plus className="h-4 w-4 mr-1 sm:mr-2" />
             <span>Add Product</span>
@@ -472,14 +414,18 @@ const AdminProducts = () => {
       {isLoading ? <ProductsTableSkeleton /> : (
         <div className="bg-card rounded-xl sm:rounded-2xl border border-border overflow-hidden">
           {filteredProducts.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="text-center py-16">
               <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">
-                {stockFilter !== 'all' ? 'No products match this filter' : 'No products found'}
+              <p className="text-muted-foreground font-medium">
+                {searchQuery ? 'No products match your search' : stockFilter !== 'all' ? 'No products match this filter' : 'No products found'}
               </p>
-              {stockFilter !== 'all' && (
-                <Button variant="link" className="mt-2" onClick={() => setStockFilter('all')}>
-                  Clear filter
+              {(searchQuery || stockFilter !== 'all') && (
+                <Button
+                  variant="link"
+                  className="mt-2"
+                  onClick={() => { setSearchQuery(''); setStockFilter('all'); }}
+                >
+                  Clear all filters
                 </Button>
               )}
             </div>
@@ -491,17 +437,20 @@ const AdminProducts = () => {
                   const stock = product.stock ?? 0;
                   const isLow = stock > 0 && stock <= LOW_STOCK_THRESHOLD;
                   const isOut = stock === 0;
+                  const isQuickEditing = quickStockEdit?.id === product.id;
 
                   return (
-                    <div 
-                      key={product.id} 
+                    <div
+                      key={product.id}
                       className={cn(
                         'p-3 flex gap-3 active:bg-muted/50 transition-colors',
-                        isOut && 'bg-destructive/5'
+                        isOut && 'bg-destructive/5',
+                        isLow && 'bg-warning/5'
                       )}
-                      onClick={() => openEditDialog(product)}
+                      onClick={() => !isQuickEditing && openEditDialog(product)}
                     >
-                      <div className="h-16 w-16 rounded-xl bg-secondary overflow-hidden flex-shrink-0 relative">
+                      {/* Thumbnail */}
+                      <div className="h-[72px] w-[72px] rounded-xl bg-secondary overflow-hidden flex-shrink-0 relative">
                         {product.image_url ? (
                           <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" loading="lazy" />
                         ) : (
@@ -510,47 +459,110 @@ const AdminProducts = () => {
                           </div>
                         )}
                         {isOut && (
-                          <div className="absolute inset-0 bg-destructive/20 flex items-center justify-center">
-                            <span className="text-[8px] font-bold text-destructive bg-background/80 px-1 rounded">OUT</span>
+                          <div className="absolute inset-0 bg-destructive/30 backdrop-blur-[1px] flex items-center justify-center">
+                            <span className="text-[9px] font-bold text-destructive-foreground bg-destructive/80 px-1.5 py-0.5 rounded">
+                              OUT
+                            </span>
+                          </div>
+                        )}
+                        {product.badge && !isOut && (
+                          <div className="absolute top-0.5 left-0.5">
+                            <Badge variant="secondary" className="text-[8px] px-1 py-0 h-4 rounded-md">
+                              {product.badge}
+                            </Badge>
                           </div>
                         )}
                       </div>
+
+                      {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm truncate">{product.name}</p>
-                            <p className="text-xs text-muted-foreground">{product.product_type}</p>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm truncate leading-tight">{product.name}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {product.product_type || product.category}
+                            </p>
                           </div>
-                          <Badge variant="outline" className="text-[10px] flex-shrink-0">{product.category}</Badge>
+                          <Badge variant="outline" className="text-[10px] flex-shrink-0 h-5">{product.category}</Badge>
                         </div>
+
+                        {/* Price & Stock row */}
                         <div className="flex items-center justify-between mt-2">
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-primary text-sm">৳{product.price}</span>
                             {product.discount && product.discount > 0 && (
-                              <Badge variant="secondary" className="text-[10px]">-{product.discount}%</Badge>
+                              <Badge variant="secondary" className="text-[10px] h-4 px-1">-{product.discount}%</Badge>
                             )}
                           </div>
                           {getStockBadge(stock)}
                         </div>
-                        <div className="flex gap-2 mt-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="flex-1 h-9 rounded-xl text-xs"
-                            onClick={(e) => { e.stopPropagation(); openEditDialog(product); }}
-                          >
-                            <Edit2 className="h-3.5 w-3.5 mr-1" />
-                            Edit
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="h-9 rounded-xl text-xs text-destructive"
-                            onClick={(e) => { e.stopPropagation(); setSelectedProduct(product); setIsDeleteOpen(true); }}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
+
+                        {/* Quick Stock Editor / Actions */}
+                        {isQuickEditing ? (
+                          <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                            <Input
+                              type="number"
+                              value={quickStockEdit.stock}
+                              onChange={(e) => setQuickStockEdit({ ...quickStockEdit, stock: e.target.value })}
+                              className="h-8 rounded-lg text-sm w-20"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleQuickStockUpdate(product.id, parseInt(quickStockEdit.stock) || 0);
+                                } else if (e.key === 'Escape') {
+                                  setQuickStockEdit(null);
+                                }
+                              }}
+                            />
+                            <Button
+                              size="sm"
+                              className="h-8 rounded-lg text-xs px-3"
+                              onClick={() => handleQuickStockUpdate(product.id, parseInt(quickStockEdit.stock) || 0)}
+                            >
+                              Save
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 rounded-lg text-xs px-2"
+                              onClick={() => setQuickStockEdit(null)}
+                            >
+                              ✕
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-1.5 mt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 h-8 rounded-lg text-xs"
+                              onClick={(e) => { e.stopPropagation(); openEditDialog(product); }}
+                            >
+                              <Edit2 className="h-3 w-3 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 rounded-lg text-xs px-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setQuickStockEdit({ id: product.id, stock: stock.toString() });
+                              }}
+                            >
+                              <PackagePlus className="h-3 w-3 mr-1" />
+                              Stock
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 rounded-lg text-xs text-destructive hover:text-destructive px-2"
+                              onClick={(e) => { e.stopPropagation(); setSelectedProduct(product); setIsDeleteOpen(true); }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -577,12 +589,12 @@ const AdminProducts = () => {
                       const isLow = stock > 0 && stock <= LOW_STOCK_THRESHOLD;
 
                       return (
-                        <TableRow 
+                        <TableRow
                           key={product.id}
                           className={cn(
-                            'cursor-pointer',
+                            'cursor-pointer transition-colors',
                             isOut && 'bg-destructive/5 hover:bg-destructive/10',
-                            isLow && 'bg-amber-50/50 dark:bg-amber-900/10 hover:bg-amber-50 dark:hover:bg-amber-900/20'
+                            isLow && 'bg-warning/5 hover:bg-warning/10'
                           )}
                           onClick={() => openEditDialog(product)}
                         >
@@ -608,7 +620,7 @@ const AdminProducts = () => {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1.5">
-                              <span>৳{product.price}</span>
+                              <span className="font-medium">৳{product.price}</span>
                               {product.discount && product.discount > 0 && (
                                 <Badge variant="secondary" className="text-[10px]">-{product.discount}%</Badge>
                               )}
@@ -616,9 +628,9 @@ const AdminProducts = () => {
                           </TableCell>
                           <TableCell>
                             <span className={cn(
-                              'font-medium',
+                              'font-medium tabular-nums',
                               isOut && 'text-destructive',
-                              isLow && 'text-amber-600 dark:text-amber-400'
+                              isLow && 'text-warning'
                             )}>
                               {stock}
                             </span>
@@ -629,7 +641,7 @@ const AdminProducts = () => {
                           <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -638,7 +650,16 @@ const AdminProducts = () => {
                                   <Edit2 className="h-4 w-4 mr-2" />
                                   Edit
                                 </DropdownMenuItem>
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setQuickStockEdit({ id: product.id, stock: stock.toString() });
+                                  }}
+                                >
+                                  <PackagePlus className="h-4 w-4 mr-2" />
+                                  Quick Stock Update
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
                                   className="text-destructive"
                                   onClick={(e) => { e.stopPropagation(); setSelectedProduct(product); setIsDeleteOpen(true); }}
                                 >
@@ -659,12 +680,78 @@ const AdminProducts = () => {
               <div className="p-3 border-t border-border">
                 <p className="text-xs text-muted-foreground text-center">
                   Showing {filteredProducts.length} of {products?.length || 0} products
+                  {stockFilter !== 'all' && (
+                    <button
+                      className="ml-2 text-primary hover:underline"
+                      onClick={() => setStockFilter('all')}
+                    >
+                      Clear filter
+                    </button>
+                  )}
                 </p>
               </div>
             </>
           )}
         </div>
       )}
+
+      {/* Quick Stock Update Dialog (Desktop) */}
+      <Dialog open={!!quickStockEdit} onOpenChange={(open) => !open && setQuickStockEdit(null)}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base">Update Stock</DialogTitle>
+            <DialogDescription className="text-sm">
+              Enter the new stock quantity.
+            </DialogDescription>
+          </DialogHeader>
+          {quickStockEdit && (
+            <div className="py-4">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 rounded-xl"
+                  onClick={() => setQuickStockEdit({
+                    ...quickStockEdit,
+                    stock: Math.max(0, parseInt(quickStockEdit.stock) - 1).toString()
+                  })}
+                >
+                  <PackageMinus className="h-4 w-4" />
+                </Button>
+                <Input
+                  type="number"
+                  value={quickStockEdit.stock}
+                  onChange={(e) => setQuickStockEdit({ ...quickStockEdit, stock: e.target.value })}
+                  className="h-12 text-center text-lg font-bold rounded-xl"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleQuickStockUpdate(quickStockEdit.id, parseInt(quickStockEdit.stock) || 0);
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 rounded-xl"
+                  onClick={() => setQuickStockEdit({
+                    ...quickStockEdit,
+                    stock: (parseInt(quickStockEdit.stock) + 1).toString()
+                  })}
+                >
+                  <PackagePlus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setQuickStockEdit(null)} className="rounded-xl h-11 sm:h-10">Cancel</Button>
+            <Button
+              onClick={() => quickStockEdit && handleQuickStockUpdate(quickStockEdit.id, parseInt(quickStockEdit.stock) || 0)}
+              className="rounded-xl h-11 sm:h-10"
+            >
+              Update Stock
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Product Dialog */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -673,7 +760,7 @@ const AdminProducts = () => {
             <DialogTitle className="text-base sm:text-lg">Add New Product</DialogTitle>
             <DialogDescription className="text-sm">Fill in the details to add a new product.</DialogDescription>
           </DialogHeader>
-          <ProductFormFields />
+          <ProductFormFields formData={formData} onChange={setFormData} />
           <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setIsAddOpen(false)} className="rounded-xl h-11 sm:h-10">Cancel</Button>
             <Button onClick={handleAdd} disabled={saving} className="rounded-xl h-11 sm:h-10">
@@ -691,7 +778,7 @@ const AdminProducts = () => {
             <DialogTitle className="text-base sm:text-lg">Edit Product</DialogTitle>
             <DialogDescription className="text-sm">Update the product details.</DialogDescription>
           </DialogHeader>
-          <ProductFormFields />
+          <ProductFormFields formData={formData} onChange={setFormData} />
           <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setIsEditOpen(false)} className="rounded-xl h-11 sm:h-10">Cancel</Button>
             <Button onClick={handleEdit} disabled={saving} className="rounded-xl h-11 sm:h-10">
@@ -704,7 +791,7 @@ const AdminProducts = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent className="rounded-2xl">
+        <DialogContent className="rounded-2xl max-w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Delete Product</DialogTitle>
             <DialogDescription>
