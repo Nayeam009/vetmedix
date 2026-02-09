@@ -57,14 +57,14 @@ const ContactPage = () => {
     {
       icon: <Mail className="h-5 w-5" />,
       label: 'Email',
-      value: 'support@vetmedix.com',
-      href: 'mailto:support@vetmedix.com',
+      value: 'vetmedix.25@gmail.com',
+      href: 'mailto:vetmedix.25@gmail.com',
     },
     {
       icon: <Phone className="h-5 w-5" />,
       label: 'Phone',
-      value: '+880 1XXX-XXXXXX',
-      href: 'tel:+8801XXXXXXXXX',
+      value: '01349219441',
+      href: 'tel:+8801349219441',
     },
     {
       icon: <MapPin className="h-5 w-5" />,
