@@ -234,7 +234,7 @@ const FAQPage = () => {
             Didn't find what you're looking for?
           </p>
           <a 
-            href="mailto:vetmedix.25@gmail.com?subject=Support Request" 
+            href="/contact" 
             className="inline-flex items-center gap-2 text-primary font-medium hover:underline"
           >
             Contact our support team →
