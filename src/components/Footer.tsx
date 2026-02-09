@@ -23,6 +23,7 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
                 rel="noopener noreferrer"
                 className="h-11 w-11 rounded-full bg-card/10 flex items-center justify-center hover:bg-primary transition-colors active:scale-95"
                 aria-label="Facebook page"
+                onClick={(e) => { e.stopPropagation(); window.open('https://www.facebook.com/profile.php?id=61573912760783', '_blank', 'noopener,noreferrer'); }}
               >
                 <Facebook className="h-4 w-4 sm:h-5 sm:w-5" />
               </a>
@@ -101,7 +102,7 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
               </li>
               <li className="flex items-start gap-2 text-xs sm:text-sm text-card/70">
                 <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0 mt-0.5" />
-                <span>House #12, Road #5, Dhanmondi, Dhaka-1205</span>
+                <span>Framgate, Dhaka, 1205</span>
               </li>
             </ul>
           </div>
