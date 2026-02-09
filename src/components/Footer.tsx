@@ -17,15 +17,15 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
               Your trusted partner for pet and farm animal care across Bangladesh.
             </p>
             <nav aria-label="Social media links" className="flex gap-2 sm:gap-3">
-              <button 
-                type="button"
-                onClick={(e) => e.preventDefault()}
-                className="h-11 w-11 rounded-full bg-card/10 flex items-center justify-center hover:bg-primary transition-colors active:scale-95 cursor-not-allowed opacity-60"
-                aria-label="Facebook page - Coming soon"
-                title="Coming soon"
+              <a 
+                href="https://www.facebook.com/profile.php?id=61573912760783"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-11 w-11 rounded-full bg-card/10 flex items-center justify-center hover:bg-primary transition-colors active:scale-95"
+                aria-label="Facebook page"
               >
                 <Facebook className="h-4 w-4 sm:h-5 sm:w-5" />
-              </button>
+              </a>
               <button 
                 type="button"
                 onClick={(e) => e.preventDefault()}
@@ -93,11 +93,11 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
             <ul className="space-y-2 sm:space-y-3">
               <li className="flex items-center gap-2 text-xs sm:text-sm text-card/70">
                 <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
-                +880 1700-000000
+                <a href="tel:+8801349219441" className="hover:text-primary transition-colors">01349219441</a>
               </li>
               <li className="flex items-center gap-2 text-xs sm:text-sm text-card/70">
                 <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
-                support@vetmedix.bd
+                <a href="mailto:vetmedix.25@gmail.com" className="hover:text-primary transition-colors">vetmedix.25@gmail.com</a>
               </li>
               <li className="flex items-start gap-2 text-xs sm:text-sm text-card/70">
                 <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0 mt-0.5" />
