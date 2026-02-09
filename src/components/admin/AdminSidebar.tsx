@@ -13,7 +13,8 @@ import {
   ChevronRight,
   Sparkles,
   Shield,
-  Stethoscope
+  Stethoscope,
+  Mail
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/Logo';
@@ -60,6 +61,7 @@ const navSections: NavSection[] = [
       { icon: Stethoscope, label: 'Doctors', path: '/admin/doctors' },
       { icon: MessageSquare, label: 'Social', path: '/admin/social' },
       { icon: Users, label: 'Customers', path: '/admin/customers' },
+      { icon: Mail, label: 'Messages', path: '/admin/messages' },
     ]
   },
   {
