@@ -218,7 +218,7 @@ const AdminSettings = () => {
     useMutation({
       mutationFn: async (data: unknown) => {
         // Try update first, then upsert if no rows affected
-        const { data: existing } = await supabase.from('admin_settings').select('id').eq('key', key).single();
+        const { data: existing } = await supabase.from('admin_settings').select('id').eq('key', key).maybeSingle();
         if (existing) {
           const { error } = await supabase.from('admin_settings')
             .update({ value: data as unknown as Json, updated_at: new Date().toISOString() })
