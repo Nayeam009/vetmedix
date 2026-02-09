@@ -69,7 +69,7 @@ const ContactPage = () => {
     {
       icon: <MapPin className="h-5 w-5" />,
       label: 'Location',
-      value: 'Dhaka, Bangladesh',
+      value: 'Framgate, Dhaka, 1205',
       href: null,
     },
   ];
