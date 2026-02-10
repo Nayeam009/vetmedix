@@ -91,17 +91,17 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
           {/* Contact */}
           <div>
             <h4 className="font-semibold text-sm sm:text-base mb-3 sm:mb-4">Contact Us</h4>
-            <ul className="space-y-2 sm:space-y-3">
-              <li className="flex items-center gap-2 text-xs sm:text-sm text-card/70">
-                <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
+            <ul className="space-y-2">
+              <li className="flex items-center gap-2 text-sm text-card/70">
+                <Phone className="h-4 w-4 text-primary shrink-0" />
                 <a href="tel:+8801349219441" className="hover:text-primary transition-colors">01349219441</a>
               </li>
-              <li className="flex items-center gap-2 text-xs sm:text-sm text-card/70">
-                <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
+              <li className="flex items-center gap-2 text-sm text-card/70">
+                <Mail className="h-4 w-4 text-primary shrink-0" />
                 <a href="mailto:vetmedix.25@gmail.com" className="hover:text-primary transition-colors">vetmedix.25@gmail.com</a>
               </li>
-              <li className="flex items-start gap-2 text-xs sm:text-sm text-card/70">
-                <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0 mt-0.5" />
+              <li className="flex items-start gap-2 text-sm text-card/70">
+                <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                 <span>Framgate, Dhaka, 1205</span>
               </li>
             </ul>
