@@ -19,7 +19,14 @@ import {
   Users,
   Eye,
   MessageSquare,
-  Mail
+  Mail,
+  Ticket,
+  Plus,
+  Pencil,
+  Trash2,
+  Percent,
+  Copy,
+  Check
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,6 +38,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -288,6 +296,10 @@ const AdminSettings = () => {
             <Settings2 className="h-3.5 w-3.5" />
             <span>Platform</span>
           </TabsTrigger>
+          <TabsTrigger value="coupons" className="gap-1.5 flex-1 sm:flex-initial min-h-[44px] sm:min-h-0 text-xs sm:text-sm">
+            <Ticket className="h-3.5 w-3.5" />
+            <span>Coupons</span>
+          </TabsTrigger>
         </TabsList>
 
         {/* ── General Tab ── */}
@@ -542,8 +554,284 @@ const AdminSettings = () => {
             </CardContent>
           </Card>
         </TabsContent>
+        {/* ── Coupons Tab ── */}
+        <TabsContent value="coupons">
+          <CouponsSection isAdmin={isAdmin} />
+        </TabsContent>
       </Tabs>
     </AdminLayout>
+  );
+};
+
+/* ── Coupons Section Component ── */
+interface CouponRow {
+  id: string;
+  code: string;
+  description: string | null;
+  discount_type: string;
+  discount_value: number;
+  min_order_amount: number | null;
+  max_discount_amount: number | null;
+  usage_limit: number | null;
+  used_count: number;
+  is_active: boolean;
+  starts_at: string | null;
+  expires_at: string | null;
+  created_at: string;
+}
+
+const emptyCouponForm = {
+  code: '',
+  description: '',
+  discount_type: 'percentage',
+  discount_value: 0,
+  min_order_amount: 0,
+  max_discount_amount: null as number | null,
+  usage_limit: null as number | null,
+  is_active: true,
+  expires_at: '',
+};
+
+const CouponsSection = ({ isAdmin }: { isAdmin: boolean }) => {
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState<CouponRow | null>(null);
+  const [form, setForm] = useState(emptyCouponForm);
+  const [showForm, setShowForm] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const { data: coupons = [], isLoading } = useQuery({
+    queryKey: ['admin-coupons'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('coupons').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as CouponRow[];
+    },
+    enabled: isAdmin,
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (d: typeof emptyCouponForm) => {
+      const payload = {
+        code: d.code.toUpperCase().trim(),
+        description: d.description || null,
+        discount_type: d.discount_type,
+        discount_value: d.discount_type === 'free_delivery' ? 0 : d.discount_value,
+        min_order_amount: d.min_order_amount || 0,
+        max_discount_amount: d.max_discount_amount || null,
+        usage_limit: d.usage_limit || null,
+        is_active: d.is_active,
+        expires_at: d.expires_at || null,
+      };
+      if (editing) {
+        const { error } = await supabase.from('coupons').update(payload).eq('id', editing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('coupons').insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-coupons'] });
+      toast.success(editing ? 'Coupon updated' : 'Coupon created');
+      resetForm();
+    },
+    onError: (err: any) => toast.error(err.message?.includes('duplicate') ? 'Code already exists' : 'Failed to save'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('coupons').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-coupons'] });
+      toast.success('Coupon deleted');
+    },
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+      const { error } = await supabase.from('coupons').update({ is_active: active }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-coupons'] }),
+  });
+
+  const resetForm = () => { setForm(emptyCouponForm); setEditing(null); setShowForm(false); };
+
+  const openEdit = (c: CouponRow) => {
+    setEditing(c);
+    setForm({
+      code: c.code,
+      description: c.description || '',
+      discount_type: c.discount_type,
+      discount_value: c.discount_value,
+      min_order_amount: c.min_order_amount || 0,
+      max_discount_amount: c.max_discount_amount,
+      usage_limit: c.usage_limit,
+      is_active: c.is_active,
+      expires_at: c.expires_at ? c.expires_at.split('T')[0] : '',
+    });
+    setShowForm(true);
+  };
+
+  const handleSubmit = () => {
+    if (!form.code.trim()) return toast.error('Coupon code is required');
+    if (form.discount_type !== 'free_delivery' && form.discount_value <= 0) return toast.error('Discount value must be > 0');
+    saveMutation.mutate(form);
+  };
+
+  const copyCode = (code: string, id: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1500);
+  };
+
+  const isExpired = (c: CouponRow) => c.expires_at && new Date(c.expires_at) < new Date();
+  const isUsedUp = (c: CouponRow) => c.usage_limit !== null && c.used_count >= c.usage_limit;
+
+  const getLabel = (c: CouponRow) => {
+    if (c.discount_type === 'free_delivery') return 'Free Delivery';
+    if (c.discount_type === 'percentage') return `${c.discount_value}% OFF`;
+    return `৳${c.discount_value} OFF`;
+  };
+
+  return (
+    <Card className="shadow-sm border-border/50">
+      <CardHeader className="p-3 sm:p-4 lg:p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-base sm:text-lg">Discount Coupons</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Create coupon codes for product purchase discounts</CardDescription>
+          </div>
+          <Button size="sm" className="gap-1.5 min-h-[44px] sm:min-h-0" onClick={() => { resetForm(); setShowForm(true); }}>
+            <Plus className="h-4 w-4" /> Add Coupon
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="p-3 sm:p-4 lg:p-6 pt-0 space-y-4">
+        {/* ── Inline Form ── */}
+        {showForm && (
+          <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-4">
+            <p className="font-semibold text-sm">{editing ? 'Edit Coupon' : 'New Coupon'}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs sm:text-sm">Coupon Code</Label>
+                <Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="e.g. SAVE20" className="h-10 sm:h-11 font-mono uppercase" maxLength={20} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs sm:text-sm">Discount Type</Label>
+                <Select value={form.discount_type} onValueChange={(v) => setForm({ ...form, discount_type: v })}>
+                  <SelectTrigger className="h-10 sm:h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percentage">Percentage (%)</SelectItem>
+                    <SelectItem value="fixed">Fixed Amount (৳)</SelectItem>
+                    <SelectItem value="free_delivery">Free Delivery</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {form.discount_type !== 'free_delivery' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs sm:text-sm">Discount Value {form.discount_type === 'percentage' ? '(%)' : '(৳)'}</Label>
+                  <Input type="number" value={form.discount_value} onChange={(e) => setForm({ ...form, discount_value: parseFloat(e.target.value) || 0 })} className="h-10 sm:h-11" min={0} max={form.discount_type === 'percentage' ? 100 : 999999} />
+                </div>
+                {form.discount_type === 'percentage' && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs sm:text-sm">Max Discount (৳)</Label>
+                    <Input type="number" value={form.max_discount_amount ?? ''} onChange={(e) => setForm({ ...form, max_discount_amount: e.target.value ? parseFloat(e.target.value) : null })} placeholder="No limit" className="h-10 sm:h-11" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label className="text-xs sm:text-sm">Description (optional)</Label>
+              <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="e.g. Summer sale 20% off" className="h-10 sm:h-11" maxLength={200} />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs sm:text-sm">Min Order (৳)</Label>
+                <Input type="number" value={form.min_order_amount} onChange={(e) => setForm({ ...form, min_order_amount: parseFloat(e.target.value) || 0 })} className="h-10 sm:h-11" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs sm:text-sm">Usage Limit</Label>
+                <Input type="number" value={form.usage_limit ?? ''} onChange={(e) => setForm({ ...form, usage_limit: e.target.value ? parseInt(e.target.value) : null })} placeholder="Unlimited" className="h-10 sm:h-11" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs sm:text-sm">Expires On</Label>
+                <Input type="date" value={form.expires_at} onChange={(e) => setForm({ ...form, expires_at: e.target.value })} className="h-10 sm:h-11" />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/50">
+              <Label className="text-sm">Active</Label>
+              <Switch checked={form.is_active} onCheckedChange={(c) => setForm({ ...form, is_active: c })} />
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={resetForm} className="min-h-[44px] sm:min-h-0">Cancel</Button>
+              <Button onClick={handleSubmit} disabled={saveMutation.isPending} className="min-h-[44px] sm:min-h-0 gap-2">
+                {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                {editing ? 'Update Coupon' : 'Create Coupon'}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Coupon List ── */}
+        {isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => <div key={i} className="h-16 bg-muted animate-pulse rounded-xl" />)}
+          </div>
+        ) : coupons.length === 0 ? (
+          <div className="py-10 text-center">
+            <Ticket className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm font-medium">No coupons yet</p>
+            <p className="text-xs text-muted-foreground">Click "Add Coupon" to create your first discount code.</p>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {coupons.map((c) => {
+              const expired = isExpired(c);
+              const usedUp = isUsedUp(c);
+              const inactive = !c.is_active || expired || usedUp;
+              return (
+                <div key={c.id} className={`flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-muted/30 transition-all ${inactive ? 'opacity-60' : ''}`}>
+                  <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${inactive ? 'bg-muted' : 'bg-primary/10'}`}>
+                    {c.discount_type === 'free_delivery' ? <Truck className="h-4 w-4 text-primary" /> : <Percent className="h-4 w-4 text-primary" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button onClick={() => copyCode(c.code, c.id)} className="font-mono font-bold text-sm flex items-center gap-1 hover:text-primary transition-colors">
+                        {c.code}
+                        {copiedId === c.id ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
+                      </button>
+                      <Badge variant={inactive ? 'outline' : 'default'} className="text-[10px]">{getLabel(c)}</Badge>
+                      {expired && <Badge variant="destructive" className="text-[10px]">Expired</Badge>}
+                      {usedUp && <Badge variant="destructive" className="text-[10px]">Used Up</Badge>}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {c.description || 'No description'}
+                      {c.min_order_amount ? ` • Min ৳${c.min_order_amount}` : ''}
+                      {c.usage_limit ? ` • ${c.used_count}/${c.usage_limit} used` : ` • ${c.used_count} used`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Switch checked={c.is_active} onCheckedChange={(v) => toggleMutation.mutate({ id: c.id, active: v })} className="scale-90" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(c)}><Pencil className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => { if (confirm('Delete this coupon?')) deleteMutation.mutate(c.id); }}><Trash2 className="h-3.5 w-3.5" /></Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
