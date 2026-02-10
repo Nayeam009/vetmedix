@@ -199,6 +199,31 @@ const CheckoutPage = () => {
     setLoading(true);
 
     try {
+      // Stock validation before placing order
+      const productIds = items.map(item => item.id);
+      const { data: stockData, error: stockError } = await supabase
+        .from('products')
+        .select('id, name, stock')
+        .in('id', productIds);
+
+      if (stockError) throw stockError;
+
+      const outOfStock = items.filter(item => {
+        const product = stockData?.find(p => p.id === item.id);
+        return product && product.stock !== null && product.stock < item.quantity;
+      });
+
+      if (outOfStock.length > 0) {
+        const names = outOfStock.map(i => i.name).join(', ');
+        toast({
+          title: 'Stock Unavailable',
+          description: `The following items are out of stock or have insufficient quantity: ${names}`,
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
+      }
+
       const validatedData = validationResult.data;
       const shippingAddress = `${validatedData.fullName}, ${validatedData.phone}, ${validatedData.address}, ${validatedData.thana}, ${validatedData.district}, ${validatedData.division}`;
       

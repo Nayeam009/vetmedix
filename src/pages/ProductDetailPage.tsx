@@ -1,11 +1,14 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useWishlist } from '@/hooks/useWishlist';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
 import ProductCard from '@/components/ProductCard';
+import ProductReviewForm from '@/components/ProductReviewForm';
 import { 
   ArrowLeft, 
   ShoppingCart, 
@@ -38,9 +41,21 @@ const ProductDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [isWishlisted, setIsWishlisted] = useState(false);
+  const { user } = useAuth();
+  const { isWishlisted, toggleWishlist } = useWishlist();
+  const wishlisted = id ? isWishlisted(id) : false;
   
   useDocumentTitle(product?.name || 'Product Details');
+
+  const fetchReviews = useCallback(async () => {
+    if (!id) return;
+    const { data: reviewsData } = await supabase
+      .from('reviews')
+      .select('*')
+      .eq('product_id', id)
+      .order('created_at', { ascending: false });
+    if (reviewsData) setReviews(reviewsData as Review[]);
+  }, [id]);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -70,19 +85,13 @@ const ProductDetailPage = () => {
       if (related) setRelatedProducts(related as Product[]);
 
       // Fetch reviews
-      const { data: reviewsData } = await supabase
-        .from('reviews')
-        .select('*')
-        .eq('product_id', id)
-        .order('created_at', { ascending: false });
-
-      if (reviewsData) setReviews(reviewsData as Review[]);
+      await fetchReviews();
 
       setLoading(false);
     };
 
     fetchProduct();
-  }, [id, navigate]);
+  }, [id, navigate, fetchReviews]);
 
   const handleAddToCart = () => {
     if (!product) return;
@@ -139,7 +148,7 @@ const ProductDetailPage = () => {
 
   const avgRating = reviews.length > 0 
     ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length 
-    : 4.5;
+    : 0;
 
   // Create image gallery from product images or use main image
   const productImages = product.images?.length 
@@ -234,14 +243,14 @@ const ProductDetailPage = () => {
               {/* Wishlist & Share */}
               <div className="absolute top-4 right-4 flex flex-col gap-2">
                 <button 
-                  onClick={() => setIsWishlisted(!isWishlisted)}
+                  onClick={() => id && toggleWishlist(id)}
                   className={`h-10 w-10 rounded-full flex items-center justify-center transition-all shadow-sm ${
-                    isWishlisted 
+                    wishlisted 
                       ? 'bg-destructive text-destructive-foreground' 
                       : 'bg-background border border-border hover:border-primary'
                   }`}
                 >
-                  <Heart className={`h-5 w-5 ${isWishlisted ? 'fill-current' : ''}`} />
+                  <Heart className={`h-5 w-5 ${wishlisted ? 'fill-current' : ''}`} />
                 </button>
                 <button className="h-10 w-10 rounded-full bg-background border border-border flex items-center justify-center hover:border-primary transition-all shadow-sm">
                   <Share2 className="h-5 w-5" />
@@ -465,107 +474,110 @@ const ProductDetailPage = () => {
               <Button 
                 variant="ghost"
                 className="w-full h-10"
-                onClick={() => setIsWishlisted(!isWishlisted)}
+                onClick={() => id && toggleWishlist(id)}
               >
-                <Heart className={`h-4 w-4 mr-2 ${isWishlisted ? 'fill-destructive text-destructive' : ''}`} />
-                {isWishlisted ? 'Saved to Wishlist' : 'Add to Wishlist'}
+                <Heart className={`h-4 w-4 mr-2 ${wishlisted ? 'fill-destructive text-destructive' : ''}`} />
+                {wishlisted ? 'Saved to Wishlist' : 'Add to Wishlist'}
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Reviews Section */}
-        {reviews.length > 0 && (
-          <div className="mt-12 lg:mt-16">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground">
-                Customer Reviews
-              </h2>
-              <Button variant="outline" size="sm">
-                Write a Review
-              </Button>
-            </div>
-            
-            {/* Rating Summary */}
-            <div className="bg-background rounded-xl border border-border p-6 mb-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                <div className="text-center">
-                  <div className="text-4xl font-bold text-foreground">{avgRating.toFixed(1)}</div>
-                  <div className="flex justify-center mt-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        className={`h-4 w-4 ${
-                          star <= Math.round(avgRating) 
-                            ? 'text-amber-400 fill-amber-400' 
-                            : 'text-muted-foreground/30'
-                        }`}
-                      />
-                    ))}
+        {/* Reviews Section - always show */}
+        <div className="mt-12 lg:mt-16">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+              Customer Reviews
+            </h2>
+            <span className="text-sm text-muted-foreground">{reviews.length} review{reviews.length !== 1 ? 's' : ''}</span>
+          </div>
+
+          {/* Review Form */}
+          {id && <ProductReviewForm productId={id} onReviewSubmitted={fetchReviews} />}
+
+          {reviews.length > 0 && (
+            <div className="mt-6">
+              {/* Rating Summary */}
+              <div className="bg-background rounded-xl border border-border p-6 mb-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-foreground">{avgRating.toFixed(1)}</div>
+                    <div className="flex justify-center mt-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`h-4 w-4 ${
+                            star <= Math.round(avgRating) 
+                              ? 'text-amber-400 fill-amber-400' 
+                              : 'text-muted-foreground/30'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      {reviews.length} reviews
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    {reviews.length} reviews
-                  </div>
-                </div>
-                <Separator orientation="vertical" className="h-16 hidden sm:block" />
-                <div className="flex-1 space-y-2 w-full">
-                  {[5, 4, 3, 2, 1].map((rating) => {
-                    const count = reviews.filter(r => r.rating === rating).length;
-                    const percentage = (count / reviews.length) * 100;
-                    return (
-                      <div key={rating} className="flex items-center gap-3">
-                        <span className="text-sm text-muted-foreground w-8">{rating} ★</span>
-                        <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-amber-400 rounded-full" 
-                            style={{ width: `${percentage}%` }}
-                          />
+                  <Separator orientation="vertical" className="h-16 hidden sm:block" />
+                  <div className="flex-1 space-y-2 w-full">
+                    {[5, 4, 3, 2, 1].map((rating) => {
+                      const count = reviews.filter(r => r.rating === rating).length;
+                      const percentage = (count / reviews.length) * 100;
+                      return (
+                        <div key={rating} className="flex items-center gap-3">
+                          <span className="text-sm text-muted-foreground w-8">{rating} ★</span>
+                          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-amber-400 rounded-full" 
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                          <span className="text-sm text-muted-foreground w-8">{count}</span>
                         </div>
-                        <span className="text-sm text-muted-foreground w-8">{count}</span>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Review Cards */}
-            <div className="grid md:grid-cols-2 gap-4">
-              {reviews.map((review) => (
-                <div key={review.id} className="bg-background rounded-xl p-5 border border-border">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-sm font-semibold text-primary">U</span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm text-foreground">Verified Buyer</p>
-                      <div className="flex items-center gap-2">
-                        <div className="flex">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              className={`h-3 w-3 ${
-                                star <= review.rating 
-                                  ? 'text-amber-400 fill-amber-400' 
-                                  : 'text-muted-foreground/30'
-                              }`}
-                            />
-                          ))}
+              {/* Review Cards */}
+              <div className="grid md:grid-cols-2 gap-4">
+                {reviews.map((review) => (
+                  <div key={review.id} className="bg-background rounded-xl p-5 border border-border">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="text-sm font-semibold text-primary">U</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm text-foreground">Verified Buyer</p>
+                        <div className="flex items-center gap-2">
+                          <div className="flex">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`h-3 w-3 ${
+                                  star <= review.rating 
+                                    ? 'text-amber-400 fill-amber-400' 
+                                    : 'text-muted-foreground/30'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(review.created_at).toLocaleDateString()}
+                          </span>
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(review.created_at).toLocaleDateString()}
-                        </span>
                       </div>
                     </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {review.comment || 'Great product! Highly recommended.'}
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {review.comment || 'Great product! Highly recommended.'}
-                  </p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Related Products */}
         {relatedProducts.length > 0 && (

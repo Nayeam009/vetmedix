@@ -1,9 +1,12 @@
-import { memo, useState } from 'react';
+import { memo } from 'react';
 import { ShoppingCart, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
+import { useWishlist } from '@/hooks/useWishlist';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface ProductCardProps {
   id?: string;
@@ -18,10 +21,12 @@ interface ProductCardProps {
 const ProductCard = memo(({ id, name, price, category, image, badge, discount }: ProductCardProps) => {
   const navigate = useNavigate();
   const { addItem } = useCart();
-  const [isWishlisted, setIsWishlisted] = useState(false);
+  const { user } = useAuth();
+  const { isWishlisted, toggleWishlist } = useWishlist();
   
   const finalPrice = discount ? Math.round(price * (1 - discount / 100)) : price;
   const originalPrice = discount ? price : null;
+  const wishlisted = id ? isWishlisted(id) : false;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -30,7 +35,11 @@ const ProductCard = memo(({ id, name, price, category, image, badge, discount }:
 
   const handleWishlist = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsWishlisted(!isWishlisted);
+    if (!user) {
+      toast.info('Please log in to save items');
+      return;
+    }
+    if (id) toggleWishlist(id);
   };
 
   return (
@@ -61,13 +70,13 @@ const ProductCard = memo(({ id, name, price, category, image, badge, discount }:
         <button 
           onClick={handleWishlist}
           className={`absolute top-2 sm:top-3 right-2 sm:right-3 h-9 w-9 sm:h-9 sm:w-9 rounded-full flex items-center justify-center transition-all active:scale-90 z-10 ${
-            isWishlisted 
+            wishlisted 
               ? 'bg-destructive text-destructive-foreground' 
               : 'bg-card/80 backdrop-blur-sm sm:opacity-0 sm:group-hover:opacity-100 hover:bg-card'
           }`}
-          aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+          aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
         >
-          <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-current' : ''}`} />
+          <Heart className={`h-4 w-4 ${wishlisted ? 'fill-current' : ''}`} />
         </button>
         {/* Category Tag */}
         <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 z-10">
