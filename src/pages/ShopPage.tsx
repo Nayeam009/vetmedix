@@ -76,6 +76,27 @@ const ShopPage = () => {
   const [priceRange, setPriceRange] = useState<'all' | 'under500' | '500to1000' | 'over1000'>('all');
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
 
+  // Sync filters to URL
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('search', searchQuery);
+    if (category !== 'All') params.set('category', category);
+    if (productType !== 'All') params.set('type', productType);
+    if (priceRange !== 'all') params.set('price', priceRange);
+    if (sortBy !== 'newest') params.set('sort', sortBy);
+    setSearchParams(params, { replace: true });
+  }, [searchQuery, category, productType, priceRange, sortBy]);
+
+  // Initialize from URL params
+  useEffect(() => {
+    const type = searchParams.get('type');
+    const price = searchParams.get('price');
+    const sort = searchParams.get('sort');
+    if (type) setProductType(type);
+    if (price) setPriceRange(price as any);
+    if (sort) setSortBy(sort);
+  }, []);
+
   useEffect(() => {
     fetchProducts();
   }, [category]);

@@ -36,6 +36,7 @@ const ChatPage = lazy(() => import("./pages/ChatPage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const TrackOrderPage = lazy(() => import("./pages/TrackOrderPage"));
+const WishlistPage = lazy(() => import("./pages/WishlistPage"));
 const SelectRolePage = lazy(() => import("./pages/SelectRolePage"));
 const DoctorDetailPage = lazy(() => import("./pages/DoctorDetailPage"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
@@ -154,6 +155,7 @@ const App = () => (
                      <Route path="/clinic/:id" element={<ClinicDetailPage />} />
                     <Route path="/book-appointment/:clinicId" element={<BookAppointmentPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/wishlist" element={<WishlistPage />} />
                     <Route path="/track-order" element={<TrackOrderPage />} />
                     
                     {/* Admin routes */}
