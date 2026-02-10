@@ -123,12 +123,11 @@ const ClinicDetailPage = () => {
   };
 
   const mapQuery = useMemo(() => {
-    const name = (clinic?.name || '').trim();
     const address = (clinic?.address || '').trim();
+    const name = (clinic?.name || '').trim();
 
-    const base = address
-      ? (name && !address.toLowerCase().includes(name.toLowerCase()) ? `${name}, ${address}` : address)
-      : name;
+    // Prefer address-only for geocoding — clinic names confuse Nominatim
+    const base = address || name;
 
     if (!base) return '';
 
