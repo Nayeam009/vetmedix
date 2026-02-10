@@ -153,9 +153,14 @@ const ClinicDetailPage = () => {
 
   const staticMapUrl = useMemo(() => {
     if (!geocode?.lat || !geocode?.lng) return '';
-    // Static map image avoids iframe/CSP/embed issues on some mobile browsers.
-    const center = `${geocode.lat},${geocode.lng}`;
-    return `https://staticmap.openstreetmap.de/staticmap.php?center=${encodeURIComponent(center)}&zoom=15&size=640x320&markers=${encodeURIComponent(center)},red-pushpin`;
+    // Use OpenStreetMap embed as a reliable fallback instead of unreliable staticmap service
+    return '';
+  }, [geocode?.lat, geocode?.lng]);
+
+  // Use an embedded OSM iframe for reliable map display
+  const mapEmbedUrl = useMemo(() => {
+    if (!geocode?.lat || !geocode?.lng) return '';
+    return `https://www.openstreetmap.org/export/embed.html?bbox=${Number(geocode.lng) - 0.01},${Number(geocode.lat) - 0.006},${Number(geocode.lng) + 0.01},${Number(geocode.lat) + 0.006}&layer=mapnik&marker=${geocode.lat},${geocode.lng}`;
   }, [geocode?.lat, geocode?.lng]);
 
   const openGoogleMaps = (url: string, popup?: Window | null) => {
@@ -584,32 +589,25 @@ const ClinicDetailPage = () => {
 
                {/* Map Preview */}
                <div className="rounded-xl overflow-hidden h-40 sm:h-44 bg-muted border border-border/50">
-                 {staticMapUrl ? (
-                   <a
-                     href={mapOpenUrl || undefined}
-                     target="_blank"
-                     rel="noopener noreferrer"
-                     className="block w-full h-full"
-                     aria-label="Open clinic location in Google Maps"
-                   >
-                     <img
-                       src={staticMapUrl}
-                       alt={`Map preview of ${clinic.name}`}
-                       loading="lazy"
-                       className="w-full h-full object-cover"
-                     />
-                   </a>
-                 ) : geocodeLoading ? (
-                   <div className="w-full h-full animate-pulse bg-muted" />
-                 ) : (
-                   <div className="w-full h-full grid place-items-center p-4 text-center">
-                     <div>
-                       <MapPin className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
-                       <p className="text-sm text-muted-foreground">Map unavailable</p>
-                     </div>
-                   </div>
-                 )}
-               </div>
+                 {mapEmbedUrl ? (
+                    <iframe
+                      src={mapEmbedUrl}
+                      title={`Map of ${clinic.name}`}
+                      className="w-full h-full border-0"
+                      loading="lazy"
+                      allowFullScreen={false}
+                    />
+                  ) : geocodeLoading ? (
+                    <div className="w-full h-full animate-pulse bg-muted" />
+                  ) : (
+                    <div className="w-full h-full grid place-items-center p-4 text-center">
+                      <div>
+                        <MapPin className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">Map unavailable</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                {mapOpenUrl && (
                  <Button variant="link" asChild className="px-0 mt-1">
