@@ -103,6 +103,13 @@ const ClinicDashboard = () => {
     };
   }, [ownedClinic?.id, queryClient]);
 
+  // Redirect to verification page if not verified
+  useEffect(() => {
+    if (ownedClinic && !ownedClinic.is_verified && ownedClinic.verification_status !== 'approved') {
+      navigate('/clinic/verification');
+    }
+  }, [ownedClinic, navigate]);
+
   if (roleLoading || clinicLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50/30 via-background to-background">
@@ -176,12 +183,6 @@ const ClinicDashboard = () => {
         </Card>
       </div>
     );
-  }
-
-  // Redirect to verification page if not verified
-  if (ownedClinic && !ownedClinic.is_verified && ownedClinic.verification_status !== 'approved') {
-    navigate('/clinic/verification');
-    return null;
   }
 
   const todayAppointments = clinicAppointments?.filter(
