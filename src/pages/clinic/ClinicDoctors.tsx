@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
@@ -229,6 +229,14 @@ const ClinicDoctors = () => {
     await updateDoctorStatus.mutateAsync({ id, status });
   };
 
+  // Redirect non-authorized users
+  useEffect(() => {
+    if (!roleLoading && !clinicLoading) {
+      if (!user) navigate('/auth');
+      else if (!isClinicOwner) navigate('/');
+    }
+  }, [user, isClinicOwner, roleLoading, clinicLoading, navigate]);
+
   if (roleLoading || clinicLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50/30 via-background to-background">
@@ -238,11 +246,6 @@ const ClinicDoctors = () => {
         </div>
       </div>
     );
-  }
-
-  if (!user || !isClinicOwner) {
-    navigate(user ? '/' : '/auth');
-    return null;
   }
 
   const DoctorForm = ({ onSubmit, submitLabel, isPending }: { onSubmit: (e: React.FormEvent) => void; submitLabel: string; isPending: boolean }) => (
@@ -604,7 +607,7 @@ const ClinicDoctors = () => {
                           variant="outline" 
                           size="icon"
                           className="h-10 w-10 sm:h-8 sm:w-8 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 rounded-lg text-destructive hover:bg-destructive/10 active:scale-95 transition-transform"
-                          onClick={() => setDeleteConfirm(cd.id)}
+                          onClick={() => setDeleteConfirm(cd.doctor_id)}
                           aria-label="Remove doctor"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
