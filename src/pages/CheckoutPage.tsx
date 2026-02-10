@@ -27,7 +27,11 @@ import {
   User,
   Phone,
   Home,
-  FileText
+  FileText,
+  Ticket,
+  Loader2,
+  X,
+  Tag
 } from 'lucide-react';
 import { checkoutSchema } from '@/lib/validations';
 import { notifyAdminsOfNewOrder } from '@/lib/notifications';
@@ -81,6 +85,15 @@ const CheckoutPage = () => {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [paymentMethod, setPaymentMethod] = useState('cod');
+  const [couponCode, setCouponCode] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discount_type: string;
+    discount_value: number;
+    max_discount_amount: number | null;
+    id: string;
+  } | null>(null);
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -92,7 +105,69 @@ const CheckoutPage = () => {
   });
 
   const deliveryCharge = getDeliveryCharge(formData.division);
-  const grandTotal = totalAmount + deliveryCharge;
+  
+  // Calculate coupon discount
+  const couponDiscount = (() => {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.discount_type === 'free_delivery') return deliveryCharge;
+    if (appliedCoupon.discount_type === 'percentage') {
+      const raw = Math.round(totalAmount * appliedCoupon.discount_value / 100);
+      return appliedCoupon.max_discount_amount ? Math.min(raw, appliedCoupon.max_discount_amount) : raw;
+    }
+    return Math.min(appliedCoupon.discount_value, totalAmount);
+  })();
+  
+  const effectiveDelivery = appliedCoupon?.discount_type === 'free_delivery' ? 0 : deliveryCharge;
+  const grandTotal = totalAmount + effectiveDelivery - (appliedCoupon?.discount_type !== 'free_delivery' ? couponDiscount : 0);
+
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('code', couponCode.toUpperCase().trim())
+        .eq('is_active', true)
+        .maybeSingle();
+      
+      if (error) throw error;
+      if (!data) {
+        toast({ title: 'Invalid Coupon', description: 'This coupon code is not valid.', variant: 'destructive' });
+        return;
+      }
+      if (data.expires_at && new Date(data.expires_at) < new Date()) {
+        toast({ title: 'Expired', description: 'This coupon has expired.', variant: 'destructive' });
+        return;
+      }
+      if (data.usage_limit && data.used_count >= data.usage_limit) {
+        toast({ title: 'Used Up', description: 'This coupon has reached its usage limit.', variant: 'destructive' });
+        return;
+      }
+      if (data.min_order_amount && totalAmount < data.min_order_amount) {
+        toast({ title: 'Minimum Not Met', description: `Minimum order amount is ৳${data.min_order_amount}`, variant: 'destructive' });
+        return;
+      }
+      
+      setAppliedCoupon({
+        code: data.code,
+        discount_type: data.discount_type,
+        discount_value: data.discount_value,
+        max_discount_amount: data.max_discount_amount,
+        id: data.id,
+      });
+      toast({ title: 'Coupon Applied!', description: `${data.code} applied successfully.` });
+    } catch {
+      toast({ title: 'Error', description: 'Failed to validate coupon.', variant: 'destructive' });
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,6 +211,14 @@ const CheckoutPage = () => {
       }]).select('id').single();
 
       if (error) throw error;
+
+      // Increment coupon usage if one was applied
+      if (appliedCoupon) {
+        const { data: couponData } = await supabase.from('coupons').select('used_count').eq('id', appliedCoupon.id).single();
+        if (couponData) {
+          await supabase.from('coupons').update({ used_count: (couponData.used_count || 0) + 1 }).eq('id', appliedCoupon.id);
+        }
+      }
 
       // Notify admins of new order
       if (orderData) {
@@ -497,6 +580,46 @@ const CheckoutPage = () => {
                 </div>
               </div>
 
+              {/* Coupon Code Input */}
+              <div className="p-4 sm:p-5 border-t border-border">
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                    <div className="flex items-center gap-2">
+                      <Tag className="h-4 w-4 text-green-600" />
+                      <div>
+                        <span className="font-mono font-bold text-sm text-green-700 dark:text-green-400">{appliedCoupon.code}</span>
+                        <p className="text-xs text-green-600 dark:text-green-400">
+                          {appliedCoupon.discount_type === 'free_delivery' ? 'Free delivery' : 
+                           appliedCoupon.discount_type === 'percentage' ? `${appliedCoupon.discount_value}% off` : 
+                           `৳${appliedCoupon.discount_value} off`}
+                          {couponDiscount > 0 && ` (-৳${couponDiscount})`}
+                        </p>
+                      </div>
+                    </div>
+                    <button onClick={removeCoupon} className="p-1 hover:bg-green-100 dark:hover:bg-green-900 rounded-full">
+                      <X className="h-4 w-4 text-green-600" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        placeholder="Coupon code"
+                        className="h-10 pl-9 font-mono uppercase text-sm"
+                        maxLength={20}
+                        onKeyDown={(e) => e.key === 'Enter' && applyCoupon()}
+                      />
+                    </div>
+                    <Button variant="outline" size="sm" onClick={applyCoupon} disabled={couponLoading || !couponCode.trim()} className="h-10 px-4">
+                      {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply'}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
               {/* Pricing Breakdown */}
               <div className="p-4 sm:p-5 border-t border-border space-y-3">
                 <div className="flex justify-between text-sm text-muted-foreground">
@@ -509,8 +632,32 @@ const CheckoutPage = () => {
                     <Truck className="h-4 w-4" />
                     <span>Delivery</span>
                   </div>
-                  <span>৳{deliveryCharge}</span>
+                  {appliedCoupon?.discount_type === 'free_delivery' ? (
+                    <span className="line-through">৳{deliveryCharge}</span>
+                  ) : (
+                    <span>৳{deliveryCharge}</span>
+                  )}
                 </div>
+
+                {appliedCoupon && couponDiscount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                    <div className="flex items-center gap-2">
+                      <Tag className="h-4 w-4" />
+                      <span>Coupon ({appliedCoupon.code})</span>
+                    </div>
+                    <span>-৳{couponDiscount}</span>
+                  </div>
+                )}
+
+                {appliedCoupon?.discount_type === 'free_delivery' && (
+                  <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                    <div className="flex items-center gap-2">
+                      <Truck className="h-4 w-4" />
+                      <span>Free Delivery</span>
+                    </div>
+                    <span>-৳{deliveryCharge}</span>
+                  </div>
+                )}
                 
                 {/* Delivery Zone Info */}
                 <div className="flex items-center gap-2 text-xs p-2 sm:p-3 rounded-lg bg-muted/50">

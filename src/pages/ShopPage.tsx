@@ -44,6 +44,8 @@ const sortOptions = [
 
 const categoryOptions = ['All', 'Pet', 'Farm'];
 
+const PRODUCTS_PER_PAGE = 20;
+
 // Product type from database
 interface Product {
   id: string;
@@ -68,9 +70,11 @@ const ShopPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [category, setCategory] = useState(searchParams.get('category') || 'All');
+  const [productType, setProductType] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
   const [gridCols, setGridCols] = useState<2 | 3 | 4>(3);
   const [priceRange, setPriceRange] = useState<'all' | 'under500' | '500to1000' | 'over1000'>('all');
+  const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
 
   useEffect(() => {
     fetchProducts();
@@ -93,10 +97,18 @@ const ShopPage = () => {
     }
   };
 
+  // Extract unique product types for filter chips
+  const productTypes = ['All', ...Array.from(new Set(products.map(p => p.product_type).filter(Boolean) as string[]))].sort((a, b) => a === 'All' ? -1 : b === 'All' ? 1 : a.localeCompare(b));
+
   // Filter and sort products
   let filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Product type filter
+  if (productType !== 'All') {
+    filteredProducts = filteredProducts.filter(p => p.product_type === productType);
+  }
 
   // Price filter
   if (priceRange !== 'all') {
@@ -125,14 +137,21 @@ const ShopPage = () => {
 
   const activeFiltersCount = [
     category !== 'All',
+    productType !== 'All',
     priceRange !== 'all',
     searchQuery.length > 0
   ].filter(Boolean).length;
 
+  // Reset visible count when filters change
+  const paginatedProducts = sortedProducts.slice(0, visibleCount);
+  const hasMore = visibleCount < sortedProducts.length;
+
   const clearFilters = useCallback(() => {
     setCategory('All');
+    setProductType('All');
     setPriceRange('all');
     setSearchQuery('');
+    setVisibleCount(PRODUCTS_PER_PAGE);
   }, []);
 
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -251,6 +270,29 @@ const ShopPage = () => {
                         ))}
                       </div>
                     </div>
+
+                    {/* Product Type Filter */}
+                    {productTypes.length > 2 && (
+                      <div className="space-y-3">
+                        <h3 className="font-semibold text-foreground" id="mobile-type-label">Product Type</h3>
+                        <div className="flex flex-wrap gap-2" role="group" aria-labelledby="mobile-type-label">
+                          {productTypes.map(type => (
+                            <button
+                              key={type}
+                              onClick={() => { setProductType(type); setVisibleCount(PRODUCTS_PER_PAGE); }}
+                              className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
+                                productType === type
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                              }`}
+                              aria-pressed={productType === type}
+                            >
+                              {type}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     
                     <Separator />
                     
@@ -406,6 +448,26 @@ const ShopPage = () => {
           </div>
         </div>
 
+        {/* Product Type Chips */}
+        {productTypes.length > 2 && (
+          <div className="flex gap-2 overflow-x-auto pb-2 mb-2 sm:mb-4 scrollbar-none -mx-1 px-1" role="group" aria-label="Product type filter">
+            {productTypes.map(type => (
+              <button
+                key={type}
+                onClick={() => { setProductType(type); setVisibleCount(PRODUCTS_PER_PAGE); }}
+                className={`flex-shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-full transition-all whitespace-nowrap ${
+                  productType === type
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-muted/60 text-muted-foreground hover:bg-muted border border-border/50'
+                }`}
+                aria-pressed={productType === type}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Active Filters Display */}
         {activeFiltersCount > 0 && (
           <div className="flex flex-wrap gap-2 mb-4" role="list" aria-label="Active filters">
@@ -413,6 +475,14 @@ const ShopPage = () => {
               <Badge variant="secondary" className="gap-1 pr-1" role="listitem">
                 {category}
                 <button onClick={() => setCategory('All')} className="ml-1 hover:bg-muted rounded-full p-0.5" aria-label={`Remove ${category} filter`}>
+                  <X className="h-3 w-3" aria-hidden="true" />
+                </button>
+              </Badge>
+            )}
+            {productType !== 'All' && (
+              <Badge variant="secondary" className="gap-1 pr-1" role="listitem">
+                {productType}
+                <button onClick={() => setProductType('All')} className="ml-1 hover:bg-muted rounded-full p-0.5" aria-label={`Remove ${productType} filter`}>
                   <X className="h-3 w-3" aria-hidden="true" />
                 </button>
               </Badge>
@@ -465,26 +535,45 @@ const ShopPage = () => {
               </Button>
             </div>
           ) : (
-            <div className={`grid gap-3 sm:gap-4 ${
-              gridCols === 2 
-                ? 'grid-cols-2 md:grid-cols-2 lg:grid-cols-3' 
-                : gridCols === 3 
-                  ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4' 
-                  : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
-            }`}>
-              {sortedProducts.map(product => (
-                <ProductCard 
-                  key={product.id} 
-                  id={product.id} 
-                  name={product.name} 
-                  price={product.price}
-                  category={product.category} 
-                  image={product.image_url || 'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400'}
-                  badge={product.badge} 
-                  discount={product.discount}
-                />
-              ))}
-            </div>
+            <>
+              <div className={`grid gap-3 sm:gap-4 ${
+                gridCols === 2 
+                  ? 'grid-cols-2 md:grid-cols-2 lg:grid-cols-3' 
+                  : gridCols === 3 
+                    ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4' 
+                    : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+              }`}>
+                {paginatedProducts.map(product => (
+                  <ProductCard 
+                    key={product.id} 
+                    id={product.id} 
+                    name={product.name} 
+                    price={product.price}
+                    category={product.category} 
+                    image={product.image_url || 'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400'}
+                    badge={product.badge} 
+                    discount={product.discount}
+                  />
+                ))}
+              </div>
+              {hasMore && (
+                <div className="flex justify-center mt-6 sm:mt-8">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={() => setVisibleCount(prev => prev + PRODUCTS_PER_PAGE)}
+                    className="rounded-xl px-8 min-h-[44px]"
+                  >
+                    Load More ({sortedProducts.length - visibleCount} remaining)
+                  </Button>
+                </div>
+              )}
+              {!hasMore && sortedProducts.length > PRODUCTS_PER_PAGE && (
+                <p className="text-center text-sm text-muted-foreground mt-6">
+                  Showing all {sortedProducts.length} products
+                </p>
+              )}
+            </>
           )}
         </section>
       </main>

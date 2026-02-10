@@ -14,7 +14,8 @@ import {
   Sparkles,
   Shield,
   Stethoscope,
-  Mail
+  Mail,
+  Ticket
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/Logo';
@@ -51,6 +52,7 @@ const navSections: NavSection[] = [
     items: [
       { icon: Package, label: 'Products', path: '/admin/products' },
       { icon: ShoppingCart, label: 'Orders', path: '/admin/orders' },
+      { icon: Ticket, label: 'Coupons', path: '/admin/coupons' },
     ]
   },
   {
