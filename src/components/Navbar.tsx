@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingCart, User, Menu, X, LogOut, Home, Store, Stethoscope, PawPrint, Compass, MessageCircle, Building2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { NotificationBell } from '@/components/social/NotificationBell';
 import Logo from '@/components/Logo';
 import { GlobalSearch } from '@/components/GlobalSearch';
 
-const Navbar = () => {
+const Navbar = memo(() => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const {
     user,
@@ -199,5 +199,6 @@ const Navbar = () => {
           </div>}
       </div>
     </nav>;
-};
+});
+Navbar.displayName = 'Navbar';
 export default Navbar;

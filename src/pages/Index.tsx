@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, memo } from 'react';
+import { useState, useEffect, useCallback, memo, useMemo } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -80,6 +80,14 @@ const Index = () => {
     unlikePost, 
     refreshPosts 
   } = usePosts(undefined, feedType);
+
+  const handleFeedTypeChange = useCallback((v: string) => {
+    setFeedType(v as 'all' | 'following');
+  }, []);
+
+  const handleLike = useCallback((id: string) => likePost(id), [likePost]);
+  const handleUnlike = useCallback((id: string) => unlikePost(id), [unlikePost]);
+  const handleRefresh = useCallback(() => refreshPosts(), [refreshPosts]);
 
   useEffect(() => {
     const fetchTrendingPets = async () => {
@@ -389,7 +397,7 @@ const Index = () => {
           <div className="grid lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {/* Main Feed - 2 columns */}
             <div className="lg:col-span-2 order-2 lg:order-1">
-              <Tabs value={feedType} onValueChange={(v) => setFeedType(v as 'all' | 'following')}>
+              <Tabs value={feedType} onValueChange={handleFeedTypeChange}>
                 <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6 bg-white shadow-sm border border-border/50 rounded-2xl p-1.5 h-12 sm:h-14">
                   <TabsTrigger 
                     value="all" 
@@ -410,7 +418,7 @@ const Index = () => {
                   </TabsTrigger>
                 </TabsList>
 
-                <CreatePostCard onPostCreated={refreshPosts} />
+                <CreatePostCard onPostCreated={handleRefresh} />
 
                 <ScrollArea className="h-[500px] sm:h-[600px]">
                   <TabsContent value="all" className="mt-0 pr-2 sm:pr-4">
@@ -443,9 +451,9 @@ const Index = () => {
                           <PostCard
                             key={post.id}
                             post={post}
-                            onLike={likePost}
-                            onUnlike={unlikePost}
-                            onDelete={refreshPosts}
+                            onLike={handleLike}
+                            onUnlike={handleUnlike}
+                            onDelete={handleRefresh}
                           />
                         ))}
                       </div>
@@ -484,9 +492,9 @@ const Index = () => {
                           <PostCard
                             key={post.id}
                             post={post}
-                            onLike={likePost}
-                            onUnlike={unlikePost}
-                            onDelete={refreshPosts}
+                            onLike={handleLike}
+                            onUnlike={handleUnlike}
+                            onDelete={handleRefresh}
                           />
                         ))}
                       </div>
