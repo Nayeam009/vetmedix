@@ -6,10 +6,10 @@ import Logo from '@/components/Logo';
 const Footer = forwardRef<HTMLElement>((_, ref) => {
   return (
     <footer ref={ref} className="bg-foreground text-card">
-      <div className="container mx-auto px-3 sm:px-4 py-8 sm:py-12 md:py-16">
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
+      <div className="container mx-auto px-4 py-8 sm:py-12 md:py-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand */}
-          <div className="col-span-2 sm:col-span-2 md:col-span-1">
+          <div className="sm:col-span-2 lg:col-span-1">
             <div className="mb-3 sm:mb-4">
               <Logo to="/" size="md" showText showSubtitle variant="footer" />
             </div>
@@ -89,7 +89,7 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
           </nav>
 
           {/* Contact */}
-          <div className="col-span-2 sm:col-span-1">
+          <div>
             <h4 className="font-semibold text-sm sm:text-base mb-3 sm:mb-4">Contact Us</h4>
             <ul className="space-y-2 sm:space-y-3">
               <li className="flex items-center gap-2 text-xs sm:text-sm text-card/70">
