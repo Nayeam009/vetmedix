@@ -78,28 +78,44 @@ serve(async (req) => {
       });
     }
 
-    const url = new URL("https://nominatim.openstreetmap.org/search");
-    url.searchParams.set("format", "json");
-    url.searchParams.set("limit", "1");
-    url.searchParams.set("q", q);
-
-    const res = await fetch(url.toString(), {
-      headers: {
-        "Accept": "application/json",
-        // Nominatim requires a valid UA; set one explicitly in server-side fetch.
-        "User-Agent": "VetMedix/1.0 (Lovable Cloud geocoder)",
-      },
-    });
-
-    if (!res.ok) {
-      return new Response(JSON.stringify({ error: "Geocoder error" }), {
-        status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Build progressively simpler queries for fallback.
+    // e.g. "Majed Monjil, Pachuria, ..., Gopalganj" -> try full, then last 2 parts, then last 1 part
+    const parts = q.split(",").map((s: string) => s.trim()).filter(Boolean);
+    const queries: string[] = [q];
+    if (parts.length > 2) {
+      // Try last 2 comma-separated parts (city + country typically)
+      queries.push(parts.slice(-2).join(", "));
+    }
+    if (parts.length > 1) {
+      // Try just the last part
+      queries.push(parts[parts.length - 1]);
     }
 
-    const results = (await res.json()) as Array<{ lat: string; lon: string; display_name?: string }>;
-    if (!Array.isArray(results) || results.length === 0) {
+    let results: Array<{ lat: string; lon: string; display_name?: string }> = [];
+
+    for (const query of queries) {
+      const url = new URL("https://nominatim.openstreetmap.org/search");
+      url.searchParams.set("format", "json");
+      url.searchParams.set("limit", "1");
+      url.searchParams.set("q", query);
+
+      const res = await fetch(url.toString(), {
+        headers: {
+          "Accept": "application/json",
+          "User-Agent": "VetMedix/1.0 (Lovable Cloud geocoder)",
+        },
+      });
+
+      if (!res.ok) continue;
+
+      const data = (await res.json()) as Array<{ lat: string; lon: string; display_name?: string }>;
+      if (Array.isArray(data) && data.length > 0) {
+        results = data;
+        break;
+      }
+    }
+
+    if (results.length === 0) {
       return new Response(JSON.stringify({ error: "No results" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
