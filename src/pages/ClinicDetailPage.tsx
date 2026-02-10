@@ -135,10 +135,19 @@ const ClinicDetailPage = () => {
     return /bangladesh/i.test(base) ? base : `${base}, Bangladesh`;
   }, [clinic?.address, clinic?.name]);
 
+  // For Google Maps links, use full name+address for best results
+  const googleMapsQuery = useMemo(() => {
+    const name = (clinic?.name || '').trim();
+    const address = (clinic?.address || '').trim();
+    if (!name && !address) return '';
+    const full = [name, address].filter(Boolean).join(', ');
+    return /bangladesh/i.test(full) ? full : `${full}, Bangladesh`;
+  }, [clinic?.name, clinic?.address]);
+
   const mapOpenUrl = useMemo(() => {
-    if (!mapQuery) return '';
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
-  }, [mapQuery]);
+    if (!googleMapsQuery) return '';
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(googleMapsQuery)}`;
+  }, [googleMapsQuery]);
 
   const { data: geocode, isLoading: geocodeLoading } = useGeocode(mapQuery);
 
@@ -164,7 +173,7 @@ const ClinicDetailPage = () => {
   };
 
   const handleGetDirections = () => {
-    if (!mapQuery) {
+    if (!googleMapsQuery) {
       toast.error('Clinic address is not available');
       return;
     }
@@ -173,7 +182,7 @@ const ClinicDetailPage = () => {
     const popup = window.open('', '_blank', 'noopener,noreferrer');
     setDirectionsLoading(true);
 
-    const destination = geocode?.lat && geocode?.lng ? `${geocode.lat},${geocode.lng}` : mapQuery;
+    const destination = geocode?.lat && geocode?.lng ? `${geocode.lat},${geocode.lng}` : googleMapsQuery;
 
     const openDestinationOnly = () => {
       // If we can't get GPS, open the place/search view (more reliable than dir with "Your location").
