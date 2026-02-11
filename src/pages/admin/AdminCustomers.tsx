@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
@@ -120,7 +120,11 @@ const AdminCustomers = () => {
     startIndex,
   } = usePagination({ data: filteredCustomers, pageSize: 20 });
 
-  const updateUserRole = async (userId: string, role: 'admin' | 'moderator' | 'user' | 'doctor' | 'clinic_owner') => {
+  const handleStatClick = useCallback((role: RoleFilter) => {
+    setRoleFilter(prev => prev === role ? 'all' : role);
+  }, []);
+
+  const updateUserRole = useCallback(async (userId: string, role: 'admin' | 'moderator' | 'user' | 'doctor' | 'clinic_owner') => {
     try {
       const { data: existingRole } = await supabase
         .from('user_roles')
@@ -147,7 +151,7 @@ const AdminCustomers = () => {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update role';
       toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
     }
-  };
+  }, [toast, queryClient]);
 
   const getRoleBadge = (userRoles: any[] | null) => {
     const role = userRoles?.[0]?.role;
@@ -165,7 +169,7 @@ const AdminCustomers = () => {
     }
   };
 
-  const handleExportCSV = () => {
+  const handleExportCSV = useCallback(() => {
     if (!filteredCustomers.length) return;
     const headers = ['Name', 'Phone', 'Address', 'Division', 'District', 'Thana', 'Role', 'Joined'];
     const rows = filteredCustomers.map(customer => [
@@ -181,7 +185,7 @@ const AdminCustomers = () => {
     const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
     downloadCSV(csvContent, `customers-${format(new Date(), 'yyyy-MM-dd')}.csv`);
     toast({ title: 'Success', description: 'Customers exported to CSV' });
-  };
+  }, [filteredCustomers, toast]);
 
   if (authLoading || roleLoading) {
     return (
@@ -206,34 +210,43 @@ const AdminCustomers = () => {
 
   return (
     <AdminLayout title="Customers" subtitle="Manage user accounts and roles">
-      {/* Stats Bar */}
+      {/* Stats Bar — clickable to filter */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mb-4 sm:mb-6">
-        <StatCard
-          title="Total Customers"
-          value={stats.total}
-          icon={<Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />}
-        />
-        <StatCard
-          title="Admins"
-          value={stats.admins}
-          icon={<ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />}
-        />
-        <StatCard
-          title="Moderators"
-          value={stats.moderators}
-          icon={<Shield className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />}
-        />
-        <StatCard
-          title="Doctors"
-          value={stats.doctors}
-          icon={<Stethoscope className="h-4 w-4 sm:h-5 sm:w-5 text-teal-600" />}
-        />
-        <StatCard
-          title="Clinic Owners"
-          value={stats.clinicOwners}
-          icon={<Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />}
-          className="col-span-2 sm:col-span-1"
-        />
+        <div onClick={() => handleStatClick('all')} className={`cursor-pointer rounded-xl sm:rounded-2xl transition-all ${roleFilter === 'all' ? 'ring-2 ring-primary' : ''}`}>
+          <StatCard
+            title="Total Customers"
+            value={stats.total}
+            icon={<Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />}
+          />
+        </div>
+        <div onClick={() => handleStatClick('admin')} className={`cursor-pointer rounded-xl sm:rounded-2xl transition-all ${roleFilter === 'admin' ? 'ring-2 ring-purple-500' : ''}`}>
+          <StatCard
+            title="Admins"
+            value={stats.admins}
+            icon={<ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />}
+          />
+        </div>
+        <div onClick={() => handleStatClick('moderator')} className={`cursor-pointer rounded-xl sm:rounded-2xl transition-all ${roleFilter === 'moderator' ? 'ring-2 ring-blue-500' : ''}`}>
+          <StatCard
+            title="Moderators"
+            value={stats.moderators}
+            icon={<Shield className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />}
+          />
+        </div>
+        <div onClick={() => handleStatClick('doctor')} className={`cursor-pointer rounded-xl sm:rounded-2xl transition-all ${roleFilter === 'doctor' ? 'ring-2 ring-teal-500' : ''}`}>
+          <StatCard
+            title="Doctors"
+            value={stats.doctors}
+            icon={<Stethoscope className="h-4 w-4 sm:h-5 sm:w-5 text-teal-600" />}
+          />
+        </div>
+        <div onClick={() => handleStatClick('clinic_owner')} className={`col-span-2 sm:col-span-1 cursor-pointer rounded-xl sm:rounded-2xl transition-all ${roleFilter === 'clinic_owner' ? 'ring-2 ring-amber-500' : ''}`}>
+          <StatCard
+            title="Clinic Owners"
+            value={stats.clinicOwners}
+            icon={<Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />}
+          />
+        </div>
       </div>
 
       {/* Search + Filter + Export */}
