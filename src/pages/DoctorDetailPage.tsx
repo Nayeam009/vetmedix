@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, MapPin, Phone, Clock, Award, BadgeCheck, Calendar,
-  Stethoscope, GraduationCap, Building2, ChevronRight
+  Stethoscope, GraduationCap, Building2, ChevronRight, Heart
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
@@ -14,6 +14,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePublicDoctorById } from '@/hooks/usePublicDoctors';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import SEO from '@/components/SEO';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -22,10 +24,45 @@ const DoctorDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('about');
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const { data: doctor, isLoading } = usePublicDoctorById(id);
   
   useDocumentTitle(doctor?.name ? `Dr. ${doctor.name}` : 'Doctor Profile');
+
+  // Check if doctor is favorited
+  useEffect(() => {
+    if (!id) return;
+    const checkFav = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from('doctor_favorites')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('doctor_id', id)
+        .maybeSingle();
+      setIsFavorite(!!data);
+    };
+    checkFav();
+  }, [id]);
+
+  const toggleFavorite = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Please sign in to save favorites');
+      return;
+    }
+    if (isFavorite) {
+      await supabase.from('doctor_favorites').delete().eq('user_id', user.id).eq('doctor_id', id!);
+      setIsFavorite(false);
+      toast.success('Removed from favorites');
+    } else {
+      await supabase.from('doctor_favorites').insert({ user_id: user.id, doctor_id: id! });
+      setIsFavorite(true);
+      toast.success('Added to favorites');
+    }
+  }, [id, isFavorite]);
   
   // SEO structured data for doctor
   const doctorSchema = useMemo(() => doctor ? {
@@ -100,16 +137,27 @@ const DoctorDetailPage = () => {
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-primary/10 via-blue-100/50 to-cyan-50 border-b border-border/50">
         <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
-          {/* Back Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(-1)}
-            className="mb-4 -ml-2 gap-1.5"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
+          {/* Back + Favorite */}
+          <div className="flex items-center justify-between mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(-1)}
+              className="-ml-2 gap-1.5"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={toggleFavorite}
+              className="rounded-full h-9 w-9"
+              aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              <Heart className={`h-4 w-4 transition-colors ${isFavorite ? 'fill-destructive text-destructive' : 'text-muted-foreground'}`} />
+            </Button>
+          </div>
 
           <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
             {/* Avatar */}

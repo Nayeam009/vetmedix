@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, MapPin, Clock, Phone, Stethoscope, User, Calendar, ChevronRight, Award, Heart, Shield, Loader2, MessageSquare, Share2, ChevronLeft, CheckCircle, Building2, AlertCircle, Users, Sparkles, BadgeCheck, Copy, Navigation } from 'lucide-react';
 import Navbar from '@/components/Navbar';
@@ -82,12 +82,45 @@ const ClinicDetailPage = () => {
     experience: '10+ years',
     image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400'
   };
+  // Check if clinic is favorited
+  useEffect(() => {
+    if (!id) return;
+    const checkFav = async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) return;
+      const { data } = await supabase
+        .from('clinic_favorites')
+        .select('id')
+        .eq('user_id', authUser.id)
+        .eq('clinic_id', id)
+        .maybeSingle();
+      setIsFavorite(!!data);
+    };
+    checkFav();
+  }, [id]);
+
+  const toggleFavorite = useCallback(async () => {
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) {
+      toast.error('Please sign in to save favorites');
+      return;
+    }
+    if (isFavorite) {
+      await supabase.from('clinic_favorites').delete().eq('user_id', authUser.id).eq('clinic_id', id!);
+      setIsFavorite(false);
+      toast.success('Removed from favorites');
+    } else {
+      await supabase.from('clinic_favorites').insert({ user_id: authUser.id, clinic_id: id! });
+      setIsFavorite(true);
+      toast.success('Added to favorites');
+    }
+  }, [id, isFavorite]);
+
   useEffect(() => {
     if (id) fetchClinic();
   }, [id]);
   const fetchClinic = async () => {
     try {
-      // Use clinics_public view for security - excludes sensitive verification documents
       const {
         data,
         error
@@ -264,8 +297,8 @@ const ClinicDetailPage = () => {
             </Button>
             
             <div className="flex gap-2">
-              <Button variant="secondary" size="icon" className="rounded-full bg-white/90 backdrop-blur-md hover:bg-white shadow-xl h-10 w-10" onClick={() => setIsFavorite(!isFavorite)}>
-                <Heart className={`h-5 w-5 transition-colors ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-muted-foreground'}`} />
+              <Button variant="secondary" size="icon" className="rounded-full bg-white/90 backdrop-blur-md hover:bg-white shadow-xl h-10 w-10" onClick={toggleFavorite}>
+                <Heart className={`h-5 w-5 transition-colors ${isFavorite ? 'fill-destructive text-destructive' : 'text-muted-foreground'}`} />
               </Button>
               <Button variant="secondary" size="icon" className="rounded-full bg-white/90 backdrop-blur-md hover:bg-white shadow-xl h-10 w-10" onClick={handleShare}>
                 <Share2 className="h-5 w-5 text-muted-foreground" />
