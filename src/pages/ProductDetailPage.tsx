@@ -118,7 +118,7 @@ const ProductDetailPage = () => {
           ? Math.round(product.price * (1 - product.discount / 100))
           : product.price,
         image: product.image_url || '',
-        category: product.category as 'Pet' | 'Farm',
+        category: product.category,
       });
     }
     
@@ -296,12 +296,8 @@ const ProductDetailPage = () => {
           <div className="lg:col-span-4 space-y-5">
             {/* Category */}
             <div className="flex items-center gap-2">
-              <span className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                product.category === 'Pet' 
-                  ? 'bg-primary/10 text-primary' 
-                  : 'bg-accent/10 text-accent'
-              }`}>
-                {product.category} Products
+              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-primary/10 text-primary">
+                {product.product_type || product.category}
               </span>
               {product.stock !== null && product.stock > 0 && product.stock <= 5 && (
                 <span className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-medium px-3 py-1 rounded-full">
