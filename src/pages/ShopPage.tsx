@@ -580,23 +580,25 @@ const ShopPage = () => {
           </div>
         </div>
 
-        {/* Product Type Chips */}
-        {productTypes.length > 2 && (
-          <div className="flex gap-2 overflow-x-auto pb-2 mb-2 sm:mb-4 scrollbar-none -mx-1 px-1" role="group" aria-label="Product type filter">
-            {productTypes.map(type => (
-              <button
-                key={type}
-                onClick={() => { setProductType(type); setVisibleCount(PRODUCTS_PER_PAGE); }}
-                className={`flex-shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-full transition-all whitespace-nowrap ${
-                  productType === type
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-muted/60 text-muted-foreground hover:bg-muted border border-border/50'
-                }`}
-                aria-pressed={productType === type}
-              >
-                {type}
-              </button>
-            ))}
+        {/* Active filter indicators */}
+        {(productType !== 'All' || priceRange !== 'all') && (
+          <div className="flex items-center gap-2 mb-3 sm:mb-4 flex-wrap">
+            {productType !== 'All' && (
+              <Badge variant="secondary" className="gap-1 text-xs">
+                {productType}
+                <button onClick={() => { setProductType('All'); setVisibleCount(PRODUCTS_PER_PAGE); }} aria-label={`Remove ${productType} filter`}>
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
+            {priceRange !== 'all' && (
+              <Badge variant="secondary" className="gap-1 text-xs">
+                {priceRangeOptions.find(o => o.value === priceRange)?.label}
+                <button onClick={() => setPriceRange('all')} aria-label="Remove price filter">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
           </div>
         )}
 
