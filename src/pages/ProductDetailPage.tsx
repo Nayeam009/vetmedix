@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -700,9 +700,11 @@ const ProductDetailPage = () => {
               <h2 className="text-xl sm:text-2xl font-bold text-foreground">
                 Related Products
               </h2>
-              <Button variant="ghost" className="text-primary">
-                View All
-                <ChevronRight className="h-4 w-4 ml-1" />
+              <Button variant="ghost" className="text-primary" asChild>
+                <Link to={`/shop?type=${product?.product_type || ''}`}>
+                  View All
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Link>
               </Button>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
