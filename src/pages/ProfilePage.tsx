@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, MapPin, ShoppingBag, Calendar, Edit2, Save, X, Loader2, Package, PawPrint, Plus } from 'lucide-react';
+import { User, MapPin, ShoppingBag, Calendar, Edit2, Save, X, Loader2, Package, PawPrint, Plus, Heart } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
@@ -506,10 +506,22 @@ const ProfilePage = () => {
                   </div>
                   My Appointments
                 </CardTitle>
-                <Button onClick={() => navigate('/clinics')} className="gap-2 w-full sm:w-auto">
-                  <Plus className="h-4 w-4" />
-                  Book New
-                </Button>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/wishlist')} 
+                    className="gap-1.5 h-9 flex-1 sm:flex-none"
+                    aria-label="View Wishlist"
+                  >
+                    <Heart className="h-4 w-4 text-destructive" />
+                    <span className="hidden sm:inline">Wishlist</span>
+                  </Button>
+                  <Button onClick={() => navigate('/clinics')} className="gap-2 flex-1 sm:flex-none h-9">
+                    <Plus className="h-4 w-4" />
+                    Book New
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="p-4 sm:p-6">
                 {appointments.length === 0 ? (
