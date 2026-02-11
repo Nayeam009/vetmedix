@@ -191,7 +191,7 @@ const ProductDetailPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen bg-muted/30 pb-20 md:pb-0">
       <SEO 
         title={product.name}
         description={product.description || `Buy ${product.name} at VetMedix. Premium ${product.category} products for your pets.`}
@@ -401,9 +401,9 @@ const ProductDetailPage = () => {
             </div>
           </div>
 
-          {/* Buy Box - Right Column */}
+          {/* Buy Box - Right Column (sticky bottom on mobile) */}
           <div className="lg:col-span-3">
-            <div className="bg-background rounded-2xl border border-border p-5 space-y-5 sticky top-24 shadow-sm">
+            <div className="hidden lg:block bg-background rounded-2xl border border-border p-5 space-y-5 sticky top-24 shadow-sm">
               {/* Price in Buy Box */}
               <div>
                 <span className="text-2xl font-bold text-foreground">
@@ -514,6 +514,91 @@ const ProductDetailPage = () => {
               </Button>
             </div>
           </div>
+          
+          {/* Mobile Buy Box - also render for smaller screens */}
+          <div className="lg:hidden bg-background rounded-2xl border border-border p-4 space-y-4 shadow-sm">
+              {/* Price in Buy Box */}
+              <div className="flex items-baseline gap-2">
+                <span className="text-xl font-bold text-foreground">
+                  ৳{discountedPrice.toLocaleString()}
+                </span>
+                {product.discount && (
+                  <span className="text-sm text-muted-foreground line-through">
+                    ৳{product.price.toLocaleString()}
+                  </span>
+                )}
+                {savings > 0 && (
+                  <span className="text-xs text-green-600 font-medium ml-auto">Save ৳{savings.toLocaleString()}</span>
+                )}
+              </div>
+
+              {/* Delivery Info - compact */}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Truck className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span>Free over ৳500</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Package className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span>2-3 days delivery</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <RefreshCw className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span>7 days return</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Shield className="h-4 w-4 text-primary flex-shrink-0" />
+                  <span>Secure payment</span>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Quantity Selector */}
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-foreground">Quantity</label>
+                <div className="flex items-center">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="h-9 w-9 rounded-l-lg border border-border flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-50"
+                    disabled={quantity <= 1}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <div className="h-9 w-12 border-y border-border flex items-center justify-center font-medium text-sm">
+                    {quantity}
+                  </div>
+                  <button
+                    onClick={() => setQuantity(quantity + 1)}
+                    className="h-9 w-9 rounded-r-lg border border-border flex items-center justify-center hover:bg-muted transition-colors"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-2">
+                <Button 
+                  className="flex-1 h-11 text-sm font-semibold rounded-xl"
+                  onClick={handleAddToCart}
+                  disabled={product.stock !== null && product.stock <= 0}
+                >
+                  {product.stock !== null && product.stock <= 0 ? 'Out of Stock' : (
+                    <><ShoppingCart className="h-4 w-4 mr-1.5" />Add to Cart</>
+                  )}
+                </Button>
+                {(product.stock === null || product.stock > 0) && (
+                  <Button 
+                    variant="outline"
+                    className="flex-1 h-11 text-sm font-semibold rounded-xl"
+                    onClick={() => { handleAddToCart(); navigate('/checkout'); }}
+                  >
+                    Buy Now
+                  </Button>
+                )}
+              </div>
+            </div>
         </div>
 
         {/* Reviews Section - always show */}
@@ -624,7 +709,7 @@ const ProductDetailPage = () => {
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
               {relatedProducts.map((p) => (
                 <ProductCard
                   key={p.id}

@@ -291,10 +291,9 @@ const ShopPage = () => {
       
       {/* Hero Banner with Sliding Images */}
       <header className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5 border-b border-border">
-        {/* Sliding Images Background */}
-        <div className="absolute inset-0 overflow-hidden">
+        {/* Sliding Images Background - hidden on small mobile for performance */}
+        <div className="absolute inset-0 overflow-hidden hidden sm:block">
           <div className="absolute inset-0 flex animate-[shop-slide_20s_linear_infinite]" style={{ width: '200%' }}>
-            {/* Use product images as sliding background */}
             {[
               '/products/cat-carrier.jpg',
               '/products/grooming-set.jpg', 
@@ -318,39 +317,39 @@ const ShopPage = () => {
           </div>
         </div>
 
-        <div className="relative container mx-auto px-4 py-6 sm:py-8 lg:py-10">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div className="relative container mx-auto px-4 py-4 sm:py-8 lg:py-10">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
             {/* Left: Title & Features */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full">
+            <div className="space-y-2 sm:space-y-4 flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary text-[10px] sm:text-xs font-semibold px-2.5 sm:px-3 py-1 rounded-full">
                   <Tag className="h-3 w-3" />
-                  Special Offers Available
+                  Special Offers
                 </span>
               </div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground leading-tight">
+              <h1 className="text-xl sm:text-3xl lg:text-4xl font-bold text-foreground leading-tight">
                 Premium Pet & Farm
                 <span className="block text-primary">Supplies</span>
               </h1>
-              <p className="text-muted-foreground text-sm sm:text-base max-w-md">
+              <p className="text-muted-foreground text-xs sm:text-base max-w-md hidden sm:block">
                 Quality products for your beloved pets and farm animals. Fast delivery across Bangladesh.
               </p>
               {/* Feature Pills */}
-              <div className="flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-background/80 backdrop-blur-sm border border-border rounded-full px-3 py-1.5">
-                  <Truck className="h-3 w-3 text-primary" /> Free delivery ৳500+
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-medium text-muted-foreground bg-background/80 backdrop-blur-sm border border-border rounded-full px-2 sm:px-3 py-1 sm:py-1.5">
+                  <Truck className="h-3 w-3 text-primary" /> Free ৳500+
                 </span>
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-background/80 backdrop-blur-sm border border-border rounded-full px-3 py-1.5">
-                  <Shield className="h-3 w-3 text-accent" /> 100% Authentic
+                <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-medium text-muted-foreground bg-background/80 backdrop-blur-sm border border-border rounded-full px-2 sm:px-3 py-1 sm:py-1.5">
+                  <Shield className="h-3 w-3 text-accent" /> Authentic
                 </span>
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-background/80 backdrop-blur-sm border border-border rounded-full px-3 py-1.5">
-                  <Package className="h-3 w-3 text-primary" /> {sortedProducts.length} Products
+                <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-medium text-muted-foreground bg-background/80 backdrop-blur-sm border border-border rounded-full px-2 sm:px-3 py-1 sm:py-1.5">
+                  <Package className="h-3 w-3 text-primary" /> {sortedProducts.length} Items
                 </span>
               </div>
             </div>
 
-            {/* Right: Featured Product Carousel */}
-            <div className="relative w-full lg:w-auto">
+            {/* Right: Featured Product Carousel - hidden on very small screens */}
+            <div className="hidden sm:block relative w-auto flex-shrink-0">
               <HeroCarousel products={products} />
             </div>
           </div>
