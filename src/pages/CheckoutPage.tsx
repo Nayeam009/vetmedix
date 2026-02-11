@@ -195,6 +195,13 @@ const CheckoutPage = () => {
       });
       setErrors(fieldErrors);
       toast({ title: 'Validation Error', description: 'Please check the form for errors.', variant: 'destructive' });
+      // Scroll to first error field
+      const firstErrorField = validationResult.error.errors[0]?.path[0] as string;
+      if (firstErrorField) {
+        const el = document.getElementById(firstErrorField);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el?.focus();
+      }
       return;
     }
 
@@ -418,7 +425,7 @@ const CheckoutPage = () => {
         <div className="grid lg:grid-cols-12 gap-6 lg:gap-8">
           {/* Form Section */}
           <div className="lg:col-span-7 xl:col-span-8 space-y-4 sm:space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+            <form id="checkout-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               {/* Shipping Information */}
               <div className="bg-background rounded-xl sm:rounded-2xl border border-border shadow-sm overflow-hidden">
                 <div className="p-4 sm:p-5 border-b border-border bg-muted/30">
@@ -806,7 +813,8 @@ const CheckoutPage = () => {
           </div>
         </div>
         <Button 
-          onClick={handleSubmit}
+          type="submit"
+          form="checkout-form"
           className="w-full h-11 text-sm font-semibold rounded-xl"
           disabled={loading}
         >
