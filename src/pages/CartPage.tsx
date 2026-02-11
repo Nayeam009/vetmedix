@@ -165,7 +165,7 @@ const CartPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-muted/30 pb-32 md:pb-8">
+    <div className="min-h-screen bg-muted/30 pb-36 md:pb-8">
       <Navbar />
       
       {/* Breadcrumb */}
@@ -300,13 +300,13 @@ const CartPage = () => {
       </main>
 
       {/* Mobile Fixed Bottom Bar */}
-      <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-background border-t border-border p-4 md:hidden z-40">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm text-muted-foreground">Total ({totalItems} items)</span>
-          <span className="text-lg font-bold text-foreground">৳{grandTotal.toLocaleString()}</span>
+      <div className="fixed bottom-14 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border p-3 sm:p-4 md:hidden z-40" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-muted-foreground">Total ({totalItems} items)</span>
+          <span className="text-base font-bold text-foreground">৳{grandTotal.toLocaleString()}</span>
         </div>
         <Button 
-          className="w-full h-12 text-base font-semibold rounded-xl"
+          className="w-full h-11 text-sm font-semibold rounded-xl"
           onClick={() => handleNavigate('/checkout')}
         >
           Proceed to Checkout
