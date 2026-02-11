@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 const STORAGE_KEY = 'recently_viewed_products';
-const MAX_ITEMS = 10;
+const MAX_ITEMS = 5;
 
 interface RecentProduct {
   id: string;
