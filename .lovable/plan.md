@@ -1,115 +1,78 @@
 
+# Admin Customers Page Improvements
 
-# Fraud Order Detection System
+## Issues Identified from Screenshot and Code
 
-## Problem
+### 1. Missing Summary Stats Bar
+Other admin pages (Orders, Products, Clinics, Doctors) have interactive stat cards at the top showing key metrics. The Customers page has none. Should add stats like: Total Customers, Admins, Moderators, Doctors, Clinic Owners.
 
-Currently, the admin has no way to identify potentially fraudulent orders before accepting them. Looking at actual order data, there are clear fraud signals that go unnoticed:
+### 2. No Pagination
+All customers render at once with no pagination or virtual scrolling. With growing user counts this will degrade performance and overwhelm the UI.
 
-- Order from "Sakib" with gibberish address "Bdhdndnd, Behjd, Hdhd, Hdhd" and invalid phone "0273+39"
-- Same user placing duplicate orders 3 minutes apart (same items, same address)
-- Shipping name different from profile name (profile says "Admin" but order says "Test User")
-- All orders are Cash on Delivery (highest fraud risk payment method)
+### 3. Missing Avatar Display
+Every row shows a generic User icon. The `profiles` table has an `avatar_url` column -- should display the actual user avatar when available.
 
-Without detection, the admin wastes time processing fake orders and risks shipping products that will never be paid for.
+### 4. Truncated User IDs Shown Instead of Useful Info
+The secondary text under the customer name shows a raw UUID snippet (e.g., `75561730...`). This is meaningless to admins. Replace with email or phone number.
 
----
+### 5. No Role Filter
+Admin can only search by name/phone. There is no way to filter by role (Admin, Moderator, User, Doctor, Clinic Owner) which is the primary management action on this page.
 
-## Solution Overview
+### 6. Missing "doctor" and "clinic_owner" Role Options
+The dropdown only offers User, Moderator, and Admin roles. But the system supports `doctor` and `clinic_owner` roles too -- these should at least be visible in the badge display and the role filter.
 
-A client-side fraud scoring engine that automatically analyzes every order against multiple risk signals, assigns a risk level (Low / Medium / High), and surfaces flagged orders prominently so the admin can prioritize review.
+### 7. No Total Count Display
+The page doesn't show how many customers exist or how many match the current search/filter.
 
-No AI or external APIs needed -- this uses rule-based heuristics on data already available in the database.
-
----
-
-## Fraud Signals to Detect
-
-| Signal | What It Catches | Risk Points |
-|--------|----------------|-------------|
-| Gibberish address | Random keyboard characters, repeated chars, too-short fields | +30 |
-| Invalid phone | Not matching Bangladesh format (01XXXXXXXXX, 11 digits) | +25 |
-| Name mismatch | Shipping name differs from profile name | +15 |
-| Rapid repeat orders | Same user placed another order within 1 hour | +20 |
-| High cancellation rate | User has >50% cancelled orders historically | +15 |
-| Suspicious address length | Address fields under 3 characters | +20 |
-| Very high first order | New user's first order exceeds a threshold (e.g., 5000 BDT) | +10 |
-
-**Risk Levels:**
-- 0-19 points: Low risk (green)
-- 20-39 points: Medium risk (yellow/amber)
-- 40+ points: High risk (red)
+### 8. Query Not Protected
+Unlike other admin pages, the `useAdminUsers` query runs without checking `isAdmin` in the component (it does check in the hook, but the component doesn't gate rendering on it properly before the query resolves).
 
 ---
 
-## What the Admin Sees
+## Implementation Plan
 
-### 1. Risk Badge on Every Order
-Each order in both the mobile card view and desktop table gets a small colored badge:
-- Green shield icon = Low Risk
-- Amber warning icon = Medium Risk  
-- Red alert icon = High Risk
+### Step 1: Add Customer Stats Bar
+Add a row of stat cards above the search bar showing:
+- Total Customers
+- Admins count
+- Moderators count  
+- Doctors count
+- Clinic Owners count
 
-### 2. "Flagged" Quick Filter
-A new filter option alongside the existing status filter that shows only Medium and High risk orders, so the admin can review suspicious orders first.
+Compute these from the already-fetched customer data (no extra queries).
 
-### 3. Fraud Details in Order Dialog
-When viewing order details, a new "Risk Analysis" section appears showing:
-- Overall risk score and level
-- Each triggered signal with a short explanation (e.g., "Phone number format invalid: 0273+39")
-- Recommendation text (e.g., "Review carefully before accepting" or "Consider rejecting")
+### Step 2: Add Role Filter
+Add a Select/dropdown filter next to the search bar to filter by role: All, User, Admin, Moderator, Doctor, Clinic Owner.
 
-### 4. Risk Summary in Order Stats
-If there are any high-risk pending orders, show a count at the top of the page as an alert.
+### Step 3: Show Real Avatars
+Use the `Avatar` component with `avatar_url` from profiles. Fall back to the User icon when no avatar exists.
+
+### Step 4: Replace UUID with Useful Secondary Info
+Show phone number (or "No phone") as the subtitle instead of truncated user IDs.
+
+### Step 5: Add Result Count + Pagination
+- Show "Showing X of Y customers" text
+- Add simple pagination (e.g., 20 per page) using the existing `usePagination` hook
+
+### Step 6: Update Role Badge to Support All Roles
+Add badges for `doctor` and `clinic_owner` roles with appropriate colors/icons.
+
+### Step 7: Minor UI Polish
+- Ensure the "Export CSV" button is always visible (not hidden text on mobile)
+- Add hover states on table rows for better interactivity
 
 ---
 
 ## Technical Details
 
-### New Files
+### Files to Modify
+- `src/pages/admin/AdminCustomers.tsx` -- Main page with all the above changes
 
-1. **`src/lib/fraudDetection.ts`** -- Core fraud scoring engine
-   - `analyzeFraudRisk(order, profile, userOrders)` function
-   - Returns `{ score: number, level: 'low' | 'medium' | 'high', signals: FraudSignal[] }`
-   - Contains all heuristic functions:
-     - `isGibberishText(text)` -- detects random character sequences (consonant clusters, repeated chars)
-     - `isValidBDPhone(phone)` -- validates Bangladesh phone format
-     - `parseShippingAddress(address)` -- extracts name, phone, and address parts from the concatenated string
-     - `checkNameMismatch(shippingName, profileName)` -- fuzzy comparison
-     - `checkRapidOrders(orders, currentOrder)` -- finds orders within 1 hour window
-     - `checkCancellationRate(orders)` -- calculates historical cancel percentage
-
-2. **`src/components/admin/FraudRiskBadge.tsx`** -- Visual risk indicator component
-   - Compact badge with icon + color for table/card views
-   - Tooltip showing brief risk summary on hover
-
-3. **`src/components/admin/FraudAnalysisPanel.tsx`** -- Detailed risk breakdown panel
-   - Used inside the Order Details dialog
-   - Shows each triggered signal with icon, description, and point value
-   - Shows overall score with progress bar visualization
-   - Recommendation text based on risk level
-
-### Modified Files
-
-1. **`src/hooks/useAdmin.ts`** -- Update `useAdminOrders` hook
-   - Join `profiles` table to get `full_name` and `phone` for name-mismatch detection
-   - The query becomes: `supabase.from('orders').select('*, profile:profiles!user_id(full_name, phone)')` 
-
-2. **`src/pages/admin/AdminOrders.tsx`** -- Integrate fraud detection
-   - Import and run `analyzeFraudRisk` on each order when data loads (memoized)
-   - Add "Risk" column to desktop table (between Status and Actions)
-   - Add `FraudRiskBadge` to mobile card view
-   - Add "Flagged" option to the status filter dropdown
-   - Add `FraudAnalysisPanel` inside the Order Details dialog
-   - Show alert banner if high-risk pending orders exist
+### Dependencies Used (already installed)
+- `@radix-ui/react-avatar` for Avatar
+- `@radix-ui/react-select` for role filter
+- `lucide-react` icons (Stethoscope, Building2 for doctor/clinic roles)
+- `src/hooks/usePagination.ts` for pagination logic
 
 ### No Database Changes Required
-
-All fraud analysis runs client-side using existing order data, profile data, and order history. No new tables, columns, or migrations needed.
-
-### Performance Considerations
-
-- Fraud analysis is computed via `useMemo` -- only recalculates when orders data changes
-- The gibberish detection uses lightweight string analysis (character frequency, consonant clusters), not external API calls
-- Profile data is fetched in the same query as orders (single round-trip)
-
+All data is already available from the existing `useAdminUsers` hook which fetches profiles + user_roles.
