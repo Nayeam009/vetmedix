@@ -378,6 +378,18 @@ const ShopPage = () => {
                 )}
               </div>
               
+              {/* Cart Button */}
+              <Link to="/cart" className="relative">
+                <Button variant="outline" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-lg sm:rounded-xl" aria-label={`Cart${totalItems > 0 ? ` (${totalItems} items)` : ''}`}>
+                  <ShoppingCart className="h-4 w-4" aria-hidden="true" />
+                  {totalItems > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
+                      {totalItems}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+
               {/* Mobile Filter Button */}
               <Sheet>
                 <SheetTrigger asChild>
@@ -398,7 +410,7 @@ const ShopPage = () => {
                     {/* Product Type Filter */}
                     {productTypes.length > 2 && (
                       <div className="space-y-3">
-                        <h3 className="font-semibold text-foreground" id="mobile-type-label">Product Type</h3>
+                        <h3 className="font-semibold text-foreground" id="mobile-type-label">Category</h3>
                         <div className="flex flex-wrap gap-2" role="group" aria-labelledby="mobile-type-label">
                           {productTypes.map(type => (
                             <button
