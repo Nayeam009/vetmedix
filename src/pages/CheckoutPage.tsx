@@ -366,7 +366,7 @@ const CheckoutPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-muted/30 pb-32 md:pb-8">
+    <div className="min-h-screen bg-muted/30 pb-36 md:pb-8">
       <Navbar />
       
       {/* Breadcrumb */}
@@ -486,7 +486,7 @@ const CheckoutPage = () => {
                     {errors.address && <p className="text-xs text-destructive">{errors.address}</p>}
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="division" className="text-sm">Division</Label>
                       <Input
@@ -794,20 +794,20 @@ const CheckoutPage = () => {
       </div>
 
       {/* Mobile Fixed Bottom Bar */}
-      <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-background border-t border-border p-4 md:hidden z-40">
-        <div className="flex items-center justify-between mb-3">
+      <div className="fixed bottom-14 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border p-3 sm:p-4 md:hidden z-40" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="flex items-center justify-between mb-2">
           <div>
-            <span className="text-xs text-muted-foreground">Total</span>
-            <p className="text-lg font-bold text-foreground">৳{grandTotal.toLocaleString()}</p>
+            <span className="text-[10px] text-muted-foreground">Total</span>
+            <p className="text-base font-bold text-foreground">৳{grandTotal.toLocaleString()}</p>
           </div>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <Lock className="h-3 w-3" />
             <span>Secure Checkout</span>
           </div>
         </div>
         <Button 
           onClick={handleSubmit}
-          className="w-full h-12 text-base font-semibold rounded-xl"
+          className="w-full h-11 text-sm font-semibold rounded-xl"
           disabled={loading}
         >
           {loading ? 'Placing Order...' : 'Place Order'}

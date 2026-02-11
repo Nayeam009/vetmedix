@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import Navbar from '@/components/Navbar';
+import MobileNav from '@/components/MobileNav';
 import Footer from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -231,9 +232,9 @@ const TrackOrderPage = () => {
   // Show login prompt if not authenticated
   if (!authLoading && !user) {
     return (
-      <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
         <Navbar />
-        <main className="container mx-auto px-4 py-8 pt-24">
+        <main className="container mx-auto px-4 py-6 sm:py-8">
           <div className="max-w-md mx-auto">
             <Card>
               <CardHeader className="text-center">
@@ -255,15 +256,16 @@ const TrackOrderPage = () => {
           </div>
         </main>
         <Footer />
+        <MobileNav />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-8 pt-24">
+      <main className="container mx-auto px-4 py-6 sm:py-8">
         <Button
           variant="ghost"
           className="mb-6"
@@ -439,6 +441,7 @@ const TrackOrderPage = () => {
       </main>
 
       <Footer />
+      <MobileNav />
     </div>
   );
 };

@@ -8,6 +8,7 @@ import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
+import MobileNav from '@/components/MobileNav';
 import ProductCard from '@/components/ProductCard';
 import ProductReviewForm from '@/components/ProductReviewForm';
 import { 
@@ -724,6 +725,7 @@ const ProductDetailPage = () => {
           </div>
         )}
       </div>
+      <MobileNav />
     </div>
   );
 };
