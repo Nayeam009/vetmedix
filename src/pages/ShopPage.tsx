@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Search, Loader2, SlidersHorizontal, Grid3X3, LayoutGrid, Package, ChevronDown, X, Sparkles, ShoppingCart, Star, Clock } from 'lucide-react';
+import { Search, Loader2, SlidersHorizontal, Grid3X3, LayoutGrid, Package, ChevronDown, X, Sparkles, ShoppingCart, Star, Clock, ChevronLeft, ChevronRight, Truck, Shield, Tag } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { useProductRatings } from '@/hooks/useProductRatings';
@@ -64,6 +64,89 @@ interface Product {
   discount: number | null;
   created_at: string;
 }
+
+// Hero Carousel Component
+const HeroCarousel = memo(({ products }: { products: Product[] }) => {
+  const [current, setCurrent] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  
+  // Pick featured products (ones with discounts or badges, fallback to first 5)
+  const featured = useMemo(() => {
+    const discounted = products.filter(p => p.discount && p.discount > 0 && p.image_url);
+    const pool = discounted.length >= 5 ? discounted : products.filter(p => p.image_url);
+    return pool.slice(0, 5);
+  }, [products]);
+
+  useEffect(() => {
+    if (featured.length <= 1) return;
+    timerRef.current = setInterval(() => {
+      setCurrent(prev => (prev + 1) % featured.length);
+    }, 3500);
+    return () => clearInterval(timerRef.current);
+  }, [featured.length]);
+
+  const goTo = useCallback((idx: number) => {
+    setCurrent(idx);
+    clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setCurrent(prev => (prev + 1) % featured.length);
+    }, 3500);
+  }, [featured.length]);
+
+  if (featured.length === 0) return null;
+
+  const p = featured[current];
+  const discountedPrice = p.discount ? Math.round(p.price * (1 - p.discount / 100)) : p.price;
+
+  return (
+    <div className="flex gap-3 sm:gap-4 items-center">
+      {/* Main Featured Card */}
+      <Link 
+        to={`/product/${p.id}`}
+        className="relative w-[200px] sm:w-[240px] lg:w-[260px] bg-background rounded-2xl border border-border shadow-card overflow-hidden group transition-all hover:shadow-hover"
+      >
+        <div className="aspect-square overflow-hidden bg-secondary/20">
+          <img
+            src={p.image_url || ''}
+            alt={p.name}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          />
+          {p.discount && (
+            <span className="absolute top-3 left-3 bg-destructive text-destructive-foreground text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full">
+              {p.discount}% OFF
+            </span>
+          )}
+        </div>
+        <div className="p-3 space-y-1">
+          <p className="text-xs sm:text-sm font-medium text-foreground line-clamp-1">{p.name}</p>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-sm sm:text-base font-bold text-primary">৳{discountedPrice.toLocaleString()}</span>
+            {p.discount && (
+              <span className="text-[10px] sm:text-xs text-muted-foreground line-through">৳{p.price.toLocaleString()}</span>
+            )}
+          </div>
+        </div>
+      </Link>
+
+      {/* Dots */}
+      <div className="flex flex-col gap-1.5 lg:gap-2">
+        {featured.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => goTo(i)}
+            className={`rounded-full transition-all ${
+              i === current 
+                ? 'w-2.5 h-2.5 bg-primary' 
+                : 'w-2 h-2 bg-border hover:bg-muted-foreground/40'
+            }`}
+            aria-label={`Show product ${i + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+});
+HeroCarousel.displayName = 'HeroCarousel';
 
 const ShopPage = () => {
   useDocumentTitle('Pet Shop');
@@ -206,35 +289,69 @@ const ShopPage = () => {
       />
       <Navbar />
       
-      {/* Hero Banner */}
-      <header className="bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 border-b border-border">
-        <div className="container mx-auto px-4 py-6 sm:py-8 lg:py-10">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">
-                Shop All Products
-              </h1>
-              <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
-                Discover the best products for your pets and farm animals
-              </p>
-            </div>
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Package className="h-4 w-4 text-primary" aria-hidden="true" />
-                <span>{sortedProducts.length} products</span>
+      {/* Hero Banner with Sliding Images */}
+      <header className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5 border-b border-border">
+        {/* Sliding Images Background */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute inset-0 flex animate-[shop-slide_20s_linear_infinite]" style={{ width: '200%' }}>
+            {/* Use product images as sliding background */}
+            {[
+              '/products/cat-carrier.jpg',
+              '/products/grooming-set.jpg', 
+              '/products/pet-balls.jpg',
+              '/products/cat-house.jpg',
+              '/products/feeding-bowl.jpg',
+              '/products/pet-collar.jpg',
+              '/products/winter-dress.jpg',
+              '/products/cat-teaser-toy.jpg',
+            ].map((src, i) => (
+              <div key={i} className="flex-shrink-0 w-[12.5%] h-full relative">
+                <img
+                  src={src}
+                  alt=""
+                  loading={i < 4 ? "eager" : "lazy"}
+                  className="w-full h-full object-cover opacity-[0.08]"
+                  aria-hidden="true"
+                />
               </div>
-              <Link 
-                to="/cart" 
-                className="relative p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
-                aria-label={`View cart with ${totalItems} items`}
-              >
-                <ShoppingCart className="h-5 w-5 text-primary" />
-                {totalItems > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-5">
-                    {totalItems > 99 ? '99+' : totalItems}
-                  </span>
-                )}
-              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="relative container mx-auto px-4 py-6 sm:py-8 lg:py-10">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            {/* Left: Title & Features */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full">
+                  <Tag className="h-3 w-3" />
+                  Special Offers Available
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground leading-tight">
+                Premium Pet & Farm
+                <span className="block text-primary">Supplies</span>
+              </h1>
+              <p className="text-muted-foreground text-sm sm:text-base max-w-md">
+                Quality products for your beloved pets and farm animals. Fast delivery across Bangladesh.
+              </p>
+              {/* Feature Pills */}
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-background/80 backdrop-blur-sm border border-border rounded-full px-3 py-1.5">
+                  <Truck className="h-3 w-3 text-primary" /> Free delivery ৳500+
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-background/80 backdrop-blur-sm border border-border rounded-full px-3 py-1.5">
+                  <Shield className="h-3 w-3 text-accent" /> 100% Authentic
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-background/80 backdrop-blur-sm border border-border rounded-full px-3 py-1.5">
+                  <Package className="h-3 w-3 text-primary" /> {sortedProducts.length} Products
+                </span>
+              </div>
+            </div>
+
+            {/* Right: Featured Product Carousel */}
+            <div className="relative w-full lg:w-auto">
+              <HeroCarousel products={products} />
             </div>
           </div>
         </div>
