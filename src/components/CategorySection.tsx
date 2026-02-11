@@ -1,105 +1,51 @@
-import { ArrowRight, PawPrint, Wheat, Dog, Cat, Bird, Beef } from 'lucide-react';
+import { ArrowRight, Scissors, Bone, Shirt, Zap, UtensilsCrossed, PawPrint } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import categoryPets from '@/assets/category-pets.jpg';
-import categoryFarm from '@/assets/category-farm.jpg';
+
+const categories = [
+  { icon: Scissors, label: 'Grooming', type: 'Grooming', color: 'bg-primary/10 text-primary' },
+  { icon: Bone, label: 'Toys', type: 'Toys', color: 'bg-accent/10 text-accent' },
+  { icon: Shirt, label: 'Clothing', type: 'Clothing', color: 'bg-primary/10 text-primary' },
+  { icon: Zap, label: 'Electronics', type: 'Electronics', color: 'bg-accent/10 text-accent' },
+  { icon: UtensilsCrossed, label: 'Feeding', type: 'Feeding', color: 'bg-primary/10 text-primary' },
+  { icon: PawPrint, label: 'Accessories', type: 'Accessories', color: 'bg-accent/10 text-accent' },
+];
 
 const CategorySection = () => {
-  const mainCategories = [
-    {
-      title: 'Pet Zone',
-      subtitle: 'Dogs, Cats & More',
-      description: 'Premium food, medicine, and accessories for your beloved pets',
-      image: categoryPets,
-      icon: PawPrint,
-      link: '/shop?category=Pet',
-      buttonText: 'Shop Pet Products',
-    },
-    {
-      title: 'Farm Zone',
-      subtitle: 'Cattle, Poultry & Livestock',
-      description: 'Quality feed, veterinary supplies for healthy livestock',
-      image: categoryFarm,
-      icon: Wheat,
-      link: '/shop?category=Farm',
-      buttonText: 'Shop Farm Products',
-    },
-  ];
-
-  const subCategories = [
-    { icon: Dog, label: 'Dogs', count: '250+', link: '/shop?type=dog' },
-    { icon: Cat, label: 'Cats', count: '180+', link: '/shop?type=cat' },
-    { icon: Bird, label: 'Birds', count: '80+', link: '/shop?type=bird' },
-    { icon: Beef, label: 'Cattle', count: '150+', link: '/shop?type=cattle' },
-  ];
-
   return (
     <section className="section-padding bg-background">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
-            Choose Your Zone
+        <div className="text-center mb-8 sm:mb-12">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-foreground mb-3 sm:mb-4">
+            Shop by Category
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Whether you're caring for pets at home or managing a farm, we have everything you need
+          <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
+            Find everything your pets need — from grooming essentials to fun toys and accessories
           </p>
         </div>
 
-        {/* Main Categories */}
-        <div className="grid md:grid-cols-2 gap-6 lg:gap-8 mb-12">
-          {mainCategories.map((category, index) => (
+        <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4 lg:gap-6 mb-8">
+          {categories.map((cat) => (
             <Link
-              key={index}
-              to={category.link}
-              className="group relative overflow-hidden rounded-3xl h-[350px] md:h-[400px] card-hover cursor-pointer"
+              key={cat.type}
+              to={`/shop?type=${cat.type}`}
+              className="group flex flex-col items-center p-4 sm:p-6 bg-card rounded-2xl border border-border hover:border-primary/50 hover:shadow-hover transition-all duration-300 text-center"
             >
-              <img
-                src={category.image}
-                alt={category.title}
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-foreground/90 via-foreground/40 to-transparent"></div>
-              
-              <div className="absolute inset-0 p-6 md:p-8 flex flex-col justify-end">
-                <div className="space-y-3">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-card/20 backdrop-blur-sm text-card text-sm w-fit">
-                    <category.icon className="h-4 w-4" />
-                    {category.subtitle}
-                  </div>
-                  <h3 className="text-3xl md:text-4xl font-display font-bold text-card">
-                    {category.title}
-                  </h3>
-                  <p className="text-card/80 max-w-sm">
-                    {category.description}
-                  </p>
-                  <Button 
-                    variant="default" 
-                    className="group/btn bg-card text-foreground hover:bg-card/90 mt-2"
-                  >
-                    {category.buttonText}
-                    <ArrowRight className="h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
-                  </Button>
-                </div>
+              <div className={`h-12 w-12 sm:h-16 sm:w-16 rounded-2xl ${cat.color} flex items-center justify-center group-hover:scale-110 transition-transform mb-2 sm:mb-4`}>
+                <cat.icon className="h-6 w-6 sm:h-8 sm:w-8" />
               </div>
+              <h4 className="font-semibold text-foreground text-xs sm:text-sm">{cat.label}</h4>
             </Link>
           ))}
         </div>
 
-        {/* Sub Categories */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {subCategories.map((cat, index) => (
-            <Link 
-              key={index}
-              to={cat.link}
-              className="group p-6 bg-card rounded-2xl border border-border hover:border-primary/50 hover:shadow-hover transition-all duration-300 text-center"
-            >
-              <div className="h-16 w-16 mx-auto mb-4 rounded-2xl bg-secondary flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                <cat.icon className="h-8 w-8 text-primary" />
-              </div>
-              <h4 className="font-semibold text-foreground mb-1">{cat.label}</h4>
-              <p className="text-sm text-muted-foreground">{cat.count} Products</p>
+        <div className="text-center">
+          <Button asChild variant="outline" size="lg" className="rounded-xl">
+            <Link to="/shop">
+              View All Products
+              <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
             </Link>
-          ))}
+          </Button>
         </div>
       </div>
     </section>

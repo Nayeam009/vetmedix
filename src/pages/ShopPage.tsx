@@ -45,7 +45,7 @@ const sortOptions = [
   { value: 'top-rated', label: 'Top Rated' },
 ];
 
-const categoryOptions = ['All', 'Pet', 'Farm'];
+// Category is now based on product_type, no more Pet/Farm distinction
 
 const PRODUCTS_PER_PAGE = 20;
 
@@ -156,7 +156,7 @@ const ShopPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  const [category, setCategory] = useState(searchParams.get('category') || 'All');
+  const [category] = useState('All');
   const [productType, setProductType] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
   const [gridCols, setGridCols] = useState<2 | 3 | 4>(3);
@@ -167,12 +167,11 @@ const ShopPage = () => {
   useEffect(() => {
     const params = new URLSearchParams();
     if (searchQuery) params.set('search', searchQuery);
-    if (category !== 'All') params.set('category', category);
     if (productType !== 'All') params.set('type', productType);
     if (priceRange !== 'all') params.set('price', priceRange);
     if (sortBy !== 'newest') params.set('sort', sortBy);
     setSearchParams(params, { replace: true });
-  }, [searchQuery, category, productType, priceRange, sortBy]);
+  }, [searchQuery, productType, priceRange, sortBy]);
 
   // Initialize from URL params
   useEffect(() => {
@@ -186,14 +185,12 @@ const ShopPage = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, [category]);
+  }, []);
 
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      let query = supabase.from('products').select('*');
-      if (category !== 'All') query = query.eq('category', category);
-      const { data, error } = await query;
+      const { data, error } = await supabase.from('products').select('*');
       if (error) throw error;
       setProducts(data || []);
     } catch (error) {
@@ -253,7 +250,6 @@ const ShopPage = () => {
   });
 
   const activeFiltersCount = [
-    category !== 'All',
     productType !== 'All',
     priceRange !== 'all',
     searchQuery.length > 0
@@ -264,7 +260,6 @@ const ShopPage = () => {
   const hasMore = visibleCount < sortedProducts.length;
 
   const clearFilters = useCallback(() => {
-    setCategory('All');
     setProductType('All');
     setPriceRange('all');
     setSearchQuery('');
@@ -400,27 +395,6 @@ const ShopPage = () => {
                     <SheetTitle>Filters & Sort</SheetTitle>
                   </SheetHeader>
                   <div className="mt-6 space-y-6">
-                    {/* Category Filter */}
-                    <div className="space-y-3">
-                      <h3 className="font-semibold text-foreground" id="mobile-category-label">Category</h3>
-                      <div className="flex flex-wrap gap-2" role="group" aria-labelledby="mobile-category-label">
-                        {categoryOptions.map(cat => (
-                          <button 
-                            key={cat} 
-                            onClick={() => setCategory(cat)}
-                            className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
-                              category === cat 
-                                ? 'bg-primary text-primary-foreground' 
-                                : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                            }`}
-                            aria-pressed={category === cat}
-                          >
-                            {cat}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
                     {/* Product Type Filter */}
                     {productTypes.length > 2 && (
                       <div className="space-y-3">
@@ -502,25 +476,20 @@ const ShopPage = () => {
 
             {/* Desktop Filters Row */}
             <div className="hidden sm:flex items-center justify-between gap-4">
-              {/* Category Filters */}
+              {/* Left: Category & Price Dropdowns */}
               <div className="flex items-center gap-2">
-                <div className="flex items-center bg-muted/50 rounded-xl p-1 border border-border" role="group" aria-label="Category filter">
-                  {categoryOptions.map(cat => (
-                    <button 
-                      key={cat} 
-                      onClick={() => setCategory(cat)}
-                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                        category === cat 
-                          ? 'bg-background text-foreground shadow-sm' 
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                      aria-pressed={category === cat}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-                
+                {/* Category (Product Type) Dropdown */}
+                <Select value={productType} onValueChange={(v) => { setProductType(v); setVisibleCount(PRODUCTS_PER_PAGE); }}>
+                  <SelectTrigger className="w-[160px] h-10 rounded-lg" aria-label="Category filter">
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {productTypes.map(type => (
+                      <SelectItem key={type} value={type}>{type === 'All' ? 'All Categories' : type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
                 {/* Price Range Select */}
                 <Select value={priceRange} onValueChange={(v: any) => setPriceRange(v)}>
                   <SelectTrigger className="w-[150px] h-10 rounded-lg" aria-label="Price range filter">
@@ -622,14 +591,6 @@ const ShopPage = () => {
         {/* Active Filters Display */}
         {activeFiltersCount > 0 && (
           <div className="flex flex-wrap gap-2 mb-4" role="list" aria-label="Active filters">
-            {category !== 'All' && (
-              <Badge variant="secondary" className="gap-1 pr-1" role="listitem">
-                {category}
-                <button onClick={() => setCategory('All')} className="ml-1 hover:bg-muted rounded-full p-0.5" aria-label={`Remove ${category} filter`}>
-                  <X className="h-3 w-3" aria-hidden="true" />
-                </button>
-              </Badge>
-            )}
             {productType !== 'All' && (
               <Badge variant="secondary" className="gap-1 pr-1" role="listitem">
                 {productType}

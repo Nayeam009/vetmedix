@@ -1,4 +1,4 @@
-import { Package, PackageCheck, PackageX, AlertTriangle, Tag } from 'lucide-react';
+import { Package, PackageCheck, PackageX, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ProductStats {
@@ -6,8 +6,6 @@ interface ProductStats {
   inStock: number;
   outOfStock: number;
   lowStock: number;
-  petCount: number;
-  farmCount: number;
 }
 
 interface ProductStatsBarProps {
@@ -21,8 +19,6 @@ const statCards = [
   { key: 'in-stock', label: 'In Stock', icon: PackageCheck, color: 'text-green-600' },
   { key: 'out-of-stock', label: 'Out of Stock', icon: PackageX, color: 'text-destructive' },
   { key: 'low-stock', label: 'Low Stock', icon: AlertTriangle, color: 'text-amber-600' },
-  { key: 'Pet', label: 'Pet', icon: Tag, color: 'text-blue-600' },
-  { key: 'Farm', label: 'Farm', icon: Tag, color: 'text-emerald-700' },
 ] as const;
 
 function getStatValue(key: string, stats: ProductStats): number {
@@ -31,15 +27,13 @@ function getStatValue(key: string, stats: ProductStats): number {
     case 'in-stock': return stats.inStock;
     case 'out-of-stock': return stats.outOfStock;
     case 'low-stock': return stats.lowStock;
-    case 'Pet': return stats.petCount;
-    case 'Farm': return stats.farmCount;
     default: return 0;
   }
 }
 
 export function ProductStatsBar({ stats, activeFilter, onFilterChange }: ProductStatsBarProps) {
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3 mb-4 sm:mb-6">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
       {statCards.map(({ key, label, icon: Icon, color }) => {
         const value = getStatValue(key, stats);
         const isActive = activeFilter === key;

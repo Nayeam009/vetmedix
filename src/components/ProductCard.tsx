@@ -97,16 +97,6 @@ const ProductCard = memo(({ id, name, price, category, image, badge, discount, s
         >
           <Heart className={`h-4 w-4 ${wishlisted ? 'fill-current' : ''}`} />
         </button>
-        {/* Category Tag */}
-        <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 z-10">
-          <span className={`text-[10px] sm:text-xs font-medium px-2 sm:px-3 py-0.5 sm:py-1 rounded-full ${
-            category === 'Pet' 
-              ? 'bg-primary/10 text-primary' 
-              : 'bg-accent/10 text-accent'
-          }`}>
-            {category}
-          </span>
-        </div>
       </AspectRatio>
 
       {/* Content */}

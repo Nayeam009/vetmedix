@@ -82,15 +82,11 @@ export function ProductFormFields({ formData, onChange }: ProductFormFieldsProps
         </div>
         <div>
           <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Category</Label>
-          <Select value={formData.category} onValueChange={(v: 'Pet' | 'Farm') => update('category', v)}>
-            <SelectTrigger className="mt-1.5 h-11 rounded-xl">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Pet">Pet</SelectItem>
-              <SelectItem value="Farm">Farm</SelectItem>
-            </SelectContent>
-          </Select>
+          <Input
+            value={formData.category}
+            disabled
+            className="mt-1.5 h-11 rounded-xl bg-muted/50"
+          />
         </div>
         <div>
           <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Product Type</Label>
