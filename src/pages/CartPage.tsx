@@ -265,7 +265,7 @@ const CartPage = () => {
                 </div>
 
                 <Button 
-                  className="w-full h-11 sm:h-12 text-sm sm:text-base font-semibold rounded-xl mt-5"
+                  className="w-full h-11 sm:h-12 text-sm sm:text-base font-semibold rounded-xl mt-5 hidden md:flex"
                   onClick={() => handleNavigate('/checkout')}
                 >
                   Proceed to Checkout
