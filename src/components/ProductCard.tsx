@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { ShoppingCart, Heart } from 'lucide-react';
+import { ShoppingCart, Heart, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { useNavigate } from 'react-router-dom';
@@ -16,9 +16,12 @@ interface ProductCardProps {
   image: string;
   badge?: string | null;
   discount?: number | null;
+  stock?: number | null;
+  avgRating?: number;
+  reviewCount?: number;
 }
 
-const ProductCard = memo(({ id, name, price, category, image, badge, discount }: ProductCardProps) => {
+const ProductCard = memo(({ id, name, price, category, image, badge, discount, stock, avgRating, reviewCount }: ProductCardProps) => {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const { user } = useAuth();
@@ -27,9 +30,12 @@ const ProductCard = memo(({ id, name, price, category, image, badge, discount }:
   const finalPrice = discount ? Math.round(price * (1 - discount / 100)) : price;
   const originalPrice = discount ? price : null;
   const wishlisted = id ? isWishlisted(id) : false;
+  const isOutOfStock = stock !== null && stock !== undefined && stock <= 0;
+  const isLowStock = stock !== null && stock !== undefined && stock > 0 && stock <= 5;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isOutOfStock) return;
     addItem({ id: id || name, name, price: finalPrice, image, category });
   };
 
@@ -55,15 +61,28 @@ const ProductCard = memo(({ id, name, price, category, image, badge, discount }:
           loading="lazy"
           width={300}
           height={300}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${isOutOfStock ? 'opacity-50 grayscale' : ''}`}
         />
+        {/* Out of Stock Overlay */}
+        {isOutOfStock && (
+          <div className="absolute inset-0 bg-background/60 flex items-center justify-center z-10">
+            <span className="bg-destructive text-destructive-foreground text-xs sm:text-sm font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-full">
+              Stock Out
+            </span>
+          </div>
+        )}
         {/* Badges */}
         <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1 sm:gap-2 z-10">
           {badge && (
             <span className="badge-rx text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">{badge}</span>
           )}
-          {discount && (
+          {discount && !isOutOfStock && (
             <span className="badge-sale text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">{discount}% OFF</span>
+          )}
+          {isLowStock && (
+            <span className="bg-amber-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full font-medium">
+              Only {stock} left!
+            </span>
           )}
         </div>
         {/* Wishlist Button */}
@@ -95,6 +114,18 @@ const ProductCard = memo(({ id, name, price, category, image, badge, discount }:
         <h3 className="font-medium text-xs sm:text-sm text-foreground line-clamp-2 group-hover:text-primary transition-colors min-h-[32px] sm:min-h-[48px]">
           {name}
         </h3>
+        
+        {/* Rating Display */}
+        {avgRating !== undefined && avgRating > 0 && (
+          <div className="flex items-center gap-1">
+            <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-400 fill-amber-400" />
+            <span className="text-[10px] sm:text-xs font-medium text-foreground">{avgRating.toFixed(1)}</span>
+            {reviewCount !== undefined && reviewCount > 0 && (
+              <span className="text-[10px] sm:text-xs text-muted-foreground">({reviewCount})</span>
+            )}
+          </div>
+        )}
+
         <div className="flex items-baseline gap-1.5 sm:gap-2">
           <span className="text-base sm:text-xl font-bold text-foreground">৳{finalPrice.toLocaleString()}</span>
           {originalPrice && (
@@ -104,13 +135,20 @@ const ProductCard = memo(({ id, name, price, category, image, badge, discount }:
           )}
         </div>
         <Button 
-          variant="default" 
+          variant={isOutOfStock ? "secondary" : "default"}
           size="sm"
           className="w-full h-8 sm:h-10 text-xs sm:text-sm rounded-lg sm:rounded-xl active:scale-95" 
           onClick={handleAddToCart}
+          disabled={isOutOfStock}
         >
-          <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-          Add to Cart
+          {isOutOfStock ? (
+            'Out of Stock'
+          ) : (
+            <>
+              <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              Add to Cart
+            </>
+          )}
         </Button>
       </div>
     </div>

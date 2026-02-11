@@ -83,6 +83,9 @@ const CheckoutPage = () => {
   
   const [loading, setLoading] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
+  const [placedItems, setPlacedItems] = useState<typeof items>([]);
+  const [placedTotal, setPlacedTotal] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [couponCode, setCouponCode] = useState('');
@@ -254,6 +257,11 @@ const CheckoutPage = () => {
         });
       }
 
+      // Store order details before clearing cart
+      setPlacedOrderId(orderData?.id || null);
+      setPlacedItems([...items]);
+      setPlacedTotal(grandTotal);
+      
       clearCart();
       setOrderPlaced(true);
       toast({ title: 'Order Placed!', description: 'Your order has been placed successfully.' });
@@ -272,25 +280,73 @@ const CheckoutPage = () => {
     return (
       <div className="min-h-screen bg-muted/30">
         <Navbar />
-        <div className="container mx-auto px-4 py-12 sm:py-16 lg:py-24">
-          <div className="max-w-lg mx-auto text-center">
-            <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="h-10 w-10 sm:h-12 sm:w-12 text-green-600 dark:text-green-400" />
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">Order Confirmed!</h1>
-            <p className="text-muted-foreground mb-2 text-sm sm:text-base">
-              Thank you for your order. We'll deliver it to your address soon!
-            </p>
-            {paymentMethod === 'cod' && (
-              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 my-6">
-                <Banknote className="h-8 w-8 text-amber-600 mx-auto mb-2" />
-                <p className="text-sm text-amber-800 dark:text-amber-200">
-                  Please keep <span className="font-bold">৳{grandTotal.toLocaleString()}</span> ready for Cash on Delivery
-                </p>
+        <div className="container mx-auto px-4 py-8 sm:py-12 lg:py-16">
+          <div className="max-w-xl mx-auto">
+            {/* Success Header */}
+            <div className="text-center mb-8">
+              <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="h-10 w-10 sm:h-12 sm:w-12 text-green-600 dark:text-green-400" />
               </div>
-            )}
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Order Confirmed!</h1>
+              {placedOrderId && (
+                <p className="text-sm text-muted-foreground">
+                  Order ID: <span className="font-mono font-medium text-foreground">{placedOrderId.slice(0, 8).toUpperCase()}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Order Summary Card */}
+            <div className="bg-background rounded-2xl border border-border shadow-sm overflow-hidden mb-6">
+              <div className="p-4 sm:p-5 border-b border-border bg-muted/30">
+                <h2 className="font-semibold text-foreground flex items-center gap-2">
+                  <Package className="h-5 w-5 text-primary" />
+                  Order Summary
+                </h2>
+              </div>
+              <div className="p-4 sm:p-5 space-y-3">
+                {placedItems.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-3">
+                    <img src={item.image} alt={item.name} className="h-12 w-12 rounded-lg object-cover border border-border" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
+                      <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                    </div>
+                    <span className="text-sm font-semibold text-foreground">৳{(item.price * item.quantity).toLocaleString()}</span>
+                  </div>
+                ))}
+                <Separator />
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-foreground">Total</span>
+                  <span className="text-lg font-bold text-foreground">৳{placedTotal.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Delivery & Payment Info */}
+            <div className="bg-background rounded-2xl border border-border shadow-sm p-4 sm:p-5 space-y-4 mb-6">
+              <div className="flex items-start gap-3">
+                <Truck className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">Estimated Delivery</p>
+                  <p className="text-xs text-muted-foreground">Within 2-5 business days</p>
+                </div>
+              </div>
+              {paymentMethod === 'cod' && (
+                <div className="flex items-start gap-3">
+                  <Banknote className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Cash on Delivery</p>
+                    <p className="text-xs text-muted-foreground">
+                      Please keep ৳{placedTotal.toLocaleString()} ready
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={() => navigate('/')} size="lg" className="rounded-xl">
+              <Button onClick={() => navigate('/shop')} size="lg" className="rounded-xl">
                 Continue Shopping
               </Button>
               <Button onClick={() => navigate('/profile')} variant="outline" size="lg" className="rounded-xl">

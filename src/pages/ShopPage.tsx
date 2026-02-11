@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback, memo } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Search, Loader2, SlidersHorizontal, Grid3X3, LayoutGrid, Package, ChevronDown, X, Sparkles, ShoppingCart } from 'lucide-react';
+import { Search, Loader2, SlidersHorizontal, Grid3X3, LayoutGrid, Package, ChevronDown, X, Sparkles, ShoppingCart, Star, Clock } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
+import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
+import { useProductRatings } from '@/hooks/useProductRatings';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
@@ -40,6 +42,7 @@ const sortOptions = [
   { value: 'price-low', label: 'Price: Low to High' },
   { value: 'price-high', label: 'Price: High to Low' },
   { value: 'discount', label: 'Best Discount' },
+  { value: 'top-rated', label: 'Top Rated' },
 ];
 
 const categoryOptions = ['All', 'Pet', 'Farm'];
@@ -65,6 +68,7 @@ interface Product {
 const ShopPage = () => {
   useDocumentTitle('Pet Shop');
   const { totalItems } = useCart();
+  const { recentProducts } = useRecentlyViewed();
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,6 +125,10 @@ const ShopPage = () => {
   // Extract unique product types for filter chips
   const productTypes = ['All', ...Array.from(new Set(products.map(p => p.product_type).filter(Boolean) as string[]))].sort((a, b) => a === 'All' ? -1 : b === 'All' ? 1 : a.localeCompare(b));
 
+  // Batch fetch ratings for all loaded products
+  const productIds = useMemo(() => products.map(p => p.id), [products]);
+  const ratings = useProductRatings(productIds);
+
   // Filter and sort products
   let filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -152,6 +160,11 @@ const ShopPage = () => {
       case 'price-high': return priceB - priceA;
       case 'name': return a.name.localeCompare(b.name);
       case 'discount': return (b.discount || 0) - (a.discount || 0);
+      case 'top-rated': {
+        const rA = ratings[a.id]?.avgRating || 0;
+        const rB = ratings[b.id]?.avgRating || 0;
+        return rB - rA;
+      }
       default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     }
   });
@@ -425,6 +438,7 @@ const ShopPage = () => {
                     <SelectItem value="price-high">Price: High to Low</SelectItem>
                     <SelectItem value="name">Name A-Z</SelectItem>
                     <SelectItem value="discount">Best Discount</SelectItem>
+                    <SelectItem value="top-rated">Top Rated</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -549,11 +563,36 @@ const ShopPage = () => {
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">No products found</h3>
               <p className="text-muted-foreground text-center max-w-sm mb-6">
-                Try adjusting your filters or search to find what you're looking for.
+                {searchQuery 
+                  ? `No results for "${searchQuery}". Try a different search term or check the spelling.`
+                  : 'Try adjusting your filters to find what you\'re looking for.'}
               </p>
               <Button onClick={clearFilters} variant="outline">
                 Clear All Filters
               </Button>
+              {/* Show popular products when search fails */}
+              {searchQuery && products.length > 0 && (
+                <div className="mt-10 w-full">
+                  <h4 className="text-sm font-semibold text-foreground mb-4 text-center">Popular Products</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                    {products.filter(p => p.discount && p.discount > 0).slice(0, 4).map(product => (
+                      <ProductCard 
+                        key={product.id} 
+                        id={product.id} 
+                        name={product.name} 
+                        price={product.price}
+                        category={product.category} 
+                        image={product.image_url || 'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400'}
+                        badge={product.badge} 
+                        discount={product.discount}
+                        stock={product.stock}
+                        avgRating={ratings[product.id]?.avgRating}
+                        reviewCount={ratings[product.id]?.reviewCount}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -574,6 +613,9 @@ const ShopPage = () => {
                     image={product.image_url || 'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400'}
                     badge={product.badge} 
                     discount={product.discount}
+                    stock={product.stock}
+                    avgRating={ratings[product.id]?.avgRating}
+                    reviewCount={ratings[product.id]?.reviewCount}
                   />
                 ))}
               </div>
@@ -597,6 +639,31 @@ const ShopPage = () => {
             </>
           )}
         </section>
+        {/* Recently Viewed Section */}
+        {recentProducts.length > 0 && (
+          <section className="mt-8 sm:mt-12" aria-label="Recently viewed products">
+            <div className="flex items-center gap-2 mb-4">
+              <Clock className="h-5 w-5 text-muted-foreground" />
+              <h2 className="text-lg sm:text-xl font-bold text-foreground">Recently Viewed</h2>
+            </div>
+            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 scrollbar-none -mx-1 px-1">
+              {recentProducts.map(product => (
+                <div key={product.id} className="flex-shrink-0 w-[160px] sm:w-[200px]">
+                  <ProductCard 
+                    id={product.id} 
+                    name={product.name} 
+                    price={product.price}
+                    category={product.category} 
+                    image={product.image}
+                    badge={product.badge} 
+                    discount={product.discount}
+                    stock={product.stock}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
       <Footer />
       <MobileNav />
