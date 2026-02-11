@@ -7,7 +7,7 @@ import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { useWishlist } from '@/hooks/useWishlist';
+import { useWishlist } from '@/contexts/WishlistContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
