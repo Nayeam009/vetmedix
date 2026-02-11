@@ -64,11 +64,7 @@ const CartItem = memo(({
           >
             {item.name}
           </h3>
-          <span className={`inline-block mt-1 text-[10px] sm:text-xs font-medium px-2 py-0.5 rounded-full ${
-            item.category === 'Pet' 
-              ? 'bg-primary/10 text-primary' 
-              : 'bg-accent/10 text-accent'
-          }`}>
+          <span className="inline-block mt-1 text-[10px] sm:text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
             {item.category}
           </span>
         </div>

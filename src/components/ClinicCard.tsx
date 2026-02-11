@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, forwardRef } from 'react';
 import { Star, MapPin, Stethoscope, ChevronRight, Phone, Shield, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,11 +18,11 @@ interface ClinicCardProps {
   onViewDetails?: () => void;
 }
 
-const ClinicCard = memo(({ name, rating, distance, services, image, isOpen = true, isVerified = true, onBook, onViewDetails }: ClinicCardProps) => {
+const ClinicCard = memo(forwardRef<HTMLDivElement, ClinicCardProps>(({ name, rating, distance, services, image, isOpen = true, isVerified = true, onBook, onViewDetails }, ref) => {
   const isGopalganj = name?.toLowerCase().includes('gopalganj');
   
   return (
-    <div className="group bg-card rounded-xl sm:rounded-2xl overflow-hidden border border-border/60 hover:border-primary/40 transition-all duration-300 hover:shadow-lg sm:hover:shadow-xl hover:shadow-primary/5">
+    <div ref={ref} className="group bg-card rounded-xl sm:rounded-2xl overflow-hidden border border-border/60 hover:border-primary/40 transition-all duration-300 hover:shadow-lg sm:hover:shadow-xl hover:shadow-primary/5">
       <div className="flex">
         {/* Image Section with stable aspect ratio */}
         <div 
@@ -160,7 +160,7 @@ const ClinicCard = memo(({ name, rating, distance, services, image, isOpen = tru
       </div>
     </div>
   );
-});
+}));
 
 ClinicCard.displayName = 'ClinicCard';
 

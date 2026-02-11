@@ -580,49 +580,27 @@ const ShopPage = () => {
           </div>
         </div>
 
-        {/* Active filter indicators */}
-        {(productType !== 'All' || priceRange !== 'all') && (
-          <div className="flex items-center gap-2 mb-3 sm:mb-4 flex-wrap">
-            {productType !== 'All' && (
-              <Badge variant="secondary" className="gap-1 text-xs">
-                {productType}
-                <button onClick={() => { setProductType('All'); setVisibleCount(PRODUCTS_PER_PAGE); }} aria-label={`Remove ${productType} filter`}>
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            )}
-            {priceRange !== 'all' && (
-              <Badge variant="secondary" className="gap-1 text-xs">
-                {priceRangeOptions.find(o => o.value === priceRange)?.label}
-                <button onClick={() => setPriceRange('all')} aria-label="Remove price filter">
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            )}
-          </div>
-        )}
-
         {/* Active Filters Display */}
         {activeFiltersCount > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4" role="list" aria-label="Active filters">
+          <div className="flex flex-wrap items-center gap-2 mb-3 sm:mb-4" role="list" aria-label="Active filters">
             {productType !== 'All' && (
-              <Badge variant="secondary" className="gap-1 pr-1" role="listitem">
+              <Badge variant="secondary" className="gap-1 pr-1 text-xs" role="listitem">
                 {productType}
-                <button onClick={() => setProductType('All')} className="ml-1 hover:bg-muted rounded-full p-0.5" aria-label={`Remove ${productType} filter`}>
+                <button onClick={() => { setProductType('All'); setVisibleCount(PRODUCTS_PER_PAGE); }} className="ml-1 hover:bg-muted rounded-full p-0.5" aria-label={`Remove ${productType} filter`}>
                   <X className="h-3 w-3" aria-hidden="true" />
                 </button>
               </Badge>
             )}
             {priceRange !== 'all' && (
-              <Badge variant="secondary" className="gap-1 pr-1" role="listitem">
-                {priceRange === 'under500' ? 'Under ৳500' : priceRange === '500to1000' ? '৳500-৳1000' : 'Over ৳1000'}
+              <Badge variant="secondary" className="gap-1 pr-1 text-xs" role="listitem">
+                {priceRangeOptions.find(o => o.value === priceRange)?.label}
                 <button onClick={() => setPriceRange('all')} className="ml-1 hover:bg-muted rounded-full p-0.5" aria-label="Remove price filter">
                   <X className="h-3 w-3" aria-hidden="true" />
                 </button>
               </Badge>
             )}
             {searchQuery && (
-              <Badge variant="secondary" className="gap-1 pr-1" role="listitem">
+              <Badge variant="secondary" className="gap-1 pr-1 text-xs" role="listitem">
                 "{searchQuery}"
                 <button onClick={handleClearSearch} className="ml-1 hover:bg-muted rounded-full p-0.5" aria-label="Remove search filter">
                   <X className="h-3 w-3" aria-hidden="true" />
