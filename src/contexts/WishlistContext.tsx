@@ -1,22 +1,27 @@
-import { useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-export const useWishlist = () => {
+interface WishlistContextType {
+  wishlistIds: Set<string>;
+  isWishlisted: (productId: string) => boolean;
+  toggleWishlist: (productId: string) => Promise<boolean>;
+  loading: boolean;
+  refetch: () => Promise<void>;
+}
+
+const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
+
+export const WishlistProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  const fetchWishlist = useCallback(async () => {
     if (!user) {
       setWishlistIds(new Set());
       return;
     }
-    fetchWishlist();
-  }, [user]);
-
-  const fetchWishlist = async () => {
-    if (!user) return;
     setLoading(true);
     try {
       const { data } = await supabase
@@ -26,12 +31,20 @@ export const useWishlist = () => {
       if (data) {
         setWishlistIds(new Set(data.map(w => w.product_id)));
       }
-    } catch (err) {
+    } catch {
       // silently fail
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setWishlistIds(new Set());
+      return;
+    }
+    fetchWishlist();
+  }, [user, fetchWishlist]);
 
   const toggleWishlist = useCallback(async (productId: string) => {
     if (!user) return false;
@@ -68,5 +81,17 @@ export const useWishlist = () => {
 
   const isWishlisted = useCallback((productId: string) => wishlistIds.has(productId), [wishlistIds]);
 
-  return { wishlistIds, isWishlisted, toggleWishlist, loading, refetch: fetchWishlist };
+  return (
+    <WishlistContext.Provider value={{ wishlistIds, isWishlisted, toggleWishlist, loading, refetch: fetchWishlist }}>
+      {children}
+    </WishlistContext.Provider>
+  );
+};
+
+export const useWishlist = () => {
+  const context = useContext(WishlistContext);
+  if (context === undefined) {
+    throw new Error('useWishlist must be used within a WishlistProvider');
+  }
+  return context;
 };

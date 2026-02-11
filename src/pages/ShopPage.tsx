@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Search, Loader2, SlidersHorizontal, Grid3X3, LayoutGrid, Package, ChevronDown, X, Sparkles, ShoppingCart, Heart, Star, Clock, ChevronLeft, ChevronRight, Truck, Shield, Tag } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
-import { useWishlist } from '@/hooks/useWishlist';
+import { useWishlist } from '@/contexts/WishlistContext';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { useProductRatings } from '@/hooks/useProductRatings';
 import Navbar from '@/components/Navbar';
