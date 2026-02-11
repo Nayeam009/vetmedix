@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWishlist } from '@/hooks/useWishlist';
+import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
@@ -43,6 +44,7 @@ const ProductDetailPage = () => {
   const [selectedImage, setSelectedImage] = useState(0);
   const { user } = useAuth();
   const { isWishlisted, toggleWishlist } = useWishlist();
+  const { addProduct: addToRecentlyViewed } = useRecentlyViewed();
   const wishlisted = id ? isWishlisted(id) : false;
   
   useDocumentTitle(product?.name || 'Product Details');
@@ -73,6 +75,18 @@ const ProductDetailPage = () => {
       }
 
       setProduct(data as Product);
+
+      // Track recently viewed
+      addToRecentlyViewed({
+        id: data.id,
+        name: data.name,
+        price: data.price,
+        image: data.image_url || '',
+        category: data.category,
+        discount: data.discount,
+        badge: data.badge,
+        stock: data.stock,
+      });
 
       // Fetch related products
       const { data: related } = await supabase
@@ -289,10 +303,20 @@ const ProductDetailPage = () => {
               }`}>
                 {product.category} Products
               </span>
-              {product.stock && product.stock > 0 && (
+              {product.stock !== null && product.stock > 0 && product.stock <= 5 && (
+                <span className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-medium px-3 py-1 rounded-full">
+                  Only {product.stock} left!
+                </span>
+              )}
+              {product.stock !== null && product.stock > 5 && (
                 <span className="text-xs text-green-600 font-medium flex items-center gap-1">
                   <Check className="h-3 w-3" />
                   In Stock
+                </span>
+              )}
+              {(product.stock === null || product.stock === 0) && product.stock !== null && (
+                <span className="text-xs bg-destructive/10 text-destructive font-semibold px-3 py-1 rounded-full">
+                  Out of Stock
                 </span>
               )}
             </div>
@@ -453,22 +477,31 @@ const ProductDetailPage = () => {
               <Button 
                 className="w-full h-12 text-base font-semibold rounded-xl"
                 onClick={handleAddToCart}
+                disabled={product.stock !== null && product.stock <= 0}
               >
-                <ShoppingCart className="h-5 w-5 mr-2" />
-                Add to Cart
+                {product.stock !== null && product.stock <= 0 ? (
+                  'Out of Stock'
+                ) : (
+                  <>
+                    <ShoppingCart className="h-5 w-5 mr-2" />
+                    Add to Cart
+                  </>
+                )}
               </Button>
 
               {/* Buy Now Button */}
-              <Button 
-                variant="outline"
-                className="w-full h-12 text-base font-semibold rounded-xl"
-                onClick={() => {
-                  handleAddToCart();
-                  navigate('/cart');
-                }}
-              >
-                Buy Now
-              </Button>
+              {(product.stock === null || product.stock > 0) && (
+                <Button 
+                  variant="outline"
+                  className="w-full h-12 text-base font-semibold rounded-xl"
+                  onClick={() => {
+                    handleAddToCart();
+                    navigate('/checkout');
+                  }}
+                >
+                  Buy Now
+                </Button>
+              )}
 
               {/* Wishlist Button */}
               <Button 
