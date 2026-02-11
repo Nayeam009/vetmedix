@@ -1,78 +1,68 @@
 
-# Admin Customers Page Improvements
 
-## Issues Identified from Screenshot and Code
+# E-Commerce Shop Improvements Plan
 
-### 1. Missing Summary Stats Bar
-Other admin pages (Orders, Products, Clinics, Doctors) have interactive stat cards at the top showing key metrics. The Customers page has none. Should add stats like: Total Customers, Admins, Moderators, Doctors, Clinic Owners.
+## What You Already Have (Working Well)
+- Product listing with search, filters, sorting, and pagination
+- Product detail page with reviews, ratings, gallery, and buy box
+- Cart with quantity management and delivery cost calculation
+- Checkout with address form, coupon support, and stock validation
+- Order tracking with Steadfast integration
+- Wishlist system
+- Admin product/order/coupon management
 
-### 2. No Pagination
-All customers render at once with no pagination or virtual scrolling. With growing user counts this will degrade performance and overwhelm the UI.
+## Missing Features to Complete the Shop
 
-### 3. Missing Avatar Display
-Every row shows a generic User icon. The `profiles` table has an `avatar_url` column -- should display the actual user avatar when available.
+### 1. "Out of Stock" Handling on Product Cards and Detail Page
+Currently, products with `stock = 0` show no visual indication and the "Add to Cart" button still works. This needs:
+- Show a "Stock Out" overlay/badge on ProductCard when stock is 0
+- Disable the "Add to Cart" button on both the card and the detail page
+- Show stock quantity warning (e.g., "Only 3 left!") for low-stock items
 
-### 4. Truncated User IDs Shown Instead of Useful Info
-The secondary text under the customer name shows a raw UUID snippet (e.g., `75561730...`). This is meaningless to admins. Replace with email or phone number.
+### 2. "Recently Viewed" Products Section
+No browsing history is tracked. Adding a "Recently Viewed" section on the Shop page and Product Detail page helps users find products they previously browsed. This uses localStorage (no database needed).
 
-### 5. No Role Filter
-Admin can only search by name/phone. There is no way to filter by role (Admin, Moderator, User, Doctor, Clinic Owner) which is the primary management action on this page.
+### 3. Product Rating Display on Cards
+The ProductCard currently shows no rating. Since the reviews table already has data, we should display the average rating and review count directly on each card. This requires fetching aggregated review data alongside products.
 
-### 6. Missing "doctor" and "clinic_owner" Role Options
-The dropdown only offers User, Moderator, and Admin roles. But the system supports `doctor` and `clinic_owner` roles too -- these should at least be visible in the badge display and the role filter.
+### 4. "Sort by Rating" and "Sort by Best Selling" Options
+The sort dropdown is missing popularity-based sorts. Adding "Top Rated" and "Best Selling" (based on order history) would help users discover quality products.
 
-### 7. No Total Count Display
-The page doesn't show how many customers exist or how many match the current search/filter.
+### 5. Empty Search Results with Suggestions
+When a search returns no results, the page shows a plain "No products found" message. This should include:
+- Clear the search suggestion
+- Show popular/trending products as alternatives
+- Spelling correction hints
 
-### 8. Query Not Protected
-Unlike other admin pages, the `useAdminUsers` query runs without checking `isAdmin` in the component (it does check in the hook, but the component doesn't gate rendering on it properly before the query resolves).
+### 6. Quantity Selector on Product Cards
+Users must visit the detail page just to add more than 1 item. A small quantity stepper on the card would reduce friction for repeat buyers.
 
----
+### 7. "Buy Now" Button on Product Detail
+Currently only "Add to Cart" exists. A "Buy Now" button that adds the item and immediately navigates to checkout would streamline single-item purchases.
 
-## Implementation Plan
-
-### Step 1: Add Customer Stats Bar
-Add a row of stat cards above the search bar showing:
-- Total Customers
-- Admins count
-- Moderators count  
-- Doctors count
-- Clinic Owners count
-
-Compute these from the already-fetched customer data (no extra queries).
-
-### Step 2: Add Role Filter
-Add a Select/dropdown filter next to the search bar to filter by role: All, User, Admin, Moderator, Doctor, Clinic Owner.
-
-### Step 3: Show Real Avatars
-Use the `Avatar` component with `avatar_url` from profiles. Fall back to the User icon when no avatar exists.
-
-### Step 4: Replace UUID with Useful Secondary Info
-Show phone number (or "No phone") as the subtitle instead of truncated user IDs.
-
-### Step 5: Add Result Count + Pagination
-- Show "Showing X of Y customers" text
-- Add simple pagination (e.g., 20 per page) using the existing `usePagination` hook
-
-### Step 6: Update Role Badge to Support All Roles
-Add badges for `doctor` and `clinic_owner` roles with appropriate colors/icons.
-
-### Step 7: Minor UI Polish
-- Ensure the "Export CSV" button is always visible (not hidden text on mobile)
-- Add hover states on table rows for better interactivity
+### 8. Order Confirmation Email / Summary
+After checkout, the success screen is minimal. Adding order details (order ID, items summary, estimated delivery) to the confirmation screen makes it more professional.
 
 ---
 
-## Technical Details
+## Technical Implementation Details
 
 ### Files to Modify
-- `src/pages/admin/AdminCustomers.tsx` -- Main page with all the above changes
+- `src/components/ProductCard.tsx` -- Add stock check, rating display, disable out-of-stock
+- `src/pages/ProductDetailPage.tsx` -- Add "Buy Now" button, low stock warning, recently viewed tracking
+- `src/pages/ShopPage.tsx` -- Add recently viewed section, improve empty state, add sort options
+- `src/pages/CheckoutPage.tsx` -- Enhance order confirmation screen with order details
 
-### Dependencies Used (already installed)
-- `@radix-ui/react-avatar` for Avatar
-- `@radix-ui/react-select` for role filter
-- `lucide-react` icons (Stethoscope, Building2 for doctor/clinic roles)
-- `src/hooks/usePagination.ts` for pagination logic
+### Files to Create
+- `src/hooks/useRecentlyViewed.ts` -- localStorage-based recently viewed products hook
+- `src/hooks/useProductRatings.ts` -- Hook to fetch aggregated ratings for product lists
 
-### No Database Changes Required
-All data is already available from the existing `useAdminUsers` hook which fetches profiles + user_roles.
+### Database Changes
+- None required. All features use existing `products`, `reviews`, and `orders` tables.
+- One new database query: aggregate review ratings per product (can be done via a Supabase view or client-side join).
+
+### Performance Considerations
+- Product ratings will be fetched in a single batch query rather than per-card to avoid N+1 queries
+- Recently viewed uses localStorage with a max of 10 items to keep it lightweight
+- Stock status is already available in the products query, just needs UI integration
+
