@@ -124,37 +124,22 @@ const ProductCard = memo(({ id, name, price, category, image, badge, discount, s
             </span>
           )}
         </div>
-        <div className="flex gap-1.5 sm:gap-2">
-          <Button 
-            variant={isOutOfStock ? "secondary" : "default"}
-            size="sm"
-            className="flex-1 h-8 sm:h-10 text-xs sm:text-sm rounded-lg sm:rounded-xl active:scale-95" 
-            onClick={handleAddToCart}
-            disabled={isOutOfStock}
-          >
-            {isOutOfStock ? (
-              'Out of Stock'
-            ) : (
-              <>
-                <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                Add to Cart
-              </>
-            )}
-          </Button>
-          {!isOutOfStock && (
-            <Button
-              variant="outline"
-              size="sm"
-              className={`h-8 w-8 sm:h-10 sm:w-10 p-0 rounded-lg sm:rounded-xl active:scale-95 shrink-0 ${
-                wishlisted ? 'border-destructive text-destructive hover:bg-destructive/10' : ''
-              }`}
-              onClick={handleWishlist}
-              aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-            >
-              <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${wishlisted ? 'fill-current' : ''}`} />
-            </Button>
+        <Button 
+          variant={isOutOfStock ? "secondary" : "default"}
+          size="sm"
+          className="w-full h-8 sm:h-10 text-xs sm:text-sm rounded-lg sm:rounded-xl active:scale-95" 
+          onClick={handleAddToCart}
+          disabled={isOutOfStock}
+        >
+          {isOutOfStock ? (
+            'Out of Stock'
+          ) : (
+            <>
+              <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              Add to Cart
+            </>
           )}
-        </div>
+        </Button>
       </div>
     </div>
   );

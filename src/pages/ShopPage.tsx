@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Search, Loader2, SlidersHorizontal, Grid3X3, LayoutGrid, Package, ChevronDown, X, Sparkles, ShoppingCart, Star, Clock, ChevronLeft, ChevronRight, Truck, Shield, Tag } from 'lucide-react';
+import { Search, Loader2, SlidersHorizontal, Grid3X3, LayoutGrid, Package, ChevronDown, X, Sparkles, ShoppingCart, Heart, Star, Clock, ChevronLeft, ChevronRight, Truck, Shield, Tag } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { useProductRatings } from '@/hooks/useProductRatings';
@@ -387,6 +387,13 @@ const ShopPage = () => {
                       {totalItems}
                     </span>
                   )}
+                </Button>
+              </Link>
+
+              {/* Wishlist Button */}
+              <Link to="/wishlist">
+                <Button variant="outline" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-lg sm:rounded-xl" aria-label="Wishlist">
+                  <Heart className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </Link>
 
