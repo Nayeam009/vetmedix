@@ -103,14 +103,12 @@ const AdminProducts = () => {
 
   // Compute stats
   const stats = useMemo(() => {
-    if (!products) return { total: 0, inStock: 0, outOfStock: 0, lowStock: 0, petCount: 0, farmCount: 0 };
+    if (!products) return { total: 0, inStock: 0, outOfStock: 0, lowStock: 0 };
     return {
       total: products.length,
       inStock: products.filter(p => (p.stock ?? 0) > 0).length,
       outOfStock: products.filter(p => (p.stock ?? 0) === 0).length,
       lowStock: products.filter(p => (p.stock ?? 0) > 0 && (p.stock ?? 0) <= LOW_STOCK_THRESHOLD).length,
-      petCount: products.filter(p => p.category === 'Pet').length,
-      farmCount: products.filter(p => p.category === 'Farm').length,
     };
   }, [products]);
 
@@ -135,10 +133,6 @@ const AdminProducts = () => {
         break;
       case 'low-stock':
         list = list.filter(p => (p.stock ?? 0) > 0 && (p.stock ?? 0) <= LOW_STOCK_THRESHOLD);
-        break;
-      case 'Pet':
-      case 'Farm':
-        list = list.filter(p => p.category === stockFilter);
         break;
     }
     return list;
