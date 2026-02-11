@@ -328,7 +328,7 @@ const ClinicsPage = () => {
               </div>
             </div>
 
-            {/* Quick Stats - Mobile optimized */}
+            {/* Quick Stats + Wishlist - Mobile optimized */}
             <div className="flex items-center justify-center gap-4 sm:gap-8 lg:gap-10 mt-4 sm:mt-6">
               <div className="text-center">
                 <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{clinics.length}+</div>
@@ -344,6 +344,17 @@ const ClinicsPage = () => {
                 <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">24/7</div>
                 <div className="text-[10px] sm:text-xs text-muted-foreground">Emergency</div>
               </div>
+              <div className="w-px h-6 sm:h-8 bg-border" />
+              <button
+                onClick={() => navigate('/wishlist')}
+                className="flex flex-col items-center gap-0.5 group"
+                aria-label="View Wishlist"
+              >
+                <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-destructive/10 flex items-center justify-center group-hover:bg-destructive/20 transition-colors">
+                  <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />
+                </div>
+                <div className="text-[10px] sm:text-xs text-muted-foreground">Wishlist</div>
+              </button>
             </div>
           </div>
         </div>
