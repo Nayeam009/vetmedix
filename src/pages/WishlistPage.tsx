@@ -7,6 +7,7 @@ import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { useWishlist } from '@/hooks/useWishlist';
 import { supabase } from '@/integrations/supabase/client';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
@@ -18,12 +19,14 @@ interface WishlistProduct {
   image_url: string | null;
   badge: string | null;
   discount: number | null;
+  stock: number | null;
 }
 
 const WishlistPage = () => {
   useDocumentTitle('My Wishlist');
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { wishlistIds, loading: wishlistLoading } = useWishlist();
   const [products, setProducts] = useState<WishlistProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,29 +35,41 @@ const WishlistPage = () => {
       navigate('/auth');
       return;
     }
-    if (user) fetchWishlist();
-  }, [user, authLoading]);
+  }, [user, authLoading, navigate]);
 
-  const fetchWishlist = async () => {
-    if (!user) return;
-    try {
-      const { data } = await supabase
-        .from('wishlists')
-        .select('product_id, products(id, name, price, category, image_url, badge, discount)')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (data) {
-        setProducts(data.map((w: any) => w.products).filter(Boolean));
-      }
-    } catch {
-      // silently fail
-    } finally {
+  // Re-fetch products whenever wishlistIds changes
+  useEffect(() => {
+    if (!user || wishlistLoading) return;
+    
+    const ids = Array.from(wishlistIds);
+    if (ids.length === 0) {
+      setProducts([]);
       setLoading(false);
+      return;
     }
-  };
 
-  if (authLoading || loading) {
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        const { data } = await supabase
+          .from('products')
+          .select('id, name, price, category, image_url, badge, discount, stock')
+          .in('id', ids);
+
+        if (data) {
+          setProducts(data);
+        }
+      } catch {
+        // silently fail
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [user, wishlistIds, wishlistLoading]);
+
+  if (authLoading || (wishlistLoading && loading)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -101,6 +116,7 @@ const WishlistPage = () => {
                 image={product.image_url || ''}
                 badge={product.badge}
                 discount={product.discount}
+                stock={product.stock}
               />
             ))}
           </div>

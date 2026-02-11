@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Search, Loader2, SlidersHorizontal, Grid3X3, LayoutGrid, Package, ChevronDown, X, Sparkles, ShoppingCart, Heart, Star, Clock, ChevronLeft, ChevronRight, Truck, Shield, Tag } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
+import { useWishlist } from '@/hooks/useWishlist';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { useProductRatings } from '@/hooks/useProductRatings';
 import Navbar from '@/components/Navbar';
@@ -151,6 +152,7 @@ HeroCarousel.displayName = 'HeroCarousel';
 const ShopPage = () => {
   useDocumentTitle('Pet Shop');
   const { totalItems } = useCart();
+  const { wishlistIds } = useWishlist();
   const { recentProducts } = useRecentlyViewed();
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
@@ -391,9 +393,14 @@ const ShopPage = () => {
               </Link>
 
               {/* Wishlist Button */}
-              <Link to="/wishlist">
-                <Button variant="outline" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-lg sm:rounded-xl" aria-label="Wishlist">
-                  <Heart className="h-4 w-4" aria-hidden="true" />
+              <Link to="/wishlist" className="relative">
+                <Button variant="outline" size="icon" className="h-10 w-10 sm:h-11 sm:w-11 rounded-lg sm:rounded-xl" aria-label={`Wishlist${wishlistIds.size > 0 ? ` (${wishlistIds.size} items)` : ''}`}>
+                  <Heart className={`h-4 w-4 ${wishlistIds.size > 0 ? 'fill-destructive text-destructive' : ''}`} aria-hidden="true" />
+                  {wishlistIds.size > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground flex items-center justify-center">
+                      {wishlistIds.size}
+                    </span>
+                  )}
                 </Button>
               </Link>
 
