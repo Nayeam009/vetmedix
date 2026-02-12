@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Building2, Loader2, Check, RefreshCw } from 'lucide-react';
+import { User, Building2, Stethoscope, Loader2, Check, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,7 +12,7 @@ import logo from '@/assets/logo.jpeg';
 import { cn } from '@/lib/utils';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
-type SelectableRole = 'user' | 'clinic_owner';
+type SelectableRole = 'user' | 'doctor' | 'clinic_owner';
 
 const roles = [
   {
@@ -20,6 +20,12 @@ const roles = [
     title: 'Pet Parent',
     description: 'I have pets and want to connect, shop, and book appointments',
     icon: User,
+  },
+  {
+    id: 'doctor' as SelectableRole,
+    title: 'Veterinary Doctor',
+    description: 'I am a licensed veterinarian looking to practice',
+    icon: Stethoscope,
   },
   {
     id: 'clinic_owner' as SelectableRole,
@@ -208,14 +214,42 @@ const SelectRolePage = () => {
         }
       }
 
+      // If doctor, create doctor profile
+      if (selectedRole === 'doctor') {
+        const userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Doctor';
+        const { error: doctorError } = await supabase
+          .from('doctors')
+          .insert({
+            name: userName,
+            user_id: user.id,
+            is_available: true,
+            is_verified: false,
+            verification_status: 'not_submitted',
+          });
+
+        if (doctorError && doctorError.code !== '23505') {
+          console.error('Failed to create doctor profile:', doctorError);
+          toast({
+            title: 'Account created',
+            description: 'However, there was an issue creating your doctor profile. You can complete this on the verification page.',
+          });
+        }
+      }
+
       toast({
         title: 'Welcome to VET-MEDIX!',
         description: selectedRole === 'clinic_owner' 
           ? 'Please complete verification to access your clinic dashboard.' 
+          : selectedRole === 'doctor'
+          ? 'Please complete verification to start practicing.'
           : 'Your account is ready. Start exploring!',
       });
 
-      redirectBasedOnRoles([selectedRole], selectedRole === 'clinic_owner');
+      if (selectedRole === 'doctor') {
+        navigate('/doctor/verification');
+      } else {
+        redirectBasedOnRoles([selectedRole], selectedRole === 'clinic_owner');
+      }
     } catch (err: unknown) {
       console.error('Setup error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to complete setup';
