@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { User, MapPin, ShoppingBag, Calendar, Edit2, Save, X, Loader2, Package, PawPrint, Plus, Heart } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
@@ -71,9 +71,16 @@ const ProfilePage = () => {
   const { isAdmin } = useAdmin();
   const { isClinicOwner, isDoctor } = useUserRole();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { cancelAppointment } = useAppointmentActions();
   const queryClient = useQueryClient();
+  
+  // URL-controlled tab
+  const activeTab = searchParams.get('tab') || 'profile';
+  const setActiveTab = useCallback((tab: string) => {
+    setSearchParams({ tab }, { replace: true });
+  }, [setSearchParams]);
   
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -285,7 +292,7 @@ const ProfilePage = () => {
           />
         )}
 
-        <Tabs defaultValue="profile" className="space-y-4 sm:space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
           <TabsList className="w-full bg-white border border-border/50 rounded-xl p-1 h-auto grid grid-cols-4 gap-1" aria-label="Profile sections">
             <TabsTrigger 
               value="profile" 

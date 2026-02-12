@@ -276,21 +276,16 @@ const ProfileHeader = ({
             
             {/* Role Badges */}
             <div className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 mt-2 flex-wrap">
-              {isDoctor ? (
-                <Badge className="bg-teal-100 text-teal-700 border-teal-200 hover:bg-teal-100 text-xs">
-                  <Stethoscope className="h-3 w-3 mr-1" />
-                  Veterinary Doctor
-                </Badge>
-              ) : (
-                <Badge className="bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100 text-xs">
-                  <Star className="h-3 w-3 mr-1 fill-amber-500" />
-                  Pet Parent
-                </Badge>
-              )}
               {isAdmin && (
                 <Badge className="bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100 text-xs">
                   <Shield className="h-3 w-3 mr-1" />
                   Admin
+                </Badge>
+              )}
+              {isDoctor && (
+                <Badge className="bg-teal-100 text-teal-700 border-teal-200 hover:bg-teal-100 text-xs">
+                  <Stethoscope className="h-3 w-3 mr-1" />
+                  Veterinary Doctor
                 </Badge>
               )}
               {isClinicOwner && (
@@ -299,6 +294,10 @@ const ProfileHeader = ({
                   Clinic Owner
                 </Badge>
               )}
+              <Badge className="bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100 text-xs">
+                <Star className="h-3 w-3 mr-1 fill-amber-500" />
+                Pet Parent
+              </Badge>
             </div>
 
             {/* Quick Info */}

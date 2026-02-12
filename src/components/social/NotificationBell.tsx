@@ -1,4 +1,4 @@
-import { Bell, Heart, MessageCircle, UserPlus, Check, Calendar, Package, ShoppingBag, Shield, Building2, Settings } from 'lucide-react';
+import { Bell, Heart, MessageCircle, UserPlus, Check, Calendar, Package, ShoppingBag, Shield, Building2, Settings, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -12,11 +12,13 @@ import type { Notification } from '@/types/social';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 
 export const NotificationBell = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { isDoctor, isClinicOwner, isAdmin } = useUserRole();
 
   if (!user) return null;
 
@@ -86,27 +88,29 @@ export const NotificationBell = () => {
   const handleClick = (notification: Notification) => {
     markAsRead(notification.id);
     
-    // Navigate based on notification type
+    // Navigate based on notification type and user role
     if (notification.type === 'verification') {
-      // Clinic owner verification notifications
-      navigate('/clinic/dashboard');
+      if (isDoctor) navigate('/doctor/dashboard');
+      else if (isClinicOwner) navigate('/clinic/dashboard');
+      else navigate('/admin/clinics');
     } else if (notification.type === 'new_appointment' && notification.target_clinic_id) {
-      // Clinic owner - new appointment notification
-      navigate('/clinic/dashboard');
+      if (isDoctor) navigate('/doctor/dashboard');
+      else navigate('/clinic/dashboard');
     } else if (notification.type === 'clinic' && notification.target_clinic_id) {
-      // Admin - clinic-related notifications
-      navigate('/admin/clinics');
+      if (isClinicOwner) navigate('/clinic/dashboard');
+      else navigate('/admin/clinics');
     } else if (notification.type === 'appointment' || notification.target_appointment_id) {
-      navigate('/profile?tab=appointments');
+      if (isDoctor) navigate('/doctor/dashboard');
+      else if (isClinicOwner) navigate('/clinic/dashboard');
+      else navigate('/profile?tab=appointments');
     } else if (notification.type === 'order' || notification.target_order_id) {
-      // Check if it's an admin notification (new order) or user notification
       if (notification.title.includes('New Order') || notification.title.includes('New order')) {
         navigate('/admin/orders');
       } else {
         navigate('/profile?tab=orders');
       }
     } else if (notification.target_post_id) {
-      // Navigate to post (could implement post detail page)
+      navigate('/feed');
     } else if (notification.target_pet_id) {
       navigate(`/pet/${notification.target_pet_id}`);
     }

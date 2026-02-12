@@ -1,6 +1,6 @@
 import { useState, memo, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, User, Menu, X, LogOut, Home, Store, Stethoscope, PawPrint, Compass, MessageCircle, Building2, Users } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, LogOut, Home, Store, Stethoscope, PawPrint, Compass, MessageCircle, Building2, Users, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
@@ -20,7 +20,8 @@ const Navbar = memo(() => {
   } = useCart();
   const {
     isDoctor,
-    isClinicOwner
+    isClinicOwner,
+    isAdmin
   } = useUserRole();
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,7 +47,7 @@ const Navbar = memo(() => {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-0.5 lg:gap-1">
+            <div className="hidden md:flex items-center gap-0.5 lg:gap-1">
             <Link to="/feed">
               <Button variant={isActive('/feed') ? 'secondary' : 'ghost'} size="sm" className="gap-1.5 h-9 px-2.5 lg:px-3">
                 <Home className="h-4 w-4" />
@@ -91,6 +92,14 @@ const Navbar = memo(() => {
                 <Button variant={isActive('/doctor') ? 'secondary' : 'ghost'} size="sm" className="gap-1.5 h-9 px-2.5 lg:px-3">
                   <Stethoscope className="h-4 w-4" />
                   <span className="hidden xl:inline">Doctor</span>
+                </Button>
+              </Link>}
+
+            {/* Admin Link */}
+            {isAdmin && <Link to="/admin">
+                <Button variant={isActive('/admin') ? 'secondary' : 'ghost'} size="sm" className="gap-1.5 h-9 px-2.5 lg:px-3">
+                  <Shield className="h-4 w-4" />
+                  <span className="hidden xl:inline">Admin</span>
                 </Button>
               </Link>}
 
@@ -169,6 +178,10 @@ const Navbar = memo(() => {
 
               {user ? <>
                   {/* Role-based dashboard links */}
+                  {isAdmin && <Link to="/admin" className={`px-3 sm:px-4 py-2.5 sm:py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-3 active:scale-[0.98] ${isActive('/admin') ? 'bg-primary/10 text-primary' : 'text-primary hover:bg-primary/10'}`} onClick={() => setIsMenuOpen(false)}>
+                      <Shield className="h-5 w-5" />
+                      Admin Panel
+                    </Link>}
                   {isDoctor && <Link to="/doctor/dashboard" className={`px-3 sm:px-4 py-2.5 sm:py-3 text-sm font-medium rounded-lg transition-colors flex items-center gap-3 active:scale-[0.98] ${isActive('/doctor') ? 'bg-primary/10 text-primary' : 'text-primary hover:bg-primary/10'}`} onClick={() => setIsMenuOpen(false)}>
                       <Stethoscope className="h-5 w-5" />
                       Doctor Dashboard
