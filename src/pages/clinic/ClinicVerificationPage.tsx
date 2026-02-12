@@ -33,7 +33,7 @@ const ClinicVerificationPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
-  const { isClinicOwner, isLoading: roleLoading } = useUserRole();
+  const { isClinicOwner, isAdmin, isLoading: roleLoading } = useUserRole();
 
   // Set document title
   useDocumentTitle('Clinic Verification');
@@ -217,7 +217,7 @@ const ClinicVerificationPage = () => {
   }
 
   // Not authenticated or not a clinic owner
-  if (!user || !isClinicOwner) {
+  if (!user || (!isClinicOwner && !isAdmin)) {
     navigate('/auth');
     return null;
   }

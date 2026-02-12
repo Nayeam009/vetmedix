@@ -83,7 +83,7 @@ const DocumentPreviewCard = ({ url, label }: { url: string; label: string }) => 
 const ClinicProfile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isClinicOwner, isLoading: roleLoading } = useUserRole();
+  const { isClinicOwner, isAdmin, isLoading: roleLoading } = useUserRole();
   const { ownedClinic, clinicLoading, updateClinic } = useClinicOwner();
 
   // Set document title
@@ -241,7 +241,7 @@ const ClinicProfile = () => {
     );
   }
 
-  if (!user || !isClinicOwner) {
+  if (!user || (!isClinicOwner && !isAdmin)) {
     navigate(user ? '/' : '/auth');
     return null;
   }

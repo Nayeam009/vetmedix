@@ -38,7 +38,7 @@ const ClinicDashboard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, signOut } = useAuth();
-  const { isClinicOwner, isLoading: roleLoading } = useUserRole();
+  const { isClinicOwner, isAdmin, isLoading: roleLoading } = useUserRole();
   const [activeTab, setActiveTab] = useState('appointments');
   const [isTogglingOpen, setIsTogglingOpen] = useState(false);
   const [isAddAppointmentOpen, setIsAddAppointmentOpen] = useState(false);
@@ -142,7 +142,7 @@ const ClinicDashboard = () => {
     );
   }
 
-  if (!isClinicOwner) {
+  if (!isClinicOwner && !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50/30 via-background to-background p-4">
         <Card className="max-w-md w-full shadow-xl border-border/50">

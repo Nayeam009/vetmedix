@@ -119,7 +119,7 @@ const initialFormData: DoctorFormData = {
 const ClinicDoctors = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isClinicOwner, isLoading: roleLoading } = useUserRole();
+  const { isClinicOwner, isAdmin, isLoading: roleLoading } = useUserRole();
   const { 
     ownedClinic,
     clinicLoading, 
@@ -233,7 +233,7 @@ const ClinicDoctors = () => {
   useEffect(() => {
     if (!roleLoading && !clinicLoading) {
       if (!user) navigate('/auth');
-      else if (!isClinicOwner) navigate('/');
+      else if (!isClinicOwner && !isAdmin) navigate('/');
     }
   }, [user, isClinicOwner, roleLoading, clinicLoading, navigate]);
 
