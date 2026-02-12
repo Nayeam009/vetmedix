@@ -287,7 +287,7 @@ const ClinicDetailPage = () => {
       <div className="relative">
         {/* Cover Image */}
         <div className="relative h-48 sm:h-64 md:h-80 lg:h-96 w-full overflow-hidden">
-          <img src={clinic.image_url || 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=1600'} alt={clinic.name} className="w-full h-full object-cover" />
+          <img src={clinic.image_url || 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=1600'} alt={clinic.name} className="w-full h-full object-cover" loading="eager" decoding="async" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
           
           {/* Top Actions */}
@@ -314,7 +314,7 @@ const ClinicDetailPage = () => {
               <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                 {/* Logo */}
                 <div className="w-20 h-20 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-xl sm:rounded-2xl bg-white shadow-lg border-2 border-border/50 overflow-hidden flex-shrink-0 mx-auto sm:mx-0">
-                  {isGopalganj ? <img src={gopalganjLogo} alt={clinic.name} className="w-full h-full object-cover" /> : <img src={clinic.image_url || 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=200'} alt={clinic.name} className="w-full h-full object-cover" />}
+                  {isGopalganj ? <img src={gopalganjLogo} alt={clinic.name} className="w-full h-full object-cover" loading="eager" decoding="async" width={128} height={128} /> : <img src={clinic.image_url || 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=200'} alt={clinic.name} className="w-full h-full object-cover" loading="eager" decoding="async" width={128} height={128} />}
                 </div>
                 
                 {/* Info */}

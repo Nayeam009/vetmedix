@@ -446,7 +446,7 @@ const AdminProducts = () => {
                       {/* Thumbnail */}
                       <div className="h-[72px] w-[72px] rounded-xl bg-secondary overflow-hidden flex-shrink-0 relative">
                         {product.image_url ? (
-                          <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" loading="lazy" />
+                          <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
                         ) : (
                           <div className="h-full w-full flex items-center justify-center">
                             <Package className="h-6 w-6 text-muted-foreground" />
@@ -596,7 +596,7 @@ const AdminProducts = () => {
                             <div className="flex items-center gap-3">
                               <div className="h-10 w-10 rounded-lg bg-secondary overflow-hidden relative flex-shrink-0">
                                 {product.image_url ? (
-                                  <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" loading="lazy" />
+                                  <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
                                 ) : (
                                   <div className="h-full w-full flex items-center justify-center">
                                     <Package className="h-5 w-5 text-muted-foreground" />

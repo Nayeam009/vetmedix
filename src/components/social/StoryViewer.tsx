@@ -191,6 +191,8 @@ export const StoryViewer = ({ storyGroups, initialGroupIndex, onClose, onViewed 
             src={currentStory.media_url}
             alt=""
             className="w-full h-full object-contain"
+            loading="eager"
+            decoding="async"
           />
         )}
 

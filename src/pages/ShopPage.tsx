@@ -111,6 +111,10 @@ const HeroCarousel = memo(({ products }: { products: Product[] }) => {
             src={p.image_url || ''}
             alt={p.name}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            loading="eager"
+            decoding="async"
+            width={260}
+            height={260}
           />
           {p.discount && (
             <span className="absolute top-3 left-3 bg-destructive text-destructive-foreground text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full">

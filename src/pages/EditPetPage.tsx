@@ -305,7 +305,7 @@ const EditPetPage = () => {
                 onClick={() => coverInputRef.current?.click()}
               >
                 {coverPreview && (
-                  <img src={coverPreview} alt="" className="w-full h-full object-cover" />
+                  <img src={coverPreview} alt="" className="w-full h-full object-cover" decoding="async" />
                 )}
                 <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
                   <Camera className="h-6 w-6 text-white" />

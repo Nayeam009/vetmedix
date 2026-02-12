@@ -526,7 +526,7 @@ const Index = () => {
                           <span className="text-xs font-bold text-muted-foreground w-4">{index + 1}</span>
                           <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-muted flex items-center justify-center overflow-hidden ring-2 ring-primary/20 flex-shrink-0">
                             {pet.avatar_url ? (
-                              <img src={pet.avatar_url} alt={pet.name} className="w-full h-full object-cover" />
+                              <img src={pet.avatar_url} alt={pet.name} className="w-full h-full object-cover" loading="lazy" decoding="async" width={44} height={44} />
                             ) : (
                               <PawPrint className="h-5 w-5 text-muted-foreground" />
                             )}

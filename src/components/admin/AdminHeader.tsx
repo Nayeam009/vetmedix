@@ -101,6 +101,10 @@ export const AdminHeader = ({
                 src={logo} 
                 alt="VET-MEDIX Admin" 
                 className="relative h-9 w-9 rounded-xl object-cover shadow-md border-2 border-primary/20 group-hover:border-primary/50 transition-all"
+                loading="eager"
+                decoding="async"
+                width={36}
+                height={36}
               />
             </div>
             <span className="font-display font-bold text-sm sm:text-base bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent hidden xs:inline">Admin</span>

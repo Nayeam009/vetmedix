@@ -56,6 +56,8 @@ const DocumentPreviewCard = ({ url, label }: { url: string; label: string }) => 
             src={url} 
             alt={label} 
             className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
           />
         ) : (
           <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
