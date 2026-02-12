@@ -155,16 +155,22 @@ const DoctorProfile = () => {
     <div className="min-h-screen bg-background pb-16 md:pb-0">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-6 max-w-2xl">
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-2xl">
+        {/* Back to Dashboard */}
+        <Button variant="ghost" size="sm" className="mb-3 gap-1.5 -ml-1" onClick={() => navigate('/doctor/dashboard')}>
+          <ArrowLeft className="h-4 w-4" />
+          Back to Dashboard
+        </Button>
+
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Profile Photo */}
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-6">
-                <div className="relative">
-                  <Avatar className="h-24 w-24">
+            <CardContent className="pt-5 sm:pt-6">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
+                <div className="relative flex-shrink-0">
+                  <Avatar className="h-20 w-20 sm:h-24 sm:w-24">
                     <AvatarImage src={doctorProfile?.avatar_url || ''} />
-                    <AvatarFallback className="text-2xl">
+                    <AvatarFallback className="text-xl sm:text-2xl">
                       {formData.name.charAt(0) || 'D'}
                     </AvatarFallback>
                   </Avatar>
@@ -189,20 +195,23 @@ const DoctorProfile = () => {
                     )}
                   </button>
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-xl font-semibold">{formData.name || 'Doctor Profile'}</h2>
+                <div className="flex-1 text-center sm:text-left min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
+                    <h2 className="text-lg sm:text-xl font-semibold truncate">{formData.name || 'Doctor Profile'}</h2>
                     {doctorProfile?.is_verified && (
-                      <Badge variant="default">Verified</Badge>
+                      <Badge variant="default" className="text-xs">Verified</Badge>
                     )}
                   </div>
-                  <p className="text-muted-foreground">{formData.specialization || 'Veterinary Doctor'}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">{formData.specialization || 'Veterinary Doctor'}</p>
                   {doctorProfile?.id && (
-                    <Button variant="link" size="sm" className="p-0 h-auto mt-1" asChild>
-                      <a href={`/doctor/${doctorProfile.id}`} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-3 w-3 mr-1" />
-                        View Public Profile
-                      </a>
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      className="p-0 h-auto mt-1.5 text-xs" 
+                      onClick={() => navigate(`/doctor/${doctorProfile.id}`)}
+                    >
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      View Public Profile
                     </Button>
                   )}
                 </div>
