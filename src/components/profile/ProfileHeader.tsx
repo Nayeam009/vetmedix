@@ -413,8 +413,8 @@ const ProfileHeader = ({
 
         {/* Stats Row */}
         <div className="grid grid-cols-3 gap-1 sm:gap-3 mt-4">
-          <Link to="#" className="group">
-            <div className="flex flex-col items-center p-3 sm:p-4 rounded-xl hover:bg-primary/5 transition-colors cursor-pointer">
+          <Link to="/profile?tab=pets" className="group">
+            <div className="flex flex-col items-center p-3 sm:p-4 rounded-xl hover:bg-primary/5 transition-colors cursor-pointer active:scale-95">
               <div className="h-11 w-11 sm:h-14 sm:w-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
                 <PawPrint className="h-5 w-5 sm:h-7 sm:w-7 text-primary" />
               </div>
@@ -422,15 +422,17 @@ const ProfileHeader = ({
               <span className="text-[11px] sm:text-xs text-muted-foreground font-medium">My Pets</span>
             </div>
           </Link>
-          <div className="flex flex-col items-center p-3 sm:p-4 rounded-xl hover:bg-coral/5 transition-colors cursor-pointer">
-            <div className="h-11 w-11 sm:h-14 sm:w-14 rounded-full bg-gradient-to-br from-coral/20 to-coral/5 flex items-center justify-center mb-2">
-              <ShoppingBag className="h-5 w-5 sm:h-7 sm:w-7 text-coral" />
+          <Link to="/profile?tab=orders" className="group">
+            <div className="flex flex-col items-center p-3 sm:p-4 rounded-xl hover:bg-coral/5 transition-colors cursor-pointer active:scale-95">
+              <div className="h-11 w-11 sm:h-14 sm:w-14 rounded-full bg-gradient-to-br from-coral/20 to-coral/5 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
+                <ShoppingBag className="h-5 w-5 sm:h-7 sm:w-7 text-coral" />
+              </div>
+              <span className="text-xl sm:text-2xl font-bold text-foreground">{ordersCount}</span>
+              <span className="text-[11px] sm:text-xs text-muted-foreground font-medium">Orders</span>
             </div>
-            <span className="text-xl sm:text-2xl font-bold text-foreground">{ordersCount}</span>
-            <span className="text-[11px] sm:text-xs text-muted-foreground font-medium">Orders</span>
-          </div>
-          <Link to="/clinics" className="group">
-            <div className="flex flex-col items-center p-3 sm:p-4 rounded-xl hover:bg-accent/5 transition-colors cursor-pointer">
+          </Link>
+          <Link to="/profile?tab=appointments" className="group">
+            <div className="flex flex-col items-center p-3 sm:p-4 rounded-xl hover:bg-accent/5 transition-colors cursor-pointer active:scale-95">
               <div className="h-11 w-11 sm:h-14 sm:w-14 rounded-full bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
                 <Calendar className="h-5 w-5 sm:h-7 sm:w-7 text-accent" />
               </div>

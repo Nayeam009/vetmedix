@@ -1,7 +1,8 @@
+import { forwardRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export const PostCardSkeleton = () => (
-  <article className="bg-card rounded-xl sm:rounded-2xl shadow-sm border border-border/50 overflow-hidden">
+export const PostCardSkeleton = forwardRef<HTMLElement>((_, ref) => (
+  <article ref={ref} className="bg-card rounded-xl sm:rounded-2xl shadow-sm border border-border/50 overflow-hidden">
     {/* Header */}
     <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 pb-2 sm:pb-3">
       <Skeleton className="h-9 w-9 sm:h-11 sm:w-11 rounded-full flex-shrink-0" />
@@ -30,7 +31,9 @@ export const PostCardSkeleton = () => (
       <Skeleton className="h-2.5 w-24 mt-2 rounded" />
     </div>
   </article>
-);
+));
+
+PostCardSkeleton.displayName = 'PostCardSkeleton';
 
 export const FeedSkeletons = () => (
   <div className="space-y-3 sm:space-y-4" aria-busy="true" aria-label="Loading posts">
