@@ -174,60 +174,60 @@ const DoctorsPage = () => {
       />
       <Navbar />
       
-      {/* Hero Banner */}
-      <div className="relative bg-gradient-to-r from-primary/10 via-blue-100/50 to-cyan-50 border-b border-border/50 overflow-hidden">
-        <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-10 lg:py-14">
+      {/* Hero Banner - Compact mobile-first */}
+      <div className="relative bg-gradient-to-br from-primary/8 via-blue-50 to-cyan-50/80 border-b border-border/40 overflow-hidden">
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 lg:py-12">
           <div className="max-w-3xl mx-auto text-center">
-            <div className="inline-flex items-center gap-1.5 sm:gap-2 text-primary text-[10px] sm:text-xs lg:text-sm font-semibold mb-2 sm:mb-3 bg-white/80 backdrop-blur-sm px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-sm">
-              <Stethoscope className="h-3 w-3 sm:h-4 sm:w-4" /> 
+            <div className="inline-flex items-center gap-1.5 text-primary text-[10px] sm:text-xs font-semibold mb-1.5 sm:mb-2 bg-white/70 backdrop-blur-sm px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-primary/10">
+              <Stethoscope className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> 
               Expert Veterinary Care
             </div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-display font-bold text-foreground mb-2 sm:mb-3">
+            <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-display font-bold text-foreground mb-1 sm:mb-2">
               Find Veterinarian Doctors
             </h1>
-            <p className="text-xs sm:text-sm lg:text-base text-muted-foreground max-w-md sm:max-w-xl mx-auto mb-4 sm:mb-6 px-2">
-              Browse verified veterinarian doctors from trusted clinics and book appointments instantly.
+            <p className="text-[11px] sm:text-sm text-muted-foreground max-w-md mx-auto mb-3 sm:mb-5 px-1">
+              Browse verified doctors from trusted clinics and book appointments instantly.
             </p>
 
             {/* Search Bar */}
-            <div className="max-w-2xl mx-auto px-1">
+            <div className="max-w-2xl mx-auto">
               <div className="relative">
                 <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                 <input 
                   type="text" 
-                  placeholder="Search doctors by name, specialization..." 
+                  placeholder="Search by name, specialization..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-10 sm:h-12 lg:h-14 pl-9 sm:pl-12 pr-3 sm:pr-4 rounded-xl sm:rounded-2xl bg-white border border-border/50 focus:border-primary focus:ring-2 sm:focus:ring-4 focus:ring-primary/10 outline-none transition-all text-sm shadow-md shadow-black/5"
+                  className="w-full h-10 sm:h-12 lg:h-13 pl-9 sm:pl-12 pr-3 sm:pr-4 rounded-xl sm:rounded-2xl bg-white border border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm shadow-sm"
                 />
               </div>
             </div>
 
             {/* Quick Stats */}
-            <div className="flex items-center justify-center gap-4 sm:gap-8 lg:gap-10 mt-4 sm:mt-6">
+            <div className="flex items-center justify-center gap-3 sm:gap-6 lg:gap-8 mt-3 sm:mt-5">
               <div className="text-center">
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{doctors?.length || 0}+</div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground">Doctors</div>
+                <div className="text-base sm:text-xl lg:text-2xl font-bold text-foreground">{doctors?.length || 0}+</div>
+                <div className="text-[9px] sm:text-xs text-muted-foreground">Doctors</div>
               </div>
-              <div className="w-px h-6 sm:h-8 bg-border" />
+              <div className="w-px h-5 sm:h-7 bg-border/60" />
               <div className="text-center">
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">
+                <div className="text-base sm:text-xl lg:text-2xl font-bold text-foreground">
                   {SPECIALIZATIONS.length - 1}
                 </div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground">Specializations</div>
+                <div className="text-[9px] sm:text-xs text-muted-foreground">Specializations</div>
               </div>
-              <div className="w-px h-6 sm:h-8 bg-border" />
+              <div className="w-px h-5 sm:h-7 bg-border/60" />
               <div className="text-center">
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">100%</div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground">Verified Clinics</div>
+                <div className="text-base sm:text-xl lg:text-2xl font-bold text-foreground">100%</div>
+                <div className="text-[9px] sm:text-xs text-muted-foreground">Verified</div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Decorative elements */}
-        <div className="absolute top-0 left-0 w-20 sm:w-32 h-20 sm:h-32 bg-primary/5 rounded-full blur-2xl sm:blur-3xl" />
-        <div className="absolute bottom-0 right-0 w-24 sm:w-40 h-24 sm:h-40 bg-blue-200/30 rounded-full blur-2xl sm:blur-3xl" />
+        <div className="absolute top-0 left-0 w-16 sm:w-28 h-16 sm:h-28 bg-primary/5 rounded-full blur-2xl" />
+        <div className="absolute bottom-0 right-0 w-20 sm:w-36 h-20 sm:h-36 bg-blue-200/20 rounded-full blur-2xl" />
       </div>
 
       {/* Main Content */}

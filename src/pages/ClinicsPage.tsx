@@ -299,23 +299,23 @@ const ClinicsPage = () => {
       />
       <Navbar />
       
-      {/* Hero Banner - Optimized for mobile */}
-      <div className="relative bg-gradient-to-r from-primary/10 via-orange-100/50 to-amber-50 border-b border-border/50 overflow-hidden">
-        <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-10 lg:py-14">
+      {/* Hero Banner - Compact mobile-first */}
+      <div className="relative bg-gradient-to-br from-primary/8 via-orange-50 to-amber-50/80 border-b border-border/40 overflow-hidden">
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 lg:py-12">
           <div className="max-w-3xl mx-auto text-center">
-            <div className="inline-flex items-center gap-1.5 sm:gap-2 text-primary text-[10px] sm:text-xs lg:text-sm font-semibold mb-2 sm:mb-3 bg-white/80 backdrop-blur-sm px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-sm">
-              <Building2 className="h-3 w-3 sm:h-4 sm:w-4" /> 
-              Find Trusted Veterinary Care
+            <div className="inline-flex items-center gap-1.5 text-primary text-[10px] sm:text-xs font-semibold mb-1.5 sm:mb-2 bg-white/70 backdrop-blur-sm px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-primary/10">
+              <Building2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> 
+              Trusted Veterinary Care
             </div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-display font-bold text-foreground mb-2 sm:mb-3">
+            <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-display font-bold text-foreground mb-1 sm:mb-2">
               Veterinary Clinics
             </h1>
-            <p className="text-xs sm:text-sm lg:text-base text-muted-foreground max-w-md sm:max-w-xl mx-auto mb-4 sm:mb-6 px-2">
-              Find and book appointments with trusted veterinary clinics near you.
+            <p className="text-[11px] sm:text-sm text-muted-foreground max-w-md mx-auto mb-3 sm:mb-5 px-1">
+              Find and book appointments with trusted clinics near you.
             </p>
 
-            {/* Search Bar - Mobile optimized */}
-            <div className="max-w-2xl mx-auto px-1">
+            {/* Search Bar */}
+            <div className="max-w-2xl mx-auto">
               <div className="relative">
                 <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                 <input 
@@ -323,88 +323,86 @@ const ClinicsPage = () => {
                   placeholder="Search clinics..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-10 sm:h-12 lg:h-14 pl-9 sm:pl-12 pr-3 sm:pr-4 rounded-xl sm:rounded-2xl bg-white border border-border/50 focus:border-primary focus:ring-2 sm:focus:ring-4 focus:ring-primary/10 outline-none transition-all text-sm shadow-md shadow-black/5"
+                  className="w-full h-10 sm:h-12 lg:h-13 pl-9 sm:pl-12 pr-3 sm:pr-4 rounded-xl sm:rounded-2xl bg-white border border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm shadow-sm"
                 />
               </div>
             </div>
 
-            {/* Quick Stats + Wishlist - Mobile optimized */}
-            <div className="flex items-center justify-center gap-4 sm:gap-8 lg:gap-10 mt-4 sm:mt-6">
+            {/* Quick Stats Row */}
+            <div className="flex items-center justify-center gap-3 sm:gap-6 lg:gap-8 mt-3 sm:mt-5">
               <div className="text-center">
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{clinics.length}+</div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground">Clinics</div>
+                <div className="text-base sm:text-xl lg:text-2xl font-bold text-foreground">{clinics.length}+</div>
+                <div className="text-[9px] sm:text-xs text-muted-foreground">Clinics</div>
               </div>
-              <div className="w-px h-6 sm:h-8 bg-border" />
+              <div className="w-px h-5 sm:h-7 bg-border/60" />
               <div className="text-center">
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">4.8</div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground">Avg Rating</div>
+                <div className="text-base sm:text-xl lg:text-2xl font-bold text-foreground">4.8</div>
+                <div className="text-[9px] sm:text-xs text-muted-foreground">Avg Rating</div>
               </div>
-              <div className="w-px h-6 sm:h-8 bg-border" />
+              <div className="w-px h-5 sm:h-7 bg-border/60" />
               <div className="text-center">
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">24/7</div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground">Emergency</div>
+                <div className="text-base sm:text-xl lg:text-2xl font-bold text-foreground">24/7</div>
+                <div className="text-[9px] sm:text-xs text-muted-foreground">Emergency</div>
               </div>
-              <div className="w-px h-6 sm:h-8 bg-border" />
+              <div className="w-px h-5 sm:h-7 bg-border/60" />
               <button
                 onClick={() => navigate('/wishlist')}
-                className="flex flex-col items-center gap-0.5 group"
+                className="flex flex-col items-center gap-0.5 group min-w-[44px] min-h-[44px] justify-center"
                 aria-label="View Wishlist"
               >
-                <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-destructive/10 flex items-center justify-center group-hover:bg-destructive/20 transition-colors">
-                  <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />
+                <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-destructive/10 flex items-center justify-center group-hover:bg-destructive/20 transition-colors">
+                  <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-destructive" />
                 </div>
-                <div className="text-[10px] sm:text-xs text-muted-foreground">Wishlist</div>
+                <div className="text-[9px] sm:text-xs text-muted-foreground">Wishlist</div>
               </button>
             </div>
           </div>
         </div>
 
         {/* Decorative elements */}
-        <div className="absolute top-0 left-0 w-20 sm:w-32 h-20 sm:h-32 bg-primary/5 rounded-full blur-2xl sm:blur-3xl" />
-        <div className="absolute bottom-0 right-0 w-24 sm:w-40 h-24 sm:h-40 bg-orange-200/30 rounded-full blur-2xl sm:blur-3xl" />
+        <div className="absolute top-0 left-0 w-16 sm:w-28 h-16 sm:h-28 bg-primary/5 rounded-full blur-2xl" />
+        <div className="absolute bottom-0 right-0 w-20 sm:w-36 h-20 sm:h-36 bg-orange-200/20 rounded-full blur-2xl" />
       </div>
 
-      {/* Location Banner - Smart location awareness */}
-      <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-orange-50 border-b border-border/30">
-        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+      {/* Location Banner - Compact mobile-first */}
+      <div className="bg-gradient-to-r from-primary/5 via-primary/8 to-orange-50/80 border-b border-border/30">
+        <div className="container mx-auto px-3 sm:px-4 py-2.5 sm:py-3">
+          <div className="flex items-center justify-between gap-2">
             {/* Location Display */}
-            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-center sm:justify-start">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <MapPinned className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <MapPinned className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
               </div>
-              <div className="text-center sm:text-left">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs sm:text-sm text-muted-foreground">Showing clinics in</span>
-                  <span className="font-semibold text-sm sm:text-base text-foreground">{userLocation.displayName}</span>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1 flex-wrap">
+                  <span className="text-[10px] sm:text-xs text-muted-foreground">Showing in</span>
+                  <span className="font-semibold text-xs sm:text-sm text-foreground truncate">{userLocation.displayName}</span>
                 </div>
-                <p className="text-[10px] sm:text-xs text-muted-foreground">
+                <p className="text-[9px] sm:text-[11px] text-muted-foreground truncate">
                   {userLocation.type === 'default' 
                     ? 'Enable GPS to find clinics near you' 
                     : userLocation.type === 'gps' 
-                      ? 'Location detected automatically'
-                      : 'Manually selected location'}
+                      ? 'Location detected via GPS'
+                      : 'Manually selected'}
                 </p>
               </div>
             </div>
 
             {/* Location Actions */}
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
-              {/* GPS Button */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               <Button
                 variant={userLocation.type === 'gps' ? 'default' : 'outline'}
                 size="sm"
                 onClick={requestGPSLocation}
                 disabled={locationLoading}
-                className="gap-1.5 h-8 sm:h-9 text-xs sm:text-sm flex-1 sm:flex-none"
+                className="gap-1 h-7 sm:h-8 text-[10px] sm:text-xs px-2 sm:px-3 min-h-[36px] sm:min-h-[40px]"
               >
                 {locationLoading ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <Loader2 className="h-3 w-3 animate-spin" />
                 ) : (
-                  <Navigation className="h-3.5 w-3.5" />
+                  <Navigation className="h-3 w-3" />
                 )}
-                <span className="hidden xs:inline">{userLocation.type === 'gps' ? 'GPS Active' : 'Use GPS'}</span>
-                <span className="xs:hidden">GPS</span>
+                GPS
               </Button>
 
               {/* Location Selector */}
@@ -413,7 +411,7 @@ const ClinicsPage = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="gap-1.5 h-8 sm:h-9 text-xs sm:text-sm flex-1 sm:flex-none"
+                    className="gap-1 h-7 sm:h-8 text-[10px] sm:text-xs px-2 sm:px-3 min-h-[36px] sm:min-h-[40px]"
                   >
                     <MapPin className="h-3.5 w-3.5" />
                     <span className="hidden xs:inline">Change Location</span>
