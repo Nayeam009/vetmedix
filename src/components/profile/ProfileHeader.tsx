@@ -349,9 +349,9 @@ const ProfileHeader = ({
                 </Button>
               </Link>
             )}
-            {isClinicOwner && (
+            {(isClinicOwner || isAdmin) && (
               <Link to="/clinic/dashboard">
-                <Button variant="outline" size="icon" title="My Clinic">
+                <Button variant="outline" size="icon" title="Clinic Dashboard">
                   <Building2 className="h-4 w-4" />
                 </Button>
               </Link>
@@ -397,11 +397,11 @@ const ProfileHeader = ({
                 </Button>
               </Link>
             )}
-            {isClinicOwner && (
+            {(isClinicOwner || isAdmin) && (
               <Link to="/clinic/dashboard" className="flex-1 min-w-[120px]">
                 <Button variant="outline" className="w-full gap-2 h-9 text-xs">
                   <Building2 className="h-3.5 w-3.5" />
-                  My Clinic
+                  Clinic Dashboard
                 </Button>
               </Link>
             )}
