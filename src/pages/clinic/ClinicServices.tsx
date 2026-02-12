@@ -72,7 +72,7 @@ const ServiceCardSkeleton = () => (
 const ClinicServices = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isClinicOwner, isLoading: roleLoading } = useUserRole();
+  const { isClinicOwner, isAdmin, isLoading: roleLoading } = useUserRole();
   const isMobile = useIsMobile();
   const { 
     ownedClinic,
@@ -134,7 +134,7 @@ const ClinicServices = () => {
     );
   }
 
-  if (!user || !isClinicOwner) {
+  if (!user || (!isClinicOwner && !isAdmin)) {
     navigate(user ? '/' : '/auth');
     return null;
   }
