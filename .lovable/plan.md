@@ -1,258 +1,125 @@
 
 
-# Comprehensive Optimization Plan: All Pages, Roles, and Functionality
+# Media Optimization and Page Transition Speed - All Pages
 
-This plan covers a full audit and optimization of all ~50 pages across the application, ensuring proper role hierarchy, responsive mobile-first design, working buttons/navigation, and bug fixes.
-
----
-
-## Role Hierarchy (to be enforced everywhere)
-
-| Role | Access |
-|------|--------|
-| Admin | Pet Parent + Clinic Owner + Admin Panel (full access) |
-| Doctor | Doctor Dashboard + Pet Parent features |
-| Clinic Owner | Clinic Dashboard + Pet Parent features |
-| Pet Parent | Social feed, pets, shop, appointments, orders |
+## Goal
+Reduce media loading times, eliminate layout shifts, and make page-to-page navigation feel instant -- all without losing image quality.
 
 ---
 
-## Phase 1: Core Role System and Navigation Fixes
+## Part 1: Global Optimized Image Component
 
-### 1.1 ProfileHeader - Fix role badge display for multi-role users
-- Currently shows "Veterinary Doctor" OR "Pet Parent" exclusively. Should show **all applicable badges** (e.g., Admin users see Admin + Pet Parent badges)
-- Admin should also see Clinic Owner badge if they have clinic access
-- Doctor should show BOTH "Veterinary Doctor" AND "Pet Parent" badges
+**Create `src/components/ui/OptimizedImage.tsx`** -- a single reusable component to replace raw `<img>` tags across all 50+ pages.
 
-### 1.2 MobileNav - Role-aware 5th tab
-- Currently working but needs to show Admin dashboard for admins even if they also have doctor/clinic roles (priority order)
-- Verify the priority: Admin > Doctor > Clinic Owner > Pet Parent
+Features:
+- Intersection Observer lazy loading (like existing `LazyImage` but lighter)
+- Skeleton placeholder with smooth fade-in (prevents CLS)
+- Built-in `width`, `height`, `decoding="async"`, `loading` attributes
+- `fetchPriority="high"` option for above-the-fold hero images
+- Supabase storage URL transform support (appends `?width=X&height=Y` for server-side resizing when image is from storage)
+- `sizes` attribute for responsive srcset-like behavior
+- Error fallback state
+- CSS `object-fit` defaults
 
-### 1.3 Navbar desktop - Ensure Admin link appears
-- Add Admin Panel link in desktop nav for admin users (currently missing -- admins only see Doctor/Clinic links if they have those roles)
-
----
-
-## Phase 2: Page-by-Page Optimization
-
-### 2.1 Authentication Pages (4 pages)
-**AuthPage, ForgotPasswordPage, ResetPasswordPage, SelectRolePage**
-- Verify Doctor role option is visible and functional on SelectRolePage
-- Ensure proper redirect after login based on role
-- Mobile-optimize form inputs (min 44px touch targets)
-
-### 2.2 Home and Social Pages (5 pages)
-**Index, FeedPage, ExplorePage, PetProfilePage, CreatePetPage, EditPetPage**
-- Ensure all CTA buttons navigate correctly
-- Verify stories bar works on mobile
-- Check "Add Pet" and post creation flows end-to-end
-
-### 2.3 Shop and E-Commerce Pages (6 pages)
-**ShopPage, ProductDetailPage, CartPage, CheckoutPage, WishlistPage, TrackOrderPage**
-- Verify add-to-cart, checkout, and order tracking buttons work
-- Ensure mobile-responsive product cards with proper touch targets
-- Test wishlist add/remove functionality
-
-### 2.4 Profile Page
-- Fix tab navigation (profile, pets, orders, appointments)
-- Ensure all stat cards in header are clickable and navigate to correct tabs
-- Verify profile edit, save, and cancel buttons
-- Add "Wishlist" quick link
-- Mobile: ensure grid layout doesn't break on small screens
-
-### 2.5 Clinic and Doctor Public Pages (4 pages)
-**ClinicsPage, ClinicDetailPage, DoctorsPage, DoctorDetailPage**
-- Verify "Book Appointment" button navigates correctly
-- Ensure clinic/doctor cards are fully clickable
-- Fix "View Public Profile" navigation (use `navigate()` not `<a>`)
-- Mobile: cards should stack vertically with proper spacing
-
-### 2.6 Communication Pages (3 pages)
-**MessagesPage, ChatPage, NotificationsPage**
-- Verify notification click handlers navigate to correct destinations
-- Ensure message send button works
-- Test real-time message delivery
-- Mobile: chat input should stay fixed at bottom
-
-### 2.7 Static Pages (5 pages)
-**AboutPage, ContactPage, FAQPage, PrivacyPolicyPage, TermsPage**
-- Verify contact form submission works
-- Ensure responsive typography and spacing
-- Footer links all navigate correctly
-
-### 2.8 BookAppointmentPage
-- Verify wizard steps flow correctly
-- Ensure date/time picker works on mobile
-- Test form submission and confirmation
+This replaces scattered `<img>` tags with inconsistent attributes across ~21 files.
 
 ---
 
-## Phase 3: Doctor Dashboard Optimization (3 pages)
+## Part 2: Supabase Storage Image Transform URLs
 
-### 3.1 DoctorDashboard
-- Already has clickable stat cards (recently fixed)
-- Verify all tabs work: Appointments, Invitations, My Clinics, Schedules
-- Ensure appointment status update buttons (Accept/Reject/Complete) function
-- Add "View Profile" and "Edit Profile" quick actions
-- Mobile: scrollable tab list, responsive stat grid
+For images served from the backend storage, append query parameters to request appropriately sized images from the server, avoiding downloading full-resolution files:
 
-### 3.2 DoctorProfile
-- Verify "Back to Dashboard" navigation works
-- Ensure "View Public Profile" uses navigate()
-- Test profile edit form (name, specialization, bio, etc.)
-- Mobile: vertical layout for header section
+- Thumbnails (cards, lists): `?width=300&quality=75`
+- Medium (detail pages): `?width=800&quality=80`
+- Full (hero, cover): `?width=1600&quality=85`
 
-### 3.3 DoctorVerificationPage
-- Verify document upload works
-- Ensure status indicators display correctly
-- Test form submission flow
+A utility function `getOptimizedUrl(url, preset)` will handle this automatically.
 
 ---
 
-## Phase 4: Clinic Owner Dashboard Optimization (5 pages)
+## Part 3: Route Prefetching for Instant Transitions
 
-### 4.1 ClinicDashboard
-- Verify Open/Close toggle works
-- Ensure all stat cards are clickable and navigate to tabs
-- Test appointment management (accept/reject)
-- Walk-in appointment dialog should open properly
-- Mobile: scrollable tabs, responsive stat grid
+**Enhance `src/App.tsx`** with route-level prefetching:
 
-### 4.2 ClinicProfile
-- Verify profile edit and save
-- Test cover photo and image upload
-- Mobile: vertical stacking
+- On hover/touch of navigation links, trigger `import()` for the target route's chunk
+- Add a `usePrefetch` hook that components like `Navbar`, `MobileNav`, `ProductCard`, `ClinicCard`, `DoctorCard` use to warm up the next page
+- This eliminates the "Loading..." spinner when navigating between pages
 
-### 4.3 ClinicServices
-- Ensure Add/Edit/Delete service buttons work
-- Test service form wizard
-- Mobile: card layout with proper touch targets
-
-### 4.4 ClinicDoctors
-- Verify "Add Doctor" and "Invite Doctor" buttons
-- Test join request approval/rejection
-- Ensure doctor removal works
-
-### 4.5 ClinicVerificationPage
-- Verify document upload and submission
+Example: hovering "Shop" in the navbar starts loading `ShopPage` chunk before the user clicks.
 
 ---
 
-## Phase 5: Admin Dashboard Optimization (11 pages)
+## Part 4: Page Transition Optimization
 
-### 5.1 AdminDashboard
-- Verify all stat cards clickable and navigate to correct admin sub-pages
-- Test quick action buttons
-- Ensure real-time updates work
+**Update `src/App.tsx` PageLoader and Suspense:**
 
-### 5.2 AdminProducts
-- Test Add/Edit/Delete product flow
-- CSV and PDF import dialogs
-- Low stock alerts clickable
-- Mobile: responsive table/card view
-
-### 5.3 AdminOrders
-- Verify Accept/Reject order dialogs
-- Test order status update
-- Fraud analysis panel
-- Mobile: order cards instead of table rows
-
-### 5.4 AdminCustomers
-- Verify role filter stat cards
-- Test role update and CSV export
-- Pagination working
-- Mobile: user cards with proper layout
-
-### 5.5 AdminClinics
-- Verify clinic verification approve/reject
-- Block/unblock with reason
-- Mobile: clinic cards
-
-### 5.6 AdminDoctors
-- Verify doctor verification flow
-- Block/unblock functionality
-- Mobile: doctor cards
-
-### 5.7 AdminAnalytics
-- Date range filter works
-- Charts render on mobile
-- Export functionality
-
-### 5.8 AdminSettings
-- All 6 tabs accessible and functional
-- Save settings works
-- Mobile: responsive tab layout
-
-### 5.9 AdminSocial, AdminContactMessages, AdminCoupons
-- Verify CRUD operations
-- Mobile-responsive layouts
+- Replace the full-screen spinner with a slim top progress bar (like YouTube/GitHub)
+- Add `startTransition` wrapping for non-urgent navigations
+- Keep existing `staleTime: 2min` and `gcTime: 10min` on React Query (already good)
 
 ---
 
-## Phase 6: Global Search and Notifications
+## Part 5: Component-Level Image Fixes (18+ files)
 
-### 6.1 GlobalSearch
-- Verify search works across all entity types (pets, products, clinics, doctors, orders)
-- Role-aware quick navigation pages
-- Keyboard shortcut (Cmd+K) works
-- Mobile: full-width search on mobile navbar
+Replace raw `<img>` with `OptimizedImage` in these components:
 
-### 6.2 Notifications
-- Verify real-time notification delivery
-- Click handlers navigate to correct pages for each notification type
-- Mark as read / Mark all as read works
-- Notification bell shows correct unread count
-- Add doctor-specific notification routing (e.g., doctor appointment notifications go to doctor dashboard)
-
----
-
-## Phase 7: Mobile-Specific Optimizations
-
-### 7.1 Global Mobile Fixes
-- All buttons and interactive elements: min 44x44px touch target
-- `active:scale-95` or `active:scale-[0.97]` tactile feedback on all clickable elements
-- Bottom nav (MobileNav) properly accounts for safe-area-inset-bottom
-- No horizontal scroll overflow on any page
-- Forms use appropriate mobile input types (tel, email, etc.)
-
-### 7.2 Responsive Breakpoints Audit
-- Verify all grid layouts degrade gracefully: `grid-cols-1` on mobile, expanding on larger screens
-- Tab lists use `overflow-x-auto scrollbar-hide` pattern
-- Dialogs use Drawer on mobile, Dialog on desktop where applicable
-- Text truncation (`truncate`, `line-clamp`) on long content
+| Component | Change |
+|-----------|--------|
+| `ProductCard.tsx` | Use OptimizedImage with product preset (300px) |
+| `ClinicCard.tsx` | Use OptimizedImage with clinic preset (176px) |
+| `DoctorCard.tsx` | Add `decoding="async"` to Avatar images |
+| `ExplorePetCard.tsx` | Add `decoding="async"`, width/height to cover photos |
+| `FeaturedProducts.tsx` | Products already use ProductCard -- no change needed |
+| `PostCard.tsx` | Already uses LazyImage/LazyVideo -- enhance with storage transforms |
+| `PetProfileCard.tsx` | Add OptimizedImage for cover/avatar uploads |
+| `StoriesBar.tsx` | Avatar images get `decoding="async"` |
+| `StoryViewer.tsx` | Already has lazy attrs -- add storage transforms |
+| `OrderCard.tsx` | Use OptimizedImage for product thumbnails |
+| `AdminProducts.tsx` | Use OptimizedImage for product list images |
+| `AdminOrders.tsx` | Use OptimizedImage for order item images |
+| `AdminSocial.tsx` | Use OptimizedImage for post media |
+| `LowStockAlert.tsx` | Already optimized -- add storage transform |
+| `ClinicHeader.tsx` | Already has eager + decoding -- add storage transform |
+| `ClinicDetailPage.tsx` | Cover image gets responsive sizes |
+| `ProductDetailPage.tsx` | Main image gets medium preset, thumbnails get small |
+| `ProfileHeader.tsx` | Avatar gets storage transform |
 
 ---
 
-## Phase 8: Performance and Polish
+## Part 6: CSS Performance Enhancements
 
-### 8.1 Loading States
-- Every page shows skeleton or spinner while data loads
-- No blank flash between route transitions
+**Update `src/index.css`:**
 
-### 8.2 Error States
-- Forms show validation errors inline
-- Failed API calls show toast notifications
-- Empty states with helpful CTAs (e.g., "No pets yet -- Add your first pet")
-
-### 8.3 Real-time Updates
-- Orders, appointments, and notifications update in real-time
-- Optimistic updates for likes, follows, and read status
+- Add `contain: layout style paint` to card components for rendering isolation
+- Enhance existing `content-visibility: auto` with `contain-intrinsic-size` to prevent layout jumps
+- Add GPU-accelerated transitions for image fade-ins using `will-change: opacity` only during animation
 
 ---
 
-## Technical Implementation Summary
+## Part 7: Avatar Optimization
 
-| Area | Files to Modify |
-|------|----------------|
-| Role badges & nav | `ProfileHeader.tsx`, `MobileNav.tsx`, `Navbar.tsx` |
-| Doctor pages | `DoctorDashboard.tsx`, `DoctorProfile.tsx`, `DoctorVerificationPage.tsx` |
-| Clinic pages | `ClinicDashboard.tsx`, `ClinicProfile.tsx`, `ClinicServices.tsx`, `ClinicDoctors.tsx` |
-| Admin pages | All 11 admin pages |
-| Notifications | `NotificationBell.tsx`, `NotificationsPage.tsx`, `useNotifications.ts` |
-| Search | `GlobalSearch.tsx` |
-| Profile | `ProfilePage.tsx`, `ProfileHeader.tsx` |
-| Public pages | `ClinicsPage.tsx`, `DoctorsPage.tsx`, detail pages |
-| Shop pages | `ShopPage.tsx`, `CartPage.tsx`, `CheckoutPage.tsx`, etc. |
+The app uses Radix `AvatarImage` extensively. Add a global wrapper or utility that:
+- Appends storage transform params to avatar URLs
+- Sets `loading="lazy"` and `decoding="async"` by default
+- Provides a consistent 400px max for avatar images (matching the existing `avatar` compression preset)
 
-**Estimated scope**: ~30-40 files across 8 phases. Each phase is independent and can be validated incrementally.
+---
+
+## Summary of New Files
+
+| File | Purpose |
+|------|---------|
+| `src/components/ui/OptimizedImage.tsx` | Universal optimized image component |
+| `src/lib/imageUtils.ts` | Storage URL transform utility (`getOptimizedUrl`) |
+
+## Files Modified
+
+Approximately 20-25 files will have `<img>` tags replaced with `OptimizedImage` or enhanced with storage transforms and proper attributes.
+
+## Expected Impact
+
+- 40-60% reduction in image transfer size via server-side transforms
+- Near-instant page transitions via route prefetching
+- Zero layout shift via fixed dimensions and skeleton placeholders
+- No quality loss -- server delivers optimally sized images, not client-side compression of already-loaded full images
 
