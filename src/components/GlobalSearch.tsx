@@ -147,20 +147,38 @@ export const GlobalSearch = ({ className, variant = 'navbar', placeholder }: Glo
       }
 
       // Search clinics (public view)
-      const { data: clinics } = await supabase
-        .from('clinics_public')
-        .select('id, name, address')
-        .or(`name.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%`)
-        .limit(5);
+      const [clinicsRes, doctorsRes] = await Promise.all([
+        supabase
+          .from('clinics_public')
+          .select('id, name, address')
+          .or(`name.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%`)
+          .limit(5),
+        supabase
+          .from('doctors_public')
+          .select('id, name, specialization')
+          .or(`name.ilike.%${searchTerm}%,specialization.ilike.%${searchTerm}%`)
+          .limit(5),
+      ]);
 
-      if (clinics) {
-        results.push(...clinics.map(clinic => ({
+      if (clinicsRes.data) {
+        results.push(...clinicsRes.data.map(clinic => ({
           id: `clinic-${clinic.id}`,
           title: clinic.name || 'Clinic',
           subtitle: clinic.address || 'No address',
           type: 'clinic' as const,
-          icon: <Stethoscope className="h-4 w-4" />,
+          icon: <Building2 className="h-4 w-4" />,
           url: `/clinic/${clinic.id}`
+        })));
+      }
+
+      if (doctorsRes.data) {
+        results.push(...doctorsRes.data.map(doctor => ({
+          id: `doctor-${doctor.id}`,
+          title: doctor.name || 'Doctor',
+          subtitle: doctor.specialization || 'Veterinarian',
+          type: 'doctor' as const,
+          icon: <Stethoscope className="h-4 w-4" />,
+          url: `/doctor/${doctor.id}`
         })));
       }
 
@@ -357,7 +375,8 @@ export const GlobalSearch = ({ className, variant = 'navbar', placeholder }: Glo
                           result.type === 'clinic' && "bg-blue-500/10 text-blue-600",
                           result.type === 'order' && "bg-amber-500/10 text-amber-600",
                           result.type === 'user' && "bg-purple-500/10 text-purple-600",
-                          result.type === 'appointment' && "bg-pink-500/10 text-pink-600"
+                          result.type === 'appointment' && "bg-pink-500/10 text-pink-600",
+                          result.type === 'doctor' && "bg-teal-500/10 text-teal-600"
                         )}>
                           {result.icon}
                         </div>
