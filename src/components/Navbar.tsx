@@ -95,11 +95,11 @@ const Navbar = memo(() => {
                 </Button>
               </Link>}
 
-            {/* Admin Link */}
+            {/* Admin Link - Always prominent for admin */}
             {isAdmin && <Link to="/admin">
-                <Button variant={isActive('/admin') ? 'secondary' : 'ghost'} size="sm" className="gap-1.5 h-9 px-2.5 lg:px-3">
+                <Button variant={isActive('/admin') ? 'secondary' : 'outline'} size="sm" className="gap-1.5 h-9 px-3 border-primary/30 text-primary hover:bg-primary/10">
                   <Shield className="h-4 w-4" />
-                  <span className="hidden xl:inline">Admin</span>
+                  <span>Admin</span>
                 </Button>
               </Link>}
 
