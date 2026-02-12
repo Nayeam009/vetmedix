@@ -69,7 +69,7 @@ const ProfilePage = () => {
   const { user, loading: authLoading } = useAuth();
   const { pets, loading: petsLoading } = usePets();
   const { isAdmin } = useAdmin();
-  const { isClinicOwner } = useUserRole();
+  const { isClinicOwner, isDoctor } = useUserRole();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { cancelAppointment } = useAppointmentActions();
@@ -279,6 +279,7 @@ const ProfilePage = () => {
             appointmentsCount={appointments.length}
             isAdmin={isAdmin}
             isClinicOwner={isClinicOwner}
+            isDoctor={isDoctor}
             onAvatarUpdate={handleAvatarUpdate}
             onCoverUpdate={handleCoverUpdate}
           />
