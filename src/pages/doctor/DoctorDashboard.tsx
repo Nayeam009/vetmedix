@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 
 const DoctorDashboard = () => {
   useDocumentTitle('Doctor Dashboard');
+  const [activeTab, setActiveTab] = useState('appointments');
   
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
@@ -144,6 +145,37 @@ const DoctorDashboard = () => {
     );
   };
 
+  const statCards = [
+    {
+      label: "Today's Appts",
+      value: todayAppointments.length,
+      icon: Calendar,
+      colorClass: 'bg-primary/10 text-primary',
+      tab: 'appointments',
+    },
+    {
+      label: 'Pending',
+      value: pendingAppointments.length,
+      icon: Clock,
+      colorClass: 'bg-yellow-500/10 text-yellow-600',
+      tab: 'appointments',
+    },
+    {
+      label: 'Total Patients',
+      value: doctorAppointments?.length || 0,
+      icon: Users,
+      colorClass: 'bg-green-500/10 text-green-600',
+      tab: 'appointments',
+    },
+    {
+      label: 'Affiliations',
+      value: clinicAffiliations?.length || 0,
+      icon: Building2,
+      colorClass: 'bg-blue-500/10 text-blue-600',
+      tab: 'clinics',
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
@@ -167,81 +199,46 @@ const DoctorDashboard = () => {
               </Link>
             </Button>
             {doctorProfile?.id && (
-              <Button variant="outline" size="sm" asChild>
-                <a href={`/doctor/${doctorProfile.id}`} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  View Public Profile
-                </a>
+              <Button variant="outline" size="sm" onClick={() => navigate(`/doctor/${doctorProfile.id}`)}>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View Public Profile
               </Button>
             )}
           </div>
         </div>
 
         {/* Verification Status Banner */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           {getVerificationBanner()}
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid - Clickable Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-8">
-          <Card>
-            <CardContent className="p-3 sm:p-4 lg:pt-6">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0">
-                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Today's Appts</p>
-                  <p className="text-xl sm:text-2xl font-bold mt-0.5 sm:mt-1">{todayAppointments.length}</p>
-                </div>
-                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-3 sm:p-4 lg:pt-6">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0">
-                  <p className="text-xs sm:text-sm text-muted-foreground">Pending</p>
-                  <p className="text-xl sm:text-2xl font-bold mt-0.5 sm:mt-1">{pendingAppointments.length}</p>
-                </div>
-                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-yellow-500/10 flex items-center justify-center flex-shrink-0">
-                  <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-3 sm:p-4 lg:pt-6">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0">
-                  <p className="text-xs sm:text-sm text-muted-foreground">Total Patients</p>
-                  <p className="text-xl sm:text-2xl font-bold mt-0.5 sm:mt-1">{doctorAppointments?.length || 0}</p>
-                </div>
-                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
-                  <Users className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-3 sm:p-4 lg:pt-6">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0">
-                  <p className="text-xs sm:text-sm text-muted-foreground">Affiliations</p>
-                  <p className="text-xl sm:text-2xl font-bold mt-0.5 sm:mt-1">{clinicAffiliations?.length || 0}</p>
-                </div>
-                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                  <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {statCards.map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <Card
+                key={stat.label}
+                className="cursor-pointer transition-all hover:shadow-md active:scale-[0.97] hover:ring-1 hover:ring-primary/20"
+                onClick={() => setActiveTab(stat.tab)}
+              >
+                <CardContent className="p-3 sm:p-4 lg:pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">{stat.label}</p>
+                      <p className="text-xl sm:text-2xl font-bold mt-0.5 sm:mt-1">{stat.value}</p>
+                    </div>
+                    <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center flex-shrink-0 ${stat.colorClass.split(' ')[0]}`}>
+                      <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.colorClass.split(' ')[1]}`} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
-        <Tabs defaultValue="appointments" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
           <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             <TabsList className="inline-flex w-auto min-w-full sm:grid sm:w-full sm:max-w-2xl sm:grid-cols-5 h-auto p-1 gap-1">
               <TabsTrigger value="appointments" className="text-xs sm:text-sm px-3 py-2 whitespace-nowrap">Appointments</TabsTrigger>
