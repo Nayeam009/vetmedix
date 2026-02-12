@@ -436,7 +436,7 @@ export const CreatePostCard = forwardRef<HTMLDivElement, CreatePostCardProps>(({
                       {mediaType === 'video' ? (
                         <video src={preview} className="w-full h-full object-cover" controls />
                       ) : (
-                        <img src={preview} alt="" className="w-full h-full object-cover" />
+                        <img src={preview} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       )}
                       <Button 
                         variant="secondary" 

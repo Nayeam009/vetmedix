@@ -297,6 +297,10 @@ const ClinicVerificationPage = () => {
             src={logo} 
             alt="VET-MEDIX" 
             className="h-16 w-16 rounded-xl object-cover mx-auto mb-4"
+            loading="eager"
+            decoding="async"
+            width={64}
+            height={64}
           />
           <h1 className="text-2xl font-bold">Clinic Verification</h1>
           <p className="text-muted-foreground mt-1">

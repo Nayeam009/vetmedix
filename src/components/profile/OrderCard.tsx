@@ -129,6 +129,10 @@ const OrderCard = ({ order }: OrderCardProps) => {
                   src={item.image_url} 
                   alt={item.name}
                   className="h-16 w-16 object-cover rounded-lg border"
+                  loading="lazy"
+                  decoding="async"
+                  width={64}
+                  height={64}
                 />
               ) : (
                 <div className="h-16 w-16 bg-muted rounded-lg flex items-center justify-center">

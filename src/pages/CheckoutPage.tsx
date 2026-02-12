@@ -313,7 +313,7 @@ const CheckoutPage = () => {
               <div className="p-4 sm:p-5 space-y-3">
                 {placedItems.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-3">
-                    <img src={item.image} alt={item.name} className="h-12 w-12 rounded-lg object-cover border border-border" />
+                    <img src={item.image} alt={item.name} className="h-12 w-12 rounded-lg object-cover border border-border" loading="lazy" decoding="async" width={48} height={48} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
                       <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
@@ -654,6 +654,10 @@ const CheckoutPage = () => {
                           src={item.image}
                           alt={item.name}
                           className="h-full w-full object-cover"
+                          loading="lazy"
+                          decoding="async"
+                          width={64}
+                          height={64}
                         />
                       </div>
                       <div className="flex-1 min-w-0">

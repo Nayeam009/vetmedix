@@ -289,6 +289,10 @@ const SelectRolePage = () => {
               src={logo} 
               alt="VET-MEDIX" 
               className="h-16 w-16 rounded-xl object-cover"
+              loading="eager"
+              decoding="async"
+              width={64}
+              height={64}
             />
           </div>
           <CardTitle className="text-2xl">Complete Your Profile</CardTitle>

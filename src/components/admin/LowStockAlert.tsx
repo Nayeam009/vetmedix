@@ -61,7 +61,7 @@ export const LowStockAlert = ({ products }: LowStockAlertProps) => {
               >
                 <div className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-muted overflow-hidden">
                   {product.image_url ? (
-                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" loading="lazy" decoding="async" width={36} height={36} />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <Package className="h-4 w-4 text-muted-foreground" />

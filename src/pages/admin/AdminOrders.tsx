@@ -736,7 +736,7 @@ const AdminOrders = () => {
                     <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-secondary/50">
                       <div className="flex items-center gap-3 min-w-0">
                         {item.image && (
-                          <img src={item.image} alt={item.name} className="h-10 w-10 rounded-lg object-cover shrink-0" />
+                          <img src={item.image} alt={item.name} className="h-10 w-10 rounded-lg object-cover shrink-0" loading="lazy" decoding="async" width={40} height={40} />
                         )}
                         <div className="min-w-0">
                           <p className="font-medium text-sm truncate">{item.name}</p>

@@ -241,6 +241,10 @@ const ProductDetailPage = () => {
                 src={productImages[selectedImage]}
                 alt={product.name}
                 className="w-full h-full object-contain p-4"
+                loading="eager"
+                decoding="async"
+                width={600}
+                height={600}
               />
               {/* Badges */}
               <div className="absolute top-4 left-4 flex flex-col gap-2">
@@ -286,7 +290,7 @@ const ProductDetailPage = () => {
                         : 'border-border hover:border-primary/50'
                     }`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" width={80} height={80} />
                   </button>
                 ))}
               </div>

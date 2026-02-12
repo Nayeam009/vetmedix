@@ -904,6 +904,8 @@ const AdminSocial = () => {
                       src={url} 
                       alt={`Media ${i + 1}`} 
                       className="rounded-lg w-full h-48 object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
                   ))}
                 </div>

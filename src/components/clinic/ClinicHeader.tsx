@@ -54,6 +54,10 @@ export const ClinicHeader = ({ title, showBackButton = false }: ClinicHeaderProp
                 src={logo} 
                 alt="VET-MEDIX Logo" 
                 className="relative h-9 w-9 sm:h-10 sm:w-10 lg:h-11 lg:w-11 rounded-xl object-cover shadow-md border-2 border-primary/20 group-hover:border-primary/50 group-hover:scale-105 transition-all duration-300"
+                loading="eager"
+                decoding="async"
+                width={44}
+                height={44}
               />
               <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-green-500 rounded-full border-2 border-background" />
             </div>
@@ -153,6 +157,10 @@ export const ClinicHeader = ({ title, showBackButton = false }: ClinicHeaderProp
                       src={logo} 
                       alt="VET-MEDIX" 
                       className="h-10 w-10 rounded-xl object-cover border-2 border-primary/20"
+                      loading="eager"
+                      decoding="async"
+                      width={40}
+                      height={40}
                     />
                     <div>
                       <span className="font-display font-bold text-lg bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
