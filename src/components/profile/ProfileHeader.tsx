@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, Loader2, Shield, PawPrint, ShoppingBag, Building2, Calendar, LogOut, Star, MapPin, Plus, Bell, Settings, Heart, Share2 } from 'lucide-react';
+import { Camera, Loader2, Shield, PawPrint, ShoppingBag, Building2, Calendar, LogOut, Star, MapPin, Plus, Bell, Settings, Heart, Share2, Stethoscope } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +28,7 @@ interface ProfileHeaderProps {
   appointmentsCount: number;
   isAdmin: boolean;
   isClinicOwner: boolean;
+  isDoctor?: boolean;
   onAvatarUpdate: (url: string) => void;
   onCoverUpdate?: (url: string) => void;
 }
@@ -39,7 +40,8 @@ const ProfileHeader = ({
   ordersCount, 
   appointmentsCount,
   isAdmin, 
-  isClinicOwner, 
+  isClinicOwner,
+  isDoctor,
   onAvatarUpdate,
   onCoverUpdate 
 }: ProfileHeaderProps) => {
@@ -274,10 +276,17 @@ const ProfileHeader = ({
             
             {/* Role Badges */}
             <div className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 mt-2 flex-wrap">
-              <Badge className="bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100 text-xs">
-                <Star className="h-3 w-3 mr-1 fill-amber-500" />
-                Pet Parent
-              </Badge>
+              {isDoctor ? (
+                <Badge className="bg-teal-100 text-teal-700 border-teal-200 hover:bg-teal-100 text-xs">
+                  <Stethoscope className="h-3 w-3 mr-1" />
+                  Veterinary Doctor
+                </Badge>
+              ) : (
+                <Badge className="bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100 text-xs">
+                  <Star className="h-3 w-3 mr-1 fill-amber-500" />
+                  Pet Parent
+                </Badge>
+              )}
               {isAdmin && (
                 <Badge className="bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100 text-xs">
                   <Shield className="h-3 w-3 mr-1" />
@@ -334,6 +343,13 @@ const ProfileHeader = ({
                 </Button>
               </Link>
             )}
+            {isDoctor && (
+              <Link to="/doctor/dashboard">
+                <Button variant="outline" size="icon" title="Doctor Dashboard">
+                  <Stethoscope className="h-4 w-4" />
+                </Button>
+              </Link>
+            )}
             {isClinicOwner && (
               <Link to="/clinic/dashboard">
                 <Button variant="outline" size="icon" title="My Clinic">
@@ -364,18 +380,26 @@ const ProfileHeader = ({
         </div>
 
         {/* Quick Links for Admin/Clinic Owner - Mobile */}
-        {(isAdmin || isClinicOwner) && (
-          <div className="flex gap-2 mt-2 sm:hidden">
+        {(isAdmin || isClinicOwner || isDoctor) && (
+          <div className="flex gap-2 mt-2 sm:hidden flex-wrap">
             {isAdmin && (
-              <Link to="/admin" className="flex-1">
+              <Link to="/admin" className="flex-1 min-w-[120px]">
                 <Button variant="outline" className="w-full gap-2 h-9 text-xs">
                   <Shield className="h-3.5 w-3.5" />
                   Admin Panel
                 </Button>
               </Link>
             )}
+            {isDoctor && (
+              <Link to="/doctor/dashboard" className="flex-1 min-w-[120px]">
+                <Button variant="outline" className="w-full gap-2 h-9 text-xs">
+                  <Stethoscope className="h-3.5 w-3.5" />
+                  Doctor Dashboard
+                </Button>
+              </Link>
+            )}
             {isClinicOwner && (
-              <Link to="/clinic/dashboard" className="flex-1">
+              <Link to="/clinic/dashboard" className="flex-1 min-w-[120px]">
                 <Button variant="outline" className="w-full gap-2 h-9 text-xs">
                   <Building2 className="h-3.5 w-3.5" />
                   My Clinic
