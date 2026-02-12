@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import type { LowStockProduct } from '@/hooks/useAdminAnalytics';
 
 interface LowStockAlertProps {
@@ -61,7 +62,7 @@ export const LowStockAlert = ({ products }: LowStockAlertProps) => {
               >
                 <div className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-muted overflow-hidden">
                   {product.image_url ? (
-                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" loading="lazy" decoding="async" width={36} height={36} />
+                    <OptimizedImage src={product.image_url} alt={product.name} preset="thumbnail" width={36} height={36} className="w-full h-full" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <Package className="h-4 w-4 text-muted-foreground" />

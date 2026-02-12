@@ -496,6 +496,34 @@
     background-size: 200% 200%;
     animation: gradient-slow 8s ease infinite;
   }
+
+  /* Slim progress bar animation */
+  @keyframes progress-bar {
+    0% { width: 0%; }
+    20% { width: 30%; }
+    50% { width: 60%; }
+    80% { width: 85%; }
+    100% { width: 95%; }
+  }
+  .animate-progress-bar {
+    animation: progress-bar 1.5s ease-in-out infinite;
+  }
+}
+
+/* Card rendering isolation for performance */
+@layer components {
+  .card-contain {
+    contain: layout style paint;
+  }
+}
+
+/* Image fade-in transition helper */
+.img-fade-in {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.img-fade-in.loaded {
+  opacity: 1;
 }
 
 @keyframes shop-slide {

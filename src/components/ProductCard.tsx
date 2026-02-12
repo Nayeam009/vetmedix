@@ -7,6 +7,8 @@ import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import OptimizedImage from '@/components/ui/OptimizedImage';
+import { usePrefetch } from '@/hooks/usePrefetch';
 
 interface ProductCardProps {
   id?: string;
@@ -26,6 +28,7 @@ const ProductCard = memo(({ id, name, price, category, image, badge, discount, s
   const { addItem } = useCart();
   const { user } = useAuth();
   const { isWishlisted, toggleWishlist } = useWishlist();
+  const prefetchHandlers = usePrefetch(id ? `/product/${id}` : '/shop');
   
   const finalPrice = discount ? Math.round(price * (1 - discount / 100)) : price;
   const originalPrice = discount ? price : null;
@@ -50,18 +53,20 @@ const ProductCard = memo(({ id, name, price, category, image, badge, discount, s
 
   return (
     <div 
-      className="group bg-card rounded-xl sm:rounded-2xl overflow-hidden shadow-card hover:shadow-hover border border-border transition-all duration-300 hover:-translate-y-1 active:scale-[0.98] cursor-pointer"
+      className="group bg-card rounded-xl sm:rounded-2xl overflow-hidden shadow-card hover:shadow-hover border border-border transition-all duration-300 hover:-translate-y-1 active:scale-[0.98] cursor-pointer card-contain"
       onClick={() => id && navigate(`/product/${id}`)}
+      {...prefetchHandlers}
     >
       {/* Image Container with AspectRatio for CLS prevention */}
       <AspectRatio ratio={1} className="overflow-hidden bg-secondary/30">
-        <img
+        <OptimizedImage
           src={image}
           alt={name}
-          loading="lazy"
+          preset="thumbnail"
           width={300}
           height={300}
-          className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${isOutOfStock ? 'opacity-50 grayscale' : ''}`}
+          className={`w-full h-full ${isOutOfStock ? 'opacity-50 grayscale' : ''}`}
+          style={{ transition: 'transform 500ms' }}
         />
         {/* Out of Stock Overlay */}
         {isOutOfStock && (

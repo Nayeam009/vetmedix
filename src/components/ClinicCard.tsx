@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import gopalganjLogo from '@/assets/gopalganj-vet-care-logo.png';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 interface ClinicCardProps {
   id?: string;
@@ -30,22 +31,21 @@ const ClinicCard = memo(forwardRef<HTMLDivElement, ClinicCardProps>(({ name, rat
           onClick={onViewDetails}
         >
           {isGopalganj ? (
-            <img 
+            <OptimizedImage 
               src={gopalganjLogo} 
               alt={name}
-              loading="lazy"
               width={176}
               height={176}
-              className="w-full h-full object-cover bg-card group-hover:scale-105 transition-transform duration-500" 
+              className="w-full h-full bg-card"
             />
           ) : (
-            <img 
+            <OptimizedImage 
               src={image} 
               alt={name}
-              loading="lazy"
+              preset="thumbnail"
               width={176}
               height={176}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+              className="w-full h-full"
             />
           )}
           

@@ -98,16 +98,14 @@ const ScrollToTop = () => {
   return null;
 };
 
-// Loading fallback component
+// Slim top progress bar (YouTube/GitHub style)
 const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="flex flex-col items-center gap-4">
-      <div className="w-16 h-16 rounded-full gradient-primary flex items-center justify-center animate-pulse">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
-      </div>
-      <p className="text-muted-foreground text-sm font-medium">Loading...</p>
+  <>
+    <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-primary/20">
+      <div className="h-full bg-primary rounded-r-full animate-progress-bar" />
     </div>
-  </div>
+    <div className="min-h-[60vh]" />
+  </>
 );
 
 const App = () => (

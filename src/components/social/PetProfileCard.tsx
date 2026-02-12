@@ -188,6 +188,8 @@ export const PetProfileCard = ({ pet, postsCount, isOwner, onPetUpdate }: PetPro
             src={pet.cover_photo_url} 
             alt="" 
             className="w-full h-full object-cover"
+            loading="eager"
+            decoding="async"
           />
         ) : (
           /* Animated Gradient Hero Background */
