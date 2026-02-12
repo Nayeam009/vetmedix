@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useUserRole } from '@/hooks/useUserRole';
+import { prefetchRoute } from '@/lib/imageUtils';
 
 const MobileNav = forwardRef<HTMLElement, object>((_, ref) => {
   const location = useLocation();
@@ -55,6 +56,7 @@ const MobileNav = forwardRef<HTMLElement, object>((_, ref) => {
             <Link
               key={index}
               to={item.path}
+              onTouchStart={() => prefetchRoute(item.path)}
               className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors active:scale-95 ${
                 active ? 'text-primary' : 'text-muted-foreground'
               }`}

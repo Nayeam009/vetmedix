@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import type { Pet } from '@/types/social';
 import type { PetFollowData } from '@/hooks/useExplorePets';
 
@@ -58,11 +59,13 @@ const ExplorePetCard = memo(({ pet, followData, onFollow, onUnfollow }: ExploreP
       {/* Cover Photo Section */}
       <div className="relative h-28 sm:h-32 md:h-36 overflow-hidden">
         {pet.cover_photo_url ? (
-          <img
+          <OptimizedImage
             src={pet.cover_photo_url}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 transform-gpu"
-            loading="lazy"
+            preset="thumbnail"
+            width={400}
+            height={144}
+            className="absolute inset-0 w-full h-full"
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-accent/20 to-secondary/40" aria-hidden="true">

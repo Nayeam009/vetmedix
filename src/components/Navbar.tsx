@@ -8,6 +8,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { NotificationBell } from '@/components/social/NotificationBell';
 import Logo from '@/components/Logo';
 import { GlobalSearch } from '@/components/GlobalSearch';
+import { usePrefetch } from '@/hooks/usePrefetch';
 
 const Navbar = memo(() => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -48,31 +49,31 @@ const Navbar = memo(() => {
 
           {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-0.5 lg:gap-1">
-            <Link to="/feed">
+            <Link to="/feed" {...usePrefetch('/feed')}>
               <Button variant={isActive('/feed') ? 'secondary' : 'ghost'} size="sm" className="gap-1.5 h-9 px-2.5 lg:px-3">
                 <Home className="h-4 w-4" />
                 <span className="hidden lg:inline">Feed</span>
               </Button>
             </Link>
-            <Link to="/explore">
+            <Link to="/explore" {...usePrefetch('/explore')}>
               <Button variant={isActive('/explore') ? 'secondary' : 'ghost'} size="sm" className="gap-1.5 h-9 px-2.5 lg:px-3">
                 <Compass className="h-4 w-4" />
                 <span className="hidden lg:inline">Explore</span>
               </Button>
             </Link>
-            <Link to="/shop">
+            <Link to="/shop" {...usePrefetch('/shop')}>
               <Button variant={isActive('/shop') ? 'secondary' : 'ghost'} size="sm" className="gap-1.5 h-9 px-2.5 lg:px-3">
                 <Store className="h-4 w-4" />
                 <span className="hidden lg:inline">Shop</span>
               </Button>
             </Link>
-            <Link to="/clinics">
+            <Link to="/clinics" {...usePrefetch('/clinics')}>
               <Button variant={isActive('/clinics') ? 'secondary' : 'ghost'} size="sm" className="gap-1.5 h-9 px-2.5 lg:px-3">
                 <Building2 className="h-4 w-4" />
                 <span className="hidden lg:inline">Clinics</span>
               </Button>
             </Link>
-            <Link to="/doctors">
+            <Link to="/doctors" {...usePrefetch('/doctors')}>
               <Button variant={isActive('/doctors') ? 'secondary' : 'ghost'} size="sm" className="gap-1.5 h-9 px-2.5 lg:px-3">
                 <Users className="h-4 w-4" />
                 <span className="hidden lg:inline">Doctors</span>
