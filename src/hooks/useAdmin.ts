@@ -15,7 +15,7 @@ export const useAdmin = () => {
   const { user } = useAuth();
 
   const { data: userRoles, isLoading: roleLoading } = useQuery({
-    queryKey: ['admin-roles-all', user?.id],
+    queryKey: ['user-roles-all', user?.id],
     queryFn: async () => {
       if (!user) return [];
 
@@ -28,6 +28,7 @@ export const useAdmin = () => {
       return (data as UserRole[]) || [];
     },
     enabled: !!user,
+    staleTime: 1000 * 60 * 5, // 5 minutes - match useUserRole
   });
 
   const roles = userRoles || [];

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, MapPin, ShoppingBag, Calendar, Edit2, Save, X, Loader2, Package, PawPrint, Plus, Heart } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
@@ -72,11 +73,8 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { cancelAppointment } = useAppointmentActions();
+  const queryClient = useQueryClient();
   
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   
@@ -89,11 +87,74 @@ const ProfilePage = () => {
     thana: '',
   });
 
+  // Parallel data fetching with React Query caching
+  const { data: profileData, isLoading: profileLoading } = useQuery({
+    queryKey: ['user-profile', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user!.id)
+        .single();
+      return data as Profile | null;
+    },
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 2,
+  });
+
+  const { data: ordersData, isLoading: ordersLoading } = useQuery({
+    queryKey: ['user-orders', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('created_at', { ascending: false });
+      return (data || []) as Order[];
+    },
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 2,
+  });
+
+  const { data: appointmentsData, isLoading: appointmentsLoading } = useQuery({
+    queryKey: ['user-appointments', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('appointments')
+        .select(`
+          *,
+          clinic:clinics(name, address, phone)
+        `)
+        .eq('user_id', user!.id)
+        .order('appointment_date', { ascending: true });
+      return (data as any || []) as Appointment[];
+    },
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 2,
+  });
+
+  const profile = profileData || null;
+  const orders = ordersData || [];
+  const appointments = appointmentsData || [];
+  const loading = profileLoading || ordersLoading || appointmentsLoading;
+
+  // Sync form data when profile loads
+  useEffect(() => {
+    if (profileData) {
+      setFormData({
+        full_name: profileData.full_name || '',
+        phone: profileData.phone || '',
+        address: profileData.address || '',
+        division: profileData.division || '',
+        district: profileData.district || '',
+        thana: profileData.thana || '',
+      });
+    }
+  }, [profileData]);
+
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
-    } else if (user) {
-      fetchData();
     }
   }, [user, authLoading, navigate]);
 
@@ -113,8 +174,9 @@ const ProfilePage = () => {
         },
         (payload) => {
           const updated = payload.new as Order;
-          setOrders((prev) =>
-            prev.map((o) => (o.id === updated.id ? { ...o, ...updated } : o))
+          queryClient.setQueryData<Order[]>(
+            ['user-orders', user.id],
+            (old) => old?.map((o) => (o.id === updated.id ? { ...o, ...updated } : o)) || []
           );
         }
       )
@@ -123,56 +185,7 @@ const ProfilePage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
-
-  const fetchData = async () => {
-    if (!user) return;
-    
-    try {
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (profileData) {
-        setProfile(profileData);
-        setFormData({
-          full_name: profileData.full_name || '',
-          phone: profileData.phone || '',
-          address: profileData.address || '',
-          division: profileData.division || '',
-          district: profileData.district || '',
-          thana: profileData.thana || '',
-        });
-      }
-
-      const { data: ordersData } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      setOrders(ordersData || []);
-
-      const { data: appointmentsData } = await supabase
-        .from('appointments')
-        .select(`
-          *,
-          clinic:clinics(name, address, phone)
-        `)
-        .eq('user_id', user.id)
-        .order('appointment_date', { ascending: true });
-
-      setAppointments(appointmentsData as any || []);
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error fetching data:', error);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [user, queryClient]);
 
   const handleSave = useCallback(async () => {
     if (!user || !profile) return;
@@ -198,7 +211,10 @@ const ProfilePage = () => {
 
       if (error) throw error;
 
-      setProfile({ ...profile, ...validatedData });
+      queryClient.setQueryData<Profile | null>(
+        ['user-profile', user.id],
+        (old) => old ? { ...old, ...validatedData } : null
+      );
       setEditing(false);
       toast({
         title: "Profile Updated",
@@ -213,19 +229,25 @@ const ProfilePage = () => {
     } finally {
       setSaving(false);
     }
-  }, [user, profile, formData, toast]);
+  }, [user, profile, formData, toast, queryClient]);
 
   const handleAvatarUpdate = useCallback((url: string) => {
-    if (profile) {
-      setProfile({ ...profile, avatar_url: url });
+    if (user) {
+      queryClient.setQueryData<Profile | null>(
+        ['user-profile', user.id],
+        (old) => old ? { ...old, avatar_url: url } : null
+      );
     }
-  }, [profile]);
+  }, [user, queryClient]);
 
   const handleCoverUpdate = useCallback((url: string) => {
-    if (profile) {
-      setProfile({ ...profile, cover_photo_url: url });
+    if (user) {
+      queryClient.setQueryData<Profile | null>(
+        ['user-profile', user.id],
+        (old) => old ? { ...old, cover_photo_url: url } : null
+      );
     }
-  }, [profile]);
+  }, [user, queryClient]);
 
   const handleEditClick = useCallback(() => setEditing(true), []);
   const handleCancelEdit = useCallback(() => setEditing(false), []);
