@@ -76,7 +76,7 @@ export const QuickActionsCard = memo(({ stats }: QuickActionsCardProps) => {
             <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg ${action.bgColor} flex items-center justify-center flex-shrink-0`}>
               <action.icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${action.iconColor}`} />
             </div>
-            <span className="flex-1 text-left text-xs sm:text-sm truncate">{action.label}</span>
+            <span className="flex-1 text-left text-xs sm:text-sm">{action.label}</span>
             <Badge variant="outline" className={`${action.badgeBg} text-[10px] sm:text-xs px-1.5 sm:px-2`}>
               {action.badgeText}
             </Badge>

@@ -116,11 +116,11 @@ const QuickStatsOverview = ({ appointments, doctorsCount, servicesCount }: Quick
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-start justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground font-medium uppercase tracking-wide truncate">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground font-medium uppercase tracking-wide">
                     {stat.title}
                   </p>
                   <p className="text-xl sm:text-2xl font-bold mt-0.5 sm:mt-1">{stat.value}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{stat.subtitle}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{stat.subtitle}</p>
                 </div>
                 <div className={cn("p-1.5 sm:p-2 rounded-lg flex-shrink-0", stat.bgColor)}>
                   <Icon className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4", stat.color)} />
