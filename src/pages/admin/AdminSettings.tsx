@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import { 
   Loader2,
   AlertCircle,
@@ -183,6 +184,7 @@ const AdminSettings = () => {
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, roleLoading } = useAdmin();
+  useAdminRealtimeDashboard(isAdmin);
 
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(defaultStoreSettings);
   const [shippingSettings, setShippingSettings] = useState<ShippingSettings>(defaultShippingSettings);

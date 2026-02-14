@@ -35,6 +35,7 @@ import { useAdmin } from '@/hooks/useAdmin';
 import { useAdminAnalytics, type DateRangePreset } from '@/hooks/useAdminAnalytics';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import {
   AreaChart,
   Area,
@@ -77,6 +78,7 @@ const AdminAnalytics = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, roleLoading } = useAdmin();
+  useAdminRealtimeDashboard(isAdmin);
   const queryClient = useQueryClient();
   const [dateRange, setDateRange] = useState<DateRangePreset>('all');
   const { data: analytics, isLoading: analyticsLoading, dataUpdatedAt } = useAdminAnalytics(dateRange);
