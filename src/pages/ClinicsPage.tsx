@@ -5,6 +5,7 @@ import {
   Building2, Clock, Shield, ChevronDown, X,
   Stethoscope, Heart, Award, Navigation, MapPinned
 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
@@ -53,8 +54,7 @@ const LOCATION_STORAGE_KEY = 'vetmedix_user_location';
 
 const ClinicsPage = () => {
   useDocumentTitle('Find Clinics');
-  const [clinics, setClinics] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedService, setSelectedService] = useState('All Services');
   const [sortBy, setSortBy] = useState('recommended');
@@ -162,35 +162,43 @@ const ClinicsPage = () => {
     return 0;
   };
 
-  useEffect(() => {
-    fetchClinics();
-  }, []);
-
-  const fetchClinics = async () => {
-    try {
-      // Use clinics_public view for security - excludes sensitive verification documents
+  // React Query for clinics data
+  const { data: clinicsData = [], isLoading: loading } = useQuery({
+    queryKey: ['public-clinics'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('clinics_public')
         .select('*');
       if (error) throw error;
       
-      const sorted = (data || []).sort((a, b) => {
+      return (data || []).sort((a: any, b: any) => {
         const aIsGopalganj = a.name?.toLowerCase().includes('gopalganj');
         const bIsGopalganj = b.name?.toLowerCase().includes('gopalganj');
         if (aIsGopalganj && !bIsGopalganj) return -1;
         if (!aIsGopalganj && bIsGopalganj) return 1;
         return 0;
       });
-      
-      setClinics(sorted);
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error fetching clinics:', error);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // Realtime subscription for clinics
+  useEffect(() => {
+    const channel = supabase
+      .channel('public-clinics-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'clinics' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['public-clinics'] });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
+
+  const clinics = clinicsData;
 
   const filteredClinics = clinics
     .map(clinic => ({

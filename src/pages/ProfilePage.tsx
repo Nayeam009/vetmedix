@@ -165,12 +165,12 @@ const ProfilePage = () => {
     }
   }, [user, authLoading, navigate]);
 
-  // Real-time order status updates
+  // Real-time order & appointment status updates
   useEffect(() => {
     if (!user) return;
 
     const channel = supabase
-      .channel('user-orders-realtime')
+      .channel('user-profile-realtime')
       .on(
         'postgres_changes',
         {
@@ -185,6 +185,18 @@ const ProfilePage = () => {
             ['user-orders', user.id],
             (old) => old?.map((o) => (o.id === updated.id ? { ...o, ...updated } : o)) || []
           );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'appointments',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['user-appointments', user.id] });
         }
       )
       .subscribe();
