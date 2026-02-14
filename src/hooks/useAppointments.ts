@@ -42,6 +42,7 @@ export const useAppointmentActions = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['userAppointments'] });
+      queryClient.invalidateQueries({ queryKey: ['user-appointments'] });
       toast({
         title: 'Appointment Cancelled',
         description: 'Your appointment has been cancelled successfully.',

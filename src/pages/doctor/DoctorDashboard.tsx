@@ -161,7 +161,7 @@ const DoctorDashboard = () => {
       tab: 'appointments',
     },
     {
-      label: 'Total Patients',
+      label: 'Total Appointments',
       value: doctorAppointments?.length || 0,
       icon: Users,
       colorClass: 'bg-green-500/10 text-green-600',

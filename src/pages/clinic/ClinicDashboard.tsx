@@ -88,12 +88,12 @@ const ClinicDashboard = () => {
     }
   };
 
-  // Set up realtime subscription for appointments
+  // Set up realtime subscription for appointments, doctors, and services
   useEffect(() => {
     if (!ownedClinic?.id) return;
 
     const channel = supabase
-      .channel('clinic-appointments-realtime')
+      .channel('clinic-dashboard-realtime')
       .on(
         'postgres_changes',
         {
@@ -103,15 +103,36 @@ const ClinicDashboard = () => {
           filter: `clinic_id=eq.${ownedClinic.id}`,
         },
         (payload) => {
-          // Invalidate appointments query to refresh data
           queryClient.invalidateQueries({ queryKey: ['clinic-appointments', ownedClinic.id] });
-          
-          // Show toast for new appointments
           if (payload.eventType === 'INSERT') {
             toast.info('📅 New appointment received!', {
               description: 'Check your appointments tab',
             });
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'clinic_doctors',
+          filter: `clinic_id=eq.${ownedClinic.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['clinic-doctors-list', ownedClinic.id] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'clinic_services',
+          filter: `clinic_id=eq.${ownedClinic.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['clinic-services', ownedClinic.id] });
         }
       )
       .subscribe();

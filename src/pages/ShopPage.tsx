@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Search, Loader2, SlidersHorizontal, Grid3X3, LayoutGrid, Package, ChevronDown, X, Sparkles, ShoppingCart, Heart, Star, Clock, ChevronLeft, ChevronRight, Truck, Shield, Tag } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
@@ -158,9 +159,8 @@ const ShopPage = () => {
   const { totalItems } = useCart();
   const { wishlistIds } = useWishlist();
   const { recentProducts } = useRecentlyViewed();
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [category] = useState('All');
   const [productType, setProductType] = useState('All');
@@ -169,44 +169,32 @@ const ShopPage = () => {
   const [priceRange, setPriceRange] = useState<'all' | 'under500' | '500to1000' | 'over1000'>('all');
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
 
-  // Sync filters to URL
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (searchQuery) params.set('search', searchQuery);
-    if (productType !== 'All') params.set('type', productType);
-    if (priceRange !== 'all') params.set('price', priceRange);
-    if (sortBy !== 'newest') params.set('sort', sortBy);
-    setSearchParams(params, { replace: true });
-  }, [searchQuery, productType, priceRange, sortBy]);
-
-  // Initialize from URL params
-  useEffect(() => {
-    const type = searchParams.get('type');
-    const price = searchParams.get('price');
-    const sort = searchParams.get('sort');
-    if (type) setProductType(type);
-    if (price) setPriceRange(price as any);
-    if (sort) setSortBy(sort);
-  }, []);
-
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
-    setLoading(true);
-    try {
+  // React Query for products
+  const { data: products = [], isLoading: loading } = useQuery({
+    queryKey: ['public-products'],
+    queryFn: async () => {
       const { data, error } = await supabase.from('products').select('*');
       if (error) throw error;
-      setProducts(data || []);
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error fetching products:', error);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+      return (data || []) as Product[];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // Realtime subscription for products
+  useEffect(() => {
+    const channel = supabase
+      .channel('public-products-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['public-products'] });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   // Extract unique product types for filter chips
   const productTypes = ['All', ...Array.from(new Set(products.map(p => p.product_type).filter(Boolean) as string[]))].sort((a, b) => a === 'All' ? -1 : b === 'All' ? 1 : a.localeCompare(b));
