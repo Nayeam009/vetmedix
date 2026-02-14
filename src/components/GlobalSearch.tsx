@@ -257,6 +257,12 @@ export const GlobalSearch = ({ className, variant = 'navbar', placeholder }: Glo
     );
   }, [quickNavItems, query]);
 
+  // Close on route change
+  useEffect(() => {
+    setOpen(false);
+    setQuery('');
+  }, [location.pathname]);
+
   // Keyboard shortcut
   useEffect(() => {
     const down = (e: KeyboardEvent) => {

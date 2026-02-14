@@ -40,16 +40,14 @@ export const useNotifications = () => {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'notifications',
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          queryClient.setQueryData<Notification[]>(
-            ['notifications', user.id],
-            (old) => [payload.new as Notification, ...(old || [])]
-          );
+          // Invalidate instead of optimistic set to get joined actor_pet data
+          queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
         }
       )
       .subscribe();
