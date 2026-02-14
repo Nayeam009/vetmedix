@@ -56,6 +56,24 @@ const ClinicDashboard = () => {
   // Set document title
   useDocumentTitle(ownedClinic?.name ? `${ownedClinic.name} Dashboard` : 'Clinic Dashboard');
 
+  // Memoized data - MUST be before any early returns
+  const todayStr = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
+
+  const todayAppointments = useMemo(() =>
+    clinicAppointments?.filter((apt: any) => apt.appointment_date === todayStr) || [],
+    [clinicAppointments, todayStr]
+  );
+
+  const pendingAppointments = useMemo(() =>
+    clinicAppointments?.filter((apt: any) => apt.status === 'pending') || [],
+    [clinicAppointments]
+  );
+
+  const activeDoctors = useMemo(() =>
+    clinicDoctors?.filter(d => d.status === 'active') || [],
+    [clinicDoctors]
+  );
+
   // Toggle clinic open/close status
   const handleToggleOpen = async () => {
     if (!ownedClinic) return;
@@ -186,22 +204,8 @@ const ClinicDashboard = () => {
     );
   }
 
-  const todayStr = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
 
-  const todayAppointments = useMemo(() =>
-    clinicAppointments?.filter((apt: any) => apt.appointment_date === todayStr) || [],
-    [clinicAppointments, todayStr]
-  );
 
-  const pendingAppointments = useMemo(() =>
-    clinicAppointments?.filter((apt: any) => apt.status === 'pending') || [],
-    [clinicAppointments]
-  );
-
-  const activeDoctors = useMemo(() =>
-    clinicDoctors?.filter(d => d.status === 'active') || [],
-    [clinicDoctors]
-  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
