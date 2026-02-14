@@ -36,8 +36,8 @@ export const StatCard = ({ title, value, icon, trend, description, className, hr
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-0.5 sm:mb-1 truncate">{title}</p>
-          <p className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-display font-bold text-foreground truncate">{value}</p>
+          <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-0.5 sm:mb-1 leading-tight">{title}</p>
+          <p className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-display font-bold text-foreground leading-tight">{value}</p>
           
           {trend && (
             <div className={cn(
