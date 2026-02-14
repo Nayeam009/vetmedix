@@ -142,7 +142,8 @@ const ClinicDashboard = () => {
     );
   }
 
-  if (!isClinicOwner && !isAdmin) {
+  // If not clinic owner/admin AND no owned clinic found, show access denied
+  if (!isClinicOwner && !isAdmin && !ownedClinic && !clinicLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50/30 via-background to-background p-4">
         <Card className="max-w-md w-full shadow-xl border-border/50">
@@ -164,7 +165,7 @@ const ClinicDashboard = () => {
   }
 
   // Clinic owner but no clinic found - redirect to create one
-  if (!ownedClinic && !clinicLoading) {
+  if ((isClinicOwner || isAdmin) && !ownedClinic && !clinicLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50/30 via-background to-background p-4">
         <Card className="max-w-md w-full shadow-xl border-border/50">
