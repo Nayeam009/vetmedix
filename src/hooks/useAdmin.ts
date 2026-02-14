@@ -1,52 +1,21 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 
 export type AppRole = 'admin' | 'moderator' | 'user' | 'doctor' | 'clinic_owner';
 
-interface UserRole {
-  id: string;
-  user_id: string;
-  role: AppRole;
-  created_at: string;
-}
-
 export const useAdmin = () => {
-  const { user } = useAuth();
-
-  const { data: userRoles, isLoading: roleLoading } = useQuery({
-    queryKey: ['user-roles-all', user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('*')
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-      return (data as UserRole[]) || [];
-    },
-    enabled: !!user,
-    staleTime: 1000 * 60 * 5, // 5 minutes - match useUserRole
-  });
-
-  const roles = userRoles || [];
-  const roleTypes = roles.map(r => r.role);
-  
-  const isAdmin = roleTypes.includes('admin');
-  const isModerator = roleTypes.includes('moderator') || isAdmin;
-  const isClinicOwner = roleTypes.includes('clinic_owner');
-  const isDoctor = roleTypes.includes('doctor');
+  const { roles, isLoading: roleLoading, isAdmin, isModerator, isClinicOwner, isDoctor } = useUserRole();
 
   return {
-    userRoles: roles,
+    userRoles: roles.map(r => ({ role: r })),
     roleLoading,
     isAdmin,
     isModerator,
     isClinicOwner,
     isDoctor,
-    roles: roleTypes,
+    roles,
   };
 };
 
