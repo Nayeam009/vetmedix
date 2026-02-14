@@ -9,6 +9,8 @@ interface PlatformHealthCardProps {
     verifiedClinics?: number;
     totalOrders?: number;
     pendingOrders?: number;
+    activeOrders?: number;
+    cancelledOrders?: number;
     postsToday?: number;
     appointmentsToday?: number;
   } | undefined;
@@ -19,9 +21,13 @@ export const PlatformHealthCard = memo(forwardRef<HTMLDivElement, PlatformHealth
     ? Math.round((stats.verifiedClinics || 0) / stats.totalClinics * 100)
     : 0;
 
-  const orderFulfillmentPct = stats?.totalOrders
-    ? Math.round(((stats.totalOrders - (stats.pendingOrders || 0)) / stats.totalOrders) * 100)
-    : 100;
+  // Fulfillment = orders that are NOT pending and NOT cancelled/rejected, out of active (non-cancelled) orders
+  const activeOrders = stats?.activeOrders || 0;
+  const pendingOrders = stats?.pendingOrders || 0;
+  const fulfilledOrders = activeOrders - pendingOrders;
+  const orderFulfillmentPct = activeOrders > 0
+    ? Math.round((fulfilledOrders / activeOrders) * 100)
+    : 0;
 
   return (
     <Card ref={ref} className="shadow-sm border-border/50">
