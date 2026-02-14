@@ -27,6 +27,8 @@ export default defineConfig(({ mode }) => ({
           'vendor-charts': ['recharts'],
           // Date utilities
           'vendor-date': ['date-fns'],
+          // Supabase client
+          'vendor-supabase': ['@supabase/supabase-js'],
         },
       },
     },
