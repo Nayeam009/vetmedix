@@ -1,12 +1,11 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { 
-  Calendar, Clock, Users, Star, TrendingUp, 
-  CheckCircle, XCircle, AlertCircle,
+  Calendar, Clock, Star, CheckCircle, AlertCircle,
   Building2, Stethoscope, Package, Plus, Edit,
-  ChevronRight, Activity, BarChart3, Bell, ArrowUpRight,
-  CalendarDays, UserCheck, DollarSign, Sparkles, Search,
+  BarChart3, ArrowUpRight,
+  CalendarDays, UserCheck,
   ExternalLink, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,15 +23,16 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { cn } from '@/lib/utils';
 import ClinicAppointmentsList from '@/components/clinic/ClinicAppointmentsList';
-import QuickStatsOverview from '@/components/clinic/QuickStatsOverview';
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import AddWalkInAppointmentDialog, { WalkInAppointmentData } from '@/components/clinic/AddWalkInAppointmentDialog';
+import type { WalkInAppointmentData } from '@/components/clinic/AddWalkInAppointmentDialog';
 
-// Lazy load analytics charts for performance
+// Lazy load heavy components
 const ClinicAnalyticsCharts = lazy(() => import('@/components/clinic/ClinicAnalyticsCharts'));
+const AddWalkInAppointmentDialog = lazy(() => import('@/components/clinic/AddWalkInAppointmentDialog'));
+const QuickStatsOverviewLazy = lazy(() => import('@/components/clinic/QuickStatsOverview'));
 
 const ClinicDashboard = () => {
   const navigate = useNavigate();
@@ -186,25 +186,22 @@ const ClinicDashboard = () => {
     );
   }
 
-  const todayAppointments = clinicAppointments?.filter(
-    (apt: any) => apt.appointment_date === format(new Date(), 'yyyy-MM-dd')
-  ) || [];
+  const todayStr = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
 
-  const pendingAppointments = clinicAppointments?.filter(
-    (apt: any) => apt.status === 'pending'
-  ) || [];
+  const todayAppointments = useMemo(() =>
+    clinicAppointments?.filter((apt: any) => apt.appointment_date === todayStr) || [],
+    [clinicAppointments, todayStr]
+  );
 
-  const confirmedAppointments = clinicAppointments?.filter(
-    (apt: any) => apt.status === 'confirmed'
-  ) || [];
+  const pendingAppointments = useMemo(() =>
+    clinicAppointments?.filter((apt: any) => apt.status === 'pending') || [],
+    [clinicAppointments]
+  );
 
-  const completedAppointments = clinicAppointments?.filter(
-    (apt: any) => apt.status === 'completed'
-  ) || [];
-
-  const activeDoctors = clinicDoctors?.filter(
-    d => d.status === 'active'
-  ) || [];
+  const activeDoctors = useMemo(() =>
+    clinicDoctors?.filter(d => d.status === 'active') || [],
+    [clinicDoctors]
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -332,17 +329,21 @@ const ClinicDashboard = () => {
           </div>
         </div>
 
-        {/* Walk-in Appointment Dialog */}
-        <AddWalkInAppointmentDialog
-          open={isAddAppointmentOpen}
-          onOpenChange={setIsAddAppointmentOpen}
-          doctors={clinicDoctors || []}
-          onSubmit={async (data: WalkInAppointmentData) => {
-            await addWalkInAppointment.mutateAsync(data);
-            setIsAddAppointmentOpen(false);
-          }}
-          isSubmitting={addWalkInAppointment.isPending}
-        />
+        {/* Walk-in Appointment Dialog - only mount when opened */}
+        {isAddAppointmentOpen && (
+          <Suspense fallback={null}>
+            <AddWalkInAppointmentDialog
+              open={isAddAppointmentOpen}
+              onOpenChange={setIsAddAppointmentOpen}
+              doctors={clinicDoctors || []}
+              onSubmit={async (data: WalkInAppointmentData) => {
+                await addWalkInAppointment.mutateAsync(data);
+                setIsAddAppointmentOpen(false);
+              }}
+              isSubmitting={addWalkInAppointment.isPending}
+            />
+          </Suspense>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 xl:gap-6 mb-4 sm:mb-6 lg:mb-8">
@@ -448,11 +449,13 @@ const ClinicDashboard = () => {
 
           {/* Appointments Tab */}
           <TabsContent value="appointments" className="space-y-6">
-            <QuickStatsOverview 
-              appointments={clinicAppointments || []}
-              doctorsCount={activeDoctors.length}
-              servicesCount={clinicServices?.length || 0}
-            />
+            <Suspense fallback={<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3"><div className="h-24 bg-muted animate-pulse rounded-lg" /><div className="h-24 bg-muted animate-pulse rounded-lg" /><div className="h-24 bg-muted animate-pulse rounded-lg" /><div className="h-24 bg-muted animate-pulse rounded-lg" /></div>}>
+              <QuickStatsOverviewLazy 
+                appointments={clinicAppointments || []}
+                doctorsCount={activeDoctors.length}
+                servicesCount={clinicServices?.length || 0}
+              />
+            </Suspense>
             
             <Card className="bg-white border-border/50 shadow-sm">
               <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4">
