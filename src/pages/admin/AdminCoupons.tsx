@@ -18,6 +18,7 @@ import { Separator } from '@/components/ui/separator';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -55,6 +56,7 @@ const AdminCoupons = () => {
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, roleLoading } = useAdmin();
+  useAdminRealtimeDashboard(isAdmin);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [formData, setFormData] = useState(emptyCoupon);
   const [dialogOpen, setDialogOpen] = useState(false);

@@ -6,6 +6,7 @@ import {
   Stethoscope, Search, CheckCircle, XCircle, Clock, 
   Eye, AlertCircle, Ban, Loader2, ExternalLink, Filter, ShieldOff, ShieldCheck
 } from 'lucide-react';
+import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -80,6 +81,7 @@ const AdminDoctors = () => {
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, roleLoading } = useAdmin();
+  useAdminRealtimeDashboard(isAdmin);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);

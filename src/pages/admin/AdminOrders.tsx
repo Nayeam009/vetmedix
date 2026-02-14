@@ -48,6 +48,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import { format } from 'date-fns';
 import { createOrderNotification } from '@/lib/notifications';
 import { AcceptOrderDialog } from '@/components/admin/AcceptOrderDialog';
@@ -67,6 +68,7 @@ const AdminOrders = () => {
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, roleLoading } = useAdmin();
+  useAdminRealtimeDashboard(isAdmin);
   const { data: orders, isLoading } = useAdminOrders();
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -84,30 +86,6 @@ const AdminOrders = () => {
       navigate('/');
     }
   }, [user, authLoading, isAdmin, roleLoading, navigate]);
-
-  // Real-time order updates for admin
-  useEffect(() => {
-    if (!isAdmin) return;
-
-    const channel = supabase
-      .channel('admin-orders-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders',
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [isAdmin, queryClient]);
 
   // Compute fraud analysis for all orders (memoized)
   const fraudAnalysisMap = useMemo(() => {

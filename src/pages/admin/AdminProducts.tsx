@@ -46,6 +46,7 @@ import {
 import { useAdmin, useAdminProducts } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { CSVImportDialog } from '@/components/admin/CSVImportDialog';
@@ -79,6 +80,7 @@ const AdminProducts = () => {
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, roleLoading } = useAdmin();
+  useAdminRealtimeDashboard(isAdmin);
   const { data: products, isLoading } = useAdminProducts();
 
   const [searchQuery, setSearchQuery] = useState('');

@@ -53,6 +53,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -124,6 +125,7 @@ const AdminSocial = () => {
   const queryClient = useQueryClient();
   const { loading: authLoading } = useAuth();
   const { isAdmin, roleLoading } = useAdmin();
+  useAdminRealtimeDashboard(isAdmin);
 
   const [activeView, setActiveView] = useState<ActiveView>('overview');
   const [searchQuery, setSearchQuery] = useState('');
