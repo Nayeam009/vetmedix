@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, forwardRef } from 'react';
 import { Star, MessageSquare, CalendarDays } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -14,7 +14,7 @@ interface PlatformHealthCardProps {
   } | undefined;
 }
 
-export const PlatformHealthCard = memo(({ stats }: PlatformHealthCardProps) => {
+export const PlatformHealthCard = memo(forwardRef<HTMLDivElement, PlatformHealthCardProps>(({ stats }, ref) => {
   const clinicVerificationPct = stats?.totalClinics
     ? Math.round((stats.verifiedClinics || 0) / stats.totalClinics * 100)
     : 0;
@@ -24,7 +24,7 @@ export const PlatformHealthCard = memo(({ stats }: PlatformHealthCardProps) => {
     : 100;
 
   return (
-    <Card className="shadow-sm border-border/50">
+    <Card ref={ref} className="shadow-sm border-border/50">
       <CardHeader className="p-3 sm:p-4 lg:p-5 pb-2 sm:pb-3">
         <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
           <Star className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />
@@ -66,6 +66,6 @@ export const PlatformHealthCard = memo(({ stats }: PlatformHealthCardProps) => {
       </CardContent>
     </Card>
   );
-});
+}));
 
 PlatformHealthCard.displayName = 'PlatformHealthCard';

@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, TrendingUp, Building2, MessageSquare, Stethoscope } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +15,7 @@ interface QuickActionsCardProps {
   } | undefined;
 }
 
-export const QuickActionsCard = memo(({ stats }: QuickActionsCardProps) => {
+export const QuickActionsCard = memo(forwardRef<HTMLDivElement, QuickActionsCardProps>(({ stats }, ref) => {
   const navigate = useNavigate();
 
   const actions = [
@@ -58,7 +58,7 @@ export const QuickActionsCard = memo(({ stats }: QuickActionsCardProps) => {
   ];
 
   return (
-    <Card className="shadow-sm border-border/50">
+    <Card ref={ref} className="shadow-sm border-border/50">
       <CardHeader className="p-3 sm:p-4 lg:p-5 pb-2 sm:pb-3">
         <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
           <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
@@ -85,6 +85,6 @@ export const QuickActionsCard = memo(({ stats }: QuickActionsCardProps) => {
       </CardContent>
     </Card>
   );
-});
+}));
 
 QuickActionsCard.displayName = 'QuickActionsCard';
