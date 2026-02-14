@@ -291,7 +291,7 @@ const ClinicAppointmentsList = ({
                                 <Button
                                   size="icon"
                                   variant="ghost"
-                                  className="h-8 w-8 min-h-[32px] min-w-[32px] active:scale-95 transition-transform"
+                                  className="h-9 w-9 min-h-[44px] min-w-[44px] sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0 active:scale-95 transition-transform"
                                   onClick={() => setSelectedAppointment(apt)}
                                   aria-label="View appointment details"
                                 >
@@ -303,7 +303,7 @@ const ClinicAppointmentsList = ({
                                     <Button 
                                       size="icon"
                                       variant="ghost"
-                                      className="h-8 w-8 min-h-[32px] min-w-[32px] text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 active:scale-95 transition-transform"
+                                      className="h-9 w-9 min-h-[44px] min-w-[44px] sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 active:scale-95 transition-transform"
                                       onClick={() => onStatusChange(apt.id, 'confirmed')}
                                       disabled={isUpdating}
                                       aria-label="Confirm appointment"
@@ -313,7 +313,7 @@ const ClinicAppointmentsList = ({
                                     <Button 
                                       size="icon"
                                       variant="ghost"
-                                      className="h-8 w-8 min-h-[32px] min-w-[32px] text-red-600 hover:text-red-700 hover:bg-red-50 active:scale-95 transition-transform"
+                                      className="h-9 w-9 min-h-[44px] min-w-[44px] sm:h-8 sm:w-8 sm:min-h-0 sm:min-w-0 text-red-600 hover:text-red-700 hover:bg-red-50 active:scale-95 transition-transform"
                                       onClick={() => onStatusChange(apt.id, 'cancelled')}
                                       disabled={isUpdating}
                                       aria-label="Cancel appointment"
@@ -327,7 +327,7 @@ const ClinicAppointmentsList = ({
                                   <Button 
                                     size="sm"
                                     variant="outline"
-                                    className="h-8 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 active:scale-95 transition-transform px-2.5"
+                                    className="h-9 min-h-[44px] sm:h-8 sm:min-h-0 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 active:scale-95 transition-transform px-2.5"
                                     onClick={() => onStatusChange(apt.id, 'completed')}
                                     disabled={isUpdating}
                                   >
