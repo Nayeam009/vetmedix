@@ -1,4 +1,4 @@
-import { Package, PackageCheck, PackageX, AlertTriangle } from 'lucide-react';
+import { Package, PackageCheck, PackageX, AlertTriangle, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ProductStats {
@@ -6,6 +6,7 @@ interface ProductStats {
   inStock: number;
   outOfStock: number;
   lowStock: number;
+  featured?: number;
 }
 
 interface ProductStatsBarProps {
@@ -19,6 +20,7 @@ const statCards = [
   { key: 'in-stock', label: 'In Stock', icon: PackageCheck, color: 'text-green-600' },
   { key: 'out-of-stock', label: 'Out of Stock', icon: PackageX, color: 'text-destructive' },
   { key: 'low-stock', label: 'Low Stock', icon: AlertTriangle, color: 'text-amber-600' },
+  { key: 'featured', label: 'Featured', icon: Star, color: 'text-amber-500' },
 ] as const;
 
 function getStatValue(key: string, stats: ProductStats): number {
@@ -27,13 +29,14 @@ function getStatValue(key: string, stats: ProductStats): number {
     case 'in-stock': return stats.inStock;
     case 'out-of-stock': return stats.outOfStock;
     case 'low-stock': return stats.lowStock;
+    case 'featured': return stats.featured ?? 0;
     default: return 0;
   }
 }
 
 export function ProductStatsBar({ stats, activeFilter, onFilterChange }: ProductStatsBarProps) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
+    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3 mb-4 sm:mb-6">
       {statCards.map(({ key, label, icon: Icon, color }) => {
         const value = getStatValue(key, stats);
         const isActive = activeFilter === key;
