@@ -16,9 +16,12 @@ import {
   Circle,
   CheckCircle2,
   X,
+  Stethoscope,
+  Building2,
+  PawPrint,
+  Calendar,
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
-import { StatCard } from '@/components/admin/StatCard';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,12 +53,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
+import { format, subDays, subMonths, subYears, startOfDay, startOfWeek, startOfMonth, startOfYear, isAfter } from 'date-fns';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { downloadCSV } from '@/lib/csvParser';
 import { usePagination } from '@/hooks/usePagination';
+import { cn } from '@/lib/utils';
 
 type PaymentFilter = 'all' | 'paid' | 'unpaid';
+type TimeFilter = 'today' | 'week' | 'month' | 'year' | 'all';
 
 interface EcomCustomer {
   user_id: string;
@@ -70,17 +75,73 @@ interface EcomCustomer {
   roles: string[];
 }
 
-// --- Role Badge Component ---
+// --- Time Filter Component ---
+const TimeFilterBar = ({ value, onChange }: { value: TimeFilter; onChange: (v: TimeFilter) => void }) => {
+  const presets: { value: TimeFilter; label: string; short: string }[] = [
+    { value: 'today', label: 'Today', short: 'Today' },
+    { value: 'week', label: 'This Week', short: 'Week' },
+    { value: 'month', label: 'This Month', short: 'Month' },
+    { value: 'year', label: 'This Year', short: 'Year' },
+    { value: 'all', label: 'All Time', short: 'All' },
+  ];
+  return (
+    <div className="flex items-center gap-1 sm:gap-1.5">
+      <Calendar className="h-3.5 w-3.5 text-muted-foreground mr-1 hidden sm:block" />
+      {presets.map((p) => (
+        <button
+          key={p.value}
+          onClick={() => onChange(p.value)}
+          className={cn(
+            'px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-medium transition-all',
+            value === p.value
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+          )}
+        >
+          <span className="sm:hidden">{p.short}</span>
+          <span className="hidden sm:inline">{p.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+};
+
+// --- Role Badge Component (colorful with icons) ---
 const RoleBadge = ({ role }: { role: string }) => {
-  const config: Record<string, { label: string; className: string }> = {
-    admin: { label: 'Admin', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
-    doctor: { label: 'Doctor', className: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300' },
-    clinic_owner: { label: 'Clinic Owner', className: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' },
-    moderator: { label: 'Moderator', className: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
-    user: { label: 'Pet Parent', className: 'bg-gray-100 text-gray-700 dark:bg-gray-800/50 dark:text-gray-300' },
+  const config: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
+    admin: {
+      label: 'Admin',
+      className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+      icon: <User className="h-2.5 w-2.5" />,
+    },
+    doctor: {
+      label: 'Doctor',
+      className: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300 border-teal-200 dark:border-teal-800',
+      icon: <Stethoscope className="h-2.5 w-2.5" />,
+    },
+    clinic_owner: {
+      label: 'Clinic Owner',
+      className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+      icon: <Building2 className="h-2.5 w-2.5" />,
+    },
+    moderator: {
+      label: 'Moderator',
+      className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+      icon: <User className="h-2.5 w-2.5" />,
+    },
+    user: {
+      label: 'Pet Parent',
+      className: 'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-300 border-orange-200 dark:border-orange-800',
+      icon: <PawPrint className="h-2.5 w-2.5" />,
+    },
   };
   const c = config[role] || config.user;
-  return <Badge className={`${c.className} text-[10px] px-1.5 py-0 font-medium`}>{c.label}</Badge>;
+  return (
+    <Badge variant="outline" className={`${c.className} text-[10px] px-1.5 py-0 font-medium gap-0.5 border`}>
+      {c.icon}
+      {c.label}
+    </Badge>
+  );
 };
 
 // --- Payment Status Badge (clickable) ---
@@ -95,10 +156,10 @@ const PaymentStatusBadge = ({
 }) => {
   const badgeClass =
     status === 'paid'
-      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
       : status === 'refunded'
-      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-      : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
+      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+      : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300';
 
   const label = status === 'paid' ? 'Paid' : status === 'refunded' ? 'Refunded' : 'Unpaid';
 
@@ -169,6 +230,48 @@ const BulkActionBar = ({
   </div>
 );
 
+// --- Stat Card (inline, consistent with reference images) ---
+const EcomStatCard = ({
+  title,
+  value,
+  icon,
+  active,
+  onClick,
+  ringColor,
+}: {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  active?: boolean;
+  onClick?: () => void;
+  ringColor?: string;
+}) => (
+  <div
+    onClick={onClick}
+    className={cn(
+      'bg-card border border-border rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center text-center transition-all min-h-[80px] sm:min-h-[100px]',
+      onClick && 'cursor-pointer active:scale-95 hover:shadow-md',
+      active && `ring-2 ${ringColor || 'ring-primary'}`
+    )}
+  >
+    <div className="mb-1.5">{icon}</div>
+    <p className="text-lg sm:text-2xl font-bold leading-tight">{value}</p>
+    <p className="text-[10px] sm:text-xs text-muted-foreground font-medium mt-0.5 leading-tight">{title}</p>
+  </div>
+);
+
+// --- Helper to get time cutoff ---
+const getTimeCutoff = (filter: TimeFilter): Date | null => {
+  const now = new Date();
+  switch (filter) {
+    case 'today': return startOfDay(now);
+    case 'week': return startOfWeek(now, { weekStartsOn: 0 });
+    case 'month': return startOfMonth(now);
+    case 'year': return startOfYear(now);
+    default: return null;
+  }
+};
+
 const AdminEcommerceCustomers = () => {
   useDocumentTitle('E-Commerce Customers - Admin');
   const navigate = useNavigate();
@@ -180,6 +283,7 @@ const AdminEcommerceCustomers = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('all');
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [updatingPayment, setUpdatingPayment] = useState<string | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -229,7 +333,7 @@ const AdminEcommerceCustomers = () => {
     enabled: isAdmin,
   });
 
-  // Realtime subscriptions: orders + incomplete_orders
+  // Realtime subscriptions
   useEffect(() => {
     if (!isAdmin) return;
     const channel = supabase
@@ -257,13 +361,21 @@ const AdminEcommerceCustomers = () => {
     return map;
   }, [userRoles]);
 
-  // Aggregate customers
-  const customers = useMemo<EcomCustomer[]>(() => {
+  // Filter orders by time
+  const timeFilteredOrders = useMemo(() => {
     if (!orders) return [];
+    const cutoff = getTimeCutoff(timeFilter);
+    if (!cutoff) return orders;
+    return orders.filter(o => isAfter(new Date(o.created_at), cutoff));
+  }, [orders, timeFilter]);
+
+  // Aggregate customers from time-filtered orders
+  const customers = useMemo<EcomCustomer[]>(() => {
+    if (!timeFilteredOrders.length) return [];
     const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
     const agg: Record<string, EcomCustomer> = {};
 
-    for (const order of orders) {
+    for (const order of timeFilteredOrders) {
       const uid = order.user_id;
       const isCancelled = order.status === 'cancelled';
       if (!agg[uid]) {
@@ -288,18 +400,17 @@ const AdminEcommerceCustomers = () => {
     }
 
     return Object.values(agg).filter(c => c.order_count > 0).sort((a, b) => b.total_spent - a.total_spent);
-  }, [orders, profiles, roleMap]);
+  }, [timeFilteredOrders, profiles, roleMap]);
 
-  // Stats
+  // Stats from time-filtered orders
   const stats = useMemo(() => {
-    if (!orders) return { totalSales: 0, paid: 0, pending: 0, totalCustomers: 0 };
-    const activeOrders = orders.filter(o => o.status !== 'cancelled');
+    const activeOrders = timeFilteredOrders.filter(o => o.status !== 'cancelled');
     const totalSales = activeOrders.reduce((s, o) => s + (Number(o.total_amount) || 0), 0);
     const paid = activeOrders.filter(o => o.payment_status === 'paid').reduce((s, o) => s + (Number(o.total_amount) || 0), 0);
     const pending = activeOrders.filter(o => o.payment_status === 'unpaid' || !o.payment_status).reduce((s, o) => s + (Number(o.total_amount) || 0), 0);
     const uniqueUsers = new Set(activeOrders.map(o => o.user_id));
     return { totalSales, paid, pending, totalCustomers: uniqueUsers.size };
-  }, [orders]);
+  }, [timeFilteredOrders]);
 
   // Filter
   const filteredCustomers = useMemo(() => {
@@ -346,7 +457,7 @@ const AdminEcommerceCustomers = () => {
 
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
-  // Update payment status for a single customer
+  // Update payment status
   const updatePaymentStatus = useCallback(async (userId: string, newStatus: string) => {
     setUpdatingPayment(userId);
     try {
@@ -367,7 +478,7 @@ const AdminEcommerceCustomers = () => {
     }
   }, [queryClient, toast]);
 
-  // Bulk update payment status
+  // Bulk update
   const bulkUpdatePayment = useCallback(async (newStatus: string) => {
     if (!selectedIds.size) return;
     setBulkLoading(true);
@@ -393,7 +504,7 @@ const AdminEcommerceCustomers = () => {
     }
   }, [selectedIds, queryClient, toast, clearSelection]);
 
-  // Export helpers
+  // Export
   const exportCustomers = useCallback((data: EcomCustomer[]) => {
     if (!data.length) return;
     const headers = ['Customer', 'Phone', 'Roles', 'Orders', 'Total Spent (BDT)', 'Payment Method', 'Payment Status', 'Last Order'];
@@ -446,20 +557,42 @@ const AdminEcommerceCustomers = () => {
 
   return (
     <AdminLayout title="E-Commerce Customers" subtitle="Payments, buyers & revenue overview">
-      {/* Stats Bar */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
-        <div onClick={() => setPaymentFilter('all')} className={`cursor-pointer rounded-xl sm:rounded-2xl transition-all active:scale-95 ${paymentFilter === 'all' ? 'ring-2 ring-primary' : ''}`}>
-          <StatCard title="Total Sales" value={formatBDT(stats.totalSales)} icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />} />
-        </div>
-        <div onClick={() => setPaymentFilter('paid')} className={`cursor-pointer rounded-xl sm:rounded-2xl transition-all active:scale-95 ${paymentFilter === 'paid' ? 'ring-2 ring-emerald-500' : ''}`}>
-          <StatCard title="Paid" value={formatBDT(stats.paid)} icon={<CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />} />
-        </div>
-        <div onClick={() => setPaymentFilter('unpaid')} className={`cursor-pointer rounded-xl sm:rounded-2xl transition-all active:scale-95 ${paymentFilter === 'unpaid' ? 'ring-2 ring-amber-500' : ''}`}>
-          <StatCard title="Pending" value={formatBDT(stats.pending)} icon={<Clock className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />} />
-        </div>
-        <div className="rounded-xl sm:rounded-2xl">
-          <StatCard title="Total Customers" value={stats.totalCustomers} icon={<Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />} />
-        </div>
+      {/* Time Filter */}
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <TimeFilterBar value={timeFilter} onChange={setTimeFilter} />
+      </div>
+
+      {/* Stats Cards - matching reference design */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
+        <EcomStatCard
+          title="Total Sales"
+          value={formatBDT(stats.totalSales)}
+          icon={<DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />}
+          active={paymentFilter === 'all'}
+          onClick={() => setPaymentFilter('all')}
+          ringColor="ring-primary"
+        />
+        <EcomStatCard
+          title="Paid"
+          value={formatBDT(stats.paid)}
+          icon={<CreditCard className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />}
+          active={paymentFilter === 'paid'}
+          onClick={() => setPaymentFilter('paid')}
+          ringColor="ring-emerald-500"
+        />
+        <EcomStatCard
+          title="Pending"
+          value={formatBDT(stats.pending)}
+          icon={<Clock className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />}
+          active={paymentFilter === 'unpaid'}
+          onClick={() => setPaymentFilter('unpaid')}
+          ringColor="ring-amber-500"
+        />
+        <EcomStatCard
+          title="Total Customers"
+          value={stats.totalCustomers}
+          icon={<Users className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />}
+        />
       </div>
 
       {/* Search + Filter + Export */}
