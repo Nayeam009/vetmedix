@@ -55,6 +55,8 @@ const AdminIncompleteOrders = () => {
   const [convertDialog, setConvertDialog] = useState<IncompleteOrder | null>(null);
 
   const filtered = orders.filter(o => {
+    // Hide recovered orders by default - they are already completed
+    if (statusFilter === 'all' && o.status === 'recovered') return false;
     if (statusFilter !== 'all' && o.status !== statusFilter) return false;
     if (!search) return true;
     const q = search.toLowerCase();
