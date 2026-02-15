@@ -1268,47 +1268,89 @@ export type Database = {
           },
         ]
       }
+      product_categories: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          product_count: number | null
+          slug: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          product_count?: number | null
+          slug: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          product_count?: number | null
+          slug?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           badge: string | null
           category: string
+          compare_price: number | null
           created_at: string
           description: string | null
           discount: number | null
           id: string
           image_url: string | null
           images: string[] | null
+          is_active: boolean | null
+          is_featured: boolean | null
           name: string
           price: number
           product_type: string | null
+          sku: string | null
           stock: number | null
         }
         Insert: {
           badge?: string | null
           category: string
+          compare_price?: number | null
           created_at?: string
           description?: string | null
           discount?: number | null
           id?: string
           image_url?: string | null
           images?: string[] | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
           name: string
           price: number
           product_type?: string | null
+          sku?: string | null
           stock?: number | null
         }
         Update: {
           badge?: string | null
           category?: string
+          compare_price?: number | null
           created_at?: string
           description?: string | null
           discount?: number | null
           id?: string
           image_url?: string | null
           images?: string[] | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
           name?: string
           price?: number
           product_type?: string | null
+          sku?: string | null
           stock?: number | null
         }
         Relationships: []
