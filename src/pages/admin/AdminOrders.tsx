@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
@@ -19,6 +19,10 @@ import {
   MapPin,
   Zap,
   Wallet,
+  Circle,
+  CheckCircle2,
+  Loader2,
+  X,
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -62,6 +66,7 @@ import { OrderStatsBar } from '@/components/admin/OrderStatsBar';
 import { OrderTrackingTimeline } from '@/components/admin/OrderTrackingTimeline';
 import { OrderCardsSkeleton, OrderTableSkeleton, OrderStatsBarSkeleton } from '@/components/admin/OrdersSkeleton';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { cn } from '@/lib/utils';
 import { downloadCSV } from '@/lib/csvParser';
 import { analyzeFraudRisk, parseShippingAddress, type FraudAnalysis } from '@/lib/fraudDetection';
 
@@ -82,6 +87,8 @@ const AdminOrders = () => {
   const [isAcceptOpen, setIsAcceptOpen] = useState(false);
   const [isRejectOpen, setIsRejectOpen] = useState(false);
   const [orderForAction, setOrderForAction] = useState<any>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkShipping, setIsBulkShipping] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -136,6 +143,77 @@ const AdminOrders = () => {
       return o.status === 'pending' && analysis?.level === 'high';
     }).length;
   }, [orders, fraudAnalysisMap]);
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleBulkShip = async () => {
+    if (!selectedPendingOrders.length) return;
+    setIsBulkShipping(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const order of selectedPendingOrders) {
+      try {
+        const parsed = order.shipping_address ? parseShippingAddress(order.shipping_address) : null;
+        const customerName = order.profile?.full_name || parsed?.name || 'Unknown';
+        const customerPhone = order.profile?.phone || parsed?.phone || '';
+        const customerAddress = parsed?.addressParts?.join(', ') || order.shipping_address || '';
+        const codAmount = (order as any).payment_method === 'cod' ? order.total_amount : 0;
+
+        if (!customerPhone) {
+          failCount++;
+          continue;
+        }
+
+        const response = await supabase.functions.invoke('steadfast', {
+          body: {
+            action: 'create_order',
+            invoice: order.id,
+            recipient_name: customerName,
+            recipient_phone: customerPhone,
+            recipient_address: customerAddress,
+            cod_amount: codAmount,
+            note: `Order #${order.id.slice(0, 8)}`,
+          },
+        });
+
+        if (response.error) { failCount++; continue; }
+
+        const result = response.data;
+        if (result?.consignment?.tracking_code || result?.consignment?.consignment_id) {
+          await supabase.from('orders').update({
+            status: 'processing',
+            tracking_id: result.consignment.tracking_code || null,
+            consignment_id: String(result.consignment.consignment_id) || null,
+          }).eq('id', order.id);
+
+          await createOrderNotification({
+            userId: order.user_id, orderId: order.id, status: 'processing', orderTotal: order.total_amount,
+          });
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch {
+        failCount++;
+      }
+    }
+
+    setIsBulkShipping(false);
+    setSelectedIds(new Set());
+    queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+    toast({
+      title: `Bulk Ship Complete`,
+      description: `${successCount} shipped successfully${failCount > 0 ? `, ${failCount} failed` : ''}`,
+      variant: failCount > 0 ? 'destructive' : 'default',
+    });
+  };
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
@@ -240,6 +318,26 @@ const AdminOrders = () => {
     }) || [];
   }, [orders, searchQuery, statusFilter, fraudAnalysisMap]);
 
+  // Bulk selection helpers (depend on filteredOrders)
+  const pendingFilteredIds = useMemo(() => 
+    filteredOrders.filter(o => o.status === 'pending').map(o => o.id),
+    [filteredOrders]
+  );
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds(prev => {
+      if (pendingFilteredIds.every(id => prev.has(id)) && pendingFilteredIds.length > 0) {
+        return new Set<string>();
+      }
+      return new Set(pendingFilteredIds);
+    });
+  }, [pendingFilteredIds]);
+
+  const selectedPendingOrders = useMemo(() =>
+    filteredOrders.filter(o => selectedIds.has(o.id) && o.status === 'pending'),
+    [filteredOrders, selectedIds]
+  );
+
   const handleExportCSV = () => {
     if (!filteredOrders.length) return;
     const headers = ['Order ID', 'Date', 'Customer', 'Phone', 'Items', 'Payment Method', 'Payment Status', 'Tracking ID', 'Total', 'Status', 'Risk Level', 'Risk Score'];
@@ -338,8 +436,42 @@ const AdminOrders = () => {
         </Button>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-2 sm:gap-3 mb-3 p-2.5 sm:p-3 bg-primary/5 border border-primary/20 rounded-xl animate-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-sm font-medium truncate">
+              {selectedPendingOrders.length} pending order{selectedPendingOrders.length !== 1 ? 's' : ''} selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              className="h-9 rounded-lg gap-1.5 text-xs sm:text-sm active:scale-95 transition-transform"
+              onClick={handleBulkShip}
+              disabled={isBulkShipping || !selectedPendingOrders.length}
+            >
+              {isBulkShipping ? (
+                <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Shipping...</>
+              ) : (
+                <><Truck className="h-3.5 w-3.5" /> Ship All</>
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => setSelectedIds(new Set())}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Result count */}
-      {(statusFilter !== 'all' || searchQuery) && (
+      {(statusFilter !== 'all' || searchQuery) && selectedIds.size === 0 && (
         <p className="text-xs text-muted-foreground mb-2">
           Showing {filteredOrders.length} {statusFilter === 'flagged' ? 'flagged' : statusFilter !== 'all' ? statusFilter : ''} order{filteredOrders.length !== 1 ? 's' : ''}
           {searchQuery && ` matching "${searchQuery}"`}
@@ -375,9 +507,20 @@ const AdminOrders = () => {
                     className="p-3 space-y-2.5 active:bg-muted/30 transition-colors"
                     onClick={() => { setSelectedOrder(order); setIsViewOpen(true); }}
                   >
-                    {/* Row 1: ID + Risk + Status */}
+                    {/* Row 1: Select Circle + ID + Risk + Status */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
+                        <button
+                          className="shrink-0 active:scale-90 transition-transform"
+                          onClick={(e) => { e.stopPropagation(); toggleSelect(order.id); }}
+                          aria-label={selectedIds.has(order.id) ? 'Deselect order' : 'Select order'}
+                        >
+                          {selectedIds.has(order.id) ? (
+                            <CheckCircle2 className="h-5 w-5 text-primary" />
+                          ) : (
+                            <Circle className="h-5 w-5 text-muted-foreground/50" />
+                          )}
+                        </button>
                         <span className="font-mono text-xs font-medium text-muted-foreground">#{order.id.slice(0, 8)}</span>
                         {analysis && analysis.level !== 'low' && <FraudRiskBadge analysis={analysis} compact />}
                       </div>
@@ -481,6 +624,19 @@ const AdminOrders = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[40px]">
+                      <button
+                        className="active:scale-90 transition-transform"
+                        onClick={(e) => { e.stopPropagation(); toggleSelectAll(); }}
+                        aria-label="Select all pending orders"
+                      >
+                        {pendingFilteredIds.length > 0 && pendingFilteredIds.every(id => selectedIds.has(id)) ? (
+                          <CheckCircle2 className="h-4.5 w-4.5 text-primary" />
+                        ) : (
+                          <Circle className="h-4.5 w-4.5 text-muted-foreground/40" />
+                        )}
+                      </button>
+                    </TableHead>
                     <TableHead className="w-[90px]">Order</TableHead>
                     <TableHead className="w-[80px]">Date</TableHead>
                     <TableHead>Customer</TableHead>
@@ -499,7 +655,20 @@ const AdminOrders = () => {
                     const customerName = getCustomerName(order);
                     const phone = getCustomerPhone(order);
                     return (
-                      <TableRow key={order.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedOrder(order); setIsViewOpen(true); }}>
+                      <TableRow key={order.id} className={cn("cursor-pointer hover:bg-muted/50", selectedIds.has(order.id) && "bg-primary/5")} onClick={() => { setSelectedOrder(order); setIsViewOpen(true); }}>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <button
+                            className="active:scale-90 transition-transform"
+                            onClick={() => toggleSelect(order.id)}
+                            aria-label={selectedIds.has(order.id) ? 'Deselect' : 'Select'}
+                          >
+                            {selectedIds.has(order.id) ? (
+                              <CheckCircle2 className="h-4.5 w-4.5 text-primary" />
+                            ) : (
+                              <Circle className="h-4.5 w-4.5 text-muted-foreground/40" />
+                            )}
+                          </button>
+                        </TableCell>
                         <TableCell className="font-mono text-xs">#{order.id.slice(0, 8)}</TableCell>
                         <TableCell className="whitespace-nowrap text-xs">{format(new Date(order.created_at), 'MMM d')}</TableCell>
                         <TableCell>
