@@ -251,9 +251,11 @@ const AdminClinics = () => {
 
   if (authLoading || roleLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <AdminLayout title="Clinics Management" subtitle="Manage and verify veterinary clinics">
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AdminLayout>
     );
   }
 
@@ -277,86 +279,43 @@ const AdminClinics = () => {
 
   return (
     <AdminLayout title="Clinics Management" subtitle="Manage and verify veterinary clinics">
-      {/* Stats - Clickable Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6">
-        <Card 
-          className={cn(
-            "cursor-pointer transition-all duration-200 hover:shadow-lg active:scale-[0.98] group border-2",
-            filterStatus === 'all' ? "ring-2 ring-primary shadow-lg border-primary" : "border-transparent hover:border-primary/30"
-          )}
-          onClick={() => setFilterStatus('all')}
-        >
-          <CardContent className="p-3 sm:p-4 lg:p-5">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-2 sm:p-2.5 lg:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex-shrink-0">
-                <Building2 className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-primary" />
+      {/* Stats - Scrollable Cards */}
+      <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1 mb-4 sm:mb-6">
+        {[
+          { key: 'all', label: 'Total Clinics', value: clinicStats?.totalClinics || 0, icon: Building2, gradient: 'from-primary/10 to-accent/10', iconColor: 'text-primary', valueColor: 'text-foreground', activeRing: 'ring-primary/50' },
+          { key: 'verified', label: 'Verified', value: clinicStats?.verifiedClinics || 0, icon: CheckCircle, gradient: 'from-emerald-500/10 to-green-500/10', iconColor: 'text-emerald-600 dark:text-emerald-400', valueColor: 'text-emerald-700 dark:text-emerald-300', activeRing: 'ring-emerald-400/50' },
+          { key: 'pending', label: 'Pending', value: pendingCount, icon: Clock, gradient: 'from-amber-500/10 to-orange-500/10', iconColor: 'text-amber-600 dark:text-amber-400', valueColor: 'text-amber-700 dark:text-amber-300', activeRing: 'ring-amber-400/50' },
+          { key: 'blocked', label: 'Blocked', value: blockedCount, icon: Ban, gradient: 'from-red-500/10 to-rose-500/10', iconColor: 'text-red-600 dark:text-red-400', valueColor: 'text-red-700 dark:text-red-300', activeRing: 'ring-red-400/50' },
+        ].map(({ key, label, value, icon: Icon, gradient, iconColor, valueColor, activeRing }) => {
+          const isActive = filterStatus === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setFilterStatus(isActive && key !== 'all' ? 'all' : key)}
+              className={cn(
+                'flex-shrink-0 bg-card rounded-xl sm:rounded-2xl border border-border shadow-sm hover:shadow-md transition-all',
+                'flex items-center gap-2.5 sm:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 min-w-[100px] sm:min-w-[120px]',
+                'active:scale-[0.98]',
+                isActive
+                  ? `ring-2 ${activeRing} border-transparent hover:scale-[1.02]`
+                  : 'hover:border-primary/20'
+              )}
+            >
+              <div className={cn(
+                'h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0',
+                `bg-gradient-to-br ${gradient}`
+              )}>
+                <Icon className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', iconColor)} />
               </div>
-              <div className="min-w-0">
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">{clinicStats?.totalClinics || 0}</p>
-                <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground font-medium truncate">Total Clinics</p>
+              <div className="text-left min-w-0">
+                <p className={cn('text-base sm:text-lg lg:text-xl font-display font-bold leading-none', valueColor)}>
+                  {value}
+                </p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap mt-0.5">{label}</p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card 
-          className={cn(
-            "cursor-pointer transition-all duration-200 hover:shadow-lg active:scale-[0.98] group border-2",
-            filterStatus === 'verified' ? "ring-2 ring-green-500 shadow-lg border-green-500" : "border-transparent hover:border-green-500/30"
-          )}
-          onClick={() => setFilterStatus('verified')}
-        >
-          <CardContent className="p-3 sm:p-4 lg:p-5">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-2 sm:p-2.5 lg:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5 flex-shrink-0">
-                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-green-500" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">{clinicStats?.verifiedClinics || 0}</p>
-                <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground font-medium truncate">Verified</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card 
-          className={cn(
-            "cursor-pointer transition-all duration-200 hover:shadow-lg active:scale-[0.98] group border-2",
-            filterStatus === 'pending' ? "ring-2 ring-amber-500 shadow-lg border-amber-500" : "border-transparent hover:border-amber-500/30"
-          )}
-          onClick={() => setFilterStatus('pending')}
-        >
-          <CardContent className="p-3 sm:p-4 lg:p-5">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-2 sm:p-2.5 lg:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-500/5 flex-shrink-0">
-                <Clock className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-amber-500" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">{pendingCount}</p>
-                <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground font-medium truncate">Pending</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card 
-          className={cn(
-            "cursor-pointer transition-all duration-200 hover:shadow-lg active:scale-[0.98] group border-2 border-transparent hover:border-blue-500/30"
-          )}
-          onClick={() => navigate('/admin/customers')}
-        >
-          <CardContent className="p-3 sm:p-4 lg:p-5">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-2 sm:p-2.5 lg:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 flex-shrink-0">
-                <Users className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-blue-500" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">{clinicStats?.totalDoctors || 0}</p>
-                <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground font-medium truncate">Doctors</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </button>
+          );
+        })}
       </div>
 
       {/* Filters */}

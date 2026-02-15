@@ -373,9 +373,11 @@ const AdminProducts = () => {
 
   if (authLoading || roleLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <AdminLayout title="Products" subtitle="Manage your product catalog">
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AdminLayout>
     );
   }
 

@@ -15,8 +15,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { AdminLayout } from '@/components/admin/AdminLayout';
-import { StatCard } from '@/components/admin/StatCard';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -213,42 +213,43 @@ const AdminCustomers = () => {
   return (
     <AdminLayout title="User Management" subtitle="Manage platform users, roles & permissions">
       {/* Stats Bar — clickable to filter */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mb-4 sm:mb-6">
-        <div onClick={() => handleStatClick('all')} className={`cursor-pointer rounded-xl sm:rounded-2xl transition-all ${roleFilter === 'all' ? 'ring-2 ring-primary' : ''}`}>
-          <StatCard
-            title="Total Customers"
-            value={stats.total}
-            icon={<Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />}
-          />
-        </div>
-        <div onClick={() => handleStatClick('admin')} className={`cursor-pointer rounded-xl sm:rounded-2xl transition-all ${roleFilter === 'admin' ? 'ring-2 ring-purple-500' : ''}`}>
-          <StatCard
-            title="Admins"
-            value={stats.admins}
-            icon={<ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />}
-          />
-        </div>
-        <div onClick={() => handleStatClick('moderator')} className={`cursor-pointer rounded-xl sm:rounded-2xl transition-all ${roleFilter === 'moderator' ? 'ring-2 ring-blue-500' : ''}`}>
-          <StatCard
-            title="Moderators"
-            value={stats.moderators}
-            icon={<Shield className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />}
-          />
-        </div>
-        <div onClick={() => handleStatClick('doctor')} className={`cursor-pointer rounded-xl sm:rounded-2xl transition-all ${roleFilter === 'doctor' ? 'ring-2 ring-teal-500' : ''}`}>
-          <StatCard
-            title="Doctors"
-            value={stats.doctors}
-            icon={<Stethoscope className="h-4 w-4 sm:h-5 sm:w-5 text-teal-600" />}
-          />
-        </div>
-        <div onClick={() => handleStatClick('clinic_owner')} className={`col-span-2 sm:col-span-1 cursor-pointer rounded-xl sm:rounded-2xl transition-all ${roleFilter === 'clinic_owner' ? 'ring-2 ring-amber-500' : ''}`}>
-          <StatCard
-            title="Clinic Owners"
-            value={stats.clinicOwners}
-            icon={<Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />}
-          />
-        </div>
+      <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1 mb-4 sm:mb-6">
+        {[
+          { key: 'all' as RoleFilter, label: 'Total Users', value: stats.total, icon: Users, gradient: 'from-primary/10 to-accent/10', iconColor: 'text-primary', valueColor: 'text-foreground', activeRing: 'ring-primary/50' },
+          { key: 'admin' as RoleFilter, label: 'Admins', value: stats.admins, icon: ShieldCheck, gradient: 'from-purple-500/10 to-violet-500/10', iconColor: 'text-purple-600 dark:text-purple-400', valueColor: 'text-purple-700 dark:text-purple-300', activeRing: 'ring-purple-400/50' },
+          { key: 'moderator' as RoleFilter, label: 'Moderators', value: stats.moderators, icon: Shield, gradient: 'from-blue-500/10 to-cyan-500/10', iconColor: 'text-blue-600 dark:text-blue-400', valueColor: 'text-blue-700 dark:text-blue-300', activeRing: 'ring-blue-400/50' },
+          { key: 'doctor' as RoleFilter, label: 'Doctors', value: stats.doctors, icon: Stethoscope, gradient: 'from-teal-500/10 to-emerald-500/10', iconColor: 'text-teal-600 dark:text-teal-400', valueColor: 'text-teal-700 dark:text-teal-300', activeRing: 'ring-teal-400/50' },
+          { key: 'clinic_owner' as RoleFilter, label: 'Clinic Owners', value: stats.clinicOwners, icon: Building2, gradient: 'from-amber-500/10 to-orange-500/10', iconColor: 'text-amber-600 dark:text-amber-400', valueColor: 'text-amber-700 dark:text-amber-300', activeRing: 'ring-amber-400/50' },
+        ].map(({ key, label, value, icon: Icon, gradient, iconColor, valueColor, activeRing }) => {
+          const isActive = roleFilter === key;
+          return (
+            <button
+              key={key}
+              onClick={() => handleStatClick(key)}
+              className={cn(
+                'flex-shrink-0 bg-card rounded-xl sm:rounded-2xl border border-border shadow-sm hover:shadow-md transition-all',
+                'flex items-center gap-2.5 sm:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 min-w-[100px] sm:min-w-[120px]',
+                'active:scale-[0.98]',
+                isActive
+                  ? `ring-2 ${activeRing} border-transparent hover:scale-[1.02]`
+                  : 'hover:border-primary/20'
+              )}
+            >
+              <div className={cn(
+                'h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0',
+                `bg-gradient-to-br ${gradient}`
+              )}>
+                <Icon className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', iconColor)} />
+              </div>
+              <div className="text-left min-w-0">
+                <p className={cn('text-base sm:text-lg lg:text-xl font-display font-bold leading-none', valueColor)}>
+                  {value}
+                </p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap mt-0.5">{label}</p>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {/* Search + Filter + Export */}
