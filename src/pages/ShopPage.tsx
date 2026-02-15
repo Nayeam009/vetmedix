@@ -177,7 +177,7 @@ const ShopPage = () => {
   const [category] = useState('All');
   const [productType, setProductType] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
-  const [gridCols, setGridCols] = useState<2 | 3 | 4>(3);
+  const [gridCols, setGridCols] = useState<3 | 4 | 6>(4);
   const [priceRange, setPriceRange] = useState<'all' | 'under500' | '500to1000' | 'over1000'>('all');
   const [visibleCount, setVisibleCount] = useState(PRODUCTS_PER_PAGE);
 
@@ -364,35 +364,6 @@ const ShopPage = () => {
       </header>
 
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6" role="main" aria-label="Shop products">
-        {/* Featured Products Section */}
-        {featuredProducts.length > 0 && (
-          <section className="mb-4 sm:mb-6" aria-label="Featured products">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                <h2 className="text-lg sm:text-xl font-bold text-foreground">Featured Products</h2>
-              </div>
-            </div>
-            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-3 scrollbar-none -mx-1 px-1 snap-x snap-mandatory sm:grid sm:grid-cols-3 lg:grid-cols-4 sm:overflow-visible sm:snap-none">
-              {featuredProducts.map(product => (
-                <div key={product.id} className="flex-shrink-0 w-[160px] sm:w-auto snap-start">
-                  <ProductCard 
-                    id={product.id} 
-                    name={product.name} 
-                    price={product.price}
-                    category={product.category} 
-                    image={product.image_url || 'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400'}
-                    badge={product.badge} 
-                    discount={product.discount}
-                    stock={product.stock}
-                    avgRating={ratings[product.id]?.avgRating}
-                    reviewCount={ratings[product.id]?.reviewCount}
-                  />
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
         {/* Search, Filter & Sort Bar */}
         <div className="bg-background rounded-xl sm:rounded-2xl border border-border shadow-sm p-3 sm:p-4 mb-4 sm:mb-6">
           <div className="flex flex-col gap-3 sm:gap-4">
@@ -595,20 +566,12 @@ const ShopPage = () => {
                 {/* Grid View Toggle */}
                 <div className="hidden lg:flex items-center bg-muted/50 rounded-lg p-1 border border-border" role="group" aria-label="Grid view options">
                   <button
-                    onClick={() => setGridCols(2)}
-                    className={`p-2 rounded transition-all ${gridCols === 2 ? 'bg-background shadow-sm' : 'hover:bg-muted'}`}
-                    aria-label="View as 2 columns"
-                    aria-pressed={gridCols === 2}
-                  >
-                    <Grid3X3 className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                  <button
                     onClick={() => setGridCols(3)}
                     className={`p-2 rounded transition-all ${gridCols === 3 ? 'bg-background shadow-sm' : 'hover:bg-muted'}`}
                     aria-label="View as 3 columns"
                     aria-pressed={gridCols === 3}
                   >
-                    <LayoutGrid className="h-4 w-4" aria-hidden="true" />
+                    <Grid3X3 className="h-4 w-4" aria-hidden="true" />
                   </button>
                   <button
                     onClick={() => setGridCols(4)}
@@ -616,15 +579,25 @@ const ShopPage = () => {
                     aria-label="View as 4 columns"
                     aria-pressed={gridCols === 4}
                   >
+                    <LayoutGrid className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                  <button
+                    onClick={() => setGridCols(6)}
+                    className={`p-2 rounded transition-all ${gridCols === 6 ? 'bg-background shadow-sm' : 'hover:bg-muted'}`}
+                    aria-label="View as 6 columns"
+                    aria-pressed={gridCols === 6}
+                  >
                     <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor">
-                      <rect x="1" y="1" width="3" height="3" rx="0.5" />
-                      <rect x="5" y="1" width="3" height="3" rx="0.5" />
-                      <rect x="9" y="1" width="3" height="3" rx="0.5" />
-                      <rect x="13" y="1" width="2" height="3" rx="0.5" />
-                      <rect x="1" y="5" width="3" height="3" rx="0.5" />
-                      <rect x="5" y="5" width="3" height="3" rx="0.5" />
-                      <rect x="9" y="5" width="3" height="3" rx="0.5" />
-                      <rect x="13" y="5" width="2" height="3" rx="0.5" />
+                      <rect x="0.5" y="1" width="2" height="3" rx="0.5" />
+                      <rect x="3.5" y="1" width="2" height="3" rx="0.5" />
+                      <rect x="6.5" y="1" width="2" height="3" rx="0.5" />
+                      <rect x="9.5" y="1" width="2" height="3" rx="0.5" />
+                      <rect x="12.5" y="1" width="2" height="3" rx="0.5" />
+                      <rect x="0.5" y="5" width="2" height="3" rx="0.5" />
+                      <rect x="3.5" y="5" width="2" height="3" rx="0.5" />
+                      <rect x="6.5" y="5" width="2" height="3" rx="0.5" />
+                      <rect x="9.5" y="5" width="2" height="3" rx="0.5" />
+                      <rect x="12.5" y="5" width="2" height="3" rx="0.5" />
                     </svg>
                   </button>
                 </div>
@@ -632,6 +605,36 @@ const ShopPage = () => {
             </div>
           </div>
         </div>
+
+        {/* Featured Products Section */}
+        {featuredProducts.length > 0 && (
+          <section className="mb-4 sm:mb-6" aria-label="Featured products">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <h2 className="text-lg sm:text-xl font-bold text-foreground">Featured Products</h2>
+              </div>
+            </div>
+            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-3 scrollbar-none -mx-1 px-1 snap-x snap-mandatory sm:grid sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 sm:overflow-visible sm:snap-none">
+              {featuredProducts.map(product => (
+                <div key={product.id} className="flex-shrink-0 w-[130px] sm:w-auto snap-start">
+                  <ProductCard 
+                    id={product.id} 
+                    name={product.name} 
+                    price={product.price}
+                    category={product.category} 
+                    image={product.image_url || 'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400'}
+                    badge={product.badge} 
+                    discount={product.discount}
+                    stock={product.stock}
+                    avgRating={ratings[product.id]?.avgRating}
+                    reviewCount={ratings[product.id]?.reviewCount}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Active Filters Display */}
         {activeFiltersCount > 0 && (
@@ -666,7 +669,7 @@ const ShopPage = () => {
         {/* Products Grid */}
         <section className="flex-1" aria-label="Products list">
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4" aria-busy="true" aria-label="Loading products">
+            <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-3" aria-busy="true" aria-label="Loading products">
               {[...Array(8)].map((_, i) => (
                 <div key={i} className="bg-background rounded-xl sm:rounded-2xl border border-border overflow-hidden" aria-hidden="true">
                   <div className="aspect-square bg-muted animate-pulse" />
@@ -696,7 +699,7 @@ const ShopPage = () => {
               {searchQuery && products.length > 0 && (
                 <div className="mt-10 w-full">
                   <h4 className="text-sm font-semibold text-foreground mb-4 text-center">Popular Products</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-3">
                     {products.filter(p => p.discount && p.discount > 0).slice(0, 4).map(product => (
                       <ProductCard 
                         key={product.id} 
@@ -718,12 +721,12 @@ const ShopPage = () => {
             </div>
           ) : (
             <>
-              <div className={`grid gap-3 sm:gap-4 ${
-                gridCols === 2 
-                  ? 'grid-cols-2 md:grid-cols-2 lg:grid-cols-3' 
-                  : gridCols === 3 
-                    ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4' 
-                    : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+              <div className={`grid gap-2 sm:gap-3 ${
+                gridCols === 3 
+                  ? 'grid-cols-3 md:grid-cols-3 lg:grid-cols-3' 
+                  : gridCols === 4 
+                    ? 'grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5' 
+                    : 'grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
               }`}>
                 {paginatedProducts.map(product => (
                   <ProductCard 
