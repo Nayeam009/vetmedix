@@ -31,41 +31,46 @@ const statCards = [
     key: 'pending', 
     label: 'Pending', 
     icon: Clock, 
-    color: 'text-amber-600 dark:text-amber-400',
-    bg: 'bg-amber-50 dark:bg-amber-900/20',
-    activeBg: 'bg-amber-100 dark:bg-amber-900/40 ring-2 ring-amber-400/50',
+    gradient: 'from-amber-500/10 to-orange-500/10',
+    iconColor: 'text-amber-600 dark:text-amber-400',
+    valueColor: 'text-amber-700 dark:text-amber-300',
+    activeRing: 'ring-amber-400/50',
   },
   { 
     key: 'processing', 
     label: 'Processing', 
     icon: Processing, 
-    color: 'text-blue-600 dark:text-blue-400',
-    bg: 'bg-blue-50 dark:bg-blue-900/20',
-    activeBg: 'bg-blue-100 dark:bg-blue-900/40 ring-2 ring-blue-400/50',
+    gradient: 'from-blue-500/10 to-cyan-500/10',
+    iconColor: 'text-blue-600 dark:text-blue-400',
+    valueColor: 'text-blue-700 dark:text-blue-300',
+    activeRing: 'ring-blue-400/50',
   },
   { 
     key: 'shipped', 
     label: 'Shipped', 
     icon: Truck, 
-    color: 'text-purple-600 dark:text-purple-400',
-    bg: 'bg-purple-50 dark:bg-purple-900/20',
-    activeBg: 'bg-purple-100 dark:bg-purple-900/40 ring-2 ring-purple-400/50',
+    gradient: 'from-purple-500/10 to-indigo-500/10',
+    iconColor: 'text-purple-600 dark:text-purple-400',
+    valueColor: 'text-purple-700 dark:text-purple-300',
+    activeRing: 'ring-purple-400/50',
   },
   { 
     key: 'delivered', 
     label: 'Delivered', 
     icon: CheckCircle, 
-    color: 'text-green-600 dark:text-green-400',
-    bg: 'bg-green-50 dark:bg-green-900/20',
-    activeBg: 'bg-green-100 dark:bg-green-900/40 ring-2 ring-green-400/50',
+    gradient: 'from-emerald-500/10 to-green-500/10',
+    iconColor: 'text-emerald-600 dark:text-emerald-400',
+    valueColor: 'text-emerald-700 dark:text-emerald-300',
+    activeRing: 'ring-emerald-400/50',
   },
   { 
     key: 'cancelled', 
     label: 'Cancelled', 
     icon: XCircle, 
-    color: 'text-red-600 dark:text-red-400',
-    bg: 'bg-red-50 dark:bg-red-900/20',
-    activeBg: 'bg-red-100 dark:bg-red-900/40 ring-2 ring-red-400/50',
+    gradient: 'from-red-500/10 to-rose-500/10',
+    iconColor: 'text-red-600 dark:text-red-400',
+    valueColor: 'text-red-700 dark:text-red-300',
+    activeRing: 'ring-red-400/50',
   },
 ] as const;
 
@@ -73,27 +78,34 @@ export function OrderStatsBar({ stats, activeFilter, onFilterChange }: OrderStat
   return (
     <div className="mb-4 sm:mb-6 space-y-3">
       {/* Scrollable stat cards */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
+      <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
         {/* All orders card */}
         <button
           onClick={() => onFilterChange('all')}
           className={cn(
-            'flex-shrink-0 flex items-center gap-2 rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 transition-all min-w-0 active:scale-95',
+            'flex-shrink-0 bg-card rounded-xl sm:rounded-2xl border border-border shadow-sm hover:shadow-md transition-all',
+            'flex items-center gap-2.5 sm:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 min-w-[100px] sm:min-w-[120px]',
+            'active:scale-[0.98]',
             activeFilter === 'all'
-              ? 'bg-primary/10 ring-2 ring-primary/50'
-              : 'bg-muted/50 hover:bg-muted'
+              ? 'ring-2 ring-primary/50 border-primary/30 hover:scale-[1.02]'
+              : 'hover:border-primary/20'
           )}
         >
-          <ShoppingCart className={cn('h-4 w-4 shrink-0', activeFilter === 'all' ? 'text-primary' : 'text-muted-foreground')} />
-          <div className="text-left">
-            <p className={cn('text-lg sm:text-xl font-bold leading-none', activeFilter === 'all' ? 'text-primary' : 'text-foreground')}>
+          <div className={cn(
+            'h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0',
+            'bg-gradient-to-br from-primary/10 to-accent/10'
+          )}>
+            <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+          </div>
+          <div className="text-left min-w-0">
+            <p className="text-base sm:text-lg lg:text-xl font-display font-bold leading-none text-foreground">
               {stats.total}
             </p>
-            <p className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">All Orders</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap mt-0.5">All Orders</p>
           </div>
         </button>
 
-        {statCards.map(({ key, label, icon: Icon, color, bg, activeBg }) => {
+        {statCards.map(({ key, label, icon: Icon, gradient, iconColor, valueColor, activeRing }) => {
           const count = stats[key as keyof OrderStats] as number;
           const isActive = activeFilter === key;
           return (
@@ -101,38 +113,51 @@ export function OrderStatsBar({ stats, activeFilter, onFilterChange }: OrderStat
               key={key}
               onClick={() => onFilterChange(isActive ? 'all' : key)}
               className={cn(
-                'flex-shrink-0 flex items-center gap-2 rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 transition-all min-w-0 active:scale-95',
-                isActive ? activeBg : `${bg} hover:opacity-80`
+                'flex-shrink-0 bg-card rounded-xl sm:rounded-2xl border border-border shadow-sm hover:shadow-md transition-all',
+                'flex items-center gap-2.5 sm:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 min-w-[100px] sm:min-w-[120px]',
+                'active:scale-[0.98]',
+                isActive
+                  ? `ring-2 ${activeRing} border-transparent hover:scale-[1.02]`
+                  : 'hover:border-primary/20'
               )}
             >
-              <Icon className={cn('h-4 w-4 shrink-0', color)} />
-              <div className="text-left">
-                <p className={cn('text-lg sm:text-xl font-bold leading-none', color)}>
+              <div className={cn(
+                'h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0',
+                `bg-gradient-to-br ${gradient}`
+              )}>
+                <Icon className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', iconColor)} />
+              </div>
+              <div className="text-left min-w-0">
+                <p className={cn('text-base sm:text-lg lg:text-xl font-display font-bold leading-none', valueColor)}>
                   {count}
                 </p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">{label}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap mt-0.5">{label}</p>
               </div>
             </button>
           );
         })}
 
-        {/* Flagged card - only show if there are flagged orders */}
+        {/* Flagged card */}
         {stats.flagged > 0 && (
           <button
             onClick={() => onFilterChange(activeFilter === 'flagged' ? 'all' : 'flagged')}
             className={cn(
-              'flex-shrink-0 flex items-center gap-2 rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 transition-all min-w-0 active:scale-95',
+              'flex-shrink-0 bg-card rounded-xl sm:rounded-2xl border border-border shadow-sm hover:shadow-md transition-all',
+              'flex items-center gap-2.5 sm:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 min-w-[100px] sm:min-w-[120px]',
+              'active:scale-[0.98]',
               activeFilter === 'flagged'
-                ? 'bg-red-100 dark:bg-red-900/40 ring-2 ring-red-400/50'
-                : 'bg-red-50 dark:bg-red-900/20 hover:opacity-80'
+                ? 'ring-2 ring-red-400/50 border-transparent hover:scale-[1.02]'
+                : 'hover:border-primary/20'
             )}
           >
-            <ShieldAlert className="h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
-            <div className="text-left">
-              <p className="text-lg sm:text-xl font-bold leading-none text-red-600 dark:text-red-400">
+            <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-red-500/10 to-rose-500/10">
+              <ShieldAlert className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="text-left min-w-0">
+              <p className="text-base sm:text-lg lg:text-xl font-display font-bold leading-none text-red-700 dark:text-red-300">
                 {stats.flagged}
               </p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">Flagged</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap mt-0.5">Flagged</p>
             </div>
           </button>
         )}
