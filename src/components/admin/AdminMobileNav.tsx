@@ -51,6 +51,7 @@ const navSections: NavSection[] = [
     items: [
       { icon: Package, label: 'Products', path: '/admin/products', description: 'Manage inventory' },
       { icon: ShoppingCart, label: 'Orders', path: '/admin/orders', description: 'Process orders' },
+      { icon: Users, label: 'Customers', path: '/admin/ecommerce-customers', description: 'Payments & buyers' },
       { icon: ShoppingCart, label: 'Incomplete Orders', path: '/admin/incomplete-orders', description: 'Abandoned checkouts' },
       { icon: BarChart3, label: 'Recovery Analytics', path: '/admin/recovery-analytics', description: 'Recovery insights' },
     ]
@@ -62,7 +63,7 @@ const navSections: NavSection[] = [
       { icon: Building2, label: 'Clinics', path: '/admin/clinics', description: 'Verify & manage' },
       { icon: Stethoscope, label: 'Doctors', path: '/admin/doctors', description: 'Verify doctors' },
       { icon: MessageSquare, label: 'Social', path: '/admin/social', description: 'Posts & content' },
-      { icon: Users, label: 'Customers', path: '/admin/customers', description: 'User management' },
+      { icon: Shield, label: 'User Management', path: '/admin/customers', description: 'Roles & permissions' },
       { icon: Mail, label: 'Messages', path: '/admin/messages', description: 'Contact submissions' },
     ]
   },

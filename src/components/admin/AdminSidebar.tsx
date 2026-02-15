@@ -52,6 +52,7 @@ const navSections: NavSection[] = [
     items: [
       { icon: Package, label: 'Products', path: '/admin/products' },
       { icon: ShoppingCart, label: 'Orders', path: '/admin/orders' },
+      { icon: Users, label: 'Customers', path: '/admin/ecommerce-customers' },
       { icon: Ticket, label: 'Coupons', path: '/admin/coupons' },
       { icon: ShoppingCart, label: 'Incomplete Orders', path: '/admin/incomplete-orders' },
       { icon: BarChart3, label: 'Recovery Analytics', path: '/admin/recovery-analytics' },
@@ -64,7 +65,7 @@ const navSections: NavSection[] = [
       { icon: Building2, label: 'Clinics', path: '/admin/clinics' },
       { icon: Stethoscope, label: 'Doctors', path: '/admin/doctors' },
       { icon: MessageSquare, label: 'Social', path: '/admin/social' },
-      { icon: Users, label: 'Customers', path: '/admin/customers' },
+      { icon: Shield, label: 'User Management', path: '/admin/customers' },
       { icon: Mail, label: 'Messages', path: '/admin/messages' },
     ]
   },

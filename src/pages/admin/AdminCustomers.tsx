@@ -57,7 +57,7 @@ import { usePagination } from '@/hooks/usePagination';
 type RoleFilter = 'all' | 'user' | 'admin' | 'moderator' | 'doctor' | 'clinic_owner';
 
 const AdminCustomers = () => {
-  useDocumentTitle('Customers - Admin');
+  useDocumentTitle('User Management - Admin');
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -211,7 +211,7 @@ const AdminCustomers = () => {
   }
 
   return (
-    <AdminLayout title="Customers" subtitle="Manage user accounts and roles">
+    <AdminLayout title="User Management" subtitle="Manage platform users, roles & permissions">
       {/* Stats Bar — clickable to filter */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mb-4 sm:mb-6">
         <div onClick={() => handleStatClick('all')} className={`cursor-pointer rounded-xl sm:rounded-2xl transition-all ${roleFilter === 'all' ? 'ring-2 ring-primary' : ''}`}>
