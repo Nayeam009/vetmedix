@@ -1078,6 +1078,8 @@ export type Database = {
           id: string
           items: Json
           payment_method: string | null
+          payment_reference: string | null
+          payment_status: string | null
           rejection_reason: string | null
           shipping_address: string | null
           status: string | null
@@ -1091,6 +1093,8 @@ export type Database = {
           id?: string
           items: Json
           payment_method?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
           rejection_reason?: string | null
           shipping_address?: string | null
           status?: string | null
@@ -1104,6 +1108,8 @@ export type Database = {
           id?: string
           items?: Json
           payment_method?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
           rejection_reason?: string | null
           shipping_address?: string | null
           status?: string | null

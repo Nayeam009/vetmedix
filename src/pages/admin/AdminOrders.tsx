@@ -16,6 +16,9 @@ import {
   Phone,
   User,
   Copy,
+  MapPin,
+  Zap,
+  Wallet,
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -51,11 +54,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import { format } from 'date-fns';
 import { createOrderNotification } from '@/lib/notifications';
-import { AcceptOrderDialog } from '@/components/admin/AcceptOrderDialog';
+import { SendToCourierDialog } from '@/components/admin/SendToCourierDialog';
 import { RejectOrderDialog } from '@/components/admin/RejectOrderDialog';
 import { FraudRiskBadge } from '@/components/admin/FraudRiskBadge';
 import { FraudAnalysisPanel } from '@/components/admin/FraudAnalysisPanel';
 import { OrderStatsBar } from '@/components/admin/OrderStatsBar';
+import { OrderTrackingTimeline } from '@/components/admin/OrderTrackingTimeline';
 import { OrderCardsSkeleton, OrderTableSkeleton, OrderStatsBarSkeleton } from '@/components/admin/OrdersSkeleton';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { downloadCSV } from '@/lib/csvParser';
@@ -90,34 +94,25 @@ const AdminOrders = () => {
   // Compute fraud analysis for all orders (memoized)
   const fraudAnalysisMap = useMemo(() => {
     if (!orders) return new Map<string, FraudAnalysis>();
-
     const map = new Map<string, FraudAnalysis>();
     const ordersByUser = new Map<string, typeof orders>();
     for (const order of orders) {
       const userId = order.user_id;
-      if (!ordersByUser.has(userId)) {
-        ordersByUser.set(userId, []);
-      }
+      if (!ordersByUser.has(userId)) ordersByUser.set(userId, []);
       ordersByUser.get(userId)!.push(order);
     }
-
     for (const order of orders) {
       const profile = (order as any).profile || null;
       const userOrders = ordersByUser.get(order.user_id) || [];
-      const analysis = analyzeFraudRisk(order, profile, userOrders);
-      map.set(order.id, analysis);
+      map.set(order.id, analyzeFraudRisk(order, profile, userOrders));
     }
-
     return map;
   }, [orders]);
 
-  // Order stats for the stats bar
   const orderStats = useMemo(() => {
     if (!orders) return { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, flagged: 0, total: 0, revenue: 0 };
-
     const excludedStatuses = ['cancelled', 'rejected'];
     let pending = 0, processing = 0, shipped = 0, delivered = 0, cancelled = 0, flagged = 0, revenue = 0;
-
     for (const order of orders) {
       switch (order.status) {
         case 'pending': pending++; break;
@@ -127,21 +122,13 @@ const AdminOrders = () => {
         case 'cancelled':
         case 'rejected': cancelled++; break;
       }
-
-      if (!excludedStatuses.includes(order.status || '')) {
-        revenue += order.total_amount || 0;
-      }
-
+      if (!excludedStatuses.includes(order.status || '')) revenue += order.total_amount || 0;
       const analysis = fraudAnalysisMap.get(order.id);
-      if (analysis && (analysis.level === 'medium' || analysis.level === 'high')) {
-        flagged++;
-      }
+      if (analysis && (analysis.level === 'medium' || analysis.level === 'high')) flagged++;
     }
-
     return { pending, processing, shipped, delivered, cancelled, flagged, total: orders.length, revenue };
   }, [orders, fraudAnalysisMap]);
 
-  // Count high-risk pending orders for alert banner
   const highRiskPendingCount = useMemo(() => {
     if (!orders) return 0;
     return orders.filter(o => {
@@ -152,30 +139,13 @@ const AdminOrders = () => {
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
-      const { data: order, error: fetchError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', orderId)
-        .single();
-
+      const { data: order, error: fetchError } = await supabase.from('orders').select('*').eq('id', orderId).single();
       if (fetchError) throw fetchError;
-
-      const { error } = await supabase
-        .from('orders')
-        .update({ status })
-        .eq('id', orderId);
-
+      const { error } = await supabase.from('orders').update({ status }).eq('id', orderId);
       if (error) throw error;
-
       if (order && ['processing', 'shipped', 'delivered', 'cancelled'].includes(status)) {
-        await createOrderNotification({
-          userId: order.user_id,
-          orderId: orderId,
-          status: status as 'processing' | 'shipped' | 'delivered' | 'cancelled',
-          orderTotal: order.total_amount,
-        });
+        await createOrderNotification({ userId: order.user_id, orderId, status: status as any, orderTotal: order.total_amount });
       }
-
       toast({ title: 'Success', description: `Order status updated to ${status}` });
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
     } catch (error: unknown) {
@@ -199,28 +169,36 @@ const AdminOrders = () => {
       case 'rejected':
         return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
+        return 'bg-muted text-muted-foreground';
     }
   };
 
   const getPaymentMethodBadge = (method: string) => {
     switch (method?.toLowerCase()) {
       case 'cod':
-        return <Badge variant="outline" className="gap-1"><CreditCard className="h-3 w-3" />COD</Badge>;
+        return <Badge variant="outline" className="gap-1 text-xs"><CreditCard className="h-3 w-3" />COD</Badge>;
       case 'bkash':
-        return <Badge variant="outline" className="text-pink-600 border-pink-300">bKash</Badge>;
+        return <Badge variant="outline" className="text-xs border-pink-300 dark:border-pink-700"><Wallet className="h-3 w-3 mr-1" />bKash</Badge>;
       case 'nagad':
-        return <Badge variant="outline" className="text-orange-600 border-orange-300">Nagad</Badge>;
+        return <Badge variant="outline" className="text-xs border-orange-300 dark:border-orange-700"><Wallet className="h-3 w-3 mr-1" />Nagad</Badge>;
       default:
-        return <Badge variant="outline">Cash</Badge>;
+        return <Badge variant="outline" className="text-xs">Cash</Badge>;
     }
   };
 
-  /** Extract customer name from shipping address or profile */
+  const getPaymentStatusBadge = (paymentStatus: string | null) => {
+    switch (paymentStatus) {
+      case 'paid':
+        return <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-[10px]">Paid</Badge>;
+      case 'refunded':
+        return <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 text-[10px]">Refunded</Badge>;
+      default:
+        return <Badge variant="secondary" className="text-[10px]">Unpaid</Badge>;
+    }
+  };
+
   const getCustomerName = (order: any): string => {
-    // Try profile name first
     if (order.profile?.full_name) return order.profile.full_name;
-    // Fall back to parsing shipping address
     if (order.shipping_address) {
       const parsed = parseShippingAddress(order.shipping_address);
       return parsed.name || 'Unknown';
@@ -228,7 +206,6 @@ const AdminOrders = () => {
     return 'Unknown';
   };
 
-  /** Extract customer phone from shipping address or profile */
   const getCustomerPhone = (order: any): string => {
     if (order.profile?.phone) return order.profile.phone;
     if (order.shipping_address) {
@@ -250,7 +227,8 @@ const AdminOrders = () => {
       const matchesSearch = !searchQuery || 
         order.id.toLowerCase().includes(lowerQuery) ||
         order.shipping_address?.toLowerCase().includes(lowerQuery) ||
-        customerName.includes(lowerQuery);
+        customerName.includes(lowerQuery) ||
+        (order as any).tracking_id?.toLowerCase().includes(lowerQuery);
       
       if (statusFilter === 'flagged') {
         const analysis = fraudAnalysisMap.get(order.id);
@@ -264,8 +242,7 @@ const AdminOrders = () => {
 
   const handleExportCSV = () => {
     if (!filteredOrders.length) return;
-    
-    const headers = ['Order ID', 'Date', 'Customer', 'Phone', 'Items', 'Payment Method', 'Tracking ID', 'Total', 'Status', 'Risk Level', 'Risk Score'];
+    const headers = ['Order ID', 'Date', 'Customer', 'Phone', 'Items', 'Payment Method', 'Payment Status', 'Tracking ID', 'Total', 'Status', 'Risk Level', 'Risk Score'];
     const rows = filteredOrders.map(order => {
       const analysis = fraudAnalysisMap.get(order.id);
       return [
@@ -275,6 +252,7 @@ const AdminOrders = () => {
         getCustomerPhone(order),
         Array.isArray(order.items) ? order.items.length : 0,
         (order as any).payment_method || 'COD',
+        (order as any).payment_status || 'unpaid',
         (order as any).tracking_id || '',
         order.total_amount,
         order.status,
@@ -282,7 +260,6 @@ const AdminOrders = () => {
         analysis?.score || 0,
       ];
     });
-    
     const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
     downloadCSV(csvContent, `orders-${format(new Date(), 'yyyy-MM-dd')}.csv`);
     toast({ title: 'Success', description: 'Orders exported to CSV' });
@@ -315,20 +292,18 @@ const AdminOrders = () => {
     <AdminLayout title="Orders" subtitle="Manage customer orders">
       {/* High-Risk Pending Alert Banner */}
       {highRiskPendingCount > 0 && (
-        <div className="mb-4 flex items-center gap-3 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3 sm:p-4">
-          <ShieldAlert className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0" />
+        <div className="mb-4 flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3 sm:p-4">
+          <ShieldAlert className="h-5 w-5 text-destructive shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-red-800 dark:text-red-300">
+            <p className="text-sm font-medium text-destructive">
               {highRiskPendingCount} high-risk pending order{highRiskPendingCount > 1 ? 's' : ''} detected
             </p>
-            <p className="text-xs text-red-600 dark:text-red-400">
-              Review flagged orders before processing
-            </p>
+            <p className="text-xs text-muted-foreground">Review flagged orders before processing</p>
           </div>
           <Button
             variant="outline"
             size="sm"
-            className="shrink-0 border-red-300 text-red-700 hover:bg-red-100 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/40"
+            className="shrink-0 border-destructive/30 text-destructive hover:bg-destructive/10"
             onClick={() => setStatusFilter('flagged')}
           >
             View Flagged
@@ -337,14 +312,8 @@ const AdminOrders = () => {
       )}
 
       {/* Order Stats Bar */}
-      {isLoading ? (
-        <OrderStatsBarSkeleton />
-      ) : (
-        <OrderStatsBar
-          stats={orderStats}
-          activeFilter={statusFilter}
-          onFilterChange={setStatusFilter}
-        />
+      {isLoading ? <OrderStatsBarSkeleton /> : (
+        <OrderStatsBar stats={orderStats} activeFilter={statusFilter} onFilterChange={setStatusFilter} />
       )}
 
       {/* Search + Export */}
@@ -352,7 +321,7 @@ const AdminOrders = () => {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by ID, name, address..."
+            placeholder="Search orders, tracking IDs..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 h-10 sm:h-11 rounded-xl text-sm"
@@ -365,7 +334,7 @@ const AdminOrders = () => {
           className="h-10 sm:h-11 rounded-xl text-sm gap-2 shrink-0"
         >
           <Download className="h-4 w-4" />
-          <span className="hidden sm:inline">Export CSV</span>
+          <span className="hidden sm:inline">Export</span>
         </Button>
       </div>
 
@@ -377,7 +346,7 @@ const AdminOrders = () => {
         </p>
       )}
 
-      {/* Orders - Mobile Cards / Desktop Table */}
+      {/* Orders Container */}
       <div className="bg-card rounded-xl sm:rounded-2xl border border-border overflow-hidden">
         {isLoading ? (
           <>
@@ -389,60 +358,76 @@ const AdminOrders = () => {
             <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">No orders found</p>
             {statusFilter !== 'all' && (
-              <Button variant="link" size="sm" onClick={() => setStatusFilter('all')} className="mt-2">
-                Clear filter
-              </Button>
+              <Button variant="link" size="sm" onClick={() => setStatusFilter('all')} className="mt-2">Clear filter</Button>
             )}
           </div>
         ) : (
           <>
-            {/* Mobile Card View */}
+            {/* ========== MOBILE CARD VIEW ========== */}
             <div className="sm:hidden divide-y divide-border">
               {filteredOrders.map((order) => {
                 const analysis = fraudAnalysisMap.get(order.id);
                 const customerName = getCustomerName(order);
+                const customerPhone = getCustomerPhone(order);
                 return (
                   <div 
                     key={order.id} 
-                    className="p-3 space-y-2 active:bg-muted/30 transition-colors"
+                    className="p-3 space-y-2.5 active:bg-muted/30 transition-colors"
                     onClick={() => { setSelectedOrder(order); setIsViewOpen(true); }}
                   >
-                    {/* Row 1: Order ID + Risk + Status */}
+                    {/* Row 1: ID + Risk + Status */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-xs font-medium text-muted-foreground">#{order.id.slice(0, 8)}</span>
-                        {analysis && analysis.level !== 'low' && (
-                          <FraudRiskBadge analysis={analysis} compact />
-                        )}
+                        {analysis && analysis.level !== 'low' && <FraudRiskBadge analysis={analysis} compact />}
                       </div>
-                      <Badge className={getStatusColor(order.status)}>
-                        {order.status}
-                      </Badge>
+                      <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
                     </div>
 
-                    {/* Row 2: Customer name + amount */}
+                    {/* Row 2: Customer + Amount */}
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        <span className="text-sm font-medium truncate">{customerName}</span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="text-sm font-medium truncate">{customerName}</span>
+                        </div>
+                        {customerPhone && (
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
+                            <span className="text-xs text-muted-foreground">{customerPhone}</span>
+                          </div>
+                        )}
                       </div>
                       <span className="font-bold text-primary text-lg shrink-0 ml-2">৳{order.total_amount}</span>
                     </div>
 
-                    {/* Row 3: Date + Items + Payment */}
+                    {/* Row 3: Date + Payment + Payment Status */}
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <div className="flex items-center gap-2">
                         <span>{format(new Date(order.created_at), 'MMM d, yyyy')}</span>
                         <span>·</span>
                         <span>{Array.isArray(order.items) ? order.items.length : 0} items</span>
                       </div>
-                      {getPaymentMethodBadge((order as any).payment_method || 'cod')}
+                      <div className="flex items-center gap-1.5">
+                        {getPaymentMethodBadge((order as any).payment_method || 'cod')}
+                        {getPaymentStatusBadge((order as any).payment_status)}
+                      </div>
                     </div>
 
-                    {(order as any).tracking_id && (
-                      <code className="text-xs bg-secondary px-2 py-1 rounded block truncate">
-                        Tracking: {(order as any).tracking_id}
-                      </code>
+                    {/* Courier / Tracking row */}
+                    {((order as any).tracking_id || (order as any).consignment_id) && (
+                      <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
+                        <code className="text-xs bg-secondary px-2 py-1 rounded truncate max-w-[60%]">
+                          🚚 {(order as any).tracking_id || (order as any).consignment_id}
+                        </code>
+                        <OrderTrackingTimeline
+                          orderId={order.id}
+                          trackingId={(order as any).tracking_id}
+                          consignmentId={(order as any).consignment_id}
+                          orderStatus={order.status || 'pending'}
+                          compact
+                        />
+                      </div>
                     )}
 
                     {/* Action Buttons */}
@@ -451,19 +436,19 @@ const AdminOrders = () => {
                         <>
                           <Button 
                             size="sm" 
-                            className="flex-1 h-11 rounded-xl text-sm bg-green-600 hover:bg-green-700 active:scale-95 transition-transform"
+                            className="flex-1 h-11 rounded-xl text-sm gap-1.5 active:scale-95 transition-transform"
                             onClick={() => { setOrderForAction(order); setIsAcceptOpen(true); }}
                           >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Accept
+                            <Zap className="h-4 w-4" />
+                            Accept & Ship
                           </Button>
                           <Button 
                             size="sm" 
                             variant="destructive"
-                            className="flex-1 h-11 rounded-xl text-sm active:scale-95 transition-transform"
+                            className="flex-1 h-11 rounded-xl text-sm gap-1.5 active:scale-95 transition-transform"
                             onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}
                           >
-                            <Ban className="h-4 w-4 mr-1" />
+                            <Ban className="h-4 w-4" />
                             Reject
                           </Button>
                         </>
@@ -472,18 +457,15 @@ const AdminOrders = () => {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="outline" size="sm" className="flex-1 h-11 rounded-xl text-sm">
-                              <MoreHorizontal className="h-4 w-4 mr-1" />
-                              Actions
+                              <MoreHorizontal className="h-4 w-4 mr-1" /> Actions
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'shipped')}>
-                              <Truck className="h-4 w-4 mr-2" />
-                              Mark Shipped
+                              <Truck className="h-4 w-4 mr-2" /> Mark Shipped
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'delivered')}>
-                              <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                              Mark Delivered
+                              <CheckCircle className="h-4 w-4 mr-2" /> Mark Delivered
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -494,20 +476,20 @@ const AdminOrders = () => {
               })}
             </div>
 
-            {/* Desktop Table View */}
+            {/* ========== DESKTOP TABLE VIEW ========== */}
             <div className="hidden sm:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Date</TableHead>
+                    <TableHead className="w-[90px]">Order</TableHead>
+                    <TableHead className="w-[80px]">Date</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead>Items</TableHead>
-                    <TableHead>Payment</TableHead>
-                    <TableHead>Tracking</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Risk</TableHead>
+                    <TableHead className="w-[60px]">Items</TableHead>
+                    <TableHead className="w-[100px]">Payment</TableHead>
+                    <TableHead className="w-[140px]">Courier</TableHead>
+                    <TableHead className="w-[80px]">Total</TableHead>
+                    <TableHead className="w-[90px]">Status</TableHead>
+                    <TableHead className="w-[60px]">Risk</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -515,33 +497,49 @@ const AdminOrders = () => {
                   {filteredOrders.map((order) => {
                     const analysis = fraudAnalysisMap.get(order.id);
                     const customerName = getCustomerName(order);
+                    const phone = getCustomerPhone(order);
                     return (
-                      <TableRow key={order.id} className="cursor-pointer" onClick={() => { setSelectedOrder(order); setIsViewOpen(true); }}>
-                        <TableCell className="font-mono text-sm">#{order.id.slice(0, 8)}</TableCell>
-                        <TableCell className="whitespace-nowrap">{format(new Date(order.created_at), 'MMM d, yy')}</TableCell>
+                      <TableRow key={order.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedOrder(order); setIsViewOpen(true); }}>
+                        <TableCell className="font-mono text-xs">#{order.id.slice(0, 8)}</TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">{format(new Date(order.created_at), 'MMM d')}</TableCell>
                         <TableCell>
-                          <span className="font-medium text-sm">{customerName}</span>
+                          <div className="min-w-0">
+                            <span className="font-medium text-sm block truncate max-w-[160px]">{customerName}</span>
+                            {phone && (
+                              <span className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                <Phone className="h-3 w-3" />{phone}
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
+                        <TableCell className="text-xs">{Array.isArray(order.items) ? order.items.length : 0}</TableCell>
                         <TableCell>
-                          {Array.isArray(order.items) ? order.items.length : 0} items
+                          <div className="space-y-1">
+                            {getPaymentMethodBadge((order as any).payment_method || 'cod')}
+                            {getPaymentStatusBadge((order as any).payment_status)}
+                          </div>
                         </TableCell>
-                        <TableCell>
-                          {getPaymentMethodBadge((order as any).payment_method || 'cod')}
-                        </TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           {(order as any).tracking_id ? (
-                            <code className="text-xs bg-secondary px-2 py-1 rounded">
-                              {(order as any).tracking_id}
-                            </code>
+                            <div className="space-y-1">
+                              <code className="text-[11px] bg-secondary px-1.5 py-0.5 rounded block truncate max-w-[120px]">
+                                {(order as any).tracking_id}
+                              </code>
+                              <OrderTrackingTimeline
+                                orderId={order.id}
+                                trackingId={(order as any).tracking_id}
+                                consignmentId={(order as any).consignment_id}
+                                orderStatus={order.status || 'pending'}
+                                compact
+                              />
+                            </div>
                           ) : (
                             <span className="text-muted-foreground text-xs">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="font-bold text-primary">৳{order.total_amount}</TableCell>
+                        <TableCell className="font-bold text-primary text-sm">৳{order.total_amount}</TableCell>
                         <TableCell>
-                          <Badge className={getStatusColor(order.status)}>
-                            {order.status}
-                          </Badge>
+                          <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
                         </TableCell>
                         <TableCell>
                           {analysis && <FraudRiskBadge analysis={analysis} />}
@@ -555,26 +553,17 @@ const AdminOrders = () => {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => { setSelectedOrder(order); setIsViewOpen(true); }}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Details
+                                <Eye className="h-4 w-4 mr-2" /> View Details
                               </DropdownMenuItem>
                               
                               {order.status === 'pending' && (
                                 <>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
-                                    className="text-green-600"
-                                    onClick={() => { setOrderForAction(order); setIsAcceptOpen(true); }}
-                                  >
-                                    <CheckCircle className="h-4 w-4 mr-2" />
-                                    Accept Order
+                                  <DropdownMenuItem onClick={() => { setOrderForAction(order); setIsAcceptOpen(true); }}>
+                                    <Zap className="h-4 w-4 mr-2" /> Accept & Ship
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem 
-                                    className="text-destructive"
-                                    onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}
-                                  >
-                                    <Ban className="h-4 w-4 mr-2" />
-                                    Reject Order
+                                  <DropdownMenuItem className="text-destructive" onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}>
+                                    <Ban className="h-4 w-4 mr-2" /> Reject Order
                                   </DropdownMenuItem>
                                 </>
                               )}
@@ -583,20 +572,14 @@ const AdminOrders = () => {
                                 <>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'shipped')}>
-                                    <Truck className="h-4 w-4 mr-2" />
-                                    Mark Shipped
+                                    <Truck className="h-4 w-4 mr-2" /> Mark Shipped
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'delivered')}>
-                                    <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                                    Mark Delivered
+                                    <CheckCircle className="h-4 w-4 mr-2" /> Mark Delivered
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
-                                    className="text-destructive"
-                                    onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}
-                                  >
-                                    <XCircle className="h-4 w-4 mr-2" />
-                                    Cancel Order
+                                  <DropdownMenuItem className="text-destructive" onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}>
+                                    <XCircle className="h-4 w-4 mr-2" /> Cancel Order
                                   </DropdownMenuItem>
                                 </>
                               )}
@@ -613,7 +596,7 @@ const AdminOrders = () => {
         )}
       </div>
 
-      {/* Order Details Dialog */}
+      {/* ========== ORDER DETAILS DIALOG ========== */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
         <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl p-4 sm:p-6">
           <DialogHeader>
@@ -625,11 +608,12 @@ const AdminOrders = () => {
           {selectedOrder && (
             <div className="space-y-4">
               {/* Status & Payment row */}
-              <div className="flex items-center justify-between">
-                <Badge className={getStatusColor(selectedOrder.status)}>
-                  {selectedOrder.status}
-                </Badge>
-                {getPaymentMethodBadge(selectedOrder.payment_method || 'cod')}
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <Badge className={getStatusColor(selectedOrder.status)}>{selectedOrder.status}</Badge>
+                <div className="flex items-center gap-2">
+                  {getPaymentMethodBadge(selectedOrder.payment_method || 'cod')}
+                  {getPaymentStatusBadge((selectedOrder as any).payment_status)}
+                </div>
               </div>
 
               {/* Customer Info Card */}
@@ -645,44 +629,40 @@ const AdminOrders = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <a 
-                        href={`tel:${getCustomerPhone(selectedOrder)}`} 
-                        className="text-sm text-primary hover:underline"
-                      >
+                      <a href={`tel:${getCustomerPhone(selectedOrder)}`} className="text-sm text-primary hover:underline">
                         {getCustomerPhone(selectedOrder)}
                       </a>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => copyToClipboard(getCustomerPhone(selectedOrder))}
-                    >
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyToClipboard(getCustomerPhone(selectedOrder))}>
                       <Copy className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 )}
               </div>
 
-              {selectedOrder.tracking_id && (
-                <div className="p-3 bg-secondary/50 rounded-xl">
-                  <p className="text-xs text-muted-foreground mb-1">Tracking ID (Steadfast)</p>
+              {/* Tracking Timeline */}
+              {(selectedOrder.tracking_id || selectedOrder.consignment_id) && (
+                <div className="p-3 bg-secondary/50 rounded-xl space-y-3">
                   <div className="flex items-center justify-between">
-                    <code className="font-mono font-bold text-sm">{selectedOrder.tracking_id}</code>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => copyToClipboard(selectedOrder.tracking_id)}
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Tracking ID</p>
+                      <div className="flex items-center gap-2">
+                        <code className="font-mono font-bold text-sm">{selectedOrder.tracking_id}</code>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(selectedOrder.tracking_id)}>
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      {selectedOrder.consignment_id && (
+                        <p className="text-xs text-muted-foreground mt-0.5">CID: {selectedOrder.consignment_id}</p>
+                      )}
+                    </div>
                   </div>
-                  {selectedOrder.consignment_id && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Consignment: {selectedOrder.consignment_id}
-                    </p>
-                  )}
+                  <OrderTrackingTimeline
+                    orderId={selectedOrder.id}
+                    trackingId={selectedOrder.tracking_id}
+                    consignmentId={selectedOrder.consignment_id}
+                    orderStatus={selectedOrder.status || 'pending'}
+                  />
                 </div>
               )}
 
@@ -700,7 +680,10 @@ const AdminOrders = () => {
               
               {/* Shipping Address */}
               <div>
-                <h4 className="font-medium text-sm mb-1.5">Shipping Address</h4>
+                <h4 className="font-medium text-sm mb-1.5 flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                  Shipping Address
+                </h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {selectedOrder.shipping_address || 'No address provided'}
                 </p>
@@ -732,31 +715,46 @@ const AdminOrders = () => {
                 <span className="text-xl font-bold text-primary">৳{selectedOrder.total_amount}</span>
               </div>
 
-              {/* Action buttons for pending orders */}
+              {/* Action buttons */}
               {selectedOrder.status === 'pending' && (
                 <div className="flex gap-2 pt-2">
                   <Button 
-                    className="flex-1 h-11 active:scale-95 transition-transform"
+                    className="flex-1 h-11 gap-2 active:scale-95 transition-transform"
                     onClick={() => {
                       setOrderForAction(selectedOrder);
                       setIsViewOpen(false);
                       setIsAcceptOpen(true);
                     }}
                   >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Accept
+                    <Zap className="h-4 w-4" /> Accept & Ship
                   </Button>
                   <Button 
                     variant="destructive"
-                    className="flex-1 h-11 active:scale-95 transition-transform"
+                    className="flex-1 h-11 gap-2 active:scale-95 transition-transform"
                     onClick={() => {
                       setOrderForAction(selectedOrder);
                       setIsViewOpen(false);
                       setIsRejectOpen(true);
                     }}
                   >
-                    <Ban className="h-4 w-4 mr-2" />
-                    Reject
+                    <Ban className="h-4 w-4" /> Reject
+                  </Button>
+                </div>
+              )}
+              {selectedOrder.status !== 'pending' && selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'delivered' && selectedOrder.status !== 'rejected' && (
+                <div className="flex gap-2 pt-2">
+                  <Button 
+                    variant="outline"
+                    className="flex-1 h-11 gap-2"
+                    onClick={() => { updateOrderStatus(selectedOrder.id, 'shipped'); setIsViewOpen(false); }}
+                  >
+                    <Truck className="h-4 w-4" /> Mark Shipped
+                  </Button>
+                  <Button 
+                    className="flex-1 h-11 gap-2"
+                    onClick={() => { updateOrderStatus(selectedOrder.id, 'delivered'); setIsViewOpen(false); }}
+                  >
+                    <CheckCircle className="h-4 w-4" /> Mark Delivered
                   </Button>
                 </div>
               )}
@@ -765,23 +763,17 @@ const AdminOrders = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Accept Order Dialog */}
-      <AcceptOrderDialog
+      {/* Send to Courier Dialog (replaces AcceptOrderDialog) */}
+      <SendToCourierDialog
         isOpen={isAcceptOpen}
-        onClose={() => {
-          setIsAcceptOpen(false);
-          setOrderForAction(null);
-        }}
+        onClose={() => { setIsAcceptOpen(false); setOrderForAction(null); }}
         order={orderForAction}
       />
 
       {/* Reject Order Dialog */}
       <RejectOrderDialog
         isOpen={isRejectOpen}
-        onClose={() => {
-          setIsRejectOpen(false);
-          setOrderForAction(null);
-        }}
+        onClose={() => { setIsRejectOpen(false); setOrderForAction(null); }}
         order={orderForAction}
       />
     </AdminLayout>
