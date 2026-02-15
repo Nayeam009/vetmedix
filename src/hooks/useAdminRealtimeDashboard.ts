@@ -88,6 +88,11 @@ export const useAdminRealtimeDashboard = (isAdmin: boolean) => {
         queryClient.invalidateQueries({ queryKey: ['admin-coupons'] });
         invalidateAll();
       })
+      // Incomplete orders
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'incomplete_orders' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-incomplete-orders'] });
+        invalidateAll();
+      })
       // Appointments
       .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => {
         queryClient.invalidateQueries({ queryKey: ['admin-appointments'] });

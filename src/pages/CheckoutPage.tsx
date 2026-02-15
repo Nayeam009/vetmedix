@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,6 +36,7 @@ import {
 import { checkoutSchema } from '@/lib/validations';
 import { notifyAdminsOfNewOrder } from '@/lib/notifications';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useCheckoutTracking } from '@/hooks/useCheckoutTracking';
 
 const paymentMethods = [
   {
@@ -106,6 +107,9 @@ const CheckoutPage = () => {
     thana: '',
     notes: '',
   });
+
+  // Track incomplete checkout
+  const { markRecovered } = useCheckoutTracking(formData, items, totalAmount, paymentMethod);
 
   const deliveryCharge = getDeliveryCharge(formData.division);
   
@@ -262,6 +266,11 @@ const CheckoutPage = () => {
           orderTotal: grandTotal,
           itemCount: totalItems,
         });
+      }
+
+      // Mark incomplete order as recovered
+      if (orderData?.id) {
+        await markRecovered(orderData.id);
       }
 
       // Store order details before clearing cart

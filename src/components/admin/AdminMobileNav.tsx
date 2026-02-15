@@ -51,6 +51,8 @@ const navSections: NavSection[] = [
     items: [
       { icon: Package, label: 'Products', path: '/admin/products', description: 'Manage inventory' },
       { icon: ShoppingCart, label: 'Orders', path: '/admin/orders', description: 'Process orders' },
+      { icon: ShoppingCart, label: 'Incomplete Orders', path: '/admin/incomplete-orders', description: 'Abandoned checkouts' },
+      { icon: BarChart3, label: 'Recovery Analytics', path: '/admin/recovery-analytics', description: 'Recovery insights' },
     ]
   },
   {
