@@ -56,15 +56,40 @@ export const useIncompleteOrders = () => {
   });
 
   const convertMutation = useMutation({
-    mutationFn: async (order: IncompleteOrder) => {
-      // Create real order
+    mutationFn: async ({ order, editedData }: {
+      order: IncompleteOrder;
+      editedData: {
+        customer_name: string;
+        customer_phone: string;
+        customer_email: string;
+        shipping_address: string;
+        division: string;
+      };
+    }) => {
+      // Update incomplete order with admin-entered data
+      await supabase.from('incomplete_orders').update({
+        customer_name: editedData.customer_name,
+        customer_phone: editedData.customer_phone,
+        customer_email: editedData.customer_email,
+        shipping_address: editedData.shipping_address,
+        division: editedData.division,
+        completeness: 100,
+      }).eq('id', order.id);
+
+      // Create real order with complete data
+      const shippingAddress = [
+        editedData.customer_name,
+        editedData.customer_phone,
+        editedData.shipping_address,
+      ].filter(Boolean).join(', ');
+
       const { data: newOrder, error: orderError } = await supabase
         .from('orders')
         .insert({
           user_id: order.user_id || '00000000-0000-0000-0000-000000000000',
           items: order.items,
           total_amount: order.cart_total,
-          shipping_address: [order.customer_name, order.customer_phone, order.shipping_address].filter(Boolean).join(', '),
+          shipping_address: shippingAddress,
           payment_method: 'cod',
           status: 'pending',
         })
@@ -73,7 +98,7 @@ export const useIncompleteOrders = () => {
 
       if (orderError) throw orderError;
 
-      // Mark incomplete as recovered
+      // Mark as recovered
       await supabase
         .from('incomplete_orders')
         .update({ status: 'recovered', recovered_order_id: newOrder.id })
