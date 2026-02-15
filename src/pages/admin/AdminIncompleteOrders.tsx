@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { useIncompleteOrders, IncompleteOrder } from '@/hooks/useIncompleteOrders';
@@ -8,18 +8,19 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { 
+import {
   ShoppingCart, TrendingUp, DollarSign, AlertTriangle,
   Search, Trash2, ArrowUpRight, Phone, Mail, MapPin, Clock, Package
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 const StatCard = ({ icon: Icon, label, value, color, active, onClick }: { icon: React.ElementType; label: string; value: string | number; color: string; active?: boolean; onClick?: () => void }) => (
-  <Card 
+  <Card
     className={`border-border/50 cursor-pointer transition-all hover:shadow-md active:scale-95 ${active ? 'ring-2 ring-primary shadow-md' : ''}`}
     onClick={onClick}
     role="button"
@@ -39,8 +40,8 @@ const StatCard = ({ icon: Icon, label, value, color, active, onClick }: { icon: 
 );
 
 const CompletenessBadge = ({ value }: { value: number }) => {
-  const color = value >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-    : value >= 50 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' 
+  const color = value >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+    : value >= 50 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
     : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
   return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${color}`}>{value}%</span>;
 };
@@ -53,11 +54,38 @@ const AdminIncompleteOrders = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'incomplete' | 'recovered'>('all');
   const [convertDialog, setConvertDialog] = useState<IncompleteOrder | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<string | null>(null);
+
+  // Editable form state for convert dialog
+  const [convertFormData, setConvertFormData] = useState({
+    customer_name: '',
+    customer_phone: '',
+    customer_email: '',
+    shipping_address: '',
+    division: '',
+  });
+
+  // Pre-fill form when dialog opens
+  useEffect(() => {
+    if (convertDialog) {
+      setConvertFormData({
+        customer_name: convertDialog.customer_name || '',
+        customer_phone: convertDialog.customer_phone || '',
+        customer_email: convertDialog.customer_email || '',
+        shipping_address: convertDialog.shipping_address || '',
+        division: convertDialog.division || '',
+      });
+    }
+  }, [convertDialog]);
+
+  const isFormValid = convertFormData.customer_name.trim() && convertFormData.customer_phone.trim() && convertFormData.shipping_address.trim();
 
   const filtered = orders.filter(o => {
-    // Hide recovered orders by default - they are already completed
-    if (statusFilter === 'all' && o.status === 'recovered') return false;
-    if (statusFilter !== 'all' && o.status !== statusFilter) return false;
+    // Always hide 100% complete + recovered (already placed orders)
+    if (o.status === 'recovered') {
+      if (statusFilter !== 'recovered') return false;
+    }
+    if (statusFilter !== 'all' && statusFilter !== 'recovered' && o.status !== statusFilter) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return (o.customer_name?.toLowerCase().includes(q)) ||
@@ -66,9 +94,9 @@ const AdminIncompleteOrders = () => {
   });
 
   const handleConvert = async () => {
-    if (!convertDialog) return;
+    if (!convertDialog || !isFormValid) return;
     try {
-      await convertOrder(convertDialog);
+      await convertOrder({ order: convertDialog, editedData: convertFormData });
       toast.success('Order converted successfully!');
       setConvertDialog(null);
     } catch {
@@ -76,10 +104,12 @@ const AdminIncompleteOrders = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async () => {
+    if (!deleteDialog) return;
     try {
-      await deleteOrder(id);
-      toast.success('Incomplete order deleted');
+      await deleteOrder(deleteDialog);
+      toast.success('Incomplete order moved to trash');
+      setDeleteDialog(null);
     } catch {
       toast.error('Failed to delete');
     }
@@ -163,7 +193,7 @@ const AdminIncompleteOrders = () => {
                           <ArrowUpRight className="h-3 w-3 mr-1" />Convert
                         </Button>
                       )}
-                      <Button size="sm" variant="ghost" className="h-8 text-xs text-destructive" onClick={() => handleDelete(order.id)}>
+                      <Button size="sm" variant="ghost" className="h-8 text-xs text-destructive" onClick={() => setDeleteDialog(order.id)}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
@@ -209,7 +239,7 @@ const AdminIncompleteOrders = () => {
                     </TableCell>
                     <TableCell><CompletenessBadge value={order.completeness} /></TableCell>
                     <TableCell>
-                      {order.status === 'recovered' 
+                      {order.status === 'recovered'
                         ? <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Recovered</Badge>
                         : <Badge variant="outline">Incomplete</Badge>}
                     </TableCell>
@@ -221,7 +251,7 @@ const AdminIncompleteOrders = () => {
                             <ArrowUpRight className="h-3 w-3 mr-1" />Convert
                           </Button>
                         )}
-                        <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => handleDelete(order.id)}>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => setDeleteDialog(order.id)}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
@@ -233,30 +263,70 @@ const AdminIncompleteOrders = () => {
           </Card>
         )}
 
-        {/* Convert Dialog */}
+        {/* Convert Dialog - Editable Form */}
         <Dialog open={!!convertDialog} onOpenChange={() => setConvertDialog(null)}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2"><Package className="h-5 w-5 text-primary" />Convert to Order</DialogTitle>
-              <DialogDescription>This will create a real order from this incomplete checkout.</DialogDescription>
+              <DialogDescription>Fill in or update the customer details, then convert this into a real order.</DialogDescription>
             </DialogHeader>
             {convertDialog && (
-              <div className="space-y-3">
+              <div className="space-y-4">
+                {/* Editable fields */}
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="conv-name" className="text-xs">Customer Name <span className="text-destructive">*</span></Label>
+                    <Input id="conv-name" placeholder="Enter customer name" value={convertFormData.customer_name} onChange={e => setConvertFormData(p => ({ ...p, customer_name: e.target.value }))} className="mt-1" />
+                  </div>
+                  <div>
+                    <Label htmlFor="conv-phone" className="text-xs">Phone Number <span className="text-destructive">*</span></Label>
+                    <Input id="conv-phone" placeholder="Enter phone number" value={convertFormData.customer_phone} onChange={e => setConvertFormData(p => ({ ...p, customer_phone: e.target.value }))} className="mt-1" />
+                  </div>
+                  <div>
+                    <Label htmlFor="conv-email" className="text-xs">Email</Label>
+                    <Input id="conv-email" type="email" placeholder="Enter email (optional)" value={convertFormData.customer_email} onChange={e => setConvertFormData(p => ({ ...p, customer_email: e.target.value }))} className="mt-1" />
+                  </div>
+                  <div>
+                    <Label htmlFor="conv-address" className="text-xs">Shipping Address <span className="text-destructive">*</span></Label>
+                    <Input id="conv-address" placeholder="Enter full shipping address" value={convertFormData.shipping_address} onChange={e => setConvertFormData(p => ({ ...p, shipping_address: e.target.value }))} className="mt-1" />
+                  </div>
+                  <div>
+                    <Label htmlFor="conv-division" className="text-xs">Division</Label>
+                    <Input id="conv-division" placeholder="Enter division" value={convertFormData.division} onChange={e => setConvertFormData(p => ({ ...p, division: e.target.value }))} className="mt-1" />
+                  </div>
+                </div>
+
+                {/* Read-only order info */}
                 <div className="p-3 rounded-lg bg-muted/50 space-y-1 text-sm">
-                  <p><strong>Customer:</strong> {convertDialog.customer_name || 'Unknown'}</p>
-                  <p><strong>Phone:</strong> {convertDialog.customer_phone || '—'}</p>
-                  <p><strong>Email:</strong> {convertDialog.customer_email || '—'}</p>
-                  <p><strong>Address:</strong> {convertDialog.shipping_address || '—'}</p>
                   <p><strong>Cart Total:</strong> ৳{(convertDialog.cart_total || 0).toLocaleString()}</p>
                   <p><strong>Items:</strong> {Array.isArray(convertDialog.items) ? convertDialog.items.length : 0} items</p>
+                  <p><strong>Payment:</strong> Cash on Delivery</p>
                 </div>
+
+                {!isFormValid && (
+                  <p className="text-xs text-destructive">* Name, Phone, and Address are required to convert.</p>
+                )}
               </div>
             )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setConvertDialog(null)}>Cancel</Button>
-              <Button onClick={handleConvert} disabled={isConverting}>
+              <Button onClick={handleConvert} disabled={isConverting || !isFormValid}>
                 {isConverting ? 'Converting...' : 'Convert to Order'}
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={!!deleteDialog} onOpenChange={() => setDeleteDialog(null)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><Trash2 className="h-5 w-5 text-destructive" />Move to Trash</DialogTitle>
+              <DialogDescription>Are you sure you want to delete this incomplete order? This action cannot be undone.</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteDialog(null)}>Cancel</Button>
+              <Button variant="destructive" onClick={handleDelete}>Delete</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
