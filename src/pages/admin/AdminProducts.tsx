@@ -117,12 +117,13 @@ const AdminProducts = () => {
   }, [user, authLoading, isAdmin, roleLoading, navigate]);
 
   const stats = useMemo(() => {
-    if (!products) return { total: 0, inStock: 0, outOfStock: 0, lowStock: 0 };
+    if (!products) return { total: 0, inStock: 0, outOfStock: 0, lowStock: 0, featured: 0 };
     return {
       total: products.length,
       inStock: products.filter(p => (p.stock ?? 0) > 0).length,
       outOfStock: products.filter(p => (p.stock ?? 0) === 0).length,
       lowStock: products.filter(p => (p.stock ?? 0) > 0 && (p.stock ?? 0) <= LOW_STOCK_THRESHOLD).length,
+      featured: products.filter(p => (p as any).is_featured).length,
     };
   }, [products]);
 
@@ -146,6 +147,9 @@ const AdminProducts = () => {
         break;
       case 'low-stock':
         list = list.filter(p => (p.stock ?? 0) > 0 && (p.stock ?? 0) <= LOW_STOCK_THRESHOLD);
+        break;
+      case 'featured':
+        list = list.filter(p => (p as any).is_featured);
         break;
     }
     return list;
@@ -534,6 +538,10 @@ const AdminProducts = () => {
                             <Button variant="outline" size="sm" className="flex-1 h-8 rounded-lg text-xs"
                               onClick={(e) => { e.stopPropagation(); openEditDialog(product); }}>
                               <Edit2 className="h-3 w-3 mr-1" />Edit
+                            </Button>
+                            <Button variant={pFeatured ? "default" : "outline"} size="sm" className="h-8 rounded-lg text-xs px-2"
+                              onClick={(e) => { e.stopPropagation(); handleToggleFeatured(product.id, !pFeatured); }}>
+                              <Star className={`h-3 w-3 mr-1 ${pFeatured ? 'fill-current' : ''}`} />{pFeatured ? 'Featured' : 'Feature'}
                             </Button>
                             <Button variant="outline" size="sm" className="h-8 rounded-lg text-xs px-2"
                               onClick={(e) => { e.stopPropagation(); setQuickStockEdit({ id: product.id, stock: stock.toString() }); }}>
