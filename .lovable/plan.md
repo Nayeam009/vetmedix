@@ -1,165 +1,78 @@
 
-# Enhanced Admin Products Page & Category Management
+
+# Featured Products Admin Control & Shop Integration
 
 ## Overview
-Upgrade the admin products page with an improved product form (inspired by reference screenshots), add a dynamic category system with a management dialog, and add active/featured toggle columns to the product table.
+Connect the admin's `is_featured` toggle to the shop's hero carousel and add a "Featured Products" section to the shop page. Admin-set discounts on featured products will reflect in real-time across the shop.
 
 ---
 
-## 1. Database Changes
+## Changes
 
-### New `product_categories` Table
-A dedicated table to manage product categories dynamically instead of hardcoding "Pet" and "Farm":
+### 1. Shop Product Interface Update (`ShopPage.tsx`)
+Add `is_featured`, `is_active`, `compare_price`, and `sku` to the local `Product` interface so the shop can filter by these fields.
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | Primary key |
-| name | text | Category display name (e.g., "Pet", "Farm") |
-| slug | text | URL-friendly identifier |
-| image_url | text | Optional category image |
-| product_count | integer | Auto-updated count |
-| is_active | boolean | Toggle visibility |
-| created_at | timestamptz | Timestamp |
+### 2. Hero Carousel - Use `is_featured` (`ShopPage.tsx`)
+Update the `HeroCarousel` component's `featured` logic:
+- **Primary**: Show products where `is_featured === true` (admin-controlled)
+- **Fallback**: If no featured products exist, fall back to discounted products (current behavior)
+- Show `compare_price` as strikethrough when available (in addition to discount %)
 
-RLS: Admins full CRUD, everyone can read active categories.
+### 3. Filter Active Products (`ShopPage.tsx`)
+Add a filter to only show `is_active !== false` products in the public shop listing, so admin deactivation works.
 
-### Products Table Updates
-Add new columns to the `products` table:
+### 4. Featured Products Section in Shop (`ShopPage.tsx`)
+Add a dedicated "Featured Products" horizontal scroll section between the hero and the product grid:
+- Only shows when there are featured products (`is_featured === true`)
+- Displays as a scrollable row of ProductCards
+- Mobile: horizontal scroll with snap points
+- Desktop: up to 4 columns grid
+- Shows discount badges and compare prices
 
-| Column | Type | Notes |
-|--------|------|-------|
-| is_active | boolean | Default true - toggle product visibility |
-| is_featured | boolean | Default false - mark as featured |
-| compare_price | numeric | Original price before discount (for showing strikethrough) |
-| sku | text | Stock Keeping Unit identifier |
+### 5. Update `FeaturedProducts.tsx` Component
+Rewrite to query only `is_featured = true` products with realtime subscription:
+- Filter by `is_featured` and `is_active`
+- Use React Query instead of raw `useState/useEffect`
+- Subscribe to realtime changes on products table
+- Show compare_price strikethrough and discount badges
+- This component can be used on the homepage (Index page) if desired
 
----
+### 6. Add FeaturedProducts to Index Page (`Index.tsx`)
+Import and render `FeaturedProducts` component on the landing page between the social feed section and the footer, giving the homepage a shop preview.
 
-## 2. Product Form Enhancement (`ProductFormFields.tsx`)
-
-Redesign into organized sections inspired by image 134:
-
-**Section 1 - Basic Information (left/main column on desktop):**
-- Name
-- Description (textarea)
-- Image upload (existing component)
-
-**Section 2 - Price and Stock (right sidebar on desktop, stacked on mobile):**
-- Regular Price (BDT)
-- Compare Price (BDT) - the "was" price for showing discounts
-- Stock Quantity
-- SKU (optional)
-- Discount %
-
-**Section 3 - Organization:**
-- Category (dropdown from `product_categories` table, with "+ New Category" option inline)
-- Product Type (text input)
-- Badge (text input)
-
-**Section 4 - Status:**
-- Active toggle (Switch component)
-- Featured toggle (Switch component)
-
-On mobile: single column, all sections stacked. On desktop: two-column layout (main content left, sidebar right) within the dialog.
-
----
-
-## 3. Category Management
-
-### "Manage Categories" Button
-Add a button in the product page header actions area (next to Import/Export and Add Product).
-
-### Category Management Dialog
-A dialog/sheet with:
-- List of all categories showing: name, slug, product count, active toggle
-- "Add New Category" button at top
-- Inline editing for category name and active status
-- Delete option (with confirmation if products exist in category)
-- Mobile-friendly card layout
-
----
-
-## 4. Product Table Enhancements
-
-### Desktop Table Updates
-Add new columns inspired by image 133:
-- **Price column**: Show compare_price with strikethrough next to actual price
-- **Active column**: Toggle switch to quickly enable/disable products inline
-- **Featured column**: Toggle switch for featured status (optional, can be in dropdown)
-
-### Mobile Card Updates
-- Show active/inactive badge on cards
-- Show compare price with strikethrough styling
-
----
-
-## 5. Form Data Updates
-
-Update `ProductFormData` interface to include new fields:
-```
-is_active: boolean
-is_featured: boolean
-compare_price: string
-sku: string
-```
-
-Update the `productFormSchema` in `validations.ts` to include validation for new fields.
+### 7. Realtime Sync
+Both the shop hero and featured sections already subscribe to product changes via realtime. The existing subscription invalidates React Query cache, so admin toggle changes (featured, active, discount) will reflect immediately.
 
 ---
 
 ## Technical Details
 
-### Files to Create
-1. `src/hooks/useProductCategories.ts` - Hook for fetching/managing categories with realtime
-
 ### Files to Edit
-1. `src/components/admin/ProductFormFields.tsx` - Enhanced form with sections, category dropdown, toggles, new fields
-2. `src/pages/admin/AdminProducts.tsx` - Add category management button/dialog, update table columns, update form data handling
-3. `src/lib/validations.ts` - Add new field validations to productFormSchema
-4. `src/types/database.ts` - Update Product interface with new fields
+1. **`src/pages/ShopPage.tsx`**
+   - Extend Product interface with `is_featured`, `is_active`, `compare_price`
+   - Update HeroCarousel to prioritize `is_featured` products
+   - Filter out inactive products from display
+   - Add "Featured Products" section between hero and product grid
 
-### Database Migration
-```sql
--- New categories table
-CREATE TABLE public.product_categories (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name text NOT NULL UNIQUE,
-  slug text NOT NULL UNIQUE,
-  image_url text,
-  product_count integer DEFAULT 0,
-  is_active boolean DEFAULT true,
-  created_at timestamptz DEFAULT now()
-);
+2. **`src/components/FeaturedProducts.tsx`**
+   - Rewrite to use React Query with `is_featured = true` and `is_active = true` filters
+   - Add realtime subscription
+   - Show compare_price and discount info
 
-ALTER TABLE public.product_categories ENABLE ROW LEVEL SECURITY;
+3. **`src/pages/Index.tsx`**
+   - Import and render FeaturedProducts before Footer
 
-CREATE POLICY "Admins can manage categories"
-  ON public.product_categories FOR ALL
-  USING (has_role(auth.uid(), 'admin'))
-  WITH CHECK (has_role(auth.uid(), 'admin'));
+### No Database Changes Needed
+The `is_featured` and `is_active` columns already exist. The admin toggle handlers already work. This is purely a frontend connection task.
 
-CREATE POLICY "Anyone can view active categories"
-  ON public.product_categories FOR SELECT
-  USING (is_active = true);
-
--- Seed existing categories
-INSERT INTO public.product_categories (name, slug) VALUES
-  ('Pet', 'pet'),
-  ('Farm', 'farm');
-
--- Add new columns to products
-ALTER TABLE public.products
-  ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT true,
-  ADD COLUMN IF NOT EXISTS is_featured boolean DEFAULT false,
-  ADD COLUMN IF NOT EXISTS compare_price numeric,
-  ADD COLUMN IF NOT EXISTS sku text;
-
--- Enable realtime for categories
-ALTER PUBLICATION supabase_realtime ADD TABLE public.product_categories;
+### Key Logic
+```text
+Admin toggles "Featured" on a product
+  -> Supabase updates is_featured = true
+  -> Realtime event fires
+  -> React Query cache invalidates
+  -> Shop hero carousel updates to show featured products
+  -> Featured Products section updates
+  -> Homepage featured section updates
 ```
 
-### Responsive Design
-- Product form: Single column on mobile, two-column layout on desktop within dialog
-- Category dialog: Card layout on mobile, table on desktop
-- Toggle switches: 44px touch targets on mobile
-- All new inputs use rounded-xl styling consistent with existing UI
