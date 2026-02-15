@@ -13,6 +13,9 @@ import {
   ChevronRight,
   ShoppingBag,
   User,
+  Circle,
+  CheckCircle2,
+  X,
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { StatCard } from '@/components/admin/StatCard';
@@ -36,6 +39,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -58,7 +67,107 @@ interface EcomCustomer {
   last_order_date: string;
   last_payment_status: string;
   last_payment_method: string;
+  roles: string[];
 }
+
+// --- Role Badge Component ---
+const RoleBadge = ({ role }: { role: string }) => {
+  const config: Record<string, { label: string; className: string }> = {
+    admin: { label: 'Admin', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
+    doctor: { label: 'Doctor', className: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300' },
+    clinic_owner: { label: 'Clinic Owner', className: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' },
+    moderator: { label: 'Moderator', className: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
+    user: { label: 'Pet Parent', className: 'bg-gray-100 text-gray-700 dark:bg-gray-800/50 dark:text-gray-300' },
+  };
+  const c = config[role] || config.user;
+  return <Badge className={`${c.className} text-[10px] px-1.5 py-0 font-medium`}>{c.label}</Badge>;
+};
+
+// --- Payment Status Badge (clickable) ---
+const PaymentStatusBadge = ({
+  status,
+  onUpdate,
+  loading,
+}: {
+  status: string;
+  onUpdate: (newStatus: string) => void;
+  loading: boolean;
+}) => {
+  const badgeClass =
+    status === 'paid'
+      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+      : status === 'refunded'
+      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+      : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
+
+  const label = status === 'paid' ? 'Paid' : status === 'refunded' ? 'Refunded' : 'Unpaid';
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button disabled={loading} className="focus:outline-none">
+          <Badge className={`${badgeClass} cursor-pointer hover:opacity-80 transition-opacity capitalize`}>
+            {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : label}
+          </Badge>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-[120px]">
+        {['paid', 'unpaid', 'refunded'].map((s) => (
+          <DropdownMenuItem
+            key={s}
+            onClick={() => onUpdate(s)}
+            className={`capitalize ${s === status ? 'font-bold' : ''}`}
+          >
+            {s}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
+// --- Bulk Action Bar ---
+const BulkActionBar = ({
+  count,
+  onClear,
+  onBulkPayment,
+  onExportSelected,
+  loading,
+}: {
+  count: number;
+  onClear: () => void;
+  onBulkPayment: (status: string) => void;
+  onExportSelected: () => void;
+  loading: boolean;
+}) => (
+  <div className="flex items-center gap-2 flex-wrap bg-primary/5 border border-primary/20 rounded-xl p-2 sm:p-3 mb-4 animate-in slide-in-from-top-2">
+    <span className="text-sm font-medium text-primary">{count} selected</span>
+    <div className="flex gap-2 flex-wrap ml-auto">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size="sm" variant="outline" className="h-8 rounded-lg text-xs gap-1" disabled={loading}>
+            <CreditCard className="h-3.5 w-3.5" />
+            Update Payment
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {['paid', 'unpaid', 'refunded'].map((s) => (
+            <DropdownMenuItem key={s} onClick={() => onBulkPayment(s)} className="capitalize">
+              Mark as {s}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <Button size="sm" variant="outline" className="h-8 rounded-lg text-xs gap-1" onClick={onExportSelected}>
+        <Download className="h-3.5 w-3.5" />
+        Export
+      </Button>
+      <Button size="sm" variant="ghost" className="h-8 rounded-lg text-xs" onClick={onClear}>
+        <X className="h-3.5 w-3.5" />
+      </Button>
+    </div>
+  </div>
+);
 
 const AdminEcommerceCustomers = () => {
   useDocumentTitle('E-Commerce Customers - Admin');
@@ -71,13 +180,16 @@ const AdminEcommerceCustomers = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('all');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [updatingPayment, setUpdatingPayment] = useState<string | null>(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/auth');
     else if (!authLoading && !roleLoading && !isAdmin) navigate('/');
   }, [user, authLoading, isAdmin, roleLoading, navigate]);
 
-  // Fetch orders with profile data
+  // Fetch orders
   const { data: orders, isLoading } = useQuery({
     queryKey: ['admin-ecommerce-customers'],
     queryFn: async () => {
@@ -91,6 +203,7 @@ const AdminEcommerceCustomers = () => {
     enabled: isAdmin,
   });
 
+  // Fetch profiles
   const { data: profiles } = useQuery({
     queryKey: ['admin-profiles-for-ecom'],
     queryFn: async () => {
@@ -103,19 +216,48 @@ const AdminEcommerceCustomers = () => {
     enabled: isAdmin,
   });
 
-  // Realtime subscription for orders
+  // Fetch user roles
+  const { data: userRoles } = useQuery({
+    queryKey: ['admin-user-roles-for-ecom'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isAdmin,
+  });
+
+  // Realtime subscriptions: orders + incomplete_orders
   useEffect(() => {
     if (!isAdmin) return;
     const channel = supabase
-      .channel('ecom-customers-orders')
+      .channel('ecom-customers-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
         queryClient.invalidateQueries({ queryKey: ['admin-ecommerce-customers'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'incomplete_orders' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-ecommerce-customers'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-incomplete-orders'] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [isAdmin, queryClient]);
 
-  // Aggregate customers from orders (exclude cancelled orders from spending)
+  // Build role map
+  const roleMap = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const r of userRoles || []) {
+      if (!map[r.user_id]) map[r.user_id] = [];
+      map[r.user_id].push(r.role);
+    }
+    return map;
+  }, [userRoles]);
+
+  // Aggregate customers
   const customers = useMemo<EcomCustomer[]>(() => {
     if (!orders) return [];
     const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
@@ -136,20 +278,19 @@ const AdminEcommerceCustomers = () => {
           last_order_date: order.created_at,
           last_payment_status: order.payment_status || 'unpaid',
           last_payment_method: order.payment_method || 'cod',
+          roles: roleMap[uid] || ['user'],
         };
       }
-      // Only count non-cancelled orders for spending and order count
       if (!isCancelled) {
         agg[uid].order_count += 1;
         agg[uid].total_spent += Number(order.total_amount) || 0;
       }
     }
 
-    // Only include customers who have at least one non-cancelled order
     return Object.values(agg).filter(c => c.order_count > 0).sort((a, b) => b.total_spent - a.total_spent);
-  }, [orders, profiles]);
+  }, [orders, profiles, roleMap]);
 
-  // Stats (exclude cancelled orders from all revenue calculations)
+  // Stats
   const stats = useMemo(() => {
     if (!orders) return { totalSales: 0, paid: 0, pending: 0, totalCustomers: 0 };
     const activeOrders = orders.filter(o => o.status !== 'cancelled');
@@ -186,12 +327,80 @@ const AdminEcommerceCustomers = () => {
     startIndex,
   } = usePagination({ data: filteredCustomers, pageSize: 20 });
 
-  const handleExportCSV = useCallback(() => {
-    if (!filteredCustomers.length) return;
-    const headers = ['Customer', 'Phone', 'Orders', 'Total Spent (BDT)', 'Payment Method', 'Payment Status', 'Last Order'];
-    const rows = filteredCustomers.map(c => [
+  // Selection helpers
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    if (selectedIds.size === paginatedData.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(paginatedData.map(c => c.user_id)));
+    }
+  }, [paginatedData, selectedIds.size]);
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+
+  // Update payment status for a single customer
+  const updatePaymentStatus = useCallback(async (userId: string, newStatus: string) => {
+    setUpdatingPayment(userId);
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ payment_status: newStatus })
+        .eq('user_id', userId)
+        .neq('status', 'cancelled');
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['admin-ecommerce-customers'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      toast({ title: 'Updated', description: `Payment status set to ${newStatus}` });
+    } catch {
+      toast({ title: 'Error', description: 'Failed to update payment status', variant: 'destructive' });
+    } finally {
+      setUpdatingPayment(null);
+    }
+  }, [queryClient, toast]);
+
+  // Bulk update payment status
+  const bulkUpdatePayment = useCallback(async (newStatus: string) => {
+    if (!selectedIds.size) return;
+    setBulkLoading(true);
+    try {
+      const ids = Array.from(selectedIds);
+      for (const uid of ids) {
+        const { error } = await supabase
+          .from('orders')
+          .update({ payment_status: newStatus })
+          .eq('user_id', uid)
+          .neq('status', 'cancelled');
+        if (error) throw error;
+      }
+      queryClient.invalidateQueries({ queryKey: ['admin-ecommerce-customers'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      toast({ title: 'Bulk Update', description: `${ids.length} customers updated to ${newStatus}` });
+      clearSelection();
+    } catch {
+      toast({ title: 'Error', description: 'Bulk update failed', variant: 'destructive' });
+    } finally {
+      setBulkLoading(false);
+    }
+  }, [selectedIds, queryClient, toast, clearSelection]);
+
+  // Export helpers
+  const exportCustomers = useCallback((data: EcomCustomer[]) => {
+    if (!data.length) return;
+    const headers = ['Customer', 'Phone', 'Roles', 'Orders', 'Total Spent (BDT)', 'Payment Method', 'Payment Status', 'Last Order'];
+    const rows = data.map(c => [
       c.full_name || 'Unnamed',
       c.phone || '',
+      c.roles.join(', '),
       c.order_count.toString(),
       c.total_spent.toFixed(2),
       c.last_payment_method,
@@ -201,14 +410,16 @@ const AdminEcommerceCustomers = () => {
     const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
     downloadCSV(csvContent, `ecommerce-customers-${format(new Date(), 'yyyy-MM-dd')}.csv`);
     toast({ title: 'Success', description: 'Customers exported to CSV' });
-  }, [filteredCustomers, toast]);
+  }, [toast]);
+
+  const handleExportCSV = useCallback(() => exportCustomers(filteredCustomers), [exportCustomers, filteredCustomers]);
+
+  const handleExportSelected = useCallback(() => {
+    const selected = filteredCustomers.filter(c => selectedIds.has(c.user_id));
+    exportCustomers(selected);
+  }, [exportCustomers, filteredCustomers, selectedIds]);
 
   const formatBDT = (amount: number) => `৳${amount.toLocaleString('en-BD', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-
-  const getPaymentBadge = (status: string) => {
-    if (status === 'paid') return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">Paid</Badge>;
-    return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">Unpaid</Badge>;
-  };
 
   if (authLoading || roleLoading) {
     return (
@@ -231,37 +442,23 @@ const AdminEcommerceCustomers = () => {
     );
   }
 
+  const isAllSelected = paginatedData.length > 0 && selectedIds.size === paginatedData.length;
+
   return (
     <AdminLayout title="E-Commerce Customers" subtitle="Payments, buyers & revenue overview">
       {/* Stats Bar */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
         <div onClick={() => setPaymentFilter('all')} className={`cursor-pointer rounded-xl sm:rounded-2xl transition-all active:scale-95 ${paymentFilter === 'all' ? 'ring-2 ring-primary' : ''}`}>
-          <StatCard
-            title="Total Sales"
-            value={formatBDT(stats.totalSales)}
-            icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />}
-          />
+          <StatCard title="Total Sales" value={formatBDT(stats.totalSales)} icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />} />
         </div>
         <div onClick={() => setPaymentFilter('paid')} className={`cursor-pointer rounded-xl sm:rounded-2xl transition-all active:scale-95 ${paymentFilter === 'paid' ? 'ring-2 ring-emerald-500' : ''}`}>
-          <StatCard
-            title="Paid"
-            value={formatBDT(stats.paid)}
-            icon={<CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />}
-          />
+          <StatCard title="Paid" value={formatBDT(stats.paid)} icon={<CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />} />
         </div>
         <div onClick={() => setPaymentFilter('unpaid')} className={`cursor-pointer rounded-xl sm:rounded-2xl transition-all active:scale-95 ${paymentFilter === 'unpaid' ? 'ring-2 ring-amber-500' : ''}`}>
-          <StatCard
-            title="Pending"
-            value={formatBDT(stats.pending)}
-            icon={<Clock className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />}
-          />
+          <StatCard title="Pending" value={formatBDT(stats.pending)} icon={<Clock className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />} />
         </div>
         <div className="rounded-xl sm:rounded-2xl">
-          <StatCard
-            title="Total Customers"
-            value={stats.totalCustomers}
-            icon={<Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />}
-          />
+          <StatCard title="Total Customers" value={stats.totalCustomers} icon={<Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />} />
         </div>
       </div>
 
@@ -287,17 +484,23 @@ const AdminEcommerceCustomers = () => {
               <SelectItem value="unpaid">Unpaid</SelectItem>
             </SelectContent>
           </Select>
-          <Button
-            variant="outline"
-            onClick={handleExportCSV}
-            disabled={!filteredCustomers.length}
-            className="h-10 sm:h-11 rounded-xl text-sm gap-2"
-          >
+          <Button variant="outline" onClick={handleExportCSV} disabled={!filteredCustomers.length} className="h-10 sm:h-11 rounded-xl text-sm gap-2">
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Export</span>
           </Button>
         </div>
       </div>
+
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <BulkActionBar
+          count={selectedIds.size}
+          onClear={clearSelection}
+          onBulkPayment={bulkUpdatePayment}
+          onExportSelected={handleExportSelected}
+          loading={bulkLoading}
+        />
+      )}
 
       {/* Result count */}
       <p className="text-xs sm:text-sm text-muted-foreground mb-2">
@@ -321,17 +524,32 @@ const AdminEcommerceCustomers = () => {
             <div className="sm:hidden divide-y divide-border">
               {paginatedData.map((customer) => (
                 <div key={customer.user_id} className="p-3 space-y-2">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10 flex-shrink-0">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => toggleSelect(customer.user_id)} className="flex-shrink-0 text-muted-foreground">
+                      {selectedIds.has(customer.user_id) ? (
+                        <CheckCircle2 className="h-5 w-5 text-primary" />
+                      ) : (
+                        <Circle className="h-5 w-5" />
+                      )}
+                    </button>
+                    <Avatar className="h-9 w-9 flex-shrink-0">
                       <AvatarFallback className="bg-primary/10 text-primary">
-                        <User className="h-5 w-5" />
+                        <User className="h-4 w-4" />
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{customer.full_name || 'Unnamed'}</p>
                       <p className="text-xs text-muted-foreground">{customer.phone || 'No phone'}</p>
                     </div>
-                    {getPaymentBadge(customer.last_payment_status)}
+                    <PaymentStatusBadge
+                      status={customer.last_payment_status}
+                      onUpdate={(s) => updatePaymentStatus(customer.user_id, s)}
+                      loading={updatingPayment === customer.user_id}
+                    />
+                  </div>
+                  {/* Role badges */}
+                  <div className="flex gap-1 flex-wrap pl-7">
+                    {customer.roles.map(r => <RoleBadge key={r} role={r} />)}
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-xs">
                     <div className="bg-muted/50 rounded-lg p-2 text-center">
@@ -359,7 +577,13 @@ const AdminEcommerceCustomers = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-primary transition-colors">
+                        {isAllSelected ? <CheckCircle2 className="h-4.5 w-4.5 text-primary" /> : <Circle className="h-4.5 w-4.5" />}
+                      </button>
+                    </TableHead>
                     <TableHead>Customer</TableHead>
+                    <TableHead>Role</TableHead>
                     <TableHead className="text-center">Orders</TableHead>
                     <TableHead className="text-right">Total Spent</TableHead>
                     <TableHead>Payment Method</TableHead>
@@ -370,6 +594,15 @@ const AdminEcommerceCustomers = () => {
                 <TableBody>
                   {paginatedData.map((customer) => (
                     <TableRow key={customer.user_id} className="hover:bg-muted/50 transition-colors">
+                      <TableCell>
+                        <button onClick={() => toggleSelect(customer.user_id)} className="text-muted-foreground hover:text-primary transition-colors">
+                          {selectedIds.has(customer.user_id) ? (
+                            <CheckCircle2 className="h-4.5 w-4.5 text-primary" />
+                          ) : (
+                            <Circle className="h-4.5 w-4.5" />
+                          )}
+                        </button>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-9 w-9">
@@ -383,12 +616,23 @@ const AdminEcommerceCustomers = () => {
                           </div>
                         </div>
                       </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 flex-wrap">
+                          {customer.roles.map(r => <RoleBadge key={r} role={r} />)}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-center font-medium">{customer.order_count}</TableCell>
                       <TableCell className="text-right font-semibold">{formatBDT(customer.total_spent)}</TableCell>
                       <TableCell>
                         <span className="uppercase text-xs font-medium text-muted-foreground">{customer.last_payment_method}</span>
                       </TableCell>
-                      <TableCell>{getPaymentBadge(customer.last_payment_status)}</TableCell>
+                      <TableCell>
+                        <PaymentStatusBadge
+                          status={customer.last_payment_status}
+                          onUpdate={(s) => updatePaymentStatus(customer.user_id, s)}
+                          loading={updatingPayment === customer.user_id}
+                        />
+                      </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {format(new Date(customer.last_order_date), 'PP')}
                       </TableCell>
