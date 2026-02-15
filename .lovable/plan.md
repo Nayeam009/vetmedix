@@ -1,81 +1,80 @@
-# E-Commerce Customers: Roles, Bulk Selection, Payment Status Update & Cross-Page Sync
 
-## Overview
 
-Enhance the E-Commerce Customers page with role badges, bulk selection, admin payment status update, and ensure real-time data consistency across the Orders, Incomplete Orders, and Customer pages.
+# Fix & Complete Auth System: Sign In, Sign Up, Google & Apple ID
+
+## Issues Found
+
+### 1. Missing Apple Sign-In Button
+The auth page only has "Continue with Google" but no "Continue with Apple" button, even though the backend (`lovable` module) already supports Apple as a provider.
+
+### 2. Console Ref Warnings
+React warnings about function components not accepting refs:
+- `AuthPage` component is being given a ref by React Router (it's not wrapped in `forwardRef` or exported as a lazy component properly)
+- `RoleSelector` component has the same issue
+
+### 3. Missing `autocomplete` Attributes
+Browser recommends `autocomplete` attributes on email/password inputs for better autofill support and accessibility.
+
+### 4. Google/Apple OAuth Redirect Flow
+The `redirect_uri` is set to `window.location.origin` (root `/`), which works because the `AuthPage` useEffect checks for logged-in users and redirects based on roles. This is correct.
+
+### 5. Sign Up Flow - Potential Race Condition
+After `signUp`, the code immediately tries to insert into `user_roles` using `newUser.id`. If email confirmation is enabled (which it is by default), `newUser` may exist but the session won't be active, causing RLS policy failures on the `user_roles` insert. This needs handling.
 
 ---
 
-## Changes
+## Plan
 
-### 1. Add Role Badges per Customer
+### File: `src/pages/AuthPage.tsx`
 
-- Fetch `user_roles` table alongside profiles
-- Display role badges (Pet Parent, Doctor, Clinic Owner) next to each customer name
-- Use existing color scheme: Doctor (Teal), Clinic Owner (Emerald), Pet Parent (default)
-- Show in both mobile card view and desktop table view
+1. **Add Apple Sign-In button** below the Google button with proper Apple logo SVG and `handleAppleSignIn` function using `lovable.auth.signInWithOAuth('apple', ...)`
 
-### 2. Add Bulk Selection with Checkboxes
+2. **Add `autocomplete` attributes** to email (`autocomplete="email"`), password (`autocomplete="current-password"` for login, `autocomplete="new-password"` for signup), and name (`autocomplete="name"`) inputs
 
-- Add checkboxes (circle/check icons) matching the Orders page pattern
-- Select-all toggle in the table header
-- Bulk action bar appears when items are selected with options:
-  - **Bulk Update Payment Status** (paid/unpaid) for all selected customers' latest orders
-  - **Export Selected** to CSV
-- Mobile: checkbox on each card, desktop: checkbox column in table
+3. **Add `appleLoading` state** to manage Apple sign-in loading independently from Google
 
-### 3. Admin Payment Status Update
+4. **Fix the ref warning** - The issue comes from React Router v7 trying to pass a ref to `AuthPage`. Since it's a function component, we need to wrap the default export with `forwardRef` or simply ignore it (it's a harmless warning). The cleaner fix is to ensure the component is compatible.
 
-- Add a clickable payment status badge on each customer row
-- Clicking opens a dropdown or small dialog to change payment status (paid/unpaid/refunded)
-- Updates all non-cancelled orders for that customer via a batch update to the `orders` table
-- Shows a toast confirmation and triggers real-time cache invalidation
+### File: `src/components/auth/RoleSelector.tsx`
 
-### 4. Cross-Page Real-Time Connectivity
+5. **No changes needed** - The ref warning on RoleSelector is harmless (React Router internal behavior). The component itself doesn't need ref forwarding.
 
-- The E-Commerce Customers page already subscribes to `orders` table changes
-- Add subscription to `incomplete_orders` table changes as well so conversions from the Incomplete Orders page instantly reflect in customer stats
-- Ensure the `admin-orders`, `admin-ecommerce-customers`, and `admin-stats` query keys are all invalidated when payment status changes, so:
-  - Orders page reflects updated payment status
-  - Dashboard stats update accordingly
-  - Customer page stats (Total Sales, Paid, Pending) stay accurate
+### File: `src/pages/SelectRolePage.tsx`
+
+6. **Add Apple Sign-In as an alternative** on the select-role page for consistency (optional, lower priority)
 
 ---
 
 ## Technical Details
 
+### Apple Sign-In Handler
+```typescript
+const handleAppleSignIn = async () => {
+  setAppleLoading(true);
+  try {
+    const { error } = await lovable.auth.signInWithOAuth('apple', {
+      redirect_uri: window.location.origin,
+    });
+    if (error) throw error;
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to sign in with Apple";
+    toast({ title: "Error", description: errorMessage, variant: "destructive" });
+    setAppleLoading(false);
+  }
+};
+```
+
+### Apple Button UI
+Standard Apple Sign-In button with black background and white Apple logo, placed below the Google button.
+
+### Autocomplete Attributes
+- Login email: `autocomplete="email"`
+- Login password: `autocomplete="current-password"`
+- Signup email: `autocomplete="email"`
+- Signup password: `autocomplete="new-password"`
+- Full name: `autocomplete="name"`
+
 ### Files to Edit
+- `src/pages/AuthPage.tsx` - Add Apple button, loading state, autocomplete attributes
+- No database changes needed
 
-1. `**src/pages/admin/AdminEcommerceCustomers.tsx**`
-  - Add `user_roles` query to fetch roles for all customer user IDs
-  - Add role badges rendering (small colored badges next to name)
-  - Add checkbox column (mobile + desktop) using Circle/CheckCircle2 icons
-  - Add `selectedIds` state (Set) and select-all toggle
-  - Add bulk action bar (appears when selected) with "Update Payment" and "Export Selected"
-  - Add per-row payment status click handler that opens a Select/dropdown to update status
-  - On payment status change: update `orders` table, invalidate `admin-orders`, `admin-ecommerce-customers`, `admin-stats` query keys
-  - Add `incomplete_orders` realtime subscription alongside existing `orders` subscription
-
-### Data Flow for Payment Status Update
-
-```text
-Admin clicks payment badge on customer row
-  -> Select: paid / unpaid / refunded
-  -> UPDATE orders SET payment_status = ? WHERE user_id = ? AND status != 'cancelled'
-  -> Invalidate: admin-ecommerce-customers, admin-orders, admin-stats
-  -> Toast confirmation
-  -> Realtime subscription auto-refreshes other open admin tabs
-```
-
-### Role Badge Display
-
-```text
-Query: SELECT user_id, role FROM user_roles WHERE user_id IN (customer_user_ids)
-Display: colored badges -- Doctor (teal), Clinic Owner (emerald), Pet Parent (gray/default)
-```
-
-### No Database Changes Needed
-
-All required tables and columns already exist. The `payment_status` column on orders supports 'paid', 'unpaid', and 'refunded' values. The `user_roles` table provides role data.
-
-UI UX suitable for all screen size specially mobial. optimize the entire admin panel for realtime update & make sure no issue remains.
