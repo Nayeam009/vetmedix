@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { useIncompleteOrders, IncompleteOrder } from '@/hooks/useIncompleteOrders';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -17,8 +18,14 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
-const StatCard = ({ icon: Icon, label, value, color }: { icon: React.ElementType; label: string; value: string | number; color: string }) => (
-  <Card className="border-border/50">
+const StatCard = ({ icon: Icon, label, value, color, active, onClick }: { icon: React.ElementType; label: string; value: string | number; color: string; active?: boolean; onClick?: () => void }) => (
+  <Card 
+    className={`border-border/50 cursor-pointer transition-all hover:shadow-md active:scale-95 ${active ? 'ring-2 ring-primary shadow-md' : ''}`}
+    onClick={onClick}
+    role="button"
+    tabIndex={0}
+    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick?.(); }}
+  >
     <CardContent className="p-4 flex items-center gap-3">
       <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${color}`}>
         <Icon className="h-5 w-5" />
@@ -41,11 +48,14 @@ const CompletenessBadge = ({ value }: { value: number }) => {
 const AdminIncompleteOrders = () => {
   useDocumentTitle('Incomplete Orders');
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const { orders, isLoading, totalIncomplete, totalRecovered, recoveryRate, lostRevenue, deleteOrder, convertOrder, isConverting } = useIncompleteOrders();
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'incomplete' | 'recovered'>('all');
   const [convertDialog, setConvertDialog] = useState<IncompleteOrder | null>(null);
 
   const filtered = orders.filter(o => {
+    if (statusFilter !== 'all' && o.status !== statusFilter) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return (o.customer_name?.toLowerCase().includes(q)) ||
@@ -98,10 +108,10 @@ const AdminIncompleteOrders = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard icon={ShoppingCart} label="Incomplete" value={totalIncomplete} color="bg-amber-500/10 text-amber-600" />
-          <StatCard icon={TrendingUp} label="Recovered" value={totalRecovered} color="bg-green-500/10 text-green-600" />
-          <StatCard icon={AlertTriangle} label="Recovery Rate" value={`${recoveryRate}%`} color="bg-blue-500/10 text-blue-600" />
-          <StatCard icon={DollarSign} label="Lost Revenue" value={`৳${lostRevenue.toLocaleString()}`} color="bg-red-500/10 text-red-600" />
+          <StatCard icon={ShoppingCart} label="Incomplete" value={totalIncomplete} color="bg-amber-500/10 text-amber-600" active={statusFilter === 'incomplete'} onClick={() => setStatusFilter(f => f === 'incomplete' ? 'all' : 'incomplete')} />
+          <StatCard icon={TrendingUp} label="Recovered" value={totalRecovered} color="bg-green-500/10 text-green-600" active={statusFilter === 'recovered'} onClick={() => setStatusFilter(f => f === 'recovered' ? 'all' : 'recovered')} />
+          <StatCard icon={AlertTriangle} label="Recovery Rate" value={`${recoveryRate}%`} color="bg-blue-500/10 text-blue-600" onClick={() => navigate('/admin/recovery-analytics')} />
+          <StatCard icon={DollarSign} label="Lost Revenue" value={`৳${lostRevenue.toLocaleString()}`} color="bg-red-500/10 text-red-600" active={statusFilter === 'incomplete'} onClick={() => setStatusFilter(f => f === 'incomplete' ? 'all' : 'incomplete')} />
         </div>
 
         {/* Revenue Banner */}
