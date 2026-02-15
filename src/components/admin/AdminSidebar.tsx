@@ -15,7 +15,8 @@ import {
   Shield,
   Stethoscope,
   Mail,
-  Ticket
+  Ticket,
+  MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/Logo';
@@ -54,6 +55,7 @@ const navSections: NavSection[] = [
       { icon: ShoppingCart, label: 'Orders', path: '/admin/orders' },
       { icon: Users, label: 'Customers', path: '/admin/ecommerce-customers' },
       { icon: Ticket, label: 'Coupons', path: '/admin/coupons' },
+      { icon: MapPin, label: 'Delivery Zones', path: '/admin/delivery-zones' },
       { icon: ShoppingCart, label: 'Incomplete Orders', path: '/admin/incomplete-orders' },
       { icon: BarChart3, label: 'Recovery Analytics', path: '/admin/recovery-analytics' },
     ]
