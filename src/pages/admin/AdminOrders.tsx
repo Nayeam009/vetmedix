@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   Loader2,
   X,
+  Calendar,
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -56,7 +57,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
-import { format } from 'date-fns';
+import { format, startOfDay, startOfWeek, startOfMonth, startOfYear, isAfter } from 'date-fns';
 import { createOrderNotification } from '@/lib/notifications';
 import { SendToCourierDialog } from '@/components/admin/SendToCourierDialog';
 import { RejectOrderDialog } from '@/components/admin/RejectOrderDialog';
@@ -70,6 +71,49 @@ import { cn } from '@/lib/utils';
 import { downloadCSV } from '@/lib/csvParser';
 import { analyzeFraudRisk, parseShippingAddress, type FraudAnalysis } from '@/lib/fraudDetection';
 
+type TimeFilter = 'today' | 'week' | 'month' | 'year' | 'all';
+
+const getTimeCutoff = (filter: TimeFilter): Date | null => {
+  const now = new Date();
+  switch (filter) {
+    case 'today': return startOfDay(now);
+    case 'week': return startOfWeek(now, { weekStartsOn: 0 });
+    case 'month': return startOfMonth(now);
+    case 'year': return startOfYear(now);
+    default: return null;
+  }
+};
+
+const TimeFilterBar = ({ value, onChange }: { value: TimeFilter; onChange: (v: TimeFilter) => void }) => {
+  const presets: { value: TimeFilter; label: string; short: string }[] = [
+    { value: 'today', label: 'Today', short: 'Today' },
+    { value: 'week', label: 'This Week', short: 'Week' },
+    { value: 'month', label: 'This Month', short: 'Month' },
+    { value: 'year', label: 'This Year', short: 'Year' },
+    { value: 'all', label: 'All Time', short: 'All' },
+  ];
+  return (
+    <div className="flex items-center gap-1 sm:gap-1.5">
+      <Calendar className="h-3.5 w-3.5 text-muted-foreground mr-1 hidden sm:block" />
+      {presets.map((p) => (
+        <button
+          key={p.value}
+          onClick={() => onChange(p.value)}
+          className={cn(
+            'px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-medium transition-all',
+            value === p.value
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+          )}
+        >
+          <span className="sm:hidden">{p.short}</span>
+          <span className="hidden sm:inline">{p.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+};
+
 const AdminOrders = () => {
   useDocumentTitle('Orders Management - Admin');
   const navigate = useNavigate();
@@ -82,6 +126,7 @@ const AdminOrders = () => {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isAcceptOpen, setIsAcceptOpen] = useState(false);
@@ -89,6 +134,14 @@ const AdminOrders = () => {
   const [orderForAction, setOrderForAction] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkShipping, setIsBulkShipping] = useState(false);
+
+  // Time-filtered orders
+  const timeFilteredOrders = useMemo(() => {
+    if (!orders) return [];
+    const cutoff = getTimeCutoff(timeFilter);
+    if (!cutoff) return orders;
+    return orders.filter(o => isAfter(new Date(o.created_at), cutoff));
+  }, [orders, timeFilter]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -117,10 +170,10 @@ const AdminOrders = () => {
   }, [orders]);
 
   const orderStats = useMemo(() => {
-    if (!orders) return { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, flagged: 0, total: 0, revenue: 0 };
+    if (!timeFilteredOrders.length) return { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, flagged: 0, total: 0, revenue: 0 };
     const excludedStatuses = ['cancelled', 'rejected'];
     let pending = 0, processing = 0, shipped = 0, delivered = 0, cancelled = 0, flagged = 0, revenue = 0;
-    for (const order of orders) {
+    for (const order of timeFilteredOrders) {
       switch (order.status) {
         case 'pending': pending++; break;
         case 'processing': processing++; break;
@@ -133,16 +186,16 @@ const AdminOrders = () => {
       const analysis = fraudAnalysisMap.get(order.id);
       if (analysis && (analysis.level === 'medium' || analysis.level === 'high')) flagged++;
     }
-    return { pending, processing, shipped, delivered, cancelled, flagged, total: orders.length, revenue };
-  }, [orders, fraudAnalysisMap]);
+    return { pending, processing, shipped, delivered, cancelled, flagged, total: timeFilteredOrders.length, revenue };
+  }, [timeFilteredOrders, fraudAnalysisMap]);
 
   const highRiskPendingCount = useMemo(() => {
-    if (!orders) return 0;
-    return orders.filter(o => {
+    if (!timeFilteredOrders.length) return 0;
+    return timeFilteredOrders.filter(o => {
       const analysis = fraudAnalysisMap.get(o.id);
       return o.status === 'pending' && analysis?.level === 'high';
     }).length;
-  }, [orders, fraudAnalysisMap]);
+  }, [timeFilteredOrders, fraudAnalysisMap]);
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds(prev => {
@@ -299,7 +352,7 @@ const AdminOrders = () => {
   };
 
   const filteredOrders = useMemo(() => {
-    return orders?.filter(order => {
+    return timeFilteredOrders.filter(order => {
       const customerName = getCustomerName(order).toLowerCase();
       const lowerQuery = searchQuery.toLowerCase();
       const matchesSearch = !searchQuery || 
@@ -315,8 +368,8 @@ const AdminOrders = () => {
       
       const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
       return matchesSearch && matchesStatus;
-    }) || [];
-  }, [orders, searchQuery, statusFilter, fraudAnalysisMap]);
+    });
+  }, [timeFilteredOrders, searchQuery, statusFilter, fraudAnalysisMap]);
 
   // Bulk selection helpers (depend on filteredOrders)
   const pendingFilteredIds = useMemo(() => 
@@ -408,6 +461,11 @@ const AdminOrders = () => {
           </Button>
         </div>
       )}
+
+      {/* Time Filter */}
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <TimeFilterBar value={timeFilter} onChange={setTimeFilter} />
+      </div>
 
       {/* Order Stats Bar */}
       {isLoading ? <OrderStatsBarSkeleton /> : (
