@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { useIncompleteOrders } from '@/hooks/useIncompleteOrders';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -12,8 +13,14 @@ import { subDays, format, isAfter, startOfDay } from 'date-fns';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--muted-foreground))'];
 
-const StatCard = ({ icon: Icon, label, value, color }: { icon: React.ElementType; label: string; value: string | number; color: string }) => (
-  <Card className="border-border/50">
+const StatCard = ({ icon: Icon, label, value, color, onClick }: { icon: React.ElementType; label: string; value: string | number; color: string; onClick?: () => void }) => (
+  <Card 
+    className="border-border/50 cursor-pointer transition-all hover:shadow-md active:scale-95"
+    onClick={onClick}
+    role="button"
+    tabIndex={0}
+    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick?.(); }}
+  >
     <CardContent className="p-4 flex items-center gap-3">
       <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${color}`}>
         <Icon className="h-5 w-5" />
@@ -28,6 +35,7 @@ const StatCard = ({ icon: Icon, label, value, color }: { icon: React.ElementType
 
 const AdminRecoveryAnalytics = () => {
   useDocumentTitle('Recovery Analytics');
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { orders, isLoading, totalIncomplete, totalRecovered, recoveryRate, lostRevenue, recoveredRevenue } = useIncompleteOrders();
   const [dateRange, setDateRange] = useState('14');
@@ -129,10 +137,10 @@ const AdminRecoveryAnalytics = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard icon={ShoppingCart} label="Total Incomplete" value={totalIncomplete} color="bg-amber-500/10 text-amber-600" />
-          <StatCard icon={TrendingUp} label="Recovered" value={totalRecovered} color="bg-green-500/10 text-green-600" />
+          <StatCard icon={ShoppingCart} label="Total Incomplete" value={totalIncomplete} color="bg-amber-500/10 text-amber-600" onClick={() => navigate('/admin/incomplete-orders')} />
+          <StatCard icon={TrendingUp} label="Recovered" value={totalRecovered} color="bg-green-500/10 text-green-600" onClick={() => navigate('/admin/incomplete-orders')} />
           <StatCard icon={Percent} label="Recovery Rate" value={`${recoveryRate}%`} color="bg-blue-500/10 text-blue-600" />
-          <StatCard icon={DollarSign} label="Recovered Revenue" value={`৳${recoveredRevenue.toLocaleString()}`} color="bg-emerald-500/10 text-emerald-600" />
+          <StatCard icon={DollarSign} label="Recovered Revenue" value={`৳${recoveredRevenue.toLocaleString()}`} color="bg-emerald-500/10 text-emerald-600" onClick={() => navigate('/admin/incomplete-orders')} />
         </div>
 
         {/* Revenue Banners */}
