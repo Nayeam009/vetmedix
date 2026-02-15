@@ -567,6 +567,7 @@ const AdminProducts = () => {
                       <TableHead>Product</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>Price</TableHead>
+                      <TableHead>Discount</TableHead>
                       <TableHead>Stock</TableHead>
                       <TableHead>Active</TableHead>
                       <TableHead>Featured</TableHead>
@@ -614,6 +615,13 @@ const AdminProducts = () => {
                                 <span className="text-xs text-muted-foreground line-through">৳{comparePrice}</span>
                               )}
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            {product.discount && product.discount > 0 ? (
+                              <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">{product.discount}% OFF</Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             <span className={cn('font-medium tabular-nums', isOut && 'text-destructive', isLow && 'text-warning')}>{stock}</span>
