@@ -35,6 +35,8 @@ const ProductCard = memo(({ id, name, price, category, image, badge, discount, s
   const wishlisted = id ? isWishlisted(id) : false;
   const isOutOfStock = stock !== null && stock !== undefined && stock <= 0;
   const isLowStock = stock !== null && stock !== undefined && stock > 0 && stock <= 5;
+  // Guard against stale "Stock Out" badge when stock > 0
+  const displayBadge = badge && !(badge.toLowerCase() === 'stock out' && stock !== null && stock !== undefined && stock > 0) ? badge : null;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -78,8 +80,8 @@ const ProductCard = memo(({ id, name, price, category, image, badge, discount, s
         )}
         {/* Badges */}
         <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1 sm:gap-2 z-10">
-          {badge && (
-            <span className="badge-rx text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">{badge}</span>
+          {displayBadge && (
+            <span className="badge-rx text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">{displayBadge}</span>
           )}
           {discount && !isOutOfStock && (
             <span className="badge-sale text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">{discount}% OFF</span>
