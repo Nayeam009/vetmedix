@@ -183,6 +183,10 @@ const AdminProducts = () => {
     }
     setSaving(true);
     try {
+      const stock = result.data.stock;
+      let badge = result.data.badge || null;
+      if (stock > 0 && badge?.toLowerCase() === 'stock out') badge = null;
+      if (stock === 0) badge = 'Stock Out';
       const { error } = await supabase.from('products').insert({
         name: result.data.name,
         description: result.data.description || null,
@@ -190,8 +194,8 @@ const AdminProducts = () => {
         category: result.data.category,
         product_type: result.data.product_type || null,
         image_url: result.data.image_url || null,
-        stock: result.data.stock,
-        badge: result.data.badge || null,
+        stock,
+        badge,
         discount: result.data.discount,
         is_active: result.data.is_active,
         is_featured: result.data.is_featured,
@@ -219,6 +223,10 @@ const AdminProducts = () => {
     }
     setSaving(true);
     try {
+      const stock = result.data.stock;
+      let badge = result.data.badge || null;
+      if (stock > 0 && badge?.toLowerCase() === 'stock out') badge = null;
+      if (stock === 0) badge = 'Stock Out';
       const { error } = await supabase.from('products').update({
         name: result.data.name,
         description: result.data.description || null,
@@ -226,8 +234,8 @@ const AdminProducts = () => {
         category: result.data.category,
         product_type: result.data.product_type || null,
         image_url: result.data.image_url || null,
-        stock: result.data.stock,
-        badge: result.data.badge || null,
+        stock,
+        badge,
         discount: result.data.discount,
         is_active: result.data.is_active,
         is_featured: result.data.is_featured,
@@ -266,7 +274,16 @@ const AdminProducts = () => {
 
   const handleQuickStockUpdate = async (productId: string, newStock: number) => {
     try {
-      const { error } = await supabase.from('products').update({ stock: newStock }).eq('id', productId);
+      // Auto-sync badge with stock status
+      const product = products?.find(p => p.id === productId);
+      const currentBadge = product?.badge;
+      const updateData: any = { stock: newStock };
+      if (newStock > 0 && currentBadge?.toLowerCase() === 'stock out') {
+        updateData.badge = null;
+      } else if (newStock === 0) {
+        updateData.badge = 'Stock Out';
+      }
+      const { error } = await supabase.from('products').update(updateData).eq('id', productId);
       if (error) throw error;
       toast({ title: 'Stock updated', description: `Stock set to ${newStock}` });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
