@@ -22,6 +22,7 @@ import type { Pet } from '@/types/social';
 import heroCatSocial from '@/assets/hero-cat-social.png';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import SEO from '@/components/SEO';
+import FeaturedProducts from '@/components/FeaturedProducts';
 // Memoized feature cards to prevent unnecessary re-renders
 const FeatureCard = memo(({ icon: Icon, label, color, iconColor }: { 
   icon: typeof Camera; 
@@ -595,6 +596,7 @@ const Index = () => {
         </div>
       </main>
 
+      <FeaturedProducts />
       <Footer />
       <MobileNav />
     </div>

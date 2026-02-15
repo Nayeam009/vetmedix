@@ -65,6 +65,10 @@ interface Product {
   badge: string | null;
   discount: number | null;
   created_at: string;
+  is_featured: boolean | null;
+  is_active: boolean | null;
+  compare_price: number | null;
+  sku: string | null;
 }
 
 // Hero Carousel Component
@@ -72,10 +76,12 @@ const HeroCarousel = memo(({ products }: { products: Product[] }) => {
   const [current, setCurrent] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
   
-  // Pick featured products (ones with discounts or badges, fallback to first 5)
+  // Pick featured products: prioritize admin-marked featured, fallback to discounted
   const featured = useMemo(() => {
-    const discounted = products.filter(p => p.discount && p.discount > 0 && p.image_url);
-    const pool = discounted.length >= 5 ? discounted : products.filter(p => p.image_url);
+    const adminFeatured = products.filter(p => p.is_featured && p.is_active !== false && p.image_url);
+    if (adminFeatured.length > 0) return adminFeatured.slice(0, 8);
+    const discounted = products.filter(p => p.discount && p.discount > 0 && p.image_url && p.is_active !== false);
+    const pool = discounted.length >= 5 ? discounted : products.filter(p => p.image_url && p.is_active !== false);
     return pool.slice(0, 5);
   }, [products]);
 
@@ -99,6 +105,7 @@ const HeroCarousel = memo(({ products }: { products: Product[] }) => {
 
   const p = featured[current];
   const discountedPrice = p.discount ? Math.round(p.price * (1 - p.discount / 100)) : p.price;
+  const strikethroughPrice = p.compare_price || (p.discount ? p.price : null);
 
   return (
     <div className="flex gap-3 sm:gap-4 items-center">
@@ -122,13 +129,18 @@ const HeroCarousel = memo(({ products }: { products: Product[] }) => {
               {p.discount}% OFF
             </span>
           )}
+          {p.is_featured && (
+            <span className="absolute top-3 right-3 bg-primary text-primary-foreground text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+              <Sparkles className="h-3 w-3" /> Featured
+            </span>
+          )}
         </div>
         <div className="p-3 space-y-1">
           <p className="text-xs sm:text-sm font-medium text-foreground line-clamp-1">{p.name}</p>
           <div className="flex items-baseline gap-1.5">
             <span className="text-sm sm:text-base font-bold text-primary">৳{discountedPrice.toLocaleString()}</span>
-            {p.discount && (
-              <span className="text-[10px] sm:text-xs text-muted-foreground line-through">৳{p.price.toLocaleString()}</span>
+            {strikethroughPrice && (
+              <span className="text-[10px] sm:text-xs text-muted-foreground line-through">৳{strikethroughPrice.toLocaleString()}</span>
             )}
           </div>
         </div>
@@ -203,9 +215,15 @@ const ShopPage = () => {
   const productIds = useMemo(() => products.map(p => p.id), [products]);
   const ratings = useProductRatings(productIds);
 
-  // Filter and sort products
+  // Featured products for dedicated section
+  const featuredProducts = useMemo(() => 
+    products.filter(p => p.is_featured && p.is_active !== false),
+    [products]
+  );
+
+  // Filter and sort products - exclude inactive
   let filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    p.is_active !== false && p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Category filter
@@ -346,6 +364,35 @@ const ShopPage = () => {
       </header>
 
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6" role="main" aria-label="Shop products">
+        {/* Featured Products Section */}
+        {featuredProducts.length > 0 && (
+          <section className="mb-4 sm:mb-6" aria-label="Featured products">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <h2 className="text-lg sm:text-xl font-bold text-foreground">Featured Products</h2>
+              </div>
+            </div>
+            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-3 scrollbar-none -mx-1 px-1 snap-x snap-mandatory sm:grid sm:grid-cols-3 lg:grid-cols-4 sm:overflow-visible sm:snap-none">
+              {featuredProducts.map(product => (
+                <div key={product.id} className="flex-shrink-0 w-[160px] sm:w-auto snap-start">
+                  <ProductCard 
+                    id={product.id} 
+                    name={product.name} 
+                    price={product.price}
+                    category={product.category} 
+                    image={product.image_url || 'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=400'}
+                    badge={product.badge} 
+                    discount={product.discount}
+                    stock={product.stock}
+                    avgRating={ratings[product.id]?.avgRating}
+                    reviewCount={ratings[product.id]?.reviewCount}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
         {/* Search, Filter & Sort Bar */}
         <div className="bg-background rounded-xl sm:rounded-2xl border border-border shadow-sm p-3 sm:p-4 mb-4 sm:mb-6">
           <div className="flex flex-col gap-3 sm:gap-4">
