@@ -199,11 +199,30 @@ const AdminCoupons = () => {
 
   return (
     <AdminLayout title="Coupons" subtitle="Create and manage discount coupons">
-      <div className="flex items-center justify-between mb-4 sm:mb-6">
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs">{coupons.length} total</Badge>
-          <Badge variant="secondary" className="text-xs">{coupons.filter(c => c.is_active && !isExpired(c)).length} active</Badge>
-        </div>
+      {/* Stats Bar */}
+      <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1 mb-4 sm:mb-6">
+        {[
+          { label: 'Total', value: coupons.length, icon: Ticket, gradient: 'from-primary/10 to-accent/10', iconColor: 'text-primary', valueColor: 'text-foreground' },
+          { label: 'Active', value: coupons.filter(c => c.is_active && !isExpired(c) && !isUsedUp(c)).length, icon: ToggleRight, gradient: 'from-emerald-500/10 to-green-500/10', iconColor: 'text-emerald-600 dark:text-emerald-400', valueColor: 'text-emerald-700 dark:text-emerald-300' },
+          { label: 'Expired', value: coupons.filter(c => isExpired(c)).length, icon: ToggleLeft, gradient: 'from-red-500/10 to-rose-500/10', iconColor: 'text-red-600 dark:text-red-400', valueColor: 'text-red-700 dark:text-red-300' },
+          { label: 'Used Up', value: coupons.filter(c => isUsedUp(c)).length, icon: Check, gradient: 'from-amber-500/10 to-orange-500/10', iconColor: 'text-amber-600 dark:text-amber-400', valueColor: 'text-amber-700 dark:text-amber-300' },
+        ].map(({ label, value, icon: Icon, gradient, iconColor, valueColor }) => (
+          <div
+            key={label}
+            className="flex-shrink-0 bg-card rounded-xl sm:rounded-2xl border border-border shadow-sm flex items-center gap-2.5 sm:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 min-w-[90px] sm:min-w-[110px]"
+          >
+            <div className={`h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${gradient}`}>
+              <Icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${iconColor}`} />
+            </div>
+            <div className="text-left min-w-0">
+              <p className={`text-base sm:text-lg lg:text-xl font-display font-bold leading-none ${valueColor}`}>{value}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap mt-0.5">{label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-end mb-4 sm:mb-6">
         <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
           <DialogTrigger asChild>
             <Button size="sm" className="gap-1.5 min-h-[44px] sm:min-h-0">

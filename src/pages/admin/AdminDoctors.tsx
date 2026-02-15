@@ -6,6 +6,7 @@ import {
   Stethoscope, Search, CheckCircle, XCircle, Clock, 
   Eye, AlertCircle, Ban, Loader2, ExternalLink, Filter, ShieldOff, ShieldCheck
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -269,9 +270,11 @@ const AdminDoctors = () => {
 
   if (authLoading || roleLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <AdminLayout title="Doctor Management" subtitle="Review and manage doctor verifications">
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AdminLayout>
     );
   }
 
@@ -291,61 +294,70 @@ const AdminDoctors = () => {
   return (
     <AdminLayout title="Doctor Management" subtitle="Review and manage doctor verifications">
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+      <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1 mb-4 sm:mb-6">
         {[
-          { label: 'Total Doctors', value: doctors?.length || 0, icon: Stethoscope, color: 'text-primary', iconBg: 'text-primary/20', filter: 'all' },
-          { label: 'Pending', value: pendingCount, icon: Clock, color: 'text-yellow-600', iconBg: 'text-yellow-500/20', filter: 'pending' },
-          { label: 'Verified', value: verifiedCount, icon: CheckCircle, color: 'text-green-600', iconBg: 'text-green-500/20', filter: 'verified' },
-          { label: 'Blocked', value: blockedCount, icon: Ban, color: 'text-red-600', iconBg: 'text-red-500/20', filter: 'blocked' },
-        ].map((stat) => (
-          <Card 
-            key={stat.label} 
-            className={`cursor-pointer transition-all hover:shadow-md active:scale-[0.97] ${statusFilter === stat.filter ? 'ring-2 ring-primary' : ''}`}
-            onClick={() => setStatusFilter(stat.filter)}
-          >
-            <CardContent className="p-4 sm:pt-6">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0">
-                  <p className="text-xs sm:text-sm text-muted-foreground truncate">{stat.label}</p>
-                  <p className={`text-xl sm:text-2xl font-bold ${stat.color}`}>{stat.value}</p>
-                </div>
-                <stat.icon className={`h-6 w-6 sm:h-8 sm:w-8 shrink-0 ${stat.iconBg}`} />
+          { key: 'all', label: 'Total Doctors', value: doctors?.length || 0, icon: Stethoscope, gradient: 'from-primary/10 to-accent/10', iconColor: 'text-primary', valueColor: 'text-foreground', activeRing: 'ring-primary/50' },
+          { key: 'pending', label: 'Pending', value: pendingCount, icon: Clock, gradient: 'from-amber-500/10 to-orange-500/10', iconColor: 'text-amber-600 dark:text-amber-400', valueColor: 'text-amber-700 dark:text-amber-300', activeRing: 'ring-amber-400/50' },
+          { key: 'verified', label: 'Verified', value: verifiedCount, icon: CheckCircle, gradient: 'from-emerald-500/10 to-green-500/10', iconColor: 'text-emerald-600 dark:text-emerald-400', valueColor: 'text-emerald-700 dark:text-emerald-300', activeRing: 'ring-emerald-400/50' },
+          { key: 'blocked', label: 'Blocked', value: blockedCount, icon: Ban, gradient: 'from-red-500/10 to-rose-500/10', iconColor: 'text-red-600 dark:text-red-400', valueColor: 'text-red-700 dark:text-red-300', activeRing: 'ring-red-400/50' },
+        ].map(({ key, label, value, icon: Icon, gradient, iconColor, valueColor, activeRing }) => {
+          const isActive = statusFilter === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setStatusFilter(isActive && key !== 'all' ? 'all' : key)}
+              className={cn(
+                'flex-shrink-0 bg-card rounded-xl sm:rounded-2xl border border-border shadow-sm hover:shadow-md transition-all',
+                'flex items-center gap-2.5 sm:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 min-w-[100px] sm:min-w-[120px]',
+                'active:scale-[0.98]',
+                isActive
+                  ? `ring-2 ${activeRing} border-transparent hover:scale-[1.02]`
+                  : 'hover:border-primary/20'
+              )}
+            >
+              <div className={cn(
+                'h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0',
+                `bg-gradient-to-br ${gradient}`
+              )}>
+                <Icon className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', iconColor)} />
               </div>
-            </CardContent>
-          </Card>
-        ))}
+              <div className="text-left min-w-0">
+                <p className={cn('text-base sm:text-lg lg:text-xl font-display font-bold leading-none', valueColor)}>
+                  {value}
+                </p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap mt-0.5">{label}</p>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {/* Filters */}
-      <Card className="mb-4 sm:mb-6">
-        <CardContent className="p-3 sm:py-4">
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search doctors..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-10 sm:h-10"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px] h-10">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filter status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Doctors</SelectItem>
-                <SelectItem value="pending">Pending Review</SelectItem>
-                <SelectItem value="verified">Verified</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-                <SelectItem value="blocked">Blocked</SelectItem>
-                <SelectItem value="not_submitted">Not Submitted</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4 sm:mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search doctors..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 h-10 sm:h-11 rounded-xl text-sm"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-44 h-10 sm:h-11 rounded-xl text-sm">
+            <Filter className="h-4 w-4 mr-2 flex-shrink-0" />
+            <SelectValue placeholder="Filter status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Doctors</SelectItem>
+            <SelectItem value="pending">Pending Review</SelectItem>
+            <SelectItem value="verified">Verified</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+            <SelectItem value="blocked">Blocked</SelectItem>
+            <SelectItem value="not_submitted">Not Submitted</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* Doctors List */}
       {isLoading ? (
