@@ -62,6 +62,7 @@ const AdminContactMessages = lazy(() => import("./pages/admin/AdminContactMessag
 const AdminCoupons = lazy(() => import("./pages/admin/AdminCoupons"));
 const AdminIncompleteOrders = lazy(() => import("./pages/admin/AdminIncompleteOrders"));
 const AdminRecoveryAnalytics = lazy(() => import("./pages/admin/AdminRecoveryAnalytics"));
+const AdminEcommerceCustomers = lazy(() => import("./pages/admin/AdminEcommerceCustomers"));
 
 // Doctor routes - lazy loaded
 const DoctorDashboard = lazy(() => import("./pages/doctor/DoctorDashboard"));
@@ -174,6 +175,7 @@ const App = () => (
                     <Route path="/admin/coupons" element={<AdminCoupons />} />
                     <Route path="/admin/incomplete-orders" element={<AdminIncompleteOrders />} />
                     <Route path="/admin/recovery-analytics" element={<AdminRecoveryAnalytics />} />
+                    <Route path="/admin/ecommerce-customers" element={<AdminEcommerceCustomers />} />
                     
                     {/* OAuth Role Selection */}
                     <Route path="/select-role" element={<SelectRolePage />} />
