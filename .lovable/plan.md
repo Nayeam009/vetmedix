@@ -1,109 +1,101 @@
 
 
-# Comprehensive Data Accuracy and Realtime Fix Plan
+# Admin Orders Page Overhaul
 
-## Summary of Issues Found
+## What Will Change
 
-After auditing all pages, hooks, database queries, and realtime subscriptions, here are the concrete issues discovered:
-
----
-
-## Issue 1: Appointment Cancellation Does Not Update Profile Page (Critical)
-
-**Problem**: When a user cancels an appointment from the Profile page, the appointment list does NOT refresh. The `useAppointmentActions` hook invalidates cache keys `['appointments']` and `['userAppointments']`, but the Profile page fetches with `['user-appointments', user?.id]` -- a completely different key.
-
-**Fix**: Update `useAppointmentActions` to also invalidate `['user-appointments']` so the Profile page refreshes after cancellation.
+The `/admin/orders` page will be redesigned with inspiration from the reference screenshots, adding one-click courier dispatch via the Steadfast API, real-time order tracking, and future payment gateway readiness.
 
 ---
 
-## Issue 2: Profile Page Missing Realtime for Appointments (Critical)
+## 1. One-Click "Send to Courier" via Steadfast API
 
-**Problem**: The Profile page has realtime for order status updates but NOT for appointment status changes. When a clinic owner confirms or cancels a user's appointment, the user's Profile page does not update until they refresh.
+**Current behavior**: Admin manually enters a tracking ID when accepting an order.
 
-**Fix**: Add a Supabase realtime subscription for `appointments` filtered by `user_id` on the Profile page, similar to the existing order subscription.
+**New behavior**: When admin clicks "Accept & Ship" on a pending order, the system will:
+- Auto-fill order details (customer name, phone, address, COD amount) from the order record
+- Call the Steadfast API `create_order` action via the existing edge function
+- Automatically save the returned `tracking_code` and `consignment_id` to the order
+- Update order status to "processing" in one click
+- No manual ID entry required
 
----
+The `AcceptOrderDialog` will be redesigned with two modes:
+- **Quick Ship**: One-click send to Steadfast (auto-fills everything)
+- **Manual**: Enter tracking ID manually (fallback option)
 
-## Issue 3: Doctor Dashboard "Total Patients" Label is Misleading
+## 2. Real-Time Auto-Tracking
 
-**Problem**: The Doctor Dashboard stat card labeled "Total Patients" actually shows the total number of appointments (`doctorAppointments?.length`), not unique patients. A single patient with 3 visits would count as 3.
+**New feature**: Orders with a `consignment_id` will be auto-tracked.
 
-**Fix**: Rename the label to "Total Appointments" which accurately describes the data.
+- A new "Track" button on each shipped/processing order will call the Steadfast API to fetch live delivery status
+- The tracking status will be displayed inline in the order row and detail dialog
+- A visual delivery timeline (Picked Up -> In Transit -> Out for Delivery -> Delivered) will show in the order details dialog
+- When Steadfast reports "delivered", the order status auto-updates in the database
 
----
+## 3. Future Payment Gateway Readiness
 
-## Issue 4: Missing Realtime Tables in Publication
+**Database preparation**: Add two new columns to the `orders` table:
+- `payment_status` (text, default 'unpaid') -- for tracking payment state (unpaid, paid, refunded)
+- `payment_reference` (text, nullable) -- for storing transaction IDs from future gateways
 
-**Problem**: Several tables used by realtime-dependent features are NOT in the `supabase_realtime` publication. This means Supabase will silently ignore subscription attempts for these tables.
+These columns will be displayed in the UI as a "Payment" column showing COD/bKash/etc. and payment status.
 
-Missing tables: `messages`, `conversations`, `likes`, `comments`, `follows`, `clinic_doctors`, `clinic_services`, `clinic_reviews`, `pets`, `stories`
+## 4. UI/UX Redesign (Inspired by Reference Images)
 
-**Fix**: Add all missing tables to the `supabase_realtime` publication via migration.
+### Desktop Table Improvements
+- Add Customer phone number column (like reference image 1)
+- Add "Courier" column showing Steadfast status with tracking link
+- Add "Payment" column showing method + status
+- Wider table with better column distribution
+- Three-dot menu with actions: View/Edit, Confirm, Track, Ship, Delete (like reference image 1)
 
----
+### Mobile Card Improvements
+- Compact card layout with customer name + phone prominently displayed
+- Inline action buttons (Accept, Reject, Track) with touch-friendly 44px targets
+- Tracking status badge visible at a glance
 
-## Issue 5: ClinicsPage Uses Raw State Instead of React Query
-
-**Problem**: The Clinics public listing page (`ClinicsPage.tsx`) fetches data with raw `useState`/`useEffect` instead of React Query. This means:
-- No caching (re-fetches on every visit)
-- No automatic stale-time management
-- No realtime integration possible
-
-**Fix**: Refactor to use React Query with a proper cache key so it benefits from the admin realtime system and caching.
-
----
-
-## Issue 6: Admin Dashboard Revenue Shows Correct Data (Not a Bug)
-
-**Finding**: All 6 orders in the database are cancelled. Active Revenue = 0, Active Orders = 0, Cancelled Revenue = 15,070. The dashboard numbers ARE correct. The "Order Fulfillment 0%" is accurate because there are zero active orders. No code change needed -- this is real data.
-
----
-
-## Issue 7: Clinic Dashboard Missing Realtime for Doctors and Services
-
-**Problem**: The clinic dashboard subscribes to appointment changes in realtime, but NOT to `clinic_doctors` or `clinic_services` changes. If a doctor is added/removed or a service is updated from another session, the dashboard won't reflect it.
-
-**Fix**: Extend the clinic dashboard realtime channel to also subscribe to `clinic_doctors` and `clinic_services` changes filtered by `clinic_id`.
-
----
-
-## Issue 8: ShopPage Products Not Realtime
-
-**Problem**: The Shop page fetches products with raw `useState`/`useEffect`. If an admin updates product stock, price, or availability, the Shop page won't reflect changes until the user refreshes.
-
-**Fix**: Refactor to React Query and add realtime subscription for the `products` table.
+### Order Details Dialog Enhancement
+- Add delivery tracking timeline section
+- Add "Send to Courier" button directly in dialog for pending orders
+- Show Steadfast courier balance in header (admin utility)
 
 ---
 
-## Technical Implementation Details
+## Technical Details
 
-### Migration (SQL)
+### Database Migration
 ```sql
--- Add missing tables to realtime publication
-ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.conversations;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.likes;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.comments;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.follows;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.clinic_doctors;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.clinic_services;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.clinic_reviews;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.pets;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.stories;
+ALTER TABLE public.orders 
+  ADD COLUMN IF NOT EXISTS payment_status text DEFAULT 'unpaid',
+  ADD COLUMN IF NOT EXISTS payment_reference text;
 ```
 
+### Files to Create
+1. **`src/components/admin/SendToCourierDialog.tsx`** -- New dialog replacing AcceptOrderDialog with one-click Steadfast integration
+2. **`src/components/admin/OrderTrackingTimeline.tsx`** -- Visual tracking timeline component
+
 ### Files to Edit
+1. **`src/pages/admin/AdminOrders.tsx`** -- Major UI overhaul with new columns, courier actions, tracking inline display
+2. **`src/components/admin/AcceptOrderDialog.tsx`** -- Add "Quick Ship" mode that calls Steadfast API automatically
+3. **`src/components/admin/OrderStatsBar.tsx`** -- Minor polish, ensure consistent with new design
 
-1. **`src/hooks/useAppointments.ts`** -- Fix cache key invalidation to include `['user-appointments']`
-2. **`src/pages/ProfilePage.tsx`** -- Add realtime subscription for appointments
-3. **`src/pages/doctor/DoctorDashboard.tsx`** -- Rename "Total Patients" to "Total Appointments"
-4. **`src/pages/clinic/ClinicDashboard.tsx`** -- Add realtime for `clinic_doctors` and `clinic_services`
-5. **`src/pages/ClinicsPage.tsx`** -- Refactor from raw state to React Query
-6. **`src/pages/ShopPage.tsx`** -- Refactor from raw state to React Query + realtime
+### Edge Function Usage
+- Uses existing `supabase/functions/steadfast/index.ts` -- no changes needed
+- Actions used: `create_order` (ship), `track_by_consignment` (track), `get_balance` (admin info)
 
-### Estimated Changes
-- 1 database migration
-- 6 file edits
-- No new files needed
-- No breaking changes
+### Steadfast API Flow
+```text
+Admin clicks "Send to Courier"
+  -> Frontend calls steadfast edge function with action: "create_order"
+  -> Edge function calls Steadfast API with order details
+  -> Returns tracking_code + consignment_id
+  -> Frontend saves to orders table
+  -> Order status updated to "processing"
+  -> Real-time subscription pushes update to all connected clients
+```
+
+### Responsive Design
+- Mobile: Card-based layout with swipeable actions, 44px touch targets
+- Tablet: Compact table with essential columns
+- Desktop: Full table with all columns visible
 
