@@ -115,7 +115,7 @@ const AdminEcommerceCustomers = () => {
     return () => { supabase.removeChannel(channel); };
   }, [isAdmin, queryClient]);
 
-  // Aggregate customers from orders
+  // Aggregate customers from orders (exclude cancelled orders from spending)
   const customers = useMemo<EcomCustomer[]>(() => {
     if (!orders) return [];
     const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
@@ -123,6 +123,7 @@ const AdminEcommerceCustomers = () => {
 
     for (const order of orders) {
       const uid = order.user_id;
+      const isCancelled = order.status === 'cancelled';
       if (!agg[uid]) {
         const profile = profileMap.get(uid);
         agg[uid] = {
@@ -137,20 +138,25 @@ const AdminEcommerceCustomers = () => {
           last_payment_method: order.payment_method || 'cod',
         };
       }
-      agg[uid].order_count += 1;
-      agg[uid].total_spent += Number(order.total_amount) || 0;
+      // Only count non-cancelled orders for spending and order count
+      if (!isCancelled) {
+        agg[uid].order_count += 1;
+        agg[uid].total_spent += Number(order.total_amount) || 0;
+      }
     }
 
-    return Object.values(agg).sort((a, b) => b.total_spent - a.total_spent);
+    // Only include customers who have at least one non-cancelled order
+    return Object.values(agg).filter(c => c.order_count > 0).sort((a, b) => b.total_spent - a.total_spent);
   }, [orders, profiles]);
 
-  // Stats
+  // Stats (exclude cancelled orders from all revenue calculations)
   const stats = useMemo(() => {
     if (!orders) return { totalSales: 0, paid: 0, pending: 0, totalCustomers: 0 };
-    const totalSales = orders.reduce((s, o) => s + (Number(o.total_amount) || 0), 0);
-    const paid = orders.filter(o => o.payment_status === 'paid').reduce((s, o) => s + (Number(o.total_amount) || 0), 0);
-    const pending = orders.filter(o => (o.payment_status === 'unpaid' || !o.payment_status) && o.status !== 'cancelled').reduce((s, o) => s + (Number(o.total_amount) || 0), 0);
-    const uniqueUsers = new Set(orders.map(o => o.user_id));
+    const activeOrders = orders.filter(o => o.status !== 'cancelled');
+    const totalSales = activeOrders.reduce((s, o) => s + (Number(o.total_amount) || 0), 0);
+    const paid = activeOrders.filter(o => o.payment_status === 'paid').reduce((s, o) => s + (Number(o.total_amount) || 0), 0);
+    const pending = activeOrders.filter(o => o.payment_status === 'unpaid' || !o.payment_status).reduce((s, o) => s + (Number(o.total_amount) || 0), 0);
+    const uniqueUsers = new Set(activeOrders.map(o => o.user_id));
     return { totalSales, paid, pending, totalCustomers: uniqueUsers.size };
   }, [orders]);
 
