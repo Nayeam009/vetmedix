@@ -56,7 +56,7 @@ export const useIncompleteOrders = () => {
   });
 
   const convertMutation = useMutation({
-    mutationFn: async ({ order, editedData }: {
+    mutationFn: async ({ order, editedData, deliveryCharge = 0, grandTotal }: {
       order: IncompleteOrder;
       editedData: {
         customer_name: string;
@@ -65,6 +65,8 @@ export const useIncompleteOrders = () => {
         shipping_address: string;
         division: string;
       };
+      deliveryCharge?: number;
+      grandTotal?: number;
     }) => {
       // Update incomplete order with admin-entered data
       await supabase.from('incomplete_orders').update({
@@ -76,19 +78,22 @@ export const useIncompleteOrders = () => {
         completeness: 100,
       }).eq('id', order.id);
 
-      // Create real order with complete data
+      // Create real order with complete data including delivery fee
       const shippingAddress = [
         editedData.customer_name,
         editedData.customer_phone,
         editedData.shipping_address,
+        editedData.division,
       ].filter(Boolean).join(', ');
+
+      const totalAmount = grandTotal ?? ((order.cart_total || 0) + deliveryCharge);
 
       const { data: newOrder, error: orderError } = await supabase
         .from('orders')
         .insert({
           user_id: order.user_id || '00000000-0000-0000-0000-000000000000',
           items: order.items,
-          total_amount: order.cart_total,
+          total_amount: totalAmount,
           shipping_address: shippingAddress,
           payment_method: 'cod',
           status: 'pending',

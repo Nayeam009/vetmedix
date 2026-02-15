@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { useIncompleteOrders, IncompleteOrder } from '@/hooks/useIncompleteOrders';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -9,10 +10,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import {
   ShoppingCart, TrendingUp, DollarSign, AlertTriangle,
   Search, Trash2, ArrowUpRight, Phone, Mail, MapPin, Clock, Package
@@ -56,6 +59,20 @@ const AdminIncompleteOrders = () => {
   const [convertDialog, setConvertDialog] = useState<IncompleteOrder | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<string | null>(null);
 
+  // Fetch delivery zones for fee calculation
+  const { data: deliveryZones = [] } = useQuery({
+    queryKey: ['delivery-zones'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('delivery_zones')
+        .select('*')
+        .eq('is_active', true);
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
   // Editable form state for convert dialog
   const [convertFormData, setConvertFormData] = useState({
     customer_name: '',
@@ -78,6 +95,27 @@ const AdminIncompleteOrders = () => {
     }
   }, [convertDialog]);
 
+  // Calculate delivery fee based on selected division
+  const matchedZone = useMemo(() => {
+    if (!convertFormData.division) return null;
+    const normalizedDiv = convertFormData.division.trim();
+    return deliveryZones.find(z =>
+      (z.divisions as string[])?.some(d => d.toLowerCase() === normalizedDiv.toLowerCase())
+    ) || null;
+  }, [convertFormData.division, deliveryZones]);
+
+  const deliveryCharge = matchedZone ? Number(matchedZone.charge) : (convertFormData.division ? 120 : 60);
+  const convertGrandTotal = (convertDialog?.cart_total || 0) + deliveryCharge;
+
+  // Get unique divisions from all zones for the dropdown
+  const allDivisions = useMemo(() => {
+    const divs = new Set<string>();
+    deliveryZones.forEach(z => {
+      (z.divisions as string[])?.forEach(d => divs.add(d));
+    });
+    return Array.from(divs).sort();
+  }, [deliveryZones]);
+
   const isFormValid = convertFormData.customer_name.trim() && convertFormData.customer_phone.trim() && convertFormData.shipping_address.trim();
 
   const filtered = orders.filter(o => {
@@ -96,7 +134,7 @@ const AdminIncompleteOrders = () => {
   const handleConvert = async () => {
     if (!convertDialog || !isFormValid) return;
     try {
-      await convertOrder({ order: convertDialog, editedData: convertFormData });
+      await convertOrder({ order: convertDialog, editedData: convertFormData, deliveryCharge, grandTotal: convertGrandTotal });
       toast.success('Order converted successfully!');
       setConvertDialog(null);
     } catch {
@@ -290,17 +328,40 @@ const AdminIncompleteOrders = () => {
                     <Label htmlFor="conv-address" className="text-xs">Shipping Address <span className="text-destructive">*</span></Label>
                     <Input id="conv-address" placeholder="Enter full shipping address" value={convertFormData.shipping_address} onChange={e => setConvertFormData(p => ({ ...p, shipping_address: e.target.value }))} className="mt-1" />
                   </div>
-                  <div>
-                    <Label htmlFor="conv-division" className="text-xs">Division</Label>
-                    <Input id="conv-division" placeholder="Enter division" value={convertFormData.division} onChange={e => setConvertFormData(p => ({ ...p, division: e.target.value }))} className="mt-1" />
+                <div>
+                    <Label htmlFor="conv-division" className="text-xs">Division <span className="text-destructive">*</span></Label>
+                    {allDivisions.length > 0 ? (
+                      <Select value={convertFormData.division} onValueChange={v => setConvertFormData(p => ({ ...p, division: v }))}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select division" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {allDivisions.map(d => (
+                            <SelectItem key={d} value={d}>{d}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input id="conv-division" placeholder="Enter division" value={convertFormData.division} onChange={e => setConvertFormData(p => ({ ...p, division: e.target.value }))} className="mt-1" />
+                    )}
                   </div>
                 </div>
 
-                {/* Read-only order info */}
-                <div className="p-3 rounded-lg bg-muted/50 space-y-1 text-sm">
-                  <p><strong>Cart Total:</strong> ৳{(convertDialog.cart_total || 0).toLocaleString()}</p>
-                  <p><strong>Items:</strong> {Array.isArray(convertDialog.items) ? convertDialog.items.length : 0} items</p>
-                  <p><strong>Payment:</strong> Cash on Delivery</p>
+                {/* Order summary with delivery fee */}
+                <div className="p-3 rounded-lg bg-muted/50 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Subtotal ({Array.isArray(convertDialog.items) ? convertDialog.items.length : 0} items)</span>
+                    <span>৳{(convertDialog.cart_total || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Delivery Fee {matchedZone ? `(${matchedZone.zone_name})` : ''}</span>
+                    <span>৳{deliveryCharge.toLocaleString()}</span>
+                  </div>
+                  <div className="border-t border-border pt-2 flex justify-between font-bold">
+                    <span>Grand Total</span>
+                    <span className="text-primary">৳{convertGrandTotal.toLocaleString()}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Payment: Cash on Delivery</p>
                 </div>
 
                 {!isFormValid && (
