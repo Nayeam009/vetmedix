@@ -1,80 +1,73 @@
 
 
-# Fix & Complete Auth System: Sign In, Sign Up, Google & Apple ID
+# Shop Page Rearrangement, Grid Optimization & E-Commerce Testing
 
-## Issues Found
+## Current Layout (Order)
+1. Hero Banner with carousel
+2. Featured Products section
+3. Search/Filter/Sort bar
+4. Active filters display
+5. All Products grid
+6. Recently Viewed
 
-### 1. Missing Apple Sign-In Button
-The auth page only has "Continue with Google" but no "Continue with Apple" button, even though the backend (`lovable` module) already supports Apple as a provider.
+## New Layout (Requested Order)
+1. Hero Banner (keep existing, compact)
+2. Search/Filter/Sort bar (moved up)
+3. Featured Products section
+4. All Products grid
+5. Recently Viewed
 
-### 2. Console Ref Warnings
-React warnings about function components not accepting refs:
-- `AuthPage` component is being given a ref by React Router (it's not wrapped in `forwardRef` or exported as a lazy component properly)
-- `RoleSelector` component has the same issue
+## Changes
 
-### 3. Missing `autocomplete` Attributes
-Browser recommends `autocomplete` attributes on email/password inputs for better autofill support and accessibility.
+### 1. ShopPage.tsx - Rearrange Sections
+- Move the search/filter/sort bar (`bg-background rounded-xl` block, lines 397-633) to render **above** the Featured Products section (lines 368-395)
+- This means: Hero -> Search Bar -> Featured -> All Products -> Recently Viewed
 
-### 4. Google/Apple OAuth Redirect Flow
-The `redirect_uri` is set to `window.location.origin` (root `/`), which works because the `AuthPage` useEffect checks for logged-in users and redirects based on roles. This is correct.
+### 2. ShopPage.tsx - Update Grid Columns
+- **Large screens (xl+)**: 6 columns per row
+- **Desktop (lg)**: 4-5 columns
+- **Tablet (md)**: 3 columns
+- **Mobile**: 3 columns (changed from 2)
+- Update the grid class logic for all grid views:
+  - Default grid: `grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6`
+  - Grid toggle options updated to support 3/4/6 column presets
+  - Featured products grid: `grid-cols-3 lg:grid-cols-4 xl:grid-cols-6`
+  - Loading skeleton grid: same responsive pattern
+  - Popular products fallback: same pattern
 
-### 5. Sign Up Flow - Potential Race Condition
-After `signUp`, the code immediately tries to insert into `user_roles` using `newUser.id`. If email confirmation is enabled (which it is by default), `newUser` may exist but the session won't be active, causing RLS policy failures on the `user_roles` insert. This needs handling.
+### 3. ProductCard.tsx - Optimize for 3-col mobile & 6-col desktop
+- Reduce padding slightly for tighter fit on mobile 3-col layout
+- Ensure text truncation and button sizing works at smaller card widths
+- Adjust font sizes: smaller on mobile for 3-col fit
+- Reduce min-height on title to accommodate compact layout
 
----
-
-## Plan
-
-### File: `src/pages/AuthPage.tsx`
-
-1. **Add Apple Sign-In button** below the Google button with proper Apple logo SVG and `handleAppleSignIn` function using `lovable.auth.signInWithOAuth('apple', ...)`
-
-2. **Add `autocomplete` attributes** to email (`autocomplete="email"`), password (`autocomplete="current-password"` for login, `autocomplete="new-password"` for signup), and name (`autocomplete="name"`) inputs
-
-3. **Add `appleLoading` state** to manage Apple sign-in loading independently from Google
-
-4. **Fix the ref warning** - The issue comes from React Router v7 trying to pass a ref to `AuthPage`. Since it's a function component, we need to wrap the default export with `forwardRef` or simply ignore it (it's a harmless warning). The cleaner fix is to ensure the component is compatible.
-
-### File: `src/components/auth/RoleSelector.tsx`
-
-5. **No changes needed** - The ref warning on RoleSelector is harmless (React Router internal behavior). The component itself doesn't need ref forwarding.
-
-### File: `src/pages/SelectRolePage.tsx`
-
-6. **Add Apple Sign-In as an alternative** on the select-role page for consistency (optional, lower priority)
-
----
+### 4. ShopPage.tsx - Update gridCols state
+- Change default from `3` to `4` (since 6 is now the max)
+- Update grid toggle buttons: options become 3, 4, 6 (instead of 2, 3, 4)
+- Update corresponding grid class mapping
 
 ## Technical Details
 
-### Apple Sign-In Handler
+### Grid Class Mapping (Updated)
 ```typescript
-const handleAppleSignIn = async () => {
-  setAppleLoading(true);
-  try {
-    const { error } = await lovable.auth.signInWithOAuth('apple', {
-      redirect_uri: window.location.origin,
-    });
-    if (error) throw error;
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Failed to sign in with Apple";
-    toast({ title: "Error", description: errorMessage, variant: "destructive" });
-    setAppleLoading(false);
-  }
-};
+// gridCols state: 3 | 4 | 6
+const gridClass = gridCols === 3
+  ? 'grid-cols-3 md:grid-cols-3 lg:grid-cols-3'
+  : gridCols === 4
+    ? 'grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+    : 'grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6';
 ```
 
-### Apple Button UI
-Standard Apple Sign-In button with black background and white Apple logo, placed below the Google button.
-
-### Autocomplete Attributes
-- Login email: `autocomplete="email"`
-- Login password: `autocomplete="current-password"`
-- Signup email: `autocomplete="email"`
-- Signup password: `autocomplete="new-password"`
-- Full name: `autocomplete="name"`
+### ProductCard Compact Adjustments
+- Padding: `p-2 sm:p-2.5` (from `p-2.5 sm:p-4`)
+- Title font: `text-[10px] sm:text-xs` (from `text-xs sm:text-sm`)
+- Price font: `text-sm sm:text-lg` (from `text-base sm:text-xl`)
+- Button height: `h-7 sm:h-9` (from `h-8 sm:h-10`)
+- Min-height title: reduced for compact layout
 
 ### Files to Edit
-- `src/pages/AuthPage.tsx` - Add Apple button, loading state, autocomplete attributes
-- No database changes needed
+- `src/pages/ShopPage.tsx` - Rearrange sections, update grid logic
+- `src/components/ProductCard.tsx` - Optimize sizing for compact layouts
+
+### No Database Changes Needed
 
