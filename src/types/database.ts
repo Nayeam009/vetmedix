@@ -3,13 +3,17 @@ export interface Product {
   name: string;
   description: string | null;
   price: number;
-  category: 'Pet' | 'Farm';
+  category: string;
   product_type: string | null;
   image_url: string | null;
   images: string[] | null;
   badge: string | null;
   discount: number | null;
   stock: number;
+  is_active: boolean;
+  is_featured: boolean;
+  compare_price: number | null;
+  sku: string | null;
   created_at: string;
 }
 

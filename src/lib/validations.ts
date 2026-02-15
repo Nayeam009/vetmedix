@@ -151,9 +151,9 @@ export const productFormSchema = z.object({
     .number()
     .positive('Price must be positive')
     .max(9999999, 'Price must be less than 10,000,000'),
-  category: z.enum(['Pet', 'Farm'], {
-    errorMap: () => ({ message: 'Category must be "Pet" or "Farm"' }),
-  }),
+  category: z
+    .string()
+    .min(1, 'Category is required'),
   product_type: z
     .string()
     .max(100, 'Product type must be less than 100 characters')
@@ -180,6 +180,21 @@ export const productFormSchema = z.object({
     .max(100, 'Discount cannot exceed 100%')
     .optional()
     .nullable(),
+  is_active: z.boolean().optional().default(true),
+  is_featured: z.boolean().optional().default(false),
+  compare_price: z
+    .number()
+    .min(0, 'Compare price cannot be negative')
+    .max(9999999, 'Compare price must be less than 10,000,000')
+    .optional()
+    .nullable(),
+  sku: z
+    .string()
+    .max(50, 'SKU must be less than 50 characters')
+    .regex(noXSSRegex, 'SKU cannot contain < or > characters')
+    .optional()
+    .nullable()
+    .or(z.literal('')),
 });
 
 export type ProductFormData = z.infer<typeof productFormSchema>;

@@ -16,11 +16,16 @@ import {
   AlertTriangle,
   PackageMinus,
   PackagePlus,
+  Tag,
+  Star,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import {
   Table,
   TableBody,
@@ -57,6 +62,7 @@ import { ProductFormFields, type ProductFormData } from '@/components/admin/Prod
 import { productFormSchema } from '@/lib/validations';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { downloadCSV } from '@/lib/csvParser';
+import { useProductCategories } from '@/hooks/useProductCategories';
 import { cn } from '@/lib/utils';
 
 const LOW_STOCK_THRESHOLD = 10;
@@ -65,12 +71,16 @@ const emptyFormData: ProductFormData = {
   name: '',
   description: '',
   price: '',
+  compare_price: '',
   category: 'Pet',
   product_type: '',
   image_url: '',
   stock: '',
+  sku: '',
   badge: '',
   discount: '',
+  is_active: true,
+  is_featured: false,
 };
 
 const AdminProducts = () => {
@@ -82,6 +92,7 @@ const AdminProducts = () => {
   const { isAdmin, roleLoading } = useAdmin();
   useAdminRealtimeDashboard(isAdmin);
   const { data: products, isLoading } = useAdminProducts();
+  const { categories, addCategory, updateCategory, deleteCategory } = useProductCategories();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [stockFilter, setStockFilter] = useState('all');
@@ -90,6 +101,8 @@ const AdminProducts = () => {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isPDFImportOpen, setIsPDFImportOpen] = useState(false);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [quickStockEdit, setQuickStockEdit] = useState<{ id: string; stock: string } | null>(null);
@@ -103,7 +116,6 @@ const AdminProducts = () => {
     }
   }, [user, authLoading, isAdmin, roleLoading, navigate]);
 
-  // Compute stats
   const stats = useMemo(() => {
     if (!products) return { total: 0, inStock: 0, outOfStock: 0, lowStock: 0 };
     return {
@@ -114,7 +126,6 @@ const AdminProducts = () => {
     };
   }, [products]);
 
-  // Filter products
   const filteredProducts = useMemo(() => {
     let list = products || [];
     if (searchQuery.trim()) {
@@ -153,6 +164,10 @@ const AdminProducts = () => {
       stock: formData.stock ? parseInt(formData.stock) : 0,
       badge: formData.badge || null,
       discount: formData.discount ? parseFloat(formData.discount) : null,
+      is_active: formData.is_active,
+      is_featured: formData.is_featured,
+      compare_price: formData.compare_price ? parseFloat(formData.compare_price) : null,
+      sku: formData.sku || null,
     });
   };
 
@@ -174,7 +189,11 @@ const AdminProducts = () => {
         stock: result.data.stock,
         badge: result.data.badge || null,
         discount: result.data.discount,
-      });
+        is_active: result.data.is_active,
+        is_featured: result.data.is_featured,
+        compare_price: result.data.compare_price,
+        sku: result.data.sku || null,
+      } as any);
       if (error) throw error;
       toast({ title: 'Success', description: 'Product added successfully' });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
@@ -206,7 +225,11 @@ const AdminProducts = () => {
         stock: result.data.stock,
         badge: result.data.badge || null,
         discount: result.data.discount,
-      }).eq('id', selectedProduct.id);
+        is_active: result.data.is_active,
+        is_featured: result.data.is_featured,
+        compare_price: result.data.compare_price,
+        sku: result.data.sku || null,
+      } as any).eq('id', selectedProduct.id);
       if (error) throw error;
       toast({ title: 'Success', description: 'Product updated successfully' });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
@@ -249,34 +272,64 @@ const AdminProducts = () => {
     }
   };
 
+  const handleToggleActive = async (productId: string, isActive: boolean) => {
+    try {
+      const { error } = await supabase.from('products').update({ is_active: isActive } as any).eq('id', productId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      toast({ title: isActive ? 'Product activated' : 'Product deactivated' });
+    } catch (error: unknown) {
+      toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed', variant: 'destructive' });
+    }
+  };
+
+  const handleToggleFeatured = async (productId: string, isFeatured: boolean) => {
+    try {
+      const { error } = await supabase.from('products').update({ is_featured: isFeatured } as any).eq('id', productId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      toast({ title: isFeatured ? 'Marked as featured' : 'Removed from featured' });
+    } catch (error: unknown) {
+      toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed', variant: 'destructive' });
+    }
+  };
+
   const openEditDialog = (product: any) => {
     setSelectedProduct(product);
     setFormData({
       name: product.name,
       description: product.description || '',
       price: product.price.toString(),
+      compare_price: product.compare_price?.toString() || '',
       category: product.category,
       product_type: product.product_type || '',
       image_url: product.image_url || '',
       stock: (product.stock ?? 0).toString(),
+      sku: product.sku || '',
       badge: product.badge || '',
       discount: product.discount?.toString() || '',
+      is_active: product.is_active ?? true,
+      is_featured: product.is_featured ?? false,
     });
     setIsEditOpen(true);
   };
 
   const handleExportCSV = () => {
     if (!filteredProducts.length) return;
-    const headers = ['Name', 'Description', 'Price', 'Category', 'Product Type', 'Stock', 'Badge', 'Discount', 'Created'];
+    const headers = ['Name', 'Description', 'Price', 'Compare Price', 'Category', 'Product Type', 'Stock', 'SKU', 'Badge', 'Discount', 'Active', 'Featured', 'Created'];
     const rows = filteredProducts.map(product => [
       product.name,
       product.description || '',
       product.price,
+      (product as any).compare_price || '',
       product.category,
       product.product_type || '',
       product.stock,
+      (product as any).sku || '',
       product.badge || '',
       product.discount || '',
+      (product as any).is_active ?? true,
+      (product as any).is_featured ?? false,
       product.created_at ? new Date(product.created_at).toISOString().split('T')[0] : ''
     ]);
     const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
@@ -284,22 +337,17 @@ const AdminProducts = () => {
     toast({ title: 'Success', description: 'Products exported to CSV' });
   };
 
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    const slug = newCategoryName.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    await addCategory.mutateAsync({ name: newCategoryName.trim(), slug });
+    setNewCategoryName('');
+  };
+
   const getStockBadge = (stock: number) => {
-    if (stock === 0) {
-      return <Badge variant="destructive" className="text-[10px] sm:text-xs">Out of Stock</Badge>;
-    }
-    if (stock <= LOW_STOCK_THRESHOLD) {
-      return (
-        <Badge className="bg-warning/15 text-warning-foreground border-warning/30 text-[10px] sm:text-xs">
-          Low: {stock}
-        </Badge>
-      );
-    }
-    return (
-      <Badge className="bg-success/15 text-success border-success/30 text-[10px] sm:text-xs">
-        In Stock
-      </Badge>
-    );
+    if (stock === 0) return <Badge variant="destructive" className="text-[10px] sm:text-xs">Out of Stock</Badge>;
+    if (stock <= LOW_STOCK_THRESHOLD) return <Badge className="bg-warning/15 text-warning-foreground border-warning/30 text-[10px] sm:text-xs">Low: {stock}</Badge>;
+    return <Badge className="bg-success/15 text-success border-success/30 text-[10px] sm:text-xs">In Stock</Badge>;
   };
 
   if (authLoading || roleLoading) {
@@ -341,14 +389,8 @@ const AdminProducts = () => {
               {stats.outOfStock + stats.lowStock} product{(stats.outOfStock + stats.lowStock) !== 1 ? 's' : ''} need attention
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-xl text-xs flex-shrink-0 h-8"
-            onClick={() => setStockFilter(stats.outOfStock > 0 ? 'out-of-stock' : 'low-stock')}
-          >
-            View
-          </Button>
+          <Button variant="outline" size="sm" className="rounded-xl text-xs flex-shrink-0 h-8"
+            onClick={() => setStockFilter(stats.outOfStock > 0 ? 'out-of-stock' : 'low-stock')}>View</Button>
         </div>
       )}
 
@@ -361,22 +403,18 @@ const AdminProducts = () => {
       <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 justify-between mb-4 sm:mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search products, type, category..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-10 sm:h-11 rounded-xl text-sm"
-          />
+          <Input placeholder="Search products, type, category..." value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-10 sm:h-11 rounded-xl text-sm" />
           {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
-            >
-              ✕
-            </button>
+            <button onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground">✕</button>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" className="h-10 sm:h-11 rounded-xl text-sm" onClick={() => setIsCategoryOpen(true)}>
+            <Tag className="h-4 w-4 sm:mr-1.5" />
+            <span className="hidden sm:inline">Categories</span>
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="h-10 sm:h-11 rounded-xl text-sm">
@@ -384,24 +422,20 @@ const AdminProducts = () => {
                 <span className="hidden sm:inline">Import/Export</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end" className="w-48 bg-popover z-50">
               <DropdownMenuItem onClick={handleExportCSV} disabled={!filteredProducts.length}>
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
+                <Download className="h-4 w-4 mr-2" />Export CSV
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsImportOpen(true)}>
-                <FileSpreadsheet className="h-4 w-4 mr-2" />
-                Import CSV
+                <FileSpreadsheet className="h-4 w-4 mr-2" />Import CSV
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsPDFImportOpen(true)}>
-                <FileText className="h-4 w-4 mr-2" />
-                Import PDF
+                <FileText className="h-4 w-4 mr-2" />Import PDF
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           <Button onClick={() => { resetForm(); setIsAddOpen(true); }} className="h-10 sm:h-11 rounded-xl text-sm flex-1 sm:flex-none">
-            <Plus className="h-4 w-4 mr-1 sm:mr-2" />
-            <span>Add Product</span>
+            <Plus className="h-4 w-4 mr-1 sm:mr-2" /><span>Add Product</span>
           </Button>
         </div>
       </div>
@@ -416,13 +450,7 @@ const AdminProducts = () => {
                 {searchQuery ? 'No products match your search' : stockFilter !== 'all' ? 'No products match this filter' : 'No products found'}
               </p>
               {(searchQuery || stockFilter !== 'all') && (
-                <Button
-                  variant="link"
-                  className="mt-2"
-                  onClick={() => { setSearchQuery(''); setStockFilter('all'); }}
-                >
-                  Clear all filters
-                </Button>
+                <Button variant="link" className="mt-2" onClick={() => { setSearchQuery(''); setStockFilter('all'); }}>Clear all filters</Button>
               )}
             </div>
           ) : (
@@ -433,128 +461,86 @@ const AdminProducts = () => {
                   const stock = product.stock ?? 0;
                   const isLow = stock > 0 && stock <= LOW_STOCK_THRESHOLD;
                   const isOut = stock === 0;
+                  const pActive = (product as any).is_active ?? true;
+                  const pFeatured = (product as any).is_featured ?? false;
+                  const comparePrice = (product as any).compare_price;
                   const isQuickEditing = quickStockEdit?.id === product.id;
 
                   return (
-                    <div
-                      key={product.id}
-                      className={cn(
-                        'p-3 flex gap-3 active:bg-muted/50 transition-colors',
-                        isOut && 'bg-destructive/5',
-                        isLow && 'bg-warning/5'
+                    <div key={product.id}
+                      className={cn('p-3 flex gap-3 active:bg-muted/50 transition-colors',
+                        isOut && 'bg-destructive/5', isLow && 'bg-warning/5', !pActive && 'opacity-60'
                       )}
-                      onClick={() => !isQuickEditing && openEditDialog(product)}
-                    >
-                      {/* Thumbnail */}
+                      onClick={() => !isQuickEditing && openEditDialog(product)}>
                       <div className="h-[72px] w-[72px] rounded-xl bg-secondary overflow-hidden flex-shrink-0 relative">
                         {product.image_url ? (
-                          <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                          <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" loading="lazy" />
                         ) : (
-                          <div className="h-full w-full flex items-center justify-center">
-                            <Package className="h-6 w-6 text-muted-foreground" />
-                          </div>
+                          <div className="h-full w-full flex items-center justify-center"><Package className="h-6 w-6 text-muted-foreground" /></div>
                         )}
                         {isOut && (
                           <div className="absolute inset-0 bg-destructive/30 backdrop-blur-[1px] flex items-center justify-center">
-                            <span className="text-[9px] font-bold text-destructive-foreground bg-destructive/80 px-1.5 py-0.5 rounded">
-                              OUT
-                            </span>
+                            <span className="text-[9px] font-bold text-destructive-foreground bg-destructive/80 px-1.5 py-0.5 rounded">OUT</span>
                           </div>
                         )}
                         {product.badge && !isOut && (
                           <div className="absolute top-0.5 left-0.5">
-                            <Badge variant="secondary" className="text-[8px] px-1 py-0 h-4 rounded-md">
-                              {product.badge}
-                            </Badge>
+                            <Badge variant="secondary" className="text-[8px] px-1 py-0 h-4 rounded-md">{product.badge}</Badge>
                           </div>
                         )}
                       </div>
-
-                      {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
-                            <p className="font-medium text-sm truncate leading-tight">{product.name}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {product.product_type || product.category}
-                            </p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-medium text-sm truncate leading-tight">{product.name}</p>
+                              {pFeatured && <Star className="h-3 w-3 text-warning fill-warning flex-shrink-0" />}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">{product.product_type || product.category}</p>
                           </div>
-                          <Badge variant="outline" className="text-[10px] flex-shrink-0 h-5">{product.category}</Badge>
+                          <div className="flex items-center gap-1">
+                            {!pActive && <Badge variant="outline" className="text-[9px] h-4 px-1 border-destructive/30 text-destructive">Inactive</Badge>}
+                            <Badge variant="outline" className="text-[10px] flex-shrink-0 h-5">{product.category}</Badge>
+                          </div>
                         </div>
-
-                        {/* Price & Stock row */}
                         <div className="flex items-center justify-between mt-2">
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-primary text-sm">৳{product.price}</span>
+                            {comparePrice && comparePrice > product.price && (
+                              <span className="text-xs text-muted-foreground line-through">৳{comparePrice}</span>
+                            )}
                             {product.discount && product.discount > 0 && (
                               <Badge variant="secondary" className="text-[10px] h-4 px-1">-{product.discount}%</Badge>
                             )}
                           </div>
                           {getStockBadge(stock)}
                         </div>
-
-                        {/* Quick Stock Editor / Actions */}
                         {isQuickEditing ? (
                           <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
-                            <Input
-                              type="number"
-                              value={quickStockEdit.stock}
+                            <Input type="number" value={quickStockEdit.stock}
                               onChange={(e) => setQuickStockEdit({ ...quickStockEdit, stock: e.target.value })}
-                              className="h-8 rounded-lg text-sm w-20"
-                              autoFocus
+                              className="h-8 rounded-lg text-sm w-20" autoFocus
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  handleQuickStockUpdate(product.id, parseInt(quickStockEdit.stock) || 0);
-                                } else if (e.key === 'Escape') {
-                                  setQuickStockEdit(null);
-                                }
-                              }}
-                            />
-                            <Button
-                              size="sm"
-                              className="h-8 rounded-lg text-xs px-3"
-                              onClick={() => handleQuickStockUpdate(product.id, parseInt(quickStockEdit.stock) || 0)}
-                            >
-                              Save
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 rounded-lg text-xs px-2"
-                              onClick={() => setQuickStockEdit(null)}
-                            >
-                              ✕
-                            </Button>
+                                if (e.key === 'Enter') handleQuickStockUpdate(product.id, parseInt(quickStockEdit.stock) || 0);
+                                else if (e.key === 'Escape') setQuickStockEdit(null);
+                              }} />
+                            <Button size="sm" className="h-8 rounded-lg text-xs px-3"
+                              onClick={() => handleQuickStockUpdate(product.id, parseInt(quickStockEdit.stock) || 0)}>Save</Button>
+                            <Button size="sm" variant="ghost" className="h-8 rounded-lg text-xs px-2"
+                              onClick={() => setQuickStockEdit(null)}>✕</Button>
                           </div>
                         ) : (
                           <div className="flex gap-1.5 mt-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 h-8 rounded-lg text-xs"
-                              onClick={(e) => { e.stopPropagation(); openEditDialog(product); }}
-                            >
-                              <Edit2 className="h-3 w-3 mr-1" />
-                              Edit
+                            <Button variant="outline" size="sm" className="flex-1 h-8 rounded-lg text-xs"
+                              onClick={(e) => { e.stopPropagation(); openEditDialog(product); }}>
+                              <Edit2 className="h-3 w-3 mr-1" />Edit
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 rounded-lg text-xs px-2"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setQuickStockEdit({ id: product.id, stock: stock.toString() });
-                              }}
-                            >
-                              <PackagePlus className="h-3 w-3 mr-1" />
-                              Stock
+                            <Button variant="outline" size="sm" className="h-8 rounded-lg text-xs px-2"
+                              onClick={(e) => { e.stopPropagation(); setQuickStockEdit({ id: product.id, stock: stock.toString() }); }}>
+                              <PackagePlus className="h-3 w-3 mr-1" />Stock
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 rounded-lg text-xs text-destructive hover:text-destructive px-2"
-                              onClick={(e) => { e.stopPropagation(); setSelectedProduct(product); setIsDeleteOpen(true); }}
-                            >
+                            <Button variant="outline" size="sm" className="h-8 rounded-lg text-xs text-destructive hover:text-destructive px-2"
+                              onClick={(e) => { e.stopPropagation(); setSelectedProduct(product); setIsDeleteOpen(true); }}>
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
@@ -574,6 +560,8 @@ const AdminProducts = () => {
                       <TableHead>Category</TableHead>
                       <TableHead>Price</TableHead>
                       <TableHead>Stock</TableHead>
+                      <TableHead>Active</TableHead>
+                      <TableHead>Featured</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
@@ -583,26 +571,25 @@ const AdminProducts = () => {
                       const stock = product.stock ?? 0;
                       const isOut = stock === 0;
                       const isLow = stock > 0 && stock <= LOW_STOCK_THRESHOLD;
+                      const pActive = (product as any).is_active ?? true;
+                      const pFeatured = (product as any).is_featured ?? false;
+                      const comparePrice = (product as any).compare_price;
 
                       return (
-                        <TableRow
-                          key={product.id}
-                          className={cn(
-                            'cursor-pointer transition-colors',
+                        <TableRow key={product.id}
+                          className={cn('cursor-pointer transition-colors',
                             isOut && 'bg-destructive/5 hover:bg-destructive/10',
-                            isLow && 'bg-warning/5 hover:bg-warning/10'
+                            isLow && 'bg-warning/5 hover:bg-warning/10',
+                            !pActive && 'opacity-60'
                           )}
-                          onClick={() => openEditDialog(product)}
-                        >
+                          onClick={() => openEditDialog(product)}>
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <div className="h-10 w-10 rounded-lg bg-secondary overflow-hidden relative flex-shrink-0">
                                 {product.image_url ? (
-                                  <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                                  <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" loading="lazy" />
                                 ) : (
-                                  <div className="h-full w-full flex items-center justify-center">
-                                    <Package className="h-5 w-5 text-muted-foreground" />
-                                  </div>
+                                  <div className="h-full w-full flex items-center justify-center"><Package className="h-5 w-5 text-muted-foreground" /></div>
                                 )}
                               </div>
                               <div className="min-w-0">
@@ -611,29 +598,25 @@ const AdminProducts = () => {
                               </div>
                             </div>
                           </TableCell>
+                          <TableCell><Badge variant="outline">{product.category}</Badge></TableCell>
                           <TableCell>
-                            <Badge variant="outline">{product.category}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex flex-col">
                               <span className="font-medium">৳{product.price}</span>
-                              {product.discount && product.discount > 0 && (
-                                <Badge variant="secondary" className="text-[10px]">-{product.discount}%</Badge>
+                              {comparePrice && comparePrice > product.price && (
+                                <span className="text-xs text-muted-foreground line-through">৳{comparePrice}</span>
                               )}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <span className={cn(
-                              'font-medium tabular-nums',
-                              isOut && 'text-destructive',
-                              isLow && 'text-warning'
-                            )}>
-                              {stock}
-                            </span>
+                            <span className={cn('font-medium tabular-nums', isOut && 'text-destructive', isLow && 'text-warning')}>{stock}</span>
                           </TableCell>
-                          <TableCell>
-                            {getStockBadge(stock)}
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Switch checked={pActive} onCheckedChange={(v) => handleToggleActive(product.id, v)} />
                           </TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Switch checked={pFeatured} onCheckedChange={(v) => handleToggleFeatured(product.id, v)} />
+                          </TableCell>
+                          <TableCell>{getStockBadge(stock)}</TableCell>
                           <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -641,26 +624,16 @@ const AdminProducts = () => {
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
+                              <DropdownMenuContent align="end" className="bg-popover z-50">
                                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(product); }}>
-                                  <Edit2 className="h-4 w-4 mr-2" />
-                                  Edit
+                                  <Edit2 className="h-4 w-4 mr-2" />Edit
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setQuickStockEdit({ id: product.id, stock: stock.toString() });
-                                  }}
-                                >
-                                  <PackagePlus className="h-4 w-4 mr-2" />
-                                  Quick Stock Update
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setQuickStockEdit({ id: product.id, stock: stock.toString() }); }}>
+                                  <PackagePlus className="h-4 w-4 mr-2" />Quick Stock Update
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={(e) => { e.stopPropagation(); setSelectedProduct(product); setIsDeleteOpen(true); }}
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete
+                                <DropdownMenuItem className="text-destructive"
+                                  onClick={(e) => { e.stopPropagation(); setSelectedProduct(product); setIsDeleteOpen(true); }}>
+                                  <Trash2 className="h-4 w-4 mr-2" />Delete
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -672,17 +645,11 @@ const AdminProducts = () => {
                 </Table>
               </div>
 
-              {/* Result count */}
               <div className="p-3 border-t border-border">
                 <p className="text-xs text-muted-foreground text-center">
                   Showing {filteredProducts.length} of {products?.length || 0} products
                   {stockFilter !== 'all' && (
-                    <button
-                      className="ml-2 text-primary hover:underline"
-                      onClick={() => setStockFilter('all')}
-                    >
-                      Clear filter
-                    </button>
+                    <button className="ml-2 text-primary hover:underline" onClick={() => setStockFilter('all')}>Clear filter</button>
                   )}
                 </p>
               </div>
@@ -691,47 +658,26 @@ const AdminProducts = () => {
         </div>
       )}
 
-      {/* Quick Stock Update Dialog (Desktop) */}
+      {/* Quick Stock Update Dialog */}
       <Dialog open={!!quickStockEdit} onOpenChange={(open) => !open && setQuickStockEdit(null)}>
         <DialogContent className="max-w-sm rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-base">Update Stock</DialogTitle>
-            <DialogDescription className="text-sm">
-              Enter the new stock quantity.
-            </DialogDescription>
+            <DialogDescription className="text-sm">Enter the new stock quantity.</DialogDescription>
           </DialogHeader>
           {quickStockEdit && (
             <div className="py-4">
               <div className="flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 rounded-xl"
-                  onClick={() => setQuickStockEdit({
-                    ...quickStockEdit,
-                    stock: Math.max(0, parseInt(quickStockEdit.stock) - 1).toString()
-                  })}
-                >
+                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl"
+                  onClick={() => setQuickStockEdit({ ...quickStockEdit, stock: Math.max(0, parseInt(quickStockEdit.stock) - 1).toString() })}>
                   <PackageMinus className="h-4 w-4" />
                 </Button>
-                <Input
-                  type="number"
-                  value={quickStockEdit.stock}
+                <Input type="number" value={quickStockEdit.stock}
                   onChange={(e) => setQuickStockEdit({ ...quickStockEdit, stock: e.target.value })}
                   className="h-12 text-center text-lg font-bold rounded-xl"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleQuickStockUpdate(quickStockEdit.id, parseInt(quickStockEdit.stock) || 0);
-                  }}
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 rounded-xl"
-                  onClick={() => setQuickStockEdit({
-                    ...quickStockEdit,
-                    stock: (parseInt(quickStockEdit.stock) + 1).toString()
-                  })}
-                >
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleQuickStockUpdate(quickStockEdit.id, parseInt(quickStockEdit.stock) || 0); }} />
+                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl"
+                  onClick={() => setQuickStockEdit({ ...quickStockEdit, stock: (parseInt(quickStockEdit.stock) + 1).toString() })}>
                   <PackagePlus className="h-4 w-4" />
                 </Button>
               </div>
@@ -739,12 +685,7 @@ const AdminProducts = () => {
           )}
           <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setQuickStockEdit(null)} className="rounded-xl h-11 sm:h-10">Cancel</Button>
-            <Button
-              onClick={() => quickStockEdit && handleQuickStockUpdate(quickStockEdit.id, parseInt(quickStockEdit.stock) || 0)}
-              className="rounded-xl h-11 sm:h-10"
-            >
-              Update Stock
-            </Button>
+            <Button onClick={() => quickStockEdit && handleQuickStockUpdate(quickStockEdit.id, parseInt(quickStockEdit.stock) || 0)} className="rounded-xl h-11 sm:h-10">Update Stock</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -760,8 +701,7 @@ const AdminProducts = () => {
           <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setIsAddOpen(false)} className="rounded-xl h-11 sm:h-10">Cancel</Button>
             <Button onClick={handleAdd} disabled={saving} className="rounded-xl h-11 sm:h-10">
-              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Add Product
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Add Product
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -778,8 +718,7 @@ const AdminProducts = () => {
           <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setIsEditOpen(false)} className="rounded-xl h-11 sm:h-10">Cancel</Button>
             <Button onClick={handleEdit} disabled={saving} className="rounded-xl h-11 sm:h-10">
-              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Save Changes
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -790,24 +729,71 @@ const AdminProducts = () => {
         <DialogContent className="rounded-2xl max-w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Delete Product</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete "{selectedProduct?.name}"? This action cannot be undone.
-            </DialogDescription>
+            <DialogDescription>Are you sure you want to delete "{selectedProduct?.name}"? This action cannot be undone.</DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setIsDeleteOpen(false)} className="rounded-xl h-11 sm:h-10">Cancel</Button>
             <Button variant="destructive" onClick={handleDelete} disabled={saving} className="rounded-xl h-11 sm:h-10">
-              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Delete
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Delete
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* CSV Import Dialog */}
-      <CSVImportDialog open={isImportOpen} onOpenChange={setIsImportOpen} />
+      {/* Category Management Dialog */}
+      <Dialog open={isCategoryOpen} onOpenChange={setIsCategoryOpen}>
+        <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[80vh] overflow-y-auto rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg">Manage Categories</DialogTitle>
+            <DialogDescription className="text-sm">Add, edit, or remove product categories.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {/* Add new category */}
+            <div className="flex gap-2">
+              <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="New category name" className="h-10 rounded-xl text-sm flex-1"
+                onKeyDown={(e) => { if (e.key === 'Enter') handleAddCategory(); }} />
+              <Button onClick={handleAddCategory} disabled={!newCategoryName.trim() || addCategory.isPending}
+                className="h-10 rounded-xl text-sm px-4">
+                {addCategory.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              </Button>
+            </div>
+            {/* Category list */}
+            <div className="space-y-2">
+              {categories.map((cat) => (
+                <div key={cat.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{cat.name}</p>
+                    <p className="text-xs text-muted-foreground">{cat.slug} · {cat.product_count} products</p>
+                  </div>
+                  <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground">{cat.is_active ? 'Active' : 'Inactive'}</span>
+                      <Switch checked={cat.is_active}
+                        onCheckedChange={(v) => updateCategory.mutate({ id: cat.id, updates: { is_active: v } })} />
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => {
+                        if (cat.product_count > 0) {
+                          toast({ title: 'Cannot delete', description: `${cat.product_count} products use this category. Reassign them first.`, variant: 'destructive' });
+                        } else {
+                          deleteCategory.mutate(cat.id);
+                        }
+                      }}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {categories.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">No categories yet</p>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-      {/* PDF Import Dialog */}
+      <CSVImportDialog open={isImportOpen} onOpenChange={setIsImportOpen} />
       <PDFImportDialog open={isPDFImportOpen} onOpenChange={setIsPDFImportOpen} />
     </AdminLayout>
   );
