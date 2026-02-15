@@ -153,7 +153,8 @@ export const productFormSchema = z.object({
     .max(9999999, 'Price must be less than 10,000,000'),
   category: z
     .string()
-    .min(1, 'Category is required'),
+    .min(1, 'Category is required')
+    .max(100, 'Category must be less than 100 characters'),
   product_type: z
     .string()
     .max(100, 'Product type must be less than 100 characters')

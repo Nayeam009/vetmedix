@@ -196,8 +196,8 @@ const ShopPage = () => {
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
 
-  // Extract unique product types for filter chips
-  const productTypes = ['All', ...Array.from(new Set(products.map(p => p.product_type).filter(Boolean) as string[]))].sort((a, b) => a === 'All' ? -1 : b === 'All' ? 1 : a.localeCompare(b));
+  // Extract unique categories for filter chips
+  const productTypes = ['All', ...Array.from(new Set(products.map(p => p.category).filter(Boolean) as string[]))].sort((a, b) => a === 'All' ? -1 : b === 'All' ? 1 : a.localeCompare(b));
 
   // Batch fetch ratings for all loaded products
   const productIds = useMemo(() => products.map(p => p.id), [products]);
@@ -208,9 +208,9 @@ const ShopPage = () => {
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Product type filter
+  // Category filter
   if (productType !== 'All') {
-    filteredProducts = filteredProducts.filter(p => p.product_type === productType);
+    filteredProducts = filteredProducts.filter(p => p.category === productType);
   }
 
   // Price filter

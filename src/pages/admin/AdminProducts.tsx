@@ -72,7 +72,7 @@ const emptyFormData: ProductFormData = {
   description: '',
   price: '',
   compare_price: '',
-  category: 'Pet',
+  category: '',
   product_type: '',
   image_url: '',
   stock: '',
