@@ -63,7 +63,7 @@ const FeaturedProducts = () => {
             <Sparkles className="h-5 w-5 text-primary" />
             <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground">Featured Products</h2>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+          <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-3">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="bg-background rounded-xl border border-border overflow-hidden">
                 <div className="aspect-square bg-muted animate-pulse" />
@@ -105,7 +105,7 @@ const FeaturedProducts = () => {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+        <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-3">
           {products.map((product) => (
             <ProductCard 
               key={product.id}
