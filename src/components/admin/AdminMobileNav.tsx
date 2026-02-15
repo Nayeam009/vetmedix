@@ -14,7 +14,9 @@ import {
   Sparkles,
   AlertCircle,
   Stethoscope,
-  Mail
+  Mail,
+  Ticket,
+  MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/Logo';
@@ -52,6 +54,8 @@ const navSections: NavSection[] = [
       { icon: Package, label: 'Products', path: '/admin/products', description: 'Manage inventory' },
       { icon: ShoppingCart, label: 'Orders', path: '/admin/orders', description: 'Process orders' },
       { icon: Users, label: 'Customers', path: '/admin/ecommerce-customers', description: 'Payments & buyers' },
+      { icon: Ticket, label: 'Coupons', path: '/admin/coupons', description: 'Discount codes' },
+      { icon: MapPin, label: 'Delivery Zones', path: '/admin/delivery-zones', description: 'Zone pricing' },
       { icon: ShoppingCart, label: 'Incomplete Orders', path: '/admin/incomplete-orders', description: 'Abandoned checkouts' },
       { icon: BarChart3, label: 'Recovery Analytics', path: '/admin/recovery-analytics', description: 'Recovery insights' },
     ]

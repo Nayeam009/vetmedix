@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -69,11 +70,7 @@ const paymentMethods = [
   },
 ];
 
-const getDeliveryCharge = (division: string): number => {
-  if (!division) return 60;
-  const normalizedDivision = division.toLowerCase().trim();
-  return normalizedDivision === 'dhaka' ? 60 : 120;
-};
+// Removed hardcoded getDeliveryCharge - now uses dynamic zones
 
 const CheckoutPage = () => {
   useDocumentTitle('Checkout');
@@ -111,7 +108,29 @@ const CheckoutPage = () => {
   // Track incomplete checkout
   const { markRecovered } = useCheckoutTracking(formData, items, totalAmount, paymentMethod);
 
-  const deliveryCharge = getDeliveryCharge(formData.division);
+  // Fetch delivery zones
+  const { data: deliveryZones = [] } = useQuery({
+    queryKey: ['delivery-zones'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('delivery_zones')
+        .select('*')
+        .eq('is_active', true);
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const matchedZone = useMemo(() => {
+    if (!formData.division) return null;
+    const normalizedDiv = formData.division.trim();
+    return deliveryZones.find(z => 
+      (z.divisions as string[])?.some(d => d.toLowerCase() === normalizedDiv.toLowerCase())
+    ) || null;
+  }, [formData.division, deliveryZones]);
+
+  const deliveryCharge = matchedZone ? Number(matchedZone.charge) : (formData.division ? 120 : 60);
   
   // Calculate coupon discount
   const couponDiscount = (() => {
@@ -765,10 +784,12 @@ const CheckoutPage = () => {
                   <MapPin className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                   <span className="text-muted-foreground">
                     {formData.division ? (
-                      formData.division.toLowerCase() === 'dhaka' ? (
-                        <span className="text-green-600 dark:text-green-400 font-medium">Inside Dhaka - ৳60</span>
+                      matchedZone ? (
+                        <span className="text-green-600 dark:text-green-400 font-medium">
+                          {matchedZone.zone_name} — ৳{Number(matchedZone.charge)} • {matchedZone.estimated_days}
+                        </span>
                       ) : (
-                        <span className="text-amber-600 dark:text-amber-400 font-medium">Outside Dhaka - ৳120</span>
+                        <span className="text-amber-600 dark:text-amber-400 font-medium">Default rate — ৳120</span>
                       )
                     ) : (
                       'Enter division for delivery rate'

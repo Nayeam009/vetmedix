@@ -623,6 +623,42 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_zones: {
+        Row: {
+          charge: number
+          created_at: string | null
+          delivery_fee: number
+          divisions: string[]
+          estimated_days: string | null
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+          zone_name: string
+        }
+        Insert: {
+          charge?: number
+          created_at?: string | null
+          delivery_fee?: number
+          divisions?: string[]
+          estimated_days?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          zone_name: string
+        }
+        Update: {
+          charge?: number
+          created_at?: string | null
+          delivery_fee?: number
+          divisions?: string[]
+          estimated_days?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          zone_name?: string
+        }
+        Relationships: []
+      }
       doctor_favorites: {
         Row: {
           created_at: string
