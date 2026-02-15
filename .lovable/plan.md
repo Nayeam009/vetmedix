@@ -1,110 +1,81 @@
-
-# Delivery Zones + Coupon Improvements
+# E-Commerce Customers: Roles, Bulk Selection, Payment Status Update & Cross-Page Sync
 
 ## Overview
-Create a new **Delivery Zones** admin page that allows the admin to define delivery zones with custom pricing, estimated delivery times, and active/inactive toggles. These zones will auto-sync with the checkout page, replacing the current hardcoded Dhaka/Outside Dhaka delivery charge logic. The coupon system will also be added to the sidebar (it's currently missing from mobile nav).
+
+Enhance the E-Commerce Customers page with role badges, bulk selection, admin payment status update, and ensure real-time data consistency across the Orders, Incomplete Orders, and Customer pages.
 
 ---
 
-## 1. New Database Table: `delivery_zones`
+## Changes
 
-Create a `delivery_zones` table to store zone-based delivery pricing:
+### 1. Add Role Badges per Customer
 
-```sql
-CREATE TABLE delivery_zones (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  zone_name TEXT NOT NULL,
-  charge NUMERIC NOT NULL DEFAULT 0,
-  delivery_fee NUMERIC NOT NULL DEFAULT 0,
-  estimated_days TEXT DEFAULT '3-5 days',
-  is_active BOOLEAN DEFAULT true,
-  divisions TEXT[] NOT NULL DEFAULT '{}',
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+- Fetch `user_roles` table alongside profiles
+- Display role badges (Pet Parent, Doctor, Clinic Owner) next to each customer name
+- Use existing color scheme: Doctor (Teal), Clinic Owner (Emerald), Pet Parent (default)
+- Show in both mobile card view and desktop table view
 
--- RLS: Admins manage, anyone can read active zones
-ALTER TABLE delivery_zones ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Admins can manage delivery zones" ON delivery_zones FOR ALL USING (has_role(auth.uid(), 'admin')) WITH CHECK (has_role(auth.uid(), 'admin'));
-CREATE POLICY "Anyone can view active delivery zones" ON delivery_zones FOR SELECT USING (is_active = true);
+### 2. Add Bulk Selection with Checkboxes
 
--- Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE delivery_zones;
-```
+- Add checkboxes (circle/check icons) matching the Orders page pattern
+- Select-all toggle in the table header
+- Bulk action bar appears when items are selected with options:
+  - **Bulk Update Payment Status** (paid/unpaid) for all selected customers' latest orders
+  - **Export Selected** to CSV
+- Mobile: checkbox on each card, desktop: checkbox column in table
 
-Key fields:
-- **zone_name**: e.g. "Dhaka Inside", "Dhaka Outside"
-- **charge**: the delivery charge amount in BDT
-- **delivery_fee**: alias/secondary fee field (can match charge)
-- **estimated_days**: e.g. "3 days", "5-7 days"
-- **is_active**: toggle on/off
-- **divisions**: array of division names that belong to this zone (e.g. `["Dhaka"]` or `["Rajshahi", "Rangpur"]`)
+### 3. Admin Payment Status Update
 
-## 2. New Admin Page: `AdminDeliveryZones.tsx`
+- Add a clickable payment status badge on each customer row
+- Clicking opens a dropdown or small dialog to change payment status (paid/unpaid/refunded)
+- Updates all non-cancelled orders for that customer via a batch update to the `orders` table
+- Shows a toast confirmation and triggers real-time cache invalidation
 
-Route: `/admin/delivery-zones`
+### 4. Cross-Page Real-Time Connectivity
 
-Inspired by the reference screenshot, this page will have:
-- **Header**: "Delivery Zones" with subtitle showing zone count
-- **Add Zone button**: Opens a dialog/form
-- **Table view** with columns: Zone Name, Charge (BDT), Delivery Fee (BDT), Estimated Days, Status (toggle), Actions (edit/delete)
-- **Form fields**: Zone Name, Divisions (multi-select from Bangladesh divisions list), Charge, Delivery Fee, Estimated Days, Active toggle
-- **Realtime subscription** on `delivery_zones` table for instant updates
-- Mobile-responsive card layout
-
-Follows existing admin page patterns (similar to AdminCoupons structure).
-
-## 3. Update Checkout Delivery Charge Logic
-
-**Current**: Hardcoded `getDeliveryCharge()` function returns 60 for Dhaka, 120 for others.
-
-**New**: Query `delivery_zones` table, match the customer's selected division against zone `divisions` arrays, and use the zone's charge. Falls back to a default (e.g. 120) if no zone matches.
-
-Changes in `CheckoutPage.tsx`:
-- Add a React Query hook to fetch active delivery zones
-- Replace `getDeliveryCharge(division)` with a function that looks up the matching zone
-- Display the zone name and estimated delivery time in the delivery info section
-- If a "free_delivery" coupon is applied, it still overrides the zone charge to 0
-
-## 4. Update Sidebar & Mobile Nav
-
-Add "Delivery Zones" to the E-Commerce section in both:
-- `AdminSidebar.tsx` -- add entry with `MapPin` icon after Coupons
-- `AdminMobileNav.tsx` -- add matching entry with description "Zone pricing"
-- Also add the missing "Coupons" entry to mobile nav
-
-## 5. Add Route in `App.tsx`
-
-- Lazy import `AdminDeliveryZones`
-- Route: `/admin/delivery-zones`
+- The E-Commerce Customers page already subscribes to `orders` table changes
+- Add subscription to `incomplete_orders` table changes as well so conversions from the Incomplete Orders page instantly reflect in customer stats
+- Ensure the `admin-orders`, `admin-ecommerce-customers`, and `admin-stats` query keys are all invalidated when payment status changes, so:
+  - Orders page reflects updated payment status
+  - Dashboard stats update accordingly
+  - Customer page stats (Total Sales, Paid, Pending) stay accurate
 
 ---
 
 ## Technical Details
 
-### Files to Create
-1. **`src/pages/admin/AdminDeliveryZones.tsx`** -- Full CRUD page following AdminCoupons pattern
-
 ### Files to Edit
-2. **`src/pages/CheckoutPage.tsx`** -- Replace hardcoded delivery charge with zone-based lookup
-3. **`src/components/admin/AdminSidebar.tsx`** -- Add Delivery Zones nav item + MapPin icon import
-4. **`src/components/admin/AdminMobileNav.tsx`** -- Add Delivery Zones + Coupons nav items
-5. **`src/App.tsx`** -- Add lazy import and route
 
-### Database Migration
-- Create `delivery_zones` table with RLS policies
-- Seed two default zones: "Dhaka Inside" (charge 60, divisions: ["Dhaka"]) and "Outside Dhaka" (charge 120, divisions: all other 7 divisions)
+1. `**src/pages/admin/AdminEcommerceCustomers.tsx**`
+  - Add `user_roles` query to fetch roles for all customer user IDs
+  - Add role badges rendering (small colored badges next to name)
+  - Add checkbox column (mobile + desktop) using Circle/CheckCircle2 icons
+  - Add `selectedIds` state (Set) and select-all toggle
+  - Add bulk action bar (appears when selected) with "Update Payment" and "Export Selected"
+  - Add per-row payment status click handler that opens a Select/dropdown to update status
+  - On payment status change: update `orders` table, invalidate `admin-orders`, `admin-ecommerce-customers`, `admin-stats` query keys
+  - Add `incomplete_orders` realtime subscription alongside existing `orders` subscription
 
-### Checkout Integration Logic
+### Data Flow for Payment Status Update
+
 ```text
-1. Fetch active delivery_zones on checkout page load
-2. When user selects division:
-   - Find zone where divisions array contains the selected division
-   - Use that zone's charge as delivery fee
-   - Display zone name + estimated_days
-3. If no matching zone found, use fallback charge of 120
-4. Free delivery coupon still overrides to 0
+Admin clicks payment badge on customer row
+  -> Select: paid / unpaid / refunded
+  -> UPDATE orders SET payment_status = ? WHERE user_id = ? AND status != 'cancelled'
+  -> Invalidate: admin-ecommerce-customers, admin-orders, admin-stats
+  -> Toast confirmation
+  -> Realtime subscription auto-refreshes other open admin tabs
 ```
 
-### No Breaking Changes
-The hardcoded logic is replaced seamlessly. The seeded default zones match the current pricing (Dhaka=60, others=120), so existing behavior is preserved until the admin changes zone settings.
+### Role Badge Display
+
+```text
+Query: SELECT user_id, role FROM user_roles WHERE user_id IN (customer_user_ids)
+Display: colored badges -- Doctor (teal), Clinic Owner (emerald), Pet Parent (gray/default)
+```
+
+### No Database Changes Needed
+
+All required tables and columns already exist. The `payment_status` column on orders supports 'paid', 'unpaid', and 'refunded' values. The `user_roles` table provides role data.
+
+UI UX suitable for all screen size specially mobial. optimize the entire admin panel for realtime update & make sure no issue remains.
