@@ -1,78 +1,41 @@
 
+# Fix Stock Status Sync and Admin-Shop Connectivity
 
-# Featured Products Admin Control & Shop Integration
-
-## Overview
-Connect the admin's `is_featured` toggle to the shop's hero carousel and add a "Featured Products" section to the shop page. Admin-set discounts on featured products will reflect in real-time across the shop.
-
----
+## Root Cause
+The "Cat House (Ash Colour)" shows "Stock Out" despite having stock=10 because the `badge` field contains the literal text "Stock Out" from when it was originally out of stock. When the admin updated the stock number, this manual badge text was not automatically cleared.
 
 ## Changes
 
-### 1. Shop Product Interface Update (`ShopPage.tsx`)
-Add `is_featured`, `is_active`, `compare_price`, and `sku` to the local `Product` interface so the shop can filter by these fields.
+### 1. Auto-sync badge field with stock updates (`AdminProducts.tsx`)
+When the admin updates stock via Quick Stock Update, automatically clear the "Stock Out" badge if the new stock is greater than 0. Conversely, if stock is set to 0, auto-set the badge to "Stock Out".
 
-### 2. Hero Carousel - Use `is_featured` (`ShopPage.tsx`)
-Update the `HeroCarousel` component's `featured` logic:
-- **Primary**: Show products where `is_featured === true` (admin-controlled)
-- **Fallback**: If no featured products exist, fall back to discounted products (current behavior)
-- Show `compare_price` as strikethrough when available (in addition to discount %)
+**In `handleQuickStockUpdate`**: After updating stock, also update the badge field:
+- If newStock > 0 and current badge is "Stock Out" -> clear badge to null
+- If newStock === 0 -> set badge to "Stock Out"
 
-### 3. Filter Active Products (`ShopPage.tsx`)
-Add a filter to only show `is_active !== false` products in the public shop listing, so admin deactivation works.
+### 2. Fix ProductCard badge display (`ProductCard.tsx`)
+Add a guard so the "Stock Out" badge text is never shown when stock > 0. This prevents stale badge data from misleading users regardless of the source.
 
-### 4. Featured Products Section in Shop (`ShopPage.tsx`)
-Add a dedicated "Featured Products" horizontal scroll section between the hero and the product grid:
-- Only shows when there are featured products (`is_featured === true`)
-- Displays as a scrollable row of ProductCards
-- Mobile: horizontal scroll with snap points
-- Desktop: up to 4 columns grid
-- Shows discount badges and compare prices
+**In ProductCard**: Filter out badge display when badge text is "Stock Out" and stock > 0.
 
-### 5. Update `FeaturedProducts.tsx` Component
-Rewrite to query only `is_featured = true` products with realtime subscription:
-- Filter by `is_featured` and `is_active`
-- Use React Query instead of raw `useState/useEffect`
-- Subscribe to realtime changes on products table
-- Show compare_price strikethrough and discount badges
-- This component can be used on the homepage (Index page) if desired
+### 3. Fix the existing data (SQL)
+Run a one-time database update to clear "Stock Out" badges on all products that currently have stock > 0.
 
-### 6. Add FeaturedProducts to Index Page (`Index.tsx`)
-Import and render `FeaturedProducts` component on the landing page between the social feed section and the footer, giving the homepage a shop preview.
+```
+UPDATE products SET badge = NULL WHERE badge = 'Stock Out' AND stock > 0;
+```
 
-### 7. Realtime Sync
-Both the shop hero and featured sections already subscribe to product changes via realtime. The existing subscription invalidates React Query cache, so admin toggle changes (featured, active, discount) will reflect immediately.
-
----
+### 4. Auto-sync badge in product edit/save (`AdminProducts.tsx`)
+When saving a product via the Add/Edit form, apply the same badge-stock sync logic:
+- If stock > 0 and badge is "Stock Out", clear badge
+- If stock is 0, set badge to "Stock Out"
 
 ## Technical Details
 
 ### Files to Edit
-1. **`src/pages/ShopPage.tsx`**
-   - Extend Product interface with `is_featured`, `is_active`, `compare_price`
-   - Update HeroCarousel to prioritize `is_featured` products
-   - Filter out inactive products from display
-   - Add "Featured Products" section between hero and product grid
+1. **`src/pages/admin/AdminProducts.tsx`** - Add badge auto-sync in `handleQuickStockUpdate`, `handleAdd`, and `handleEdit`
+2. **`src/components/ProductCard.tsx`** - Guard against stale "Stock Out" badge when stock > 0
+3. **Database migration** - One-time fix for existing stale data
 
-2. **`src/components/FeaturedProducts.tsx`**
-   - Rewrite to use React Query with `is_featured = true` and `is_active = true` filters
-   - Add realtime subscription
-   - Show compare_price and discount info
-
-3. **`src/pages/Index.tsx`**
-   - Import and render FeaturedProducts before Footer
-
-### No Database Changes Needed
-The `is_featured` and `is_active` columns already exist. The admin toggle handlers already work. This is purely a frontend connection task.
-
-### Key Logic
-```text
-Admin toggles "Featured" on a product
-  -> Supabase updates is_featured = true
-  -> Realtime event fires
-  -> React Query cache invalidates
-  -> Shop hero carousel updates to show featured products
-  -> Featured Products section updates
-  -> Homepage featured section updates
-```
-
+### No new dependencies needed
+This is purely logic fixes in existing files plus a data correction.
