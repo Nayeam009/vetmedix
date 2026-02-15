@@ -907,6 +907,60 @@ export type Database = {
           },
         ]
       }
+      incomplete_orders: {
+        Row: {
+          cart_total: number | null
+          completeness: number | null
+          created_at: string | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          division: string | null
+          expires_at: string | null
+          id: string
+          items: Json | null
+          recovered_order_id: string | null
+          shipping_address: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cart_total?: number | null
+          completeness?: number | null
+          created_at?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          division?: string | null
+          expires_at?: string | null
+          id?: string
+          items?: Json | null
+          recovered_order_id?: string | null
+          shipping_address?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cart_total?: number | null
+          completeness?: number | null
+          created_at?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          division?: string | null
+          expires_at?: string | null
+          id?: string
+          items?: Json | null
+          recovered_order_id?: string | null
+          shipping_address?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       likes: {
         Row: {
           created_at: string

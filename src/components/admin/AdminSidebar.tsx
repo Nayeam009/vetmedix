@@ -53,6 +53,8 @@ const navSections: NavSection[] = [
       { icon: Package, label: 'Products', path: '/admin/products' },
       { icon: ShoppingCart, label: 'Orders', path: '/admin/orders' },
       { icon: Ticket, label: 'Coupons', path: '/admin/coupons' },
+      { icon: ShoppingCart, label: 'Incomplete Orders', path: '/admin/incomplete-orders' },
+      { icon: BarChart3, label: 'Recovery Analytics', path: '/admin/recovery-analytics' },
     ]
   },
   {
