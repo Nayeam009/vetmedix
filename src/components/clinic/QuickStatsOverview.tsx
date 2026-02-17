@@ -1,7 +1,7 @@
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 import { 
-  TrendingUp, TrendingDown, Calendar, Clock, 
-  CheckCircle, XCircle, Users, DollarSign, Activity
+  TrendingUp, TrendingDown, CalendarClock, Clock, 
+  CheckCircle, XCircle, Users, DollarSign, HeartPulse
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -54,7 +54,7 @@ const QuickStatsOverview = ({ appointments, doctorsCount, servicesCount }: Quick
       title: 'Today',
       value: todayAppointments.length,
       subtitle: 'appointments',
-      icon: Calendar,
+      icon: CalendarClock,
       color: 'text-blue-600',
       bgColor: 'bg-blue-500/10',
     },
@@ -71,7 +71,7 @@ const QuickStatsOverview = ({ appointments, doctorsCount, servicesCount }: Quick
       title: 'This Week',
       value: thisWeekAppointments.length,
       subtitle: 'appointments',
-      icon: Activity,
+      icon: HeartPulse,
       color: 'text-purple-600',
       bgColor: 'bg-purple-500/10',
     },
@@ -113,7 +113,7 @@ const QuickStatsOverview = ({ appointments, doctorsCount, servicesCount }: Quick
               stat.alert && "ring-2 ring-amber-500/50"
             )}
           >
-            <CardContent className="p-3 sm:p-4">
+            <CardContent className="p-4 sm:p-5">
               <div className="flex items-start justify-between">
                 <div className="min-w-0 flex-1">
                   <p className="text-[10px] sm:text-xs text-muted-foreground font-medium uppercase tracking-wide">
