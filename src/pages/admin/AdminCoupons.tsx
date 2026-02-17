@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { useAdmin } from '@/hooks/useAdmin';
-import { useAuth } from '@/contexts/AuthContext';
+import { RequireAdmin } from '@/components/admin/RequireAdmin';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,8 +55,7 @@ const AdminCoupons = () => {
   useDocumentTitle('Coupons - Admin');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, loading: authLoading } = useAuth();
-  const { isAdmin, roleLoading } = useAdmin();
+  const { isAdmin } = useAdmin();
   useAdminRealtimeDashboard(isAdmin);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [formData, setFormData] = useState(emptyCoupon);
@@ -168,20 +167,6 @@ const AdminCoupons = () => {
     saveMutation.mutate(formData);
   };
 
-  if (authLoading || roleLoading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-  }
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-          <h1 className="text-xl font-bold mb-2">Access Denied</h1>
-          <Button onClick={() => navigate('/')}>Go Home</Button>
-        </div>
-      </div>
-    );
-  }
 
   const getDiscountLabel = (c: Coupon) => {
     if (c.discount_type === 'free_delivery') return 'Free Delivery';
@@ -199,6 +184,7 @@ const AdminCoupons = () => {
   const isUsedUp = (c: Coupon) => c.usage_limit !== null && c.used_count >= c.usage_limit;
 
   return (
+    <RequireAdmin>
     <AdminLayout title="Coupons" subtitle="Create and manage discount coupons">
       {/* Stats Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
@@ -396,6 +382,7 @@ const AdminCoupons = () => {
         </div>
       )}
     </AdminLayout>
+    </RequireAdmin>
   );
 };
 

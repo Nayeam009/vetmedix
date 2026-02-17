@@ -1,6 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
 import {
   Plus,
   Search,
@@ -49,7 +48,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useAdmin, useAdminProducts } from '@/hooks/useAdmin';
-import { useAuth } from '@/contexts/AuthContext';
+import { RequireAdmin } from '@/components/admin/RequireAdmin';
 import { useToast } from '@/hooks/use-toast';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import { supabase } from '@/integrations/supabase/client';
@@ -88,8 +87,7 @@ const AdminProducts = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user, loading: authLoading } = useAuth();
-  const { isAdmin, roleLoading } = useAdmin();
+  const { isAdmin } = useAdmin();
   useAdminRealtimeDashboard(isAdmin);
   const { data: products, isLoading } = useAdminProducts();
   const { categories, addCategory, updateCategory, deleteCategory } = useProductCategories();
@@ -108,13 +106,6 @@ const AdminProducts = () => {
   const [quickStockEdit, setQuickStockEdit] = useState<{ id: string; stock: string } | null>(null);
   const [formData, setFormData] = useState<ProductFormData>(emptyFormData);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    } else if (!authLoading && !roleLoading && !isAdmin) {
-      navigate('/');
-    }
-  }, [user, authLoading, isAdmin, roleLoading, navigate]);
 
   const stats = useMemo(() => {
     if (!products) return { total: 0, inStock: 0, outOfStock: 0, lowStock: 0, featured: 0 };
@@ -371,30 +362,8 @@ const AdminProducts = () => {
     return <Badge className="bg-success/15 text-success border-success/30 text-[10px] sm:text-xs">In Stock</Badge>;
   };
 
-  if (authLoading || roleLoading) {
-    return (
-      <AdminLayout title="Products" subtitle="Manage your product catalog">
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </AdminLayout>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-          <h1 className="text-xl font-bold mb-2">Access Denied</h1>
-          <p className="text-muted-foreground mb-4">You don't have permission to access this page.</p>
-          <Button onClick={() => navigate('/')}>Go Home</Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
+    <RequireAdmin>
     <AdminLayout title="Products" subtitle="Manage your product catalog">
       {/* Low Stock Alert Banner */}
       {!isLoading && (stats.outOfStock > 0 || stats.lowStock > 0) && (
@@ -831,6 +800,7 @@ const AdminProducts = () => {
       <CSVImportDialog open={isImportOpen} onOpenChange={setIsImportOpen} />
       <PDFImportDialog open={isPDFImportOpen} onOpenChange={setIsPDFImportOpen} />
     </AdminLayout>
+    </RequireAdmin>
   );
 };
 

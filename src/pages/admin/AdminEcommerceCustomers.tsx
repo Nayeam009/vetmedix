@@ -49,7 +49,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAdmin } from '@/hooks/useAdmin';
-import { useAuth } from '@/contexts/AuthContext';
+import { RequireAdmin } from '@/components/admin/RequireAdmin';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -209,8 +209,7 @@ const AdminEcommerceCustomers = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user, loading: authLoading } = useAuth();
-  const { isAdmin, roleLoading } = useAdmin();
+  const { isAdmin } = useAdmin();
   useAdminRealtimeDashboard(isAdmin);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -220,10 +219,6 @@ const AdminEcommerceCustomers = () => {
   const [updatingPayment, setUpdatingPayment] = useState<string | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading && !user) navigate('/auth');
-    else if (!authLoading && !roleLoading && !isAdmin) navigate('/');
-  }, [user, authLoading, isAdmin, roleLoading, navigate]);
 
   // Fetch orders
   const { data: orders, isLoading } = useQuery({
@@ -448,30 +443,11 @@ const AdminEcommerceCustomers = () => {
 
   const formatBDT = (amount: number) => `৳${amount.toLocaleString('en-BD', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
-  if (authLoading || roleLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-          <h1 className="text-xl font-bold mb-2">Access Denied</h1>
-          <p className="text-muted-foreground mb-4">You don't have permission to access this page.</p>
-          <Button onClick={() => navigate('/')}>Go Home</Button>
-        </div>
-      </div>
-    );
-  }
 
   const isAllSelected = paginatedData.length > 0 && selectedIds.size === paginatedData.length;
 
   return (
+    <RequireAdmin>
     <AdminLayout title="E-Commerce Customers" subtitle="Payments, buyers & revenue overview">
       {/* Time Filter */}
       <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -720,6 +696,7 @@ const AdminEcommerceCustomers = () => {
         </div>
       )}
     </AdminLayout>
+    </RequireAdmin>
   );
 };
 

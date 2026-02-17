@@ -40,7 +40,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAdmin } from '@/hooks/useAdmin';
-import { useAuth } from '@/contexts/AuthContext';
+import { RequireAdmin } from '@/components/admin/RequireAdmin';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
@@ -70,8 +70,7 @@ const AdminContactMessages = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user, loading: authLoading } = useAuth();
-  const { isAdmin, roleLoading } = useAdmin();
+  const { isAdmin } = useAdmin();
   useAdminRealtimeDashboard(isAdmin);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,10 +91,6 @@ const AdminContactMessages = () => {
     enabled: isAdmin,
   });
 
-  useEffect(() => {
-    if (!authLoading && !user) navigate('/auth');
-    else if (!authLoading && !roleLoading && !isAdmin) navigate('/');
-  }, [user, authLoading, isAdmin, roleLoading, navigate]);
 
   const updateStatus = async (id: string, status: string) => {
     try {
@@ -160,28 +155,8 @@ const AdminContactMessages = () => {
     );
   };
 
-  if (authLoading || roleLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-          <h1 className="text-xl font-bold mb-2">Access Denied</h1>
-          <p className="text-muted-foreground mb-4">You don't have permission to access this page.</p>
-          <Button onClick={() => navigate('/')}>Go Home</Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
+    <RequireAdmin>
     <AdminLayout title="Contact Messages" subtitle={`${unreadCount} unread message${unreadCount !== 1 ? 's' : ''}`}>
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-between mb-4 sm:mb-6">
@@ -366,6 +341,7 @@ const AdminContactMessages = () => {
         </DialogContent>
       </Dialog>
     </AdminLayout>
+    </RequireAdmin>
   );
 };
 

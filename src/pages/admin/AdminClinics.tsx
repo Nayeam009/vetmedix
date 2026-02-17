@@ -59,7 +59,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ClinicVerificationDialog } from '@/components/admin/ClinicVerificationDialog';
 import { useAdmin } from '@/hooks/useAdmin';
-import { useAuth } from '@/contexts/AuthContext';
+import { RequireAdmin } from '@/components/admin/RequireAdmin';
 import { supabase } from '@/integrations/supabase/client';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import { toast } from 'sonner';
@@ -98,8 +98,7 @@ const AdminClinics = () => {
   useDocumentTitle('Clinics Management - Admin');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, loading: authLoading } = useAuth();
-  const { isAdmin, roleLoading } = useAdmin();
+  const { isAdmin } = useAdmin();
   useAdminRealtimeDashboard(isAdmin);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -243,21 +242,9 @@ const AdminClinics = () => {
     },
   });
 
-  // Redirect if not admin
-  if (!authLoading && !roleLoading && !isAdmin) {
-    navigate('/');
-    return null;
-  }
-
-  if (authLoading || roleLoading) {
-    return (
-      <AdminLayout title="Clinics Management" subtitle="Manage and verify veterinary clinics">
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </AdminLayout>
-    );
-  }
+  return (
+    <RequireAdmin>
+    <AdminLayout title="Clinics Management" subtitle="Manage and verify veterinary clinics">
 
   // Filter clinics
   const filteredClinics = clinics?.filter((clinic) => {
@@ -655,6 +642,7 @@ const AdminClinics = () => {
         </AlertDialogContent>
       </AlertDialog>
     </AdminLayout>
+    </RequireAdmin>
   );
 };
 

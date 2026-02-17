@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { AdminLayout } from '@/components/admin/AdminLayout';
+import { RequireAdmin } from '@/components/admin/RequireAdmin';
 import { useIncompleteOrders, IncompleteOrder } from '@/hooks/useIncompleteOrders';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -201,6 +202,7 @@ const AdminIncompleteOrders = () => {
   }
 
   return (
+    <RequireAdmin>
     <AdminLayout title="Incomplete Orders">
       <div className="p-4 sm:p-6 space-y-5">
         {/* Header */}
@@ -466,6 +468,7 @@ const AdminIncompleteOrders = () => {
         </Dialog>
       </div>
     </AdminLayout>
+    </RequireAdmin>
   );
 };
 
