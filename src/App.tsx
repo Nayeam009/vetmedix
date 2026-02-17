@@ -63,6 +63,10 @@ const AdminIncompleteOrders = lazy(() => import("./pages/admin/AdminIncompleteOr
 const AdminRecoveryAnalytics = lazy(() => import("./pages/admin/AdminRecoveryAnalytics"));
 const AdminEcommerceCustomers = lazy(() => import("./pages/admin/AdminEcommerceCustomers"));
 const AdminDeliveryZones = lazy(() => import("./pages/admin/AdminDeliveryZones"));
+const AdminCMS = lazy(() => import("./pages/admin/AdminCMS"));
+const AdminCMSEditor = lazy(() => import("./pages/admin/AdminCMSEditor"));
+const BlogPage = lazy(() => import("./pages/BlogPage"));
+const BlogArticlePage = lazy(() => import("./pages/BlogArticlePage"));
 
 // Doctor routes - lazy loaded
 const DoctorDashboard = lazy(() => import("./pages/doctor/DoctorDashboard"));
@@ -146,6 +150,8 @@ const App = () => (
                     <Route path="/contact" element={<ContactPage />} />
                     <Route path="/faq" element={<FAQPage />} />
                     <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                    <Route path="/blog" element={<BlogPage />} />
+                    <Route path="/blog/:slug" element={<BlogArticlePage />} />
                     <Route path="/terms" element={<TermsPage />} />
                     <Route path="/shop" element={<ShopPage />} />
                     <Route path="/clinics" element={<ClinicsPage />} />
@@ -188,6 +194,9 @@ const App = () => (
                     <Route path="/admin/recovery-analytics" element={<AdminRecoveryAnalytics />} />
                     <Route path="/admin/ecommerce-customers" element={<AdminEcommerceCustomers />} />
                     <Route path="/admin/delivery-zones" element={<AdminDeliveryZones />} />
+                    <Route path="/admin/cms" element={<AdminCMS />} />
+                    <Route path="/admin/cms/new" element={<AdminCMSEditor />} />
+                    <Route path="/admin/cms/:id/edit" element={<AdminCMSEditor />} />
                     
                     {/* OAuth Role Selection */}
                     <Route path="/select-role" element={<SelectRolePage />} />

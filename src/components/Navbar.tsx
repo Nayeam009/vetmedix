@@ -23,6 +23,7 @@ const navLinks = [
   { path: '/shop', label: 'Shop', icon: Store },
   { path: '/clinics', label: 'Clinics', icon: Building2 },
   { path: '/doctors', label: 'Doctors', icon: Users },
+  { path: '/blog', label: 'Blog', icon: Store },
 ];
 
 const Navbar = memo(() => {
