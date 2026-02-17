@@ -23,8 +23,6 @@ export default defineConfig(({ mode }) => ({
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           // React Query for data fetching
           'vendor-query': ['@tanstack/react-query'],
-          // Charts library (only loaded on analytics pages)
-          'vendor-charts': ['recharts'],
           // Date utilities
           'vendor-date': ['date-fns'],
           // Supabase client

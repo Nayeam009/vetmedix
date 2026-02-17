@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useCallback } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,17 +8,16 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { PetProvider } from "@/contexts/PetContext";
-import { Loader2 } from "lucide-react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useFocusManagement } from "@/hooks/useFocusManagement";
 import OfflineIndicator from "@/components/OfflineIndicator";
 
-// Critical routes - loaded immediately
-import Index from "./pages/Index";
-import AuthPage from "./pages/AuthPage";
-import ShopPage from "./pages/ShopPage";
-import ClinicsPage from "./pages/ClinicsPage";
-import DoctorsPage from "./pages/DoctorsPage";
+// ALL page routes lazy-loaded for minimal initial bundle
+const Index = lazy(() => import("./pages/Index"));
+const AuthPage = lazy(() => import("./pages/AuthPage"));
+const ShopPage = lazy(() => import("./pages/ShopPage"));
+const ClinicsPage = lazy(() => import("./pages/ClinicsPage"));
+const DoctorsPage = lazy(() => import("./pages/DoctorsPage"));
 
 // Lazy load non-critical routes for better performance
 const FeedPage = lazy(() => import("./pages/FeedPage"));
@@ -112,6 +111,16 @@ const PageLoader = () => (
   </>
 );
 
+// Page transition wrapper - CSS-only fade+slide animation on route change
+const PageTransition = ({ children }: { children: React.ReactNode }) => {
+  const { pathname } = useLocation();
+  return (
+    <div key={pathname} className="animate-page-enter">
+      {children}
+    </div>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider queryClient={queryClient}>
@@ -126,8 +135,9 @@ const App = () => (
               <ScrollToTop />
               <ErrorBoundary>
                 <Suspense fallback={<PageLoader />}>
+                  <PageTransition>
                   <Routes>
-                    {/* Public routes - critical paths loaded immediately */}
+                    {/* All routes lazy-loaded */}
                     <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<AuthPage />} />
                     <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -198,6 +208,7 @@ const App = () => (
                     {/* 404 */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
+                  </PageTransition>
                 </Suspense>
               </ErrorBoundary>
             </BrowserRouter>
