@@ -1,72 +1,77 @@
 
 
-# End-to-End Gap Analysis: Order Lifecycle
+# Gap Analysis Report: Cross-Role Integrity Test
 
-## 1. DISCONNECTED LOGIC
+## 1. SYNC ISSUES
 
-### GAP-1: "Add to Cart" on ProductCard Has No Toast Feedback (Medium)
-**File**: `src/components/ProductCard.tsx` (line 41-45)
+### SYNC-1: Admin Appointments Realtime -- PASS
+The `useAdminRealtimeDashboard` hook (line 106) subscribes to all events on the `appointments` table and invalidates `admin-appointments` + `admin-stats`. New bookings appear instantly in the Admin panel without refresh.
 
-The `handleAddToCart` function calls `addItem()` but provides **zero visual feedback** -- no toast, no animation, no badge pulse. The user taps "Add to Cart" and nothing visibly happens except the nav cart count silently incrementing. Compare with `ProductDetailPage.tsx` (line 126) which correctly shows `toast({ title: 'Added to cart!' })`.
+### SYNC-2: Admin Orders Realtime -- PASS
+The hook (line 27) listens for `INSERT` on `orders` with a toast notification ("New order received!") and invalidates `admin-orders` + `admin-stats`. Orders appear instantly.
 
-**Fix**: Add `toast.success('Added to cart!')` after `addItem()` in `ProductCard.tsx`, matching the pattern already used in `ProductDetailPage`.
+### SYNC-3: Pet Parent Order Status Updates -- PASS
+`ProfilePage.tsx` (line 172) subscribes to `UPDATE` on `orders` filtered by `user_id`. Admin status changes ("Shipped", "Confirmed") reflect in real-time on the customer's "My Orders" view via direct cache mutation.
 
-### GAP-2: Customer "My Orders" Page Lacks Realtime for Status Changes (Verified Safe)
-**Status**: NOT A GAP
+### SYNC-4: Pet Parent Appointment Status Updates -- PASS
+`ProfilePage.tsx` (line 190) subscribes to all events on `appointments` filtered by `user_id`, invalidating the cache on any change. Admin confirmations appear instantly.
 
-`ProfilePage.tsx` (lines 170-206) subscribes to `postgres_changes` on the `orders` table filtered by `user_id`, invalidating `['user-orders']` on updates. Admin status changes reflect in real-time without refresh. `TrackOrderPage.tsx` also has its own per-order realtime channel.
+### SYNC-5: Inventory Decrement -- PASS
+The `create_order_with_stock` RPC atomically locks rows, checks stock, inserts the order, and decrements inventory in a single transaction. Admin sees updated stock via realtime product subscription (line 66).
 
-### GAP-3: Stock Decrement (Verified Safe)
-**Status**: NOT A GAP
-
-The `create_order_with_stock` RPC function (implemented in the previous audit) atomically locks rows, checks stock, inserts the order, and decrements stock in a single transaction. The `decrement_stock` standalone function also uses `GREATEST(stock - p_quantity, 0)` to prevent negative values.
-
-### GAP-4: Cart Persistence (Verified Safe)
-**Status**: NOT A GAP
-
-`CartContext.tsx` uses `localStorage` with key `vetmedix-cart`. State is read on mount and written on every change via `useEffect`. Cart survives page reloads.
+### SYNC-6: Cart Clear After Purchase -- PASS
+`CheckoutPage.tsx` (line 292) calls `clearCart()` immediately after successful order placement.
 
 ---
 
-## 2. SECURITY RISKS
+## 2. MOBILE FAILURES
 
-### SEC-1: Admin Route Protection (Verified Safe)
-**Status**: NO RISK
+### MOB-1: No Sticky "Book Now" Button on ClinicDetailPage (Medium)
+**File**: `src/pages/ClinicDetailPage.tsx`
 
-All admin routes use `RequireAdmin` which checks `useAdmin()` -> `useUserRole()` -> server-side `user_roles` table. Non-admins are redirected to `/`. Even if a customer types `/admin/orders` directly, they see "Access Denied" then get redirected. RLS on `orders` table ensures admin-only SELECT via `has_role(auth.uid(), 'admin')`.
+The "Book Appointment" button exists only inside the hero card overlay (line 373-380). On mobile, once the user scrolls past the hero into the tabs (About, Services, Doctors, Reviews), the booking CTA scrolls out of view. There is no sticky/fixed bottom CTA bar for mobile users.
 
-### SEC-2: Customer Can Only See Own Orders (Verified Safe)
-**Status**: NO RISK
+Compare with `CheckoutPage` and `CartPage` which both implement a `fixed bottom-14` action bar on mobile. The clinic page lacks this pattern.
 
-RLS on `orders`: `Users can view their own orders` policy uses `auth.uid() = user_id`. ProfilePage queries with `.eq('user_id', user!.id)` -- even if the client-side filter were removed, the RLS would block access to other users' orders.
+**Fix**: Add a fixed bottom bar (visible only on mobile, hidden on `md:`) with a "Book Appointment" button, positioned at `bottom-14` to sit above `MobileNav`. This matches the existing checkout/cart pattern.
 
-### SEC-3: Checkout Auth Guard (Verified Safe)
-**Status**: NO RISK
+### MOB-2: Admin "Recent Orders" on Mobile -- PASS
+Already uses a responsive card layout with `md:hidden` card view and `hidden md:block` table view. Touch targets are 44px minimum.
 
-`CheckoutPage.tsx` (line 86-91) redirects unauthenticated users immediately. The `create_order_with_stock` RPC verifies `auth.uid() = p_user_id` server-side.
+### MOB-3: ProductCard Touch Targets -- PASS
+Global CSS enforces 44px minimum interactive element sizing. The "Add to Cart" button meets the threshold.
 
 ---
 
-## 3. UX FRICTION
+## 3. PERFORMANCE
 
-### UX-1: Console Ref Warning Still Present (Low)
-**File**: `src/components/social/PostCard.tsx` (line 130-148)
+### PERF-1: Console Ref Warning Still Firing (Low)
+**File**: `src/components/social/PostCard.tsx`
 
-The console still shows `"Function components cannot be given refs"` from `DropdownMenu`. The previous fix wrapped the `DropdownMenu` in a `<div>`, but the warning persists because the `<div>` wrapper is inside a conditional `{user?.id === post.user_id && (...)}`. When the condition is true, the `DropdownMenu` is still a direct child of the `<div>` which itself receives the ref from `TabsContent`. The `<div>` absorbs it for its own rendering, but Radix internally passes a ref to `DropdownMenu`'s root function component.
+The warning `"Function components cannot be given refs"` persists in the console. The previous fix wrapped the `DropdownMenu` in a `<div>` (line 131), but the warning originates from a different source: `PostCardComponent` itself is wrapped in `memo()` without `forwardRef`. When rendered inside `TabsContent` (in `BelowFoldContent.tsx`), Radix passes a ref down to the child component. Since `PostCardComponent` is a plain function component (not wrapped in `forwardRef`), React warns.
 
-The actual fix is to use `React.forwardRef` on the memoized export, or ensure the `DropdownMenu` root doesn't receive the propagated ref. Since the `<div>` wrapper was already added but the warning persists, the wrapper might not be positioned correctly in the component tree.
+The outer `<div>` wrapper (line 104) should absorb this ref, but the warning stack trace shows the ref is targeting the `DropdownMenu` component specifically -- Radix's `DropdownMenu` root is itself a function component that doesn't accept refs, and Radix internally tries to set one.
 
-**Fix**: Verify the `<div>` wrapper is placed at the correct level (wrapping the entire `<article>` element, not just the dropdown). If the ref comes from `TabsContent` -> `PostCard`, the outer article needs a wrapper.
+**Fix**: Convert the `PostCard` export to use `React.forwardRef` so the ref chain is properly handled. The forwarded ref can be applied to the outer `<div>` wrapper, preventing it from propagating further into the component tree.
 
-### UX-2: Admin Orders Table on Mobile (Verified Safe)
-**Status**: NO ISSUE
+### PERF-2: Booking Feedback -- PASS
+`BookAppointmentPage` shows a toast ("Appointment Booked!") immediately after the RPC resolves (line 122-125), then navigates to `/profile`.
 
-`AdminOrders.tsx` already implements a dual-layout pattern: card view on mobile (`md:hidden`) and table view on desktop (`hidden md:block`). Cards use proper 44px touch targets.
+### PERF-3: Add-to-Cart Feedback -- PASS (Fixed in previous audit)
+`ProductCard` now shows `toast.success(name + ' added to cart!')` immediately after `addItem()`.
 
-### UX-3: ProductCard "Add to Cart" Button Size (Verified Safe)
-**Status**: NO ISSUE
+---
 
-The button is `h-6 sm:h-8` but the entire card is clickable (`cursor-pointer`), and the global CSS enforces 44px minimum touch targets on interactive elements. The button's hit area meets the 44px threshold via padding.
+## 4. SECURITY
+
+### SEC-1: Admin Route Guard -- PASS
+`RequireAdmin` checks `useAdmin()` which queries the `user_roles` table server-side. Pet Parents are redirected to `/`.
+
+### SEC-2: RLS on Orders -- PASS
+`Users can view their own orders` policy uses `auth.uid() = user_id`. Admins have a separate `Admins can view all orders` policy.
+
+### SEC-3: Appointment Booking Auth -- PASS
+`book_appointment_atomic` RPC verifies `auth.uid() = p_user_id` and the unique partial index prevents double-booking.
 
 ---
 
@@ -74,16 +79,15 @@ The button is `h-6 sm:h-8` but the entire card is clickable (`cursor-pointer`), 
 
 | ID | Category | Severity | File | Description |
 |----|----------|----------|------|-------------|
-| GAP-1 | UX | Medium | ProductCard.tsx | No toast feedback on "Add to Cart" tap |
-| UX-1 | UX | Low | PostCard.tsx | Console ref warning still showing |
+| MOB-1 | Mobile UX | Medium | ClinicDetailPage.tsx | No sticky "Book Now" button on mobile -- CTA scrolls out of view |
+| PERF-1 | Performance | Low | PostCard.tsx | Console ref warning persists -- needs forwardRef on memo export |
 
 ## Proposed Fixes (2 items)
 
-### Fix 1: Add Toast to ProductCard "Add to Cart"
-In `src/components/ProductCard.tsx`, add `toast.success(name + ' added to cart!')` after the `addItem()` call in `handleAddToCart`. The `toast` import from `sonner` is already used in the file (line 14).
+### Fix 1: Sticky Mobile "Book Now" Bar on ClinicDetailPage
+Add a fixed bottom bar to `ClinicDetailPage.tsx`, visible only below `md` breakpoint, positioned at `bottom-14` (above MobileNav). Contains a full-width "Book Appointment" button with `min-h-[44px]`. This matches the existing sticky bar pattern used in CartPage and CheckoutPage.
 
-### Fix 2: Silence DropdownMenu Ref Warning
-In `src/components/social/PostCard.tsx`, wrap the entire `<article>` element in a plain `<div>` (not just the dropdown) to absorb the ref passed down from `TabsContent` in `BelowFoldContent.tsx`. This ensures the ref never reaches `PostCardComponent` (a function component wrapped in `memo` without `forwardRef`).
+### Fix 2: forwardRef on PostCard to Silence Ref Warning
+Wrap the `PostCardComponent` export with `React.forwardRef`, applying the forwarded ref to the outer `<div>` wrapper. Update the `memo()` call to wrap the `forwardRef` result. This properly handles refs passed from `TabsContent` and eliminates the console warning.
 
-Total: 1 file for GAP-1, 1 file for UX-1. No database changes. No new dependencies.
-
+Total: 2 files modified. No database changes. No new dependencies.
