@@ -1,28 +1,23 @@
-import { useState, useEffect, useCallback, memo, useMemo } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { memo, Suspense, lazy } from 'react';
 import { Link } from 'react-router-dom';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
-import { StoriesBar } from '@/components/social/StoriesBar';
-import { CreatePostCard } from '@/components/social/CreatePostCard';
-import { PostCard } from '@/components/social/PostCard';
-import { usePosts } from '@/hooks/usePosts';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePets } from '@/contexts/PetContext';
-import { supabase } from '@/integrations/supabase/client';
 import { 
-  Loader2, Users, Globe, PawPrint, 
-  ArrowRight, Sparkles, Heart, Search, Camera, MessageCircle, 
+  Users, PawPrint, 
+  ArrowRight, Sparkles, Heart, Camera, MessageCircle, 
   Star, TrendingUp, Share2
 } from 'lucide-react';
-import type { Pet } from '@/types/social';
 import heroCatSocial from '@/assets/hero-cat-social.png';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import SEO from '@/components/SEO';
-import FeaturedProducts from '@/components/FeaturedProducts';
+
+// Below-fold content lazy loaded - social feed, stories, sidebar, featured products
+const BelowFoldContent = lazy(() => import('@/components/home/BelowFoldContent'));
+
 // Memoized feature cards to prevent unnecessary re-renders
 const FeatureCard = memo(({ icon: Icon, label, color, iconColor }: { 
   icon: typeof Camera; 
@@ -57,10 +52,19 @@ const highlightFeatures = [
   { icon: Star, title: 'Pet Stars', desc: 'Follow favorites', color: 'bg-sunshine/10', iconColor: 'text-sunshine' },
 ] as const;
 
+// Lightweight loader for below-fold content
+const BelowFoldLoader = () => (
+  <div className="container mx-auto px-4 sm:px-6 py-8">
+    <div className="space-y-4">
+      <div className="h-32 bg-muted/50 rounded-2xl animate-pulse" />
+      <div className="h-64 bg-muted/50 rounded-2xl animate-pulse" />
+    </div>
+  </div>
+);
+
 const Index = () => {
   useDocumentTitle('Home');
   
-  // SEO structured data for homepage
   const organizationSchema = {
     type: 'Organization' as const,
     name: 'VetMedix',
@@ -71,43 +75,6 @@ const Index = () => {
   };
   const { user } = useAuth();
   const { pets } = usePets();
-  const [feedType, setFeedType] = useState<'all' | 'following'>('all');
-  const [trendingPets, setTrendingPets] = useState<Pet[]>([]);
-  
-  const { 
-    posts, 
-    loading, 
-    likePost, 
-    unlikePost, 
-    refreshPosts 
-  } = usePosts(undefined, feedType);
-
-  const handleFeedTypeChange = useCallback((v: string) => {
-    setFeedType(v as 'all' | 'following');
-  }, []);
-
-  const handleLike = useCallback((id: string) => likePost(id), [likePost]);
-  const handleUnlike = useCallback((id: string) => unlikePost(id), [unlikePost]);
-  const handleRefresh = useCallback(() => refreshPosts(), [refreshPosts]);
-
-  useEffect(() => {
-    const fetchTrendingPets = async () => {
-      try {
-        const { data } = await supabase
-          .from('pets')
-          .select('*')
-          .limit(6)
-          .order('created_at', { ascending: false });
-        
-        setTrendingPets((data || []) as Pet[]);
-      } catch (error) {
-        if (import.meta.env.DEV) {
-          console.error('Error fetching trending pets:', error);
-        }
-      }
-    };
-    fetchTrendingPets();
-  }, []);
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
@@ -120,7 +87,7 @@ const Index = () => {
       <Navbar />
       
       <main id="main-content">
-        {/* Hero Section - Playful & Eye-Pleasing */}
+        {/* Hero Section - Above the fold, renders immediately */}
         <section 
           className="relative overflow-hidden min-h-[85vh] sm:min-h-[90vh]"
           aria-labelledby="hero-heading"
@@ -133,17 +100,14 @@ const Index = () => {
           
           {/* Decorative elements */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-            {/* Large decorative circles */}
             <div className="absolute -top-16 -right-16 w-32 h-32 sm:w-56 sm:h-56 md:w-80 md:h-80 rounded-full bg-gradient-to-br from-primary/15 to-accent/10 blur-3xl animate-pulse-slow transform-gpu" />
             <div className="absolute -bottom-20 -left-20 w-40 h-40 sm:w-64 sm:h-64 md:w-96 md:h-96 rounded-full bg-gradient-to-tr from-accent/12 to-lavender/10 blur-3xl animate-pulse-slow transform-gpu" style={{ animationDelay: '2s' }} />
             
-            {/* Floating paw prints */}
             <div className="absolute top-[8%] left-[5%] text-xl sm:text-3xl lg:text-4xl opacity-10 animate-float rotate-[-15deg]">🐾</div>
             <div className="absolute top-[12%] right-[8%] text-lg sm:text-2xl opacity-8 animate-float rotate-[10deg]" style={{ animationDelay: '2s' }}>🐾</div>
             <div className="absolute bottom-[20%] left-[3%] text-lg sm:text-2xl opacity-8 animate-float rotate-[20deg] hidden sm:block" style={{ animationDelay: '1s' }}>🐾</div>
             <div className="absolute bottom-[25%] right-[5%] text-base sm:text-xl opacity-8 animate-float rotate-[-20deg] hidden md:block" style={{ animationDelay: '3s' }}>🐾</div>
             
-            {/* Floating hearts - desktop only */}
             <div className="absolute top-[22%] right-[18%] hidden lg:block">
               <Heart className="h-5 w-5 text-rose-400/30 fill-rose-400/30 animate-bounce-gentle" />
             </div>
@@ -151,7 +115,6 @@ const Index = () => {
               <Heart className="h-4 w-4 text-primary/25 fill-primary/25 animate-bounce-gentle" style={{ animationDelay: '1s' }} />
             </div>
             
-            {/* Sparkles - desktop only */}
             <div className="absolute top-[28%] left-[22%] hidden xl:block">
               <Sparkles className="h-4 w-4 text-sunshine/40 animate-pulse" style={{ animationDelay: '0.3s' }} />
             </div>
@@ -164,7 +127,6 @@ const Index = () => {
             <div className="grid lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-16 items-center w-full">
               {/* Content */}
               <div className="space-y-5 sm:space-y-6 lg:space-y-7 order-2 lg:order-1 text-center lg:text-left animate-fade-in">
-                {/* Animated Badge */}
                 <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/85 backdrop-blur-sm border border-primary/15 text-foreground text-xs sm:text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-300 cursor-default">
                   <div className="relative flex-shrink-0">
                     <Users className="h-4 w-4 text-primary" />
@@ -174,7 +136,6 @@ const Index = () => {
                   <Sparkles className="h-3.5 w-3.5 text-sunshine flex-shrink-0" />
                 </div>
                 
-                {/* Main headline with gradient text */}
                 <h1 
                   id="hero-heading"
                   className="text-3xl leading-[1.15] sm:text-4xl md:text-5xl lg:text-[3.25rem] xl:text-6xl font-display font-bold tracking-tight"
@@ -188,12 +149,10 @@ const Index = () => {
                   </span>
                 </h1>
                 
-                {/* Description */}
                 <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-lg mx-auto lg:mx-0 leading-relaxed">
                   Your complete destination for pet care — connect with other pet parents, book vet appointments, shop essentials, and share precious moments! 🐾
                 </p>
 
-                {/* CTA Buttons */}
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2 justify-center lg:justify-start">
                   {user && pets.length === 0 ? (
                     <Link to="/pets/new" className="w-full sm:w-auto group">
@@ -231,7 +190,6 @@ const Index = () => {
                   )}
                 </div>
 
-                {/* Social features */}
                 <div 
                   className="flex flex-wrap gap-2.5 sm:gap-3 pt-3 justify-center lg:justify-start"
                   role="list"
@@ -252,12 +210,10 @@ const Index = () => {
               {/* Hero Illustration */}
               <div className="relative order-1 lg:order-2 flex justify-center items-center py-6 sm:py-8 lg:py-0">
                 <div className="relative">
-                  {/* Glowing background circle */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] md:w-[340px] md:h-[340px] lg:w-[400px] lg:h-[400px] rounded-full bg-gradient-to-br from-primary/8 via-accent/5 to-lavender/8 blur-2xl animate-pulse-slow" />
                   </div>
                   
-                  {/* Floating pet avatars */}
                   <div className="absolute -top-3 -left-3 sm:-top-4 sm:-left-6 lg:-left-10 z-10">
                     <div className="h-11 w-11 sm:h-14 sm:w-14 rounded-full bg-white shadow-lg flex items-center justify-center text-lg sm:text-2xl animate-float ring-3 ring-white/60">
                       🐕
@@ -279,14 +235,12 @@ const Index = () => {
                     </div>
                   </div>
                   
-                  {/* Additional floating pet - tablet+ only */}
                   <div className="absolute top-1/2 -right-4 sm:-right-8 lg:-right-14 z-10 hidden sm:block">
                     <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-white shadow-lg flex items-center justify-center text-base sm:text-lg animate-float ring-3 ring-white/60" style={{ animationDelay: '2s' }}>
                       🐱
                     </div>
                   </div>
 
-                  {/* Animated likes notification */}
                   <div className="absolute top-[20%] right-0 sm:right-2 lg:right-4 z-20">
                     <div className="bg-white rounded-full px-3 py-1.5 sm:px-4 sm:py-2 shadow-lg flex items-center gap-1.5 animate-bounce-gentle border border-rose-100">
                       <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-rose-500 fill-rose-500 animate-pulse" />
@@ -294,7 +248,6 @@ const Index = () => {
                     </div>
                   </div>
                   
-                  {/* New follower notification - tablet+ only */}
                   <div className="absolute top-[45%] -left-2 sm:-left-6 lg:-left-10 z-20 hidden sm:block">
                     <div className="bg-white rounded-full px-3 py-1.5 sm:px-4 sm:py-2 shadow-lg flex items-center gap-1.5 animate-bounce-gentle border border-accent/20" style={{ animationDelay: '1s' }}>
                       <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-accent" />
@@ -302,7 +255,6 @@ const Index = () => {
                     </div>
                   </div>
 
-                  {/* Main illustration */}
                   <div className="relative">
                     <div className="absolute inset-0 bg-gradient-to-b from-primary/12 to-transparent rounded-full blur-2xl scale-90" />
                     <img
@@ -316,7 +268,6 @@ const Index = () => {
                     />
                   </div>
 
-                  {/* Stats badge */}
                   <div className="absolute -bottom-3 sm:-bottom-4 left-1/2 transform -translate-x-1/2 z-20">
                     <div className="bg-white/95 backdrop-blur-sm rounded-2xl px-4 py-2.5 sm:px-6 sm:py-3 shadow-xl border border-primary/10">
                       <div className="flex items-center gap-4 sm:gap-6">
@@ -342,7 +293,6 @@ const Index = () => {
             </div>
           </div>
           
-          {/* Decorative wave at bottom */}
           <div className="absolute bottom-0 left-0 right-0 h-12 sm:h-20 overflow-hidden" aria-hidden="true">
             <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-full" role="presentation">
               <path 
@@ -382,221 +332,12 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Main Content Grid */}
-        <div className="container mx-auto px-4 sm:px-6 py-6 md:py-8">
-          {/* Stories Bar */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-card border border-border/50 p-3 sm:p-4 mb-4 sm:mb-6 overflow-hidden">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg gradient-story">
-                <Sparkles className="h-4 w-4 text-white" />
-              </div>
-              <h3 className="font-bold text-sm sm:text-base">Pet Stories</h3>
-            </div>
-            <StoriesBar />
-          </div>
-
-          <div className="grid lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-            {/* Main Feed - 2 columns */}
-            <div className="lg:col-span-2 order-2 lg:order-1">
-              <Tabs value={feedType} onValueChange={handleFeedTypeChange}>
-                <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6 bg-white shadow-sm border border-border/50 rounded-2xl p-1.5 h-12 sm:h-14">
-                  <TabsTrigger 
-                    value="all" 
-                    className="flex items-center gap-2 rounded-xl data-[state=active]:gradient-primary data-[state=active]:text-white font-bold transition-all text-xs sm:text-sm h-full"
-                  >
-                    <Globe className="h-4 w-4" />
-                    <span>Discover</span>
-                    <span className="hidden sm:inline">🔥</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="following" 
-                    className="flex items-center gap-2 rounded-xl data-[state=active]:gradient-accent data-[state=active]:text-white font-bold transition-all text-xs sm:text-sm h-full" 
-                    disabled={!user}
-                  >
-                    <Users className="h-4 w-4" />
-                    <span>Following</span>
-                    <span className="hidden sm:inline">💕</span>
-                  </TabsTrigger>
-                </TabsList>
-
-                <CreatePostCard onPostCreated={handleRefresh} />
-
-                <ScrollArea className="h-[500px] sm:h-[600px]">
-                  <TabsContent value="all" className="mt-0 pr-2 sm:pr-4">
-                    {loading ? (
-                      <div className="flex flex-col items-center justify-center py-12 sm:py-16">
-                        <div className="w-16 h-16 rounded-full gradient-primary flex items-center justify-center mb-4 animate-pulse">
-                          <Loader2 className="h-8 w-8 animate-spin text-white" />
-                        </div>
-                        <p className="text-muted-foreground text-sm font-medium">Loading pawsome posts...</p>
-                      </div>
-                    ) : posts.length === 0 ? (
-                      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-card border border-border/50 p-8 sm:p-12 text-center">
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 sm:mb-6 rounded-full gradient-hero flex items-center justify-center">
-                          <span className="text-4xl sm:text-5xl animate-bounce-gentle">🐾</span>
-                        </div>
-                        <p className="text-lg sm:text-xl font-bold text-foreground mb-2">No posts yet!</p>
-                        <p className="text-muted-foreground text-sm mb-4">Be the first to share something pawsome</p>
-                        {!user && (
-                          <Link to="/auth">
-                            <Button className="btn-primary rounded-xl font-bold">
-                              Join the Pack
-                              <ArrowRight className="h-4 w-4 ml-2" />
-                            </Button>
-                          </Link>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {posts.map((post) => (
-                          <PostCard
-                            key={post.id}
-                            post={post}
-                            onLike={handleLike}
-                            onUnlike={handleUnlike}
-                            onDelete={handleRefresh}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="following" className="mt-0 pr-2 sm:pr-4">
-                    {loading ? (
-                      <div className="flex flex-col items-center justify-center py-12 sm:py-16">
-                        <div className="w-16 h-16 rounded-full gradient-accent flex items-center justify-center mb-4 animate-pulse">
-                          <Loader2 className="h-8 w-8 animate-spin text-white" />
-                        </div>
-                        <p className="text-muted-foreground text-sm font-medium">Loading your feed...</p>
-                      </div>
-                    ) : posts.length === 0 ? (
-                      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-card border border-border/50 p-8 sm:p-12 text-center">
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 sm:mb-6 rounded-full bg-accent/10 flex items-center justify-center">
-                          <Users className="h-10 w-10 sm:h-12 sm:w-12 text-accent" />
-                        </div>
-                        <p className="text-lg sm:text-xl font-bold text-foreground mb-2">
-                          {user ? "Your feed is empty!" : "Join the pack!"}
-                        </p>
-                        <p className="text-muted-foreground text-sm mb-4">
-                          {user ? "Follow some adorable pets to see their posts! 🐶" : "Login to see posts from pets you follow"}
-                        </p>
-                        <Link to="/explore">
-                          <Button className="btn-accent rounded-xl font-bold">
-                            <Search className="h-4 w-4 mr-2" />
-                            Find Pets to Follow
-                          </Button>
-                        </Link>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {posts.map((post) => (
-                          <PostCard
-                            key={post.id}
-                            post={post}
-                            onLike={handleLike}
-                            onUnlike={handleUnlike}
-                            onDelete={handleRefresh}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </TabsContent>
-                </ScrollArea>
-              </Tabs>
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-4 sm:space-y-6 order-1 lg:order-2">
-              {/* Trending Pets */}
-              {trendingPets.length > 0 && (
-                <div className="bg-white rounded-2xl sm:rounded-3xl shadow-card border border-border/50 overflow-hidden">
-                  <div className="p-4 sm:p-5">
-                    <h3 className="font-bold text-base sm:text-lg mb-3 sm:mb-4 flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-sunshine/10">
-                        <TrendingUp className="h-4 w-4 text-sunshine" />
-                      </div>
-                      Trending Pets 🔥
-                    </h3>
-                    <div className="space-y-1">
-                      {trendingPets.slice(0, 5).map((pet, index) => (
-                        <Link 
-                          key={pet.id} 
-                          to={`/pet/${pet.id}`}
-                          className="flex items-center gap-3 p-2.5 sm:p-3 rounded-xl hover:bg-muted/50 transition-all active:scale-[0.98]"
-                        >
-                          <span className="text-xs font-bold text-muted-foreground w-4">{index + 1}</span>
-                          <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-full bg-muted flex items-center justify-center overflow-hidden ring-2 ring-primary/20 flex-shrink-0">
-                            {pet.avatar_url ? (
-                              <img src={pet.avatar_url} alt={pet.name} className="w-full h-full object-cover" loading="lazy" decoding="async" width={44} height={44} />
-                            ) : (
-                              <PawPrint className="h-5 w-5 text-muted-foreground" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-sm truncate">{pet.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{pet.species}{pet.breed && ` • ${pet.breed}`}</p>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                    <Link to="/explore" className="block mt-3 sm:mt-4">
-                      <Button variant="outline" className="w-full rounded-xl font-bold text-sm h-11 border-2 hover:bg-primary/5 hover:border-primary transition-all">
-                        See All Pets
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              )}
-
-              {/* Quick Links */}
-              <div className="bg-white rounded-2xl sm:rounded-3xl shadow-card border border-border/50 overflow-hidden">
-                <div className="p-4 sm:p-5">
-                  <h3 className="font-bold text-base sm:text-lg mb-3 sm:mb-4 flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg gradient-fun">
-                      <Sparkles className="h-4 w-4 text-white" />
-                    </div>
-                    Quick Actions
-                  </h3>
-                  <div className="space-y-2 sm:space-y-3">
-                    <Link to="/explore" className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-accent/10 hover:bg-accent/15 transition-all active:scale-[0.98]">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl gradient-accent flex items-center justify-center flex-shrink-0 shadow-md">
-                        <Search className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-bold text-sm">Explore Pets</p>
-                        <p className="text-xs text-muted-foreground truncate">Discover new friends 🐾</p>
-                      </div>
-                    </Link>
-                    <Link to="/messages" className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-lavender/10 hover:bg-lavender/15 transition-all active:scale-[0.98]">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl gradient-fun flex items-center justify-center flex-shrink-0 shadow-md">
-                        <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-bold text-sm">Messages</p>
-                        <p className="text-xs text-muted-foreground truncate">Chat with pet parents 💬</p>
-                      </div>
-                    </Link>
-                    {user && (
-                      <Link to="/pets/new" className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-primary/10 hover:bg-primary/15 transition-all active:scale-[0.98]">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl gradient-primary flex items-center justify-center flex-shrink-0 shadow-md">
-                          <PawPrint className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-bold text-sm">Add New Pet</p>
-                          <p className="text-xs text-muted-foreground truncate">Create a profile 🐾</p>
-                        </div>
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Below-fold content: stories, feed, sidebar, featured products - lazy loaded */}
+        <Suspense fallback={<BelowFoldLoader />}>
+          <BelowFoldContent />
+        </Suspense>
       </main>
 
-      <FeaturedProducts />
       <Footer />
       <MobileNav />
     </div>
