@@ -1,149 +1,173 @@
 
 
-# Performance Optimization Plan: Lighthouse 90+ and App-Like Transitions
+# CMS Implementation Plan for Vetmedix
 
-## Current State Analysis
+## What This Adds
 
-The app already has solid foundations: most routes are lazy-loaded, vendor chunks are split (`manualChunks`), hero images use `fetchPriority="high"`, and `loading="lazy"` is used broadly. The main bottlenecks are:
-
-- **5 page modules statically imported** in `App.tsx` (Index, AuthPage, ShopPage, ClinicsPage, DoctorsPage) -- these all end up in the initial bundle
-- **Index.tsx is 606 lines** and imports heavy social components (StoriesBar, PostCard, CreatePostCard, CommentsSection) that render below the fold
-- **No page transition animations** -- route changes cause abrupt jumps
-- **`recharts` in manualChunks** forces the entire charting library into a named chunk loaded early, even though only 2 files use it
-- **Hero image (`hero-cat-social.png`)** is a static import that gets inlined/bundled rather than served as a separate asset with proper preload
+A full Content Management System integrated into the admin panel, allowing you to create and publish articles like Health Tips, Vet Care Guides, Pet Announcements, and News -- visible to all visitors on a new public Blog/Resources page.
 
 ---
 
-## Phase 1: Critical Bundle Reduction (Biggest Lighthouse Impact)
+## Phase 1: Database Setup
 
-### 1.1 Lazy-load ALL page routes in `App.tsx`
-**File:** `src/App.tsx`
-- Convert the 5 static imports (Index, AuthPage, ShopPage, ClinicsPage, DoctorsPage) to `React.lazy()` dynamic imports
-- This removes those modules and all their transitive dependencies from the initial JS bundle
-- **Impact:** Estimated 40-60% reduction in initial bundle. Index.tsx alone pulls in StoriesBar, PostCard, CreatePostCard, usePosts, PetContext queries, ScrollArea, and the entire social feed -- none of which are needed until that route renders
+### Table: `cms_articles`
 
-### 1.2 Split Index.tsx into above-fold and below-fold
-**Files:** `src/pages/Index.tsx`, new `src/components/home/BelowFoldContent.tsx`
-- The hero section (lines 124-354) is above the fold; everything after (stories, feed, sidebar, featured products) is below the fold
-- Wrap below-fold content in a lazy-loaded component that only mounts after the hero is visible
-- Use `React.lazy` + `Suspense` for the social feed section, or use Intersection Observer to defer rendering
-- **Impact:** Hero renders immediately without waiting for social feed data queries
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | UUID (PK) | Unique identifier |
+| title | TEXT NOT NULL | Article title |
+| slug | TEXT UNIQUE NOT NULL | URL path (e.g. `/blog/how-to-bathe-your-cat`) |
+| content | TEXT | HTML body content |
+| excerpt | TEXT | Short summary for cards and SEO |
+| featured_image | TEXT | URL from storage bucket |
+| status | TEXT DEFAULT 'draft' | 'draft', 'published', 'archived' |
+| author_id | UUID NOT NULL | References auth.users |
+| category | TEXT NOT NULL | e.g. 'health-tips', 'vet-care', 'announcements', 'news' |
+| tags | TEXT[] | Searchable tag array |
+| published_at | TIMESTAMPTZ | Auto-set when status becomes 'published' |
+| created_at / updated_at | TIMESTAMPTZ | Timestamps with auto-update trigger |
 
-### 1.3 Remove `recharts` from manualChunks
-**File:** `vite.config.ts`
-- Remove `'vendor-charts': ['recharts']` from manualChunks
-- Recharts is only imported in `AdminRecoveryAnalytics.tsx` and `chart.tsx` -- both are already in lazy-loaded routes
-- Vite will naturally tree-shake it into those chunks only
-- **Impact:** Removes ~200KB from the named chunk that gets loaded during initial discovery
+### Table: `cms_categories`
 
----
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | UUID (PK) | Unique identifier |
+| name | TEXT NOT NULL | Display name |
+| slug | TEXT UNIQUE NOT NULL | URL-friendly key |
+| description | TEXT | Optional |
+| is_active | BOOLEAN DEFAULT true | Soft-disable |
 
-## Phase 2: App-Like Page Transitions (UX)
+### Storage
+- New public bucket: `cms-media` for article images
+- RLS: Anyone can read; only admins can upload/delete
 
-### 2.1 CSS-only page transitions (no new dependencies)
-**Files:** `src/App.tsx`, `src/index.css`
-- Instead of adding `framer-motion` (45KB gzipped), use CSS animations with the existing `Suspense` boundary
-- Create a `PageTransition` wrapper component that applies a CSS `fade-slide-up` animation on mount using `animation: fadeSlideUp 0.25s ease-out`
-- Wrap `<Routes>` content in this component keyed by `location.pathname`
-- **Impact:** Smooth transitions with zero bundle cost
+### Security (RLS)
+- **SELECT on cms_articles**: Anyone can read rows where `status = 'published'`; admins can read all
+- **INSERT/UPDATE/DELETE on cms_articles**: Only users with `admin` role via `has_role(auth.uid(), 'admin')`
+- **SELECT on cms_categories**: Anyone can read active categories
+- **INSERT/UPDATE/DELETE on cms_categories**: Admin only
 
-### 2.2 Upgrade PageLoader to show progress
-**File:** `src/App.tsx`
-- The existing `PageLoader` already has a progress bar animation -- keep it but make the animation smoother (use `cubic-bezier` timing)
-- Add `will-change: width` for GPU acceleration
-- **Impact:** Users perceive faster loads because they see progress
+### Realtime
+- Enable realtime on `cms_articles` for live admin dashboard updates
 
----
-
-## Phase 3: LCP and CLS Optimization
-
-### 3.1 Preload hero image in index.html
-**File:** `index.html`
-- Add `<link rel="preload" as="image" href="/src/assets/hero-cat-social.png">` for the LCP element
-- Currently the hero image is a JS static import which means it only starts loading after the JS bundle parses
-- **Impact:** Reduces LCP by starting image fetch in parallel with JS parsing
-
-### 3.2 Enforce width/height on all remaining images
-**Files:** Multiple components (PostCard, ProductCard, ClinicCard, DoctorCard, ExplorePetCard)
-- Audit and add explicit `width` and `height` attributes to any `<img>` tags missing them
-- Use `aspect-ratio` Tailwind class (`aspect-square`, `aspect-video`) on containers as a fallback
-- **Impact:** Eliminates CLS from image loading
-
-### 3.3 Convert hero cat image to WebP
-**Action:** Convert `hero-cat-social.png` to WebP format (typically 30-50% smaller)
-- Use `<picture>` element with WebP source and PNG fallback
-- **Impact:** Faster LCP paint
+### Trigger
+- Reuse existing `update_updated_at_column()` trigger on cms_articles
 
 ---
 
-## Phase 4: Accessibility Quick Wins
+## Phase 2: Data Layer
 
-### 4.1 Add missing `aria-label` to icon-only buttons
-**Files:** `src/components/MobileNav.tsx`, `src/components/social/NotificationBell.tsx`, `src/components/GlobalSearch.tsx`
-- Scan for `<Button size="icon">` patterns without `aria-label`
-- The Navbar already has good coverage -- extend to other components
-- **Impact:** Screen reader accessibility compliance
+### New Hook: `src/hooks/useCMS.ts`
 
-### 4.2 Verify color contrast
-**File:** `src/index.css`
-- The muted-foreground has already been darkened to 38% lightness (line 28) which helps
-- Verify `--primary: 15 85% 60%` (coral) against white backgrounds meets WCAG AA (4.5:1 for text)
-- If needed, darken to `--primary: 15 85% 50%` for text-only usage
-- **Impact:** WCAG AA compliance
+Wraps TanStack Query for all CMS operations:
 
----
+- `useCMSArticles(filters)` -- Paginated list with status/category/search filters (admin sees all, public sees published only)
+- `useCMSArticle(id)` -- Single article by ID (admin editor)
+- `useCMSArticleBySlug(slug)` -- Single article by slug (public view)
+- `useCreateArticle()` -- Insert mutation
+- `useUpdateArticle()` -- Update mutation with cache invalidation
+- `useDeleteArticle()` -- Delete mutation
+- `useCMSCategories()` -- Category list
+- `useCMSStats()` -- Counts for dashboard (total, drafts, published this month)
 
-## Phase 5: Runtime Performance
-
-### 5.1 Add `memo()` to heavy list-item components
-**Files:** `src/components/ProductCard.tsx`, `src/components/social/PostCard.tsx`, `src/components/DoctorCard.tsx`, `src/components/ClinicCard.tsx`
-- Wrap with `React.memo()` to prevent re-renders when parent state changes (e.g., filter toggles, search input)
-- **Impact:** Fewer re-renders in grids of 20+ items
-
-### 5.2 Defer non-critical context providers
-**File:** `src/App.tsx`
-- `CartProvider`, `WishlistProvider`, and `PetProvider` initialize Supabase queries on mount for ALL routes including admin
-- Wrap them in a lazy boundary or move them inside only the routes that need them
-- **Impact:** Reduces initial query count from 5+ to 2 (auth only)
+All queries use explicit column selects (no `.select('*')`), consistent with the optimization work already done.
 
 ---
 
-## Priority and File Checklist
+## Phase 3: Admin Panel Integration
 
-| Priority | Task | File(s) | Lighthouse Impact |
-|----------|------|---------|-------------------|
-| P0 | Lazy-load all 5 static page imports | `App.tsx` | -30% initial JS |
-| P0 | Remove recharts from manualChunks | `vite.config.ts` | -200KB named chunk |
-| P0 | Preload hero image | `index.html` | -500ms LCP |
-| P1 | Split Index.tsx below-fold content | `Index.tsx`, new component | -20% route chunk |
-| P1 | CSS page transitions | `App.tsx`, `index.css` | Perceived perf boost |
-| P1 | Enforce width/height on images | 6+ component files | CLS score improvement |
-| P2 | memo() on list components | 4 component files | Fewer re-renders |
-| P2 | Defer context providers | `App.tsx` | -3 initial queries |
-| P2 | Aria-labels audit | 3 component files | Accessibility score |
-| P3 | WebP hero image | `Index.tsx`, asset file | -30% image size |
-| P3 | Color contrast check | `index.css` | Accessibility score |
+### Navigation Update
+Add "Content / CMS" to both `AdminSidebar.tsx` and `AdminMobileNav.tsx`:
+- Icon: `FileText` from lucide-react
+- Placed in the **Platform** section between "Social" and "User Management"
+- Badge showing draft article count
 
-## How React.lazy Reduces the 6.2MB Bundle
+### New Page: `src/pages/admin/AdminCMS.tsx`
+- Route: `/admin/cms`
+- Uses `AdminLayout` + `RequireAdmin` (existing patterns)
+- Tab filters: All / Draft / Published / Archived
+- Search bar filtering by title
+- Data table with columns: Title, Category, Status badge, Published Date, Actions (Edit/Delete/Preview)
+- "New Article" button
+- Bulk actions: Publish selected drafts, archive selected
 
-Currently, `Index.tsx`, `ShopPage.tsx`, `ClinicsPage.tsx`, `DoctorsPage.tsx`, and `AuthPage.tsx` are statically imported. This means Vite includes them **and all their transitive dependencies** in the main entry chunk:
+### New Page: `src/pages/admin/AdminCMSEditor.tsx`
+- Route: `/admin/cms/new` and `/admin/cms/:id/edit`
+- Form fields using `react-hook-form` + `zod`:
+  - Title (auto-generates slug, editable)
+  - Category (select from cms_categories)
+  - Tags (comma-separated input)
+  - Excerpt (textarea, max 300 chars)
+  - Status (Draft/Published/Archived)
+- **Rich text**: Simple textarea with Markdown support initially. Content stored as HTML after conversion. No heavy editor dependency added -- keeps the bundle lean. A visual preview toggle shows the rendered output side-by-side.
+- **Image upload**: Drag-and-drop zone uploading to `cms-media` bucket, returns public URL inserted into the featured_image field
+- Save as Draft / Publish buttons with appropriate `published_at` logic
 
-```text
-App.tsx (entry)
-  +-- Index.tsx (606 lines)
-  |     +-- StoriesBar, PostCard, CreatePostCard (social feed)
-  |     +-- usePosts, PetContext queries (data layer)
-  |     +-- FeaturedProducts + ProductCard (shop)
-  |     +-- ScrollArea, Tabs (UI primitives)
-  +-- ShopPage.tsx
-  |     +-- ProductCard, useProductCategories, useProductRatings
-  +-- ClinicsPage.tsx
-  |     +-- ClinicCard, useGeocode
-  +-- DoctorsPage.tsx
-  |     +-- DoctorCard, usePublicDoctors
-  +-- AuthPage.tsx
-        +-- Form validation, role selector
-```
+---
 
-Converting these to `React.lazy()` moves each page and its dependencies into separate chunks that only load when the user navigates to that route. The initial bundle drops to just: React core, router, auth context, and the PageLoader skeleton -- estimated at under 300KB gzipped.
+## Phase 4: Public-Facing Blog
+
+### New Page: `src/pages/BlogPage.tsx`
+- Route: `/blog` (lazy-loaded)
+- Fetches only `status = 'published'` ordered by `published_at DESC`
+- Card grid with featured image, title, excerpt, category badge, date
+- Category filter tabs
+- Responsive: 1 column mobile, 2 tablet, 3 desktop
+- Pagination (12 per page)
+
+### New Page: `src/pages/BlogArticlePage.tsx`
+- Route: `/blog/:slug` (lazy-loaded)
+- Full article view with rendered HTML content
+- Author name (from profiles), published date, category, tags
+- Related articles section (same category, max 3)
+- SEO meta tags via existing `SEO` component
+
+### Navigation Updates
+- Add "Blog" link to the main `Navbar.tsx` nav links array
+- Add "Blog" to the `Footer.tsx` quick links
+
+---
+
+## Phase 5: Dashboard and Realtime Integration
+
+- Add `cms_articles` subscription to `useAdminRealtimeDashboard.ts` for live cache invalidation
+- Add CMS stats to the admin dashboard (total articles, drafts pending, published this week) as a new card in the Platform Overview section
+- Update `get_admin_dashboard_stats()` RPC to include CMS counts
+
+---
+
+## Files to Create (8 new)
+
+| File | Purpose |
+|------|---------|
+| `supabase/migrations/xxx_create_cms_tables.sql` | Schema, RLS, storage bucket, triggers, realtime |
+| `src/hooks/useCMS.ts` | All CMS data hooks |
+| `src/pages/admin/AdminCMS.tsx` | CMS article list page |
+| `src/pages/admin/AdminCMSEditor.tsx` | Article editor with form + image upload |
+| `src/pages/BlogPage.tsx` | Public blog listing |
+| `src/pages/BlogArticlePage.tsx` | Public article detail |
+| `src/components/admin/cms/ArticleStatusBadge.tsx` | Reusable status badge |
+| `src/components/blog/ArticleCard.tsx` | Public article card component |
+
+## Files to Edit (7 existing)
+
+| File | Change |
+|------|--------|
+| `src/App.tsx` | Add 4 lazy routes: `/admin/cms`, `/admin/cms/new`, `/admin/cms/:id/edit`, `/blog`, `/blog/:slug` |
+| `src/components/admin/AdminSidebar.tsx` | Add CMS nav item to Platform section |
+| `src/components/admin/AdminMobileNav.tsx` | Add CMS nav item to Platform section |
+| `src/components/Navbar.tsx` | Add "Blog" to navLinks array |
+| `src/components/Footer.tsx` | Add "Blog" to quickLinks array |
+| `src/hooks/useAdminRealtimeDashboard.ts` | Subscribe to cms_articles changes |
+| `src/components/admin/dashboard/PlatformOverview.tsx` | Add CMS stats card |
+
+## Implementation Order
+
+1. Database migration (schema + RLS + storage + triggers + realtime)
+2. `useCMS` hook with all queries and mutations
+3. Admin CMS list page + sidebar/mobile nav updates
+4. Admin CMS editor page with image upload
+5. Public blog pages + navbar/footer links
+6. Dashboard integration and realtime subscription
+7. End-to-end testing
 
