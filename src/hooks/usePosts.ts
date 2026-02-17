@@ -212,6 +212,14 @@ export const usePosts = (petId?: string, feedType: 'all' | 'following' | 'pet' =
     }
   }, [user]);
 
+  const updatePostCommentCount = useCallback((postId: string, delta: number) => {
+    setPosts(prev => prev.map(post =>
+      post.id === postId
+        ? { ...post, comments_count: Math.max(0, (post.comments_count || 0) + delta) }
+        : post
+    ));
+  }, []);
+
   return {
     posts,
     loading,
@@ -221,5 +229,6 @@ export const usePosts = (petId?: string, feedType: 'all' | 'following' | 'pet' =
     unlikePost,
     loadMore,
     refreshPosts,
+    updatePostCommentCount,
   };
 };

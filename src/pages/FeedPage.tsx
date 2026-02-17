@@ -27,7 +27,8 @@ const FeedPage = () => {
     likePost,
     unlikePost,
     loadMore,
-    refreshPosts
+    refreshPosts,
+    updatePostCommentCount
   } = usePosts(undefined, feedType);
 
   // Infinite scroll sentinel
@@ -95,6 +96,7 @@ const FeedPage = () => {
                 onLike={handleLikePost}
                 onUnlike={handleUnlikePost}
                 onDelete={handleRefreshPosts}
+                onCommentCountChange={updatePostCommentCount}
               />
             </div>
           ))}

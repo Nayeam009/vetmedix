@@ -22,9 +22,10 @@ interface PostCardProps {
   onLike: (postId: string) => void;
   onUnlike: (postId: string) => void;
   onDelete?: () => void;
+  onCommentCountChange?: (postId: string, delta: number) => void;
 }
 
-const PostCardComponent = ({ post, onLike, onUnlike, onDelete }: PostCardProps) => {
+const PostCardComponent = ({ post, onLike, onUnlike, onDelete, onCommentCountChange }: PostCardProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showComments, setShowComments] = useState(false);
@@ -126,23 +127,25 @@ const PostCardComponent = ({ post, onLike, onUnlike, onDelete }: PostCardProps) 
         </div>
         
         {user?.id === post.user_id && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted flex-shrink-0 ml-2">
-                <MoreHorizontal className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40 sm:w-44 shadow-lg rounded-xl">
-              <DropdownMenuItem 
-                onClick={handleDelete}
-                disabled={deleting}
-                className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer text-xs sm:text-sm"
-              >
-                <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
-                Delete post
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted flex-shrink-0 ml-2">
+                  <MoreHorizontal className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40 sm:w-44 shadow-lg rounded-xl">
+                <DropdownMenuItem 
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer text-xs sm:text-sm"
+                >
+                  <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2" />
+                  Delete post
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         )}
       </div>
 
@@ -279,7 +282,7 @@ const PostCardComponent = ({ post, onLike, onUnlike, onDelete }: PostCardProps) 
       {/* Comments Section */}
       {showComments && (
         <div className="border-t border-border/50 bg-muted/30 p-3 sm:p-4">
-          <CommentsSection postId={post.id} />
+          <CommentsSection postId={post.id} onCommentCountChange={(delta) => onCommentCountChange?.(post.id, delta)} />
         </div>
       )}
     </article>
