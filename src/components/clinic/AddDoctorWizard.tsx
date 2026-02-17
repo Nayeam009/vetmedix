@@ -18,6 +18,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { ImageUpload } from '@/components/admin/ImageUpload';
+import { doctorFormSchema } from '@/lib/validations';
+import { toast } from 'sonner';
 
 interface DoctorFormData {
   name: string;
@@ -168,6 +170,12 @@ const AddDoctorWizard = ({ onSubmit, isPending, clinicName, onCancel }: AddDocto
   };
 
   const handleSubmit = async () => {
+    const validation = doctorFormSchema.safeParse(formData);
+    if (!validation.success) {
+      const firstError = validation.error.errors[0]?.message || 'Please check the form';
+      toast.error(firstError);
+      return;
+    }
     await onSubmit({
       name: formData.name,
       email: formData.email || null,
