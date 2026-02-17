@@ -1,96 +1,87 @@
 
+# Deep System Audit: Critical Issues Report
 
-# Gold Master Audit: Final Polish Plan
+## 1. BUGS (Logic Gaps & Security)
 
-## Audit Results Summary
+### BUG-1: Comment Count Not Updated Optimistically (Medium)
+**File**: `src/hooks/useComments.ts` + `src/hooks/usePosts.ts`
 
-The codebase is in strong shape after Phases 1-3. Below are the remaining items to polish, organized by priority.
+When a user posts a comment, the `useComments` hook appends it to the local comments list (line 76), but the parent `PostCard` still shows the old `post.comments_count` from the `usePosts` state. The count only updates on a full page refresh or feed re-fetch. This breaks the "instant feedback" expectation.
 
----
+**Root cause**: `useComments.addComment()` doesn't notify `usePosts` to increment `comments_count`. The `update_post_comments_count` trigger updates the DB, but the local React state in `usePosts` is stale.
 
-## 1. Console Log Cleanup
+**Fix**: After a successful comment insert, call a callback (passed from PostCard) that increments `comments_count` locally in the `usePosts` state, mirroring the optimistic like pattern.
 
-**Finding**: 1 production `console.log` found in `src/pages/AuthPage.tsx` (line 225). The others in `src/lib/analytics.ts` are correctly guarded behind `import.meta.env.DEV` and are safe.
-
-**File**: `src/pages/AuthPage.tsx`
-**Change**: Replace `console.log('Role already exists, continuing...')` with nothing (or a dev-only guard). This line runs in production when a duplicate role insert occurs.
-
----
-
-## 2. React Ref Warning Fix (Console Error)
-
-**Finding**: Console shows `"Function components cannot be given refs"` originating from `PostCardComponent` -- specifically the `DropdownMenu` usage. The `PostCard` is exported as `MemoizedPostCard` via `memo()`, which doesn't forward refs. Since `DropdownMenuTrigger` with `asChild` passes a ref to its child, this triggers the warning.
-
+### BUG-2: Console Ref Warning from DropdownMenu (Low)
 **File**: `src/components/social/PostCard.tsx`
-**Change**: The `PostCardComponent` itself is not receiving a ref from outside (it's wrapped in `memo`, not `forwardRef`). The actual warning comes from how `DropdownMenuTrigger asChild` interacts with `Button`. This is a Radix UI internal warning that occurs when the `DropdownMenu` root is given a ref by a parent. No functional impact, but to silence it, ensure the component doesn't receive stray refs from parent wrappers in `FeedPage.tsx` or `BelowFoldContent.tsx`.
+
+The console shows: `"Function components cannot be given refs"` from `PostCardComponent`. The `DropdownMenu` component (Radix) attempts to set a ref on itself. When rendered inside `BelowFoldContent.tsx` (home page), the Tabs component passes a ref down through `TabsContent`, which propagates to child components. The `DropdownMenu` root is a function component that doesn't accept refs.
+
+**Fix**: Wrap the `DropdownMenu` in a `<div>` to absorb the stray ref, preventing it from reaching the function component.
+
+### BUG-3: No Route Guard on Clinic/Doctor Dashboards (Verified Safe)
+**Status**: NOT A BUG
+
+- `ClinicDashboard` checks `isClinicOwner`, `isAdmin`, and `ownedClinic` before rendering (line 185). Pet Parents see "Access Denied."
+- `DoctorDashboard` checks `isDoctor` role (line 84). Pet Parents see "Access Denied."
+- Admin routes use `RequireAdmin` wrapper which redirects non-admins.
+- RLS policies enforce server-side data isolation regardless of client routing.
 
 ---
 
-## 3. LazyVideo Memory Leak (Progress Bar)
+## 2. PERFORMANCE
 
-**Finding**: In `src/components/social/LazyMedia.tsx` (lines 270-279), the `timeupdate` event listener is added via a ref callback but never cleaned up. Each render of the progress bar attaches a new listener without removing the previous one, causing a slow memory leak during video playback.
+### PERF-1: Comment Count Stale Until Re-fetch (Tied to BUG-1)
+The `comments_count` on posts only refreshes when the entire feed re-fetches. This creates a perceived "lag" where the count badge shows "View all 3 comments" even after posting a 4th.
 
-**File**: `src/components/social/LazyMedia.tsx`
-**Change**: Move the `timeupdate` listener into a proper `useEffect` with cleanup, rather than attaching it in a ref callback.
+### PERF-2: All Items Verified as Optimized
+- All 50+ routes use `React.lazy()` with `Suspense` -- PASS
+- `PostCard` uses `memo()` with custom comparator -- PASS
+- Feed uses `contentVisibility: auto` for virtualization -- PASS
+- TanStack Query: `staleTime: 2min`, `gcTime: 10min` -- PASS
+- Realtime subscriptions use invalidation-over-payload -- PASS
+- `console.log` calls: all guarded by `import.meta.env.DEV` -- PASS
+- No heavy unloaded components found; clinic charts are lazy-loaded
 
----
-
-## 4. Comment Input iOS Zoom Prevention
-
-**Finding**: The comment input in `CommentsSection.tsx` (line 60) uses `text-xs sm:text-sm` which is 12px/14px -- both below 16px. This triggers iOS Safari auto-zoom when a user taps to type a comment.
-
-**File**: `src/components/social/CommentsSection.tsx`
-**Change**: Update to `text-base sm:text-sm` to match the pattern applied to `input.tsx`, `textarea.tsx`, and `select.tsx`.
-
----
-
-## 5. Shop Search Input iOS Zoom Prevention
-
-**Finding**: The search input in `ShopPage.tsx` (line 379) uses `text-sm` (14px) which triggers iOS auto-zoom.
-
-**File**: `src/pages/ShopPage.tsx`
-**Change**: Update to `text-base md:text-sm`.
+### PERF-3: Dead Code Scan
+No unused components or zombie code found in the main `/src` directory. The previous `category` state was already removed in the Gold Master phase.
 
 ---
 
-## 6. Dead Code / Unused State
+## 3. UX / MOBILE
 
-**Finding**: In `ShopPage.tsx` (line 177), `const [category] = useState('All')` is declared but never used in any filter logic (the filtering uses `productType` instead). This is leftover from a previous refactor.
+### UX-1: All Mobile Checks Pass
+- Touch targets: 44x44px enforced globally via CSS + individual component `min-h-[44px]` / `min-w-[44px]` -- PASS
+- iOS auto-zoom: All inputs use `text-base` on mobile (16px) -- PASS
+- Horizontal overflow: No `body` overflow-x issues; tables use card views -- PASS
+- Admin sidebar: `Sheet` drawer on mobile, auto-closes on link click -- PASS
+- Bottom nav: 44px touch targets with `active:bg-primary/10` feedback -- PASS
 
-**File**: `src/pages/ShopPage.tsx`
-**Change**: Remove the unused `category` state declaration.
+### UX-2: Comment "Like" and "Reply" Buttons Are Placeholder (Info)
+**File**: `src/components/social/CommentsSection.tsx` (lines 115-127)
 
----
-
-## Already Verified (No Changes Needed)
-
-| Check | Status | Details |
-|-------|--------|---------|
-| Lazy loading (React.lazy) | PASS | All 50+ routes lazy-loaded in App.tsx |
-| Suspense fallback | PASS | Slim progress bar PageLoader with min-h |
-| TanStack Query caching | PASS | staleTime: 2min, gcTime: 10min globally |
-| Image lazy loading | PASS | OptimizedImage and LazyMedia use loading="lazy" by default |
-| Image alt props | PASS | All user-facing images have alt text |
-| Global Error Boundary | PASS | ErrorBoundary wraps all routes in App.tsx |
-| Sonner toast feedback | PASS | All mutations (save, delete, like, comment, order) trigger toasts |
-| 44px touch targets | PASS | Global CSS rule + individual component enforcement |
-| iOS zoom (input/textarea/select) | PASS | text-base on mobile (except comment input, shop search -- see above) |
-| Admin mobile sidebar | PASS | Sheet drawer, auto-closes on link click |
-| Feed virtualization | PASS | content-visibility: auto on PostCard wrappers |
-| Cart persistence | PASS | localStorage in CartContext |
-| Horizontal overflow | PASS | No body overflow-x issues found; tables use card views |
-| Feed skeletons | PASS | FeedSkeletons and PostCardSkeleton used correctly |
+The "Like" and "Reply" buttons on comments show `toast.info('Coming soon!')`. These are not bugs but incomplete features. They have proper 44x44px touch targets.
 
 ---
 
-## Files to Modify (Summary)
+## Summary
 
-| File | Change | Risk |
-|------|--------|------|
-| `src/pages/AuthPage.tsx` | Remove production console.log (line 225) | None |
-| `src/components/social/LazyMedia.tsx` | Fix timeupdate listener memory leak in LazyVideo | Low |
-| `src/components/social/CommentsSection.tsx` | Comment input: `text-xs sm:text-sm` to `text-base sm:text-sm` | None |
-| `src/pages/ShopPage.tsx` | Search input: `text-sm` to `text-base md:text-sm`; remove unused `category` state | None |
+| ID | Category | Severity | File | Description |
+|----|----------|----------|------|-------------|
+| BUG-1 | Bug | Medium | usePosts.ts, PostCard.tsx, CommentsSection.tsx | Comment count not optimistically updated in feed |
+| BUG-2 | Bug | Low | PostCard.tsx | Console ref warning from DropdownMenu in Tabs context |
+| PERF-1 | Perf | Low | (Tied to BUG-1) | Stale comment count until re-fetch |
+| UX-2 | Info | None | CommentsSection.tsx | Like/Reply on comments are placeholder |
 
-Total: 4 files, 5 targeted changes. No new dependencies. No structural refactors needed.
+## Proposed Fixes (2 items)
 
+### Fix for BUG-1 + PERF-1: Optimistic Comment Count
+1. Add an `onCommentAdded` callback prop to `CommentsSection`.
+2. In `PostCard`, pass a handler that locally increments `comments_count` on the post.
+3. Propagate this through the `usePosts` hook by exposing an `updatePostCommentCount(postId, delta)` function.
+4. Same pattern for comment deletion (decrement).
+
+### Fix for BUG-2: Silence Ref Warning
+1. In `PostCard.tsx`, wrap the `DropdownMenu` in a plain `<div>` to absorb the ref passed by Radix TabsContent.
+
+Total: 2 files modified, 0 new dependencies, 0 database changes.
