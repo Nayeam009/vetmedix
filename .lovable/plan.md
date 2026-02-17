@@ -1,135 +1,129 @@
 
 
-# Form Health Report -- Vetmedix
+# Final Compliance Report -- Accessibility, SEO, and System Resilience
 
-## 1. VALIDATION GAPS (Forms allowing empty or bad data)
+## 1. ACCESSIBILITY FAILURES (WCAG 2.1)
 
-### VAL-1: Auth Page Uses Manual Zod Parsing Instead of zodResolver (Low)
-**File:** `src/pages/AuthPage.tsx`
+### A11Y-1: ProductDetailPage Has Zero aria-labels on Icon-Only Buttons (High)
+**File:** `src/pages/ProductDetailPage.tsx`
 
-The auth form uses `useState` for every field and manually calls `loginSchema.parse()` / `signupSchema.parse()` inside a `validateForm()` function. While this works, it does not use `react-hook-form` + `zodResolver` -- the standard pattern recommended for all forms. The validation is correct and catches invalid emails / weak passwords before the API call. The submit button correctly disables and shows a Loader2 spinner during submission.
+The following icon-only buttons have NO `aria-label`:
+- Wishlist heart button (line 265) -- screen reader sees empty button
+- Share button (line 274) -- screen reader sees empty button
+- Quantity decrease/increase buttons (lines 458-473, 562-577) -- no label like "Decrease quantity" / "Increase quantity"
+- Thumbnail gallery buttons (line 284) -- no label like "View image 2 of 4"
 
-**Verdict:** Functionally correct. No immediate fix needed. A refactor to `react-hook-form` would standardize it but is low priority.
-
----
-
-### VAL-2: Contact Form Has No Zod Validation (Medium)
-**File:** `src/pages/ContactPage.tsx` (lines 31-37)
-
-The contact form validates with basic `if (!formData.name || !formData.email || !formData.message)` -- no Zod schema, no max-length enforcement in JavaScript (only `maxLength` attribute on some inputs, but `name` and `email` fields lack it), no email format validation beyond `type="email"`.
-
-**Fix:** Create a `contactSchema` in `src/lib/validations.ts` and validate with `safeParse()` before submission. Add `maxLength` attributes to name (100) and email (255) inputs.
+**Fix:** Add `aria-label` to each: `"Add to wishlist"`, `"Share product"`, `"Decrease quantity"`, `"Increase quantity"`, and `"View image {idx+1} of {total}"`.
 
 ---
 
-### VAL-3: AddDoctorWizard Has No Zod Validation (Medium)
-**File:** `src/components/clinic/AddDoctorWizard.tsx`
+### A11Y-2: DoctorCard and ClinicCard Have No Accessibility Attributes (Medium)
+**Files:** `src/components/DoctorCard.tsx`, `src/components/ClinicCard.tsx`
 
-The wizard only checks `formData.name.trim().length >= 2` for step 0. There is no Zod schema applied. Fields like email, phone, experience_years, and consultation_fee have no format or range validation. A clinic owner could enter "abc" as an email or "-5" as experience years.
+Neither card component uses `role`, `aria-label`, or semantic `<article>` tags. The clickable image area in ClinicCard (line 31) uses a plain `<div onClick>` without `role="button"` or keyboard handlers (`onKeyDown`). A keyboard-only user cannot activate it.
 
-**Fix:** Create a `doctorFormSchema` in `src/lib/validations.ts` and validate before final submission (step 3 "Add Doctor" click).
-
----
-
-### VAL-4: BookAppointmentWizard Has No Zod Validation (Low-Medium)
-**File:** `src/components/booking/BookAppointmentWizard.tsx`
-
-The wizard uses manual `canProceed()` checks per step. An `appointmentSchema` already exists in `src/lib/validations.ts` but is not imported or used here. The wizard duplicates the validation logic manually.
-
-**Fix:** Import and use `appointmentSchema.safeParse()` before the final `handleSubmit`.
+**Fix:** Add `role="article"` and `aria-label` to each card root. For clickable `<div>` elements, add `role="button"`, `tabIndex={0}`, and `onKeyDown` handler for Enter/Space.
 
 ---
 
-### VAL-5: Product Review Form Has No Max-Length Validation in JS (Low)
-**File:** `src/components/ProductReviewForm.tsx` (line 91)
+### A11Y-3: MobileNav Links Missing aria-labels (Medium)
+**File:** `src/components/MobileNav.tsx`
 
-The comment textarea has `maxLength={500}` as an HTML attribute but no Zod schema. The `reviewSchema` exists in `src/lib/validations.ts` but is not imported or used.
+The bottom navigation `<Link>` elements (line 56-77) have visible labels via `<span>` but no explicit `aria-label` describing them. The badge count for notifications is rendered inside the link but has no `aria-label` context (e.g., "Alerts, 3 unread").
 
-**Fix:** Import `reviewSchema` and validate before submission.
-
----
-
-## 2. UX FAILURES (Buttons not disabling, missing feedback)
-
-### UX-1: Auth Error Messages Are Generic (Medium)
-**File:** `src/pages/AuthPage.tsx` (lines 316-323)
-
-When sign-up fails with "User already registered", the error is caught generically and displayed as whatever Supabase returns. The toast shows `error.message` directly, which may be technical (e.g., "User already registered"). While functional, a friendlier mapping (like the one in `ForgotPasswordPage.tsx`) would improve UX.
-
-**Fix:** Add a `friendlyMessages` map similar to `ForgotPasswordPage.tsx` for common auth errors like "User already registered" and "Invalid login credentials".
+**Fix:** Add `aria-label={item.badge > 0 ? \`${item.label}, ${item.badge} unread\` : item.label}` to each nav link.
 
 ---
 
-### UX-2: Checkout Phone Input Missing `type="tel"` (Low)
-**File:** `src/pages/CheckoutPage.tsx` (line 486-494)
+### A11Y-4: Most Pages Missing `id="main-content"` Landmark (Medium)
+**Files:** Multiple pages
 
-The phone input field does not have `type="tel"`. It uses default `type` (text). On mobile, this means the numeric keypad is not triggered automatically.
+The Navbar has a "Skip to main content" link targeting `#main-content` (line 42), but only 4 of ~30 pages actually set `id="main-content"` on their `<main>` element:
+- Index.tsx (has it)
+- BlogPage.tsx (has it)
+- BlogArticlePage.tsx (has it)
+- ContactPage.tsx (has it)
 
-**Fix:** Add `type="tel"` to the phone input.
+Pages like `ProductDetailPage.tsx`, `ShopPage.tsx`, `DoctorsPage.tsx`, `ClinicsPage.tsx`, `CartPage.tsx`, `CheckoutPage.tsx`, `ProfilePage.tsx`, and all admin/doctor/clinic dashboards do NOT have `id="main-content"`. The skip link is broken on these pages.
 
----
-
-### UX-3: Delete Product Has No Typed Confirmation (Low)
-**File:** `src/pages/admin/AdminProducts.tsx` (lines 249-263)
-
-Product deletion uses a simple "Delete" button in a confirmation dialog. There is no requirement to type "DELETE" or the product name. While acceptable for products, this should be noted. Clinic deletion in the admin panel should be checked for similar behavior.
-
-**Verdict:** Acceptable for products (non-destructive in the sense that products can be re-added). For clinics or user accounts, a typed confirmation would be advisable. No immediate fix needed for products.
+**Fix:** Add `id="main-content"` to the `<main>` element on every page. Pages that use `<div>` as their root should wrap content in a `<main id="main-content">` tag.
 
 ---
 
-### UX-4: Checkout Form Retains Data on Payment Failure (Good)
-**File:** `src/pages/CheckoutPage.tsx` (lines 295-303)
+### A11Y-5: ProductDetailPage Uses `<div>` Root Instead of `<main>` (Medium)
+**File:** `src/pages/ProductDetailPage.tsx` (line 195)
 
-When the order fails (catch block), the form data is NOT cleared -- only `setLoading(false)` is called. The user's shipping details, coupon, and payment method are all preserved. This is correct behavior.
+The page's root element is `<div className="min-h-screen ...">`. There is no `<main>` landmark at all. Screen readers cannot identify the primary content region.
 
-**Verdict:** No fix needed. Good UX.
-
----
-
-## 3. LOGIC BUGS (Edit forms, race conditions)
-
-### BUG-1: Appointment Wizard Does Not Re-Validate Slot Availability at Submit Time (Medium)
-**File:** `src/components/booking/BookAppointmentWizard.tsx` (lines 215-217)
-
-The wizard fetches booked slots when the date/doctor changes (line 79-96), filtering them from the display. However, when the user clicks "Confirm Booking" on the final step, there is no re-check of slot availability. If another user books the same slot between the time this user selected it and clicked confirm, a race condition occurs.
-
-The actual booking goes through `book_appointment_atomic()` which has a unique index that rejects duplicates with a clear error message ("This time slot is already booked"). So the race condition is handled at the DB level, but the error surfaces as a generic toast rather than a step-back to the date/time selector.
-
-**Fix:** In the `onSubmit` callback (parent component), catch the "already booked" error and show a specific toast prompting the user to select a different time, rather than a generic failure.
+**Fix:** Replace the outer `<div>` with `<main id="main-content">` (or wrap the content area after `<Navbar />` in a `<main>` tag).
 
 ---
 
-### BUG-2: Product Edit Form Pre-fills Correctly (Good)
-**File:** `src/pages/admin/AdminProducts.tsx` (lines 309-327)
+### A11Y-6: Notification Popover Items Are `<div>` With `onClick` (Low)
+**File:** `src/components/social/NotificationBell.tsx` (line 154-190)
 
-The `openEditDialog` function correctly maps all product fields (including category, is_active, is_featured, discount, compare_price, sku) to the form state. The Select component for category uses `value={formData.category}` which correctly pre-fills.
+Each notification item is a `<div onClick>` with no `role="button"`, `tabIndex`, or keyboard handler. Keyboard users cannot activate individual notifications.
 
-**Verdict:** No bug. Pre-fill works correctly including Select/Dropdown components.
-
----
-
-### BUG-3: WriteReviewDialog Initial State Bug on Re-Open (Low)
-**File:** `src/components/clinic/WriteReviewDialog.tsx` (lines 41-43)
-
-When the dialog is opened with an existing review for editing, `useState(existingReview?.rating || 0)` is used. However, `useState` only uses the initial value on first render. If the user opens the dialog, closes it, and the `existingReview` prop changes (e.g., they edited it elsewhere), the state won't update. This is mitigated because the component is re-mounted when `open` changes in most cases.
-
-**Verdict:** Minor. The dialog likely unmounts on close, so the initial state is recalculated. No immediate fix needed but worth noting.
+**Fix:** Add `role="button"`, `tabIndex={0}`, and `onKeyDown` (Enter/Space) to each notification item.
 
 ---
 
-## 4. MOBILE INPUT TYPE AUDIT
+## 2. SEO GAPS
 
-| Form | Field | Current `type` | Correct `type` | Status |
-|---|---|---|---|---|
-| Auth (Login/Signup) | Email | `email` | `email` | OK |
-| Auth (Login/Signup) | Password | `password` | `password` | OK |
-| Checkout | Phone | (none/text) | `tel` | **NEEDS FIX** |
-| Checkout | Full Name | (none/text) | `text` | OK |
-| AddDoctorWizard | Phone | `tel` | `tel` | OK |
-| AddDoctorWizard | Email | `email` | `email` | OK |
-| Contact | Email | `email` | `email` | OK |
-| ForgotPassword | Email | `email` | `email` | OK |
+### SEO-1: No Canonical URL Set on Any Page (Medium)
+**File:** `src/components/SEO.tsx` supports `canonicalUrl` prop, but NO page passes it.
+
+The `ProductDetailPage`, `BlogArticlePage`, `DoctorDetailPage`, and `ClinicDetailPage` all have unique URLs but never set a canonical URL. Products accessible via `/product/:id` could theoretically be indexed with query parameters (e.g., `?ref=related`), creating duplicate content.
+
+**Fix:** Pass `canonicalUrl` prop from key pages:
+- `ProductDetailPage`: `canonicalUrl={\`https://vetmedix.lovable.app/product/${id}\`}`
+- `BlogArticlePage`: `canonicalUrl={\`https://vetmedix.lovable.app/blog/${slug}\`}`
+- `ClinicDetailPage`: `canonicalUrl={\`https://vetmedix.lovable.app/clinic/${id}\`}`
+- `DoctorDetailPage`: `canonicalUrl={\`https://vetmedix.lovable.app/doctor/${id}\`}`
+
+---
+
+### SEO-2: BlogArticlePage SEO Title Has Double Branding (Low)
+**File:** `src/pages/BlogArticlePage.tsx` (line 58)
+
+The SEO title is set to `${article.title} - VET-MEDIX Blog`, but the `SEO` component appends ` - VetMedix` automatically (line 100 of SEO.tsx). The final `<title>` will be: `"Article Title - VET-MEDIX Blog - VetMedix"` -- double-branded and inconsistent casing.
+
+**Fix:** Pass just `article.title` as the SEO title, or update the SEO component's suffix logic to detect existing branding.
+
+---
+
+### SEO-3: DoctorDetailPage and ClinicDetailPage Need Schema Audit (Low)
+
+Both pages already use the `SEO` component with structured data schemas (`Physician` and `VeterinaryCare`). These appear correct based on the SEO component's `generateJsonLd` function. No fix needed -- just noting for completeness.
+
+---
+
+## 3. SYSTEM RESILIENCE
+
+### RES-1: Error Boundary Is Correctly Configured (Good)
+**File:** `src/App.tsx` (line 143)
+
+A global `<ErrorBoundary>` wraps all routes inside `<Suspense>`. If any component (like `ProductCard`) crashes, the ErrorBoundary catches it and displays a branded fallback UI with "Try Again" and "Go Home" buttons. This prevents the White Screen of Death.
+
+**Verdict:** No fix needed. Correctly implemented.
+
+---
+
+### RES-2: Offline Indicator Is Correctly Configured (Good)
+**File:** `src/App.tsx` (line 140), `src/components/OfflineIndicator.tsx`
+
+The `<OfflineIndicator />` component is rendered globally and listens for `online`/`offline` events. It shows a destructive banner when offline and a green "You're back online!" banner on reconnection. Uses `aria-live="assertive"` for screen readers.
+
+**Verdict:** No fix needed. Correctly implemented.
+
+---
+
+### RES-3: Focus Management on Route Change Is Configured (Good)
+**File:** `src/App.tsx` (line 102), `src/hooks/useFocusManagement.ts`
+
+The `useFocusManagement` hook runs on every route change, focusing `#main-content` and announcing the page title to screen readers. However, this is only effective on pages that have `id="main-content"` (see A11Y-4 above).
+
+**Verdict:** The hook works correctly but its effectiveness is limited by A11Y-4. Fixing A11Y-4 also fixes this.
 
 ---
 
@@ -137,23 +131,25 @@ When the dialog is opened with an existing review for editing, `useState(existin
 
 | ID | Severity | Category | Issue |
 |---|---|---|---|
-| VAL-2 | Medium | Validation | Contact form has no Zod validation |
-| VAL-3 | Medium | Validation | AddDoctorWizard has no Zod validation |
-| UX-1 | Medium | UX | Auth error messages are generic |
-| BUG-1 | Medium | Logic | Appointment booking race condition error handling |
-| VAL-4 | Low-Medium | Validation | BookAppointmentWizard ignores existing appointmentSchema |
-| VAL-5 | Low | Validation | ProductReviewForm ignores existing reviewSchema |
-| UX-2 | Low | UX/Mobile | Checkout phone missing type="tel" |
-| VAL-1 | Low | Code Quality | Auth form uses manual parsing instead of zodResolver |
-| UX-3 | Low | UX | Product delete has no typed confirmation |
+| A11Y-1 | High | Accessibility | ProductDetailPage icon buttons missing aria-labels |
+| A11Y-2 | Medium | Accessibility | DoctorCard/ClinicCard not keyboard-accessible |
+| A11Y-3 | Medium | Accessibility | MobileNav missing aria-labels on links |
+| A11Y-4 | Medium | Accessibility | 26+ pages missing id="main-content" (skip link broken) |
+| A11Y-5 | Medium | Accessibility | ProductDetailPage has no main landmark |
+| SEO-1 | Medium | SEO | No canonical URLs set on any page |
+| SEO-2 | Low | SEO | BlogArticlePage double-branded title |
+| A11Y-6 | Low | Accessibility | Notification items not keyboard-accessible |
+| RES-1 | N/A | Resilience | Error Boundary correctly configured (no fix) |
+| RES-2 | N/A | Resilience | Offline Indicator correctly configured (no fix) |
+| RES-3 | N/A | Resilience | Focus management works but depends on A11Y-4 |
 
 ## RECOMMENDED FIX PRIORITY
 
-1. **VAL-2 + VAL-3** -- Add Zod schemas and validation to Contact form and AddDoctorWizard (prevents bad data entry)
-2. **UX-1** -- Add friendly error message mapping to AuthPage for common auth errors
-3. **BUG-1** -- Improve appointment booking error handling for race condition ("slot already booked" should prompt re-selection)
-4. **VAL-4 + VAL-5** -- Wire existing Zod schemas (appointmentSchema, reviewSchema) into their respective forms
-5. **UX-2** -- Add `type="tel"` to checkout phone input
+1. **A11Y-1 + A11Y-5** -- Add aria-labels to ProductDetailPage icon buttons and wrap content in a main landmark (highest user impact page)
+2. **A11Y-4** -- Add `id="main-content"` to all page `<main>` elements (fixes skip link and focus management globally)
+3. **A11Y-2** -- Make DoctorCard and ClinicCard keyboard-accessible with role/tabIndex/onKeyDown
+4. **SEO-1** -- Pass canonicalUrl to ProductDetail, BlogArticle, ClinicDetail, and DoctorDetail pages
+5. **A11Y-3 + A11Y-6 + SEO-2** -- Minor fixes: MobileNav labels, notification keyboard access, blog title dedup
 
-**Total: 5 files to modify, 1 new schema to add to validations.ts. No database changes. No new dependencies.**
+**Total: ~10 files to modify. No database changes. No new dependencies.**
 
