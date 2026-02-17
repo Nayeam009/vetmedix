@@ -13,6 +13,7 @@ import { useFocusManagement } from "@/hooks/useFocusManagement";
 import OfflineIndicator from "@/components/OfflineIndicator";
 import { RequireClinicOwner } from "@/components/clinic/RequireClinicOwner";
 import { RequireDoctor } from "@/components/doctor/RequireDoctor";
+import { RequireAdmin } from "@/components/admin/RequireAdmin";
 
 // ALL page routes lazy-loaded for minimal initial bundle
 const Index = lazy(() => import("./pages/Index"));
@@ -180,25 +181,25 @@ const App = () => (
                     <Route path="/wishlist" element={<WishlistPage />} />
                     <Route path="/track-order" element={<TrackOrderPage />} />
                     
-                    {/* Admin routes */}
-                    <Route path="/admin" element={<AdminDashboard />} />
-                    <Route path="/admin/products" element={<AdminProducts />} />
-                    <Route path="/admin/orders" element={<AdminOrders />} />
-                    <Route path="/admin/customers" element={<AdminCustomers />} />
-                    <Route path="/admin/clinics" element={<AdminClinics />} />
-                    <Route path="/admin/social" element={<AdminSocial />} />
-                    <Route path="/admin/analytics" element={<AdminAnalytics />} />
-                    <Route path="/admin/settings" element={<AdminSettings />} />
-                    <Route path="/admin/doctors" element={<AdminDoctors />} />
-                    <Route path="/admin/messages" element={<AdminContactMessages />} />
-                    <Route path="/admin/coupons" element={<AdminCoupons />} />
-                    <Route path="/admin/incomplete-orders" element={<AdminIncompleteOrders />} />
-                    <Route path="/admin/recovery-analytics" element={<AdminRecoveryAnalytics />} />
-                    <Route path="/admin/ecommerce-customers" element={<AdminEcommerceCustomers />} />
-                    <Route path="/admin/delivery-zones" element={<AdminDeliveryZones />} />
-                    <Route path="/admin/cms" element={<AdminCMS />} />
-                    <Route path="/admin/cms/new" element={<AdminCMSEditor />} />
-                    <Route path="/admin/cms/:id/edit" element={<AdminCMSEditor />} />
+                    {/* Admin routes - centralized guard */}
+                    <Route path="/admin" element={<RequireAdmin><AdminDashboard /></RequireAdmin>} />
+                    <Route path="/admin/products" element={<RequireAdmin><AdminProducts /></RequireAdmin>} />
+                    <Route path="/admin/orders" element={<RequireAdmin><AdminOrders /></RequireAdmin>} />
+                    <Route path="/admin/customers" element={<RequireAdmin><AdminCustomers /></RequireAdmin>} />
+                    <Route path="/admin/clinics" element={<RequireAdmin><AdminClinics /></RequireAdmin>} />
+                    <Route path="/admin/social" element={<RequireAdmin><AdminSocial /></RequireAdmin>} />
+                    <Route path="/admin/analytics" element={<RequireAdmin><AdminAnalytics /></RequireAdmin>} />
+                    <Route path="/admin/settings" element={<RequireAdmin><AdminSettings /></RequireAdmin>} />
+                    <Route path="/admin/doctors" element={<RequireAdmin><AdminDoctors /></RequireAdmin>} />
+                    <Route path="/admin/messages" element={<RequireAdmin><AdminContactMessages /></RequireAdmin>} />
+                    <Route path="/admin/coupons" element={<RequireAdmin><AdminCoupons /></RequireAdmin>} />
+                    <Route path="/admin/incomplete-orders" element={<RequireAdmin><AdminIncompleteOrders /></RequireAdmin>} />
+                    <Route path="/admin/recovery-analytics" element={<RequireAdmin><AdminRecoveryAnalytics /></RequireAdmin>} />
+                    <Route path="/admin/ecommerce-customers" element={<RequireAdmin><AdminEcommerceCustomers /></RequireAdmin>} />
+                    <Route path="/admin/delivery-zones" element={<RequireAdmin><AdminDeliveryZones /></RequireAdmin>} />
+                    <Route path="/admin/cms" element={<RequireAdmin><AdminCMS /></RequireAdmin>} />
+                    <Route path="/admin/cms/new" element={<RequireAdmin><AdminCMSEditor /></RequireAdmin>} />
+                    <Route path="/admin/cms/:id/edit" element={<RequireAdmin><AdminCMSEditor /></RequireAdmin>} />
                     
                     {/* OAuth Role Selection */}
                     <Route path="/select-role" element={<SelectRolePage />} />
