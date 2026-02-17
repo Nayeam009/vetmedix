@@ -20,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 import { createAdminNotification } from '@/lib/notifications';
+import { validateDocumentFile, removeStorageFiles } from '@/lib/storageUtils';
 
 const DoctorVerificationPage = () => {
   const navigate = useNavigate();
@@ -57,8 +58,10 @@ const DoctorVerificationPage = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('File size must be less than 5MB');
+      const error = validateDocumentFile(file);
+      if (error) {
+        toast.error(error);
+        e.target.value = '';
         return;
       }
       setBvcCertificate(file);
@@ -87,20 +90,23 @@ const DoctorVerificationPage = () => {
       // Upload BVC certificate if new file selected
       if (bvcCertificate) {
         setUploading(true);
+
+        // Clean up old file if exists (handle extension change orphans)
+        if (bvcCertificateUrl) {
+          await removeStorageFiles([bvcCertificateUrl], 'doctor-documents');
+        }
+
         const fileExt = bvcCertificate.name.split('.').pop();
-        const fileName = `${user.id}/bvc_certificate.${fileExt}`;
+        const fileName = `${user.id}/bvc_certificate_${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('doctor-documents')
-          .upload(fileName, bvcCertificate, { upsert: true });
+          .upload(fileName, bvcCertificate);
 
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage
-          .from('doctor-documents')
-          .getPublicUrl(fileName);
-
-        bvcCertificateUrl = urlData.publicUrl;
+        // Store the storage path for private bucket (not public URL)
+        bvcCertificateUrl = fileName;
         setUploading(false);
       }
 
@@ -492,7 +498,7 @@ const DoctorVerificationPage = () => {
                   {verificationStatus !== 'approved' && (
                     <Input
                       type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
+                      accept=".pdf,.jpg,.jpeg,.png,.webp"
                       onChange={handleFileChange}
                       className="max-w-xs mx-auto"
                     />

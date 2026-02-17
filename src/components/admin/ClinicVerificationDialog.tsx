@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   CheckCircle,
@@ -43,6 +43,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { createClinicVerificationNotification } from '@/lib/notifications';
+import { getSignedUrl } from '@/lib/storageUtils';
 
 interface Clinic {
   id: string;
@@ -85,6 +86,25 @@ export function ClinicVerificationDialog({
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [signedBvcUrl, setSignedBvcUrl] = useState<string | null>(null);
+  const [signedTradeUrl, setSignedTradeUrl] = useState<string | null>(null);
+
+  // Generate signed URLs for private bucket documents
+  useEffect(() => {
+    if (!clinic || !open) return;
+    
+    const loadSignedUrls = async () => {
+      if (clinic.bvc_certificate_url) {
+        const url = await getSignedUrl(clinic.bvc_certificate_url, 'clinic-documents');
+        setSignedBvcUrl(url);
+      }
+      if (clinic.trade_license_url) {
+        const url = await getSignedUrl(clinic.trade_license_url, 'clinic-documents');
+        setSignedTradeUrl(url);
+      }
+    };
+    loadSignedUrls();
+  }, [clinic, open]);
 
   const approveMutation = useMutation({
     mutationFn: async () => {
@@ -374,10 +394,11 @@ export function ClinicVerificationDialog({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => window.open(clinic.bvc_certificate_url!, '_blank')}
+                      onClick={() => signedBvcUrl && window.open(signedBvcUrl, '_blank')}
+                      disabled={!signedBvcUrl}
                     >
                       <ExternalLink className="h-4 w-4 mr-1" />
-                      View
+                      {signedBvcUrl ? 'View' : 'Loading...'}
                     </Button>
                   ) : (
                     <Badge variant="secondary">Not uploaded</Badge>
@@ -392,10 +413,11 @@ export function ClinicVerificationDialog({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => window.open(clinic.trade_license_url!, '_blank')}
+                      onClick={() => signedTradeUrl && window.open(signedTradeUrl, '_blank')}
+                      disabled={!signedTradeUrl}
                     >
                       <ExternalLink className="h-4 w-4 mr-1" />
-                      View
+                      {signedTradeUrl ? 'View' : 'Loading...'}
                     </Button>
                   ) : (
                     <Badge variant="secondary">Not uploaded</Badge>

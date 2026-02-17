@@ -28,6 +28,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import logo from '@/assets/logo.jpeg';
 import { notifyAdminsOfNewVerification } from '@/lib/notifications';
+import { removeStorageFiles } from '@/lib/storageUtils';
 
 const ClinicVerificationPage = () => {
   const navigate = useNavigate();
@@ -83,10 +84,16 @@ const ClinicVerificationPage = () => {
     }
   }, [clinic]);
 
-  // Upload file to storage
+  // Upload file to storage (returns storage path, not public URL, for private bucket)
   const uploadFile = async (file: File, type: 'bvc' | 'trade_license'): Promise<string> => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${user!.id}/${type}_${Date.now()}.${fileExt}`;
+
+    // Clean up old file if it exists
+    const oldUrl = type === 'bvc' ? clinic?.bvc_certificate_url : clinic?.trade_license_url;
+    if (oldUrl) {
+      await removeStorageFiles([oldUrl], 'clinic-documents');
+    }
     
     const { error: uploadError } = await supabase.storage
       .from('clinic-documents')
@@ -94,11 +101,8 @@ const ClinicVerificationPage = () => {
 
     if (uploadError) throw uploadError;
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('clinic-documents')
-      .getPublicUrl(fileName);
-
-    return publicUrl;
+    // Return storage path for private bucket
+    return fileName;
   };
 
   // Submit verification mutation
