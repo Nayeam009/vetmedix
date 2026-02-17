@@ -1,134 +1,79 @@
 
-# Incomplete Order Recovery - Editable Admin Convert Form
 
-## Problem
-Currently when the admin clicks "Convert" on an incomplete order, they see a **read-only summary** with no way to fill in missing details. The admin needs to call the customer, get their info, and enter it before converting.
+# Trash System for Orders and Incomplete Orders
 
-Additionally, orders that are successfully placed by customers (100% complete, order placed) already get marked as "recovered" via the `markRecovered` call in `CheckoutPage.tsx` (line 292). This logic is correct and working. However, we should also filter out any 100% complete orders that somehow remain with status "incomplete" (edge case where the user filled everything but the `markRecovered` call didn't fire).
+## Overview
+Add a soft-delete "Trash" system to both the **Orders** and **Incomplete Orders** pages. Admins can move orders to trash, view trashed items, and permanently delete them. The Orders page card design will also be improved to match the Incomplete Orders style.
 
-## Changes
+## Database Changes
 
-### 1. Upgrade the Convert Dialog to an Editable Form
-**File**: `src/pages/admin/AdminIncompleteOrders.tsx`
+### 1. Add `trashed_at` column to both tables
+- `orders` table: Add nullable `trashed_at` timestamp column
+- `incomplete_orders` table: Add nullable `trashed_at` timestamp column
+- When `trashed_at` is set, the order is "in trash". When null, it's active.
 
-Replace the static `<p><strong>Customer:</strong> ...` display with editable `Input` fields pre-filled with whatever data the customer already provided. The admin can then fill in missing fields (name, phone, address, division) before converting.
+## Code Changes
 
-Fields in the form:
-- Customer Name (Input, pre-filled or empty)
-- Phone Number (Input, pre-filled or empty) 
-- Email (Input, pre-filled or empty)
-- Shipping Address (Input, pre-filled or empty)
-- Division (Input, pre-filled or empty)
-- Cart Total (display only, not editable)
-- Items list (display only)
-- Payment Method (default COD)
+### 2. Update `useIncompleteOrders.ts`
+- Change `deleteOrder` to soft-delete (set `trashed_at = now()`) instead of hard-deleting
+- Add `permanentlyDelete` mutation for trash
+- Add `restoreOrder` mutation (set `trashed_at = null`)
+- Add a `trashed` stat count
+- Filter active vs trashed orders
 
-The form will validate that at minimum **Name**, **Phone**, and **Address** are filled before allowing conversion.
+### 3. Update `AdminIncompleteOrders.tsx`
+- Add a "Trash" stat card alongside existing stats (Incomplete, Recovered, etc.)
+- Clicking the Trash card toggles showing trashed items
+- Trashed view shows "Restore" and "Delete Forever" buttons
+- Active view shows "Move to Trash" (existing trash icon behavior)
+- Add confirmation dialog for permanent deletion
 
-### 2. Update the Convert Mutation to Use Edited Data
-**File**: `src/hooks/useIncompleteOrders.ts`
+### 4. Update `useAdmin.ts` / `useAdminOrders`
+- Filter out trashed orders from default view (`trashed_at IS NULL`)
+- Add `trashOrder` mutation (set `trashed_at = now()`)
+- Add `permanentlyDeleteOrder` mutation
+- Add `restoreOrder` mutation
+- Add trashed count to stats
 
-Change `convertMutation` to accept an object with the edited form data (not just the raw IncompleteOrder). The mutation will:
-1. Update the incomplete_orders record with the admin-entered details first
-2. Create the real order using the completed data
-3. Mark the incomplete order as "recovered"
+### 5. Update `AdminOrders.tsx`
+- Add a "Trash" stat card in the OrderStatsBar area
+- Add "Move to Trash" option in the dropdown menu for each order
+- When trash filter is active, show trashed orders with "Restore" and "Delete Forever" actions
+- Add confirmation dialog for permanent deletion
+- **Improve mobile card design**: Match the clean card layout from Incomplete Orders (structured rows with icons, better spacing, touch-friendly targets)
 
-### 3. Filter Out 100% Complete + Recovered Orders
-**File**: `src/pages/admin/AdminIncompleteOrders.tsx`
+### 6. Update `OrderStatsBar.tsx`
+- Add a "Trashed" stat card with trash icon to the stats bar
 
-In the `filtered` logic, also exclude orders where `completeness === 100 AND status === 'recovered'`. The existing filter already hides recovered orders from the default view. We just need to ensure no 100% complete orders that were actually placed show up as "incomplete".
+## UI/UX Details
 
-### 4. Add Trash Confirmation Dialog
-**File**: `src/pages/admin/AdminIncompleteOrders.tsx`
+### Trash Card Design (both pages)
+- Icon: Trash2 icon with red/muted color scheme
+- Shows count of trashed items
+- Acts as a toggle filter (like other stat cards)
+- Active state: `ring-2 ring-primary`
 
-Add a confirmation dialog before deleting (moving to trash) so the admin doesn't accidentally delete an incomplete order.
+### Trashed Items View
+- Each trashed item shows a muted/faded appearance
+- Two action buttons per item:
+  - "Restore" (undo icon, outline style)
+  - "Delete Forever" (trash icon, destructive style)
+- Permanent delete requires confirmation dialog
 
----
+### Orders Page Mobile Card Improvements
+- Use structured rows matching Incomplete Orders layout
+- Row 1: Order ID + Status badge
+- Row 2: Customer name with icon + Total amount
+- Row 3: Date + Items count + Payment badges
+- Row 4: Tracking info (if available)
+- Row 5: Action buttons with proper touch targets (h-11, rounded-xl)
+- Add trash button alongside existing actions
 
-## Technical Details
+## Files to Edit
+1. **Database migration** - Add `trashed_at` to `orders` and `incomplete_orders`
+2. `src/hooks/useIncompleteOrders.ts` - Soft delete, restore, permanent delete
+3. `src/hooks/useAdmin.ts` - Add trash/restore/delete mutations for orders
+4. `src/pages/admin/AdminIncompleteOrders.tsx` - Trash card, trash view, permanent delete dialog
+5. `src/pages/admin/AdminOrders.tsx` - Trash card, trash actions, improved mobile cards
+6. `src/components/admin/OrderStatsBar.tsx` - Add trashed stat
 
-### Convert Dialog Form State
-```tsx
-const [convertFormData, setConvertFormData] = useState({
-  customer_name: '',
-  customer_phone: '',
-  customer_email: '',
-  shipping_address: '',
-  division: '',
-});
-
-// Pre-fill when dialog opens
-useEffect(() => {
-  if (convertDialog) {
-    setConvertFormData({
-      customer_name: convertDialog.customer_name || '',
-      customer_phone: convertDialog.customer_phone || '',
-      customer_email: convertDialog.customer_email || '',
-      shipping_address: convertDialog.shipping_address || '',
-      division: convertDialog.division || '',
-    });
-  }
-}, [convertDialog]);
-```
-
-### Updated Convert Mutation Signature
-```tsx
-const convertMutation = useMutation({
-  mutationFn: async ({ order, editedData }: { 
-    order: IncompleteOrder; 
-    editedData: { 
-      customer_name: string; 
-      customer_phone: string; 
-      customer_email: string; 
-      shipping_address: string; 
-      division: string; 
-    } 
-  }) => {
-    // Update incomplete order with admin-entered data
-    await supabase.from('incomplete_orders').update({
-      customer_name: editedData.customer_name,
-      customer_phone: editedData.customer_phone,
-      customer_email: editedData.customer_email,
-      shipping_address: editedData.shipping_address,
-      division: editedData.division,
-      completeness: 100,
-    }).eq('id', order.id);
-
-    // Create real order with complete data
-    const shippingAddress = [
-      editedData.customer_name, 
-      editedData.customer_phone, 
-      editedData.shipping_address
-    ].filter(Boolean).join(', ');
-
-    const { data: newOrder, error } = await supabase
-      .from('orders')
-      .insert({
-        user_id: order.user_id || '00000000-0000-0000-0000-000000000000',
-        items: order.items,
-        total_amount: order.cart_total,
-        shipping_address: shippingAddress,
-        payment_method: 'cod',
-        status: 'pending',
-      })
-      .select('id')
-      .single();
-
-    if (error) throw error;
-
-    // Mark as recovered
-    await supabase.from('incomplete_orders')
-      .update({ status: 'recovered', recovered_order_id: newOrder.id })
-      .eq('id', order.id);
-
-    return newOrder;
-  },
-});
-```
-
-### Validation Before Convert
-The "Convert to Order" button will be disabled until Name, Phone, and Address are all filled. A helper text will show which fields are missing.
-
-### Files to Edit (2 files)
-1. `src/pages/admin/AdminIncompleteOrders.tsx` - Editable convert form, trash confirmation, filtering
-2. `src/hooks/useIncompleteOrders.ts` - Updated convert mutation to accept edited data
