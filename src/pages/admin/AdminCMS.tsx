@@ -1,163 +1,92 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Search, Trash2, Eye, Pencil, FileText } from 'lucide-react';
+import { lazy, Suspense, useState } from 'react';
+import { FileText, MessageSquare, Package, Stethoscope } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { RequireAdmin } from '@/components/admin/RequireAdmin';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArticleStatusBadge } from '@/components/admin/cms/ArticleStatusBadge';
-import { useCMSArticles, useDeleteArticle, useUpdateArticle } from '@/hooks/useCMS';
-import { format } from 'date-fns';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useDebounce } from '@/hooks/useDebounce';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+
+const CMSArticlesTab = lazy(() => import('@/components/admin/cms/CMSArticlesTab'));
+const CMSSocialTab = lazy(() => import('@/components/admin/cms/CMSSocialTab'));
+const CMSMarketplaceTab = lazy(() => import('@/components/admin/cms/CMSMarketplaceTab'));
+const CMSClinicalTab = lazy(() => import('@/components/admin/cms/CMSClinicalTab'));
+
+const tabs = [
+  { value: 'articles', label: 'Articles', icon: FileText },
+  { value: 'social', label: 'Community', icon: MessageSquare },
+  { value: 'marketplace', label: 'Marketplace', icon: Package },
+  { value: 'clinical', label: 'Clinical Ops', icon: Stethoscope },
+] as const;
+
+const TabFallback = () => (
+  <div className="space-y-4 pt-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+    </div>
+    <Skeleton className="h-64 rounded-xl" />
+  </div>
+);
 
 const AdminCMS = () => {
-  const [status, setStatus] = useState('all');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const debouncedSearch = useDebounce(search, 300);
-
-  const { data, isLoading } = useCMSArticles({ status, search: debouncedSearch, page, perPage: 20, adminMode: true });
-  const deleteArticle = useDeleteArticle();
-  const updateArticle = useUpdateArticle();
-
-  const articles = data?.articles || [];
-  const total = data?.total || 0;
-  const totalPages = Math.ceil(total / 20);
+  useDocumentTitle('Content Hub - Admin');
+  const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState<string>('articles');
 
   return (
     <RequireAdmin>
-      <AdminLayout title="Content Manager">
-        <div className="space-y-4 sm:space-y-6">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                Content Manager
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground">{total} article{total !== 1 ? 's' : ''}</p>
-            </div>
-            <Link to="/admin/cms/new">
-              <Button size="sm" className="gap-1.5">
-                <Plus className="h-4 w-4" /> New Article
-              </Button>
-            </Link>
-          </div>
-
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Tabs value={status} onValueChange={(v) => { setStatus(v); setPage(1); }} className="w-full sm:w-auto">
-              <TabsList className="grid grid-cols-4 w-full sm:w-auto">
-                <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-                <TabsTrigger value="draft" className="text-xs">Draft</TabsTrigger>
-                <TabsTrigger value="published" className="text-xs">Published</TabsTrigger>
-                <TabsTrigger value="archived" className="text-xs">Archived</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search articles..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="pl-9 h-9 text-sm"
-              />
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-xs">Title</TableHead>
-                  <TableHead className="text-xs hidden sm:table-cell">Category</TableHead>
-                  <TableHead className="text-xs">Status</TableHead>
-                  <TableHead className="text-xs hidden md:table-cell">Date</TableHead>
-                  <TableHead className="text-xs text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                      <TableCell className="hidden sm:table-cell"><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                      <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
-                      <TableCell><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : articles.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground text-sm">
-                      No articles found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  articles.map((article) => (
-                    <TableRow key={article.id}>
-                      <TableCell className="font-medium text-sm max-w-[200px] truncate">{article.title}</TableCell>
-                      <TableCell className="hidden sm:table-cell text-xs capitalize text-muted-foreground">
-                        {article.category.replace('-', ' ')}
-                      </TableCell>
-                      <TableCell><ArticleStatusBadge status={article.status} /></TableCell>
-                      <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
-                        {format(new Date(article.published_at || article.created_at), 'MMM d, yyyy')}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {article.status === 'published' && (
-                            <Link to={`/blog/${article.slug}`} target="_blank">
-                              <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Preview">
-                                <Eye className="h-3.5 w-3.5" />
-                              </Button>
-                            </Link>
-                          )}
-                          <Link to={`/admin/cms/${article.id}/edit`}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Edit">
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                          </Link>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" aria-label="Delete">
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete article?</AlertDialogTitle>
-                                <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteArticle.mutate(article.id)}>Delete</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2">
-              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
-              <span className="text-xs text-muted-foreground">Page {page} of {totalPages}</span>
-              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
+      <AdminLayout title="Content Hub" subtitle="Manage content, community, marketplace, and clinical operations">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          {/* Desktop: Horizontal tabs */}
+          {!isMobile ? (
+            <TabsList className="w-full justify-start gap-1 bg-muted/50 p-1 mb-4">
+              {tabs.map((tab) => (
+                <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-sm data-[state=active]:bg-background">
+                  <tab.icon className="h-4 w-4" />
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          ) : (
+            /* Mobile: Select dropdown */
+            <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm pb-3 -mx-1 px-1">
+              <Select value={activeTab} onValueChange={setActiveTab}>
+                <SelectTrigger className="w-full h-10 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const t = tabs.find(t => t.value === activeTab);
+                      return t ? <><t.icon className="h-4 w-4" /><span>{t.label}</span></> : null;
+                    })()}
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  {tabs.map((tab) => (
+                    <SelectItem key={tab.value} value={tab.value}>
+                      <div className="flex items-center gap-2">
+                        <tab.icon className="h-4 w-4" />
+                        {tab.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
-        </div>
+
+          <TabsContent value="articles" className="mt-0">
+            <Suspense fallback={<TabFallback />}><CMSArticlesTab /></Suspense>
+          </TabsContent>
+          <TabsContent value="social" className="mt-0">
+            <Suspense fallback={<TabFallback />}><CMSSocialTab /></Suspense>
+          </TabsContent>
+          <TabsContent value="marketplace" className="mt-0">
+            <Suspense fallback={<TabFallback />}><CMSMarketplaceTab /></Suspense>
+          </TabsContent>
+          <TabsContent value="clinical" className="mt-0">
+            <Suspense fallback={<TabFallback />}><CMSClinicalTab /></Suspense>
+          </TabsContent>
+        </Tabs>
       </AdminLayout>
     </RequireAdmin>
   );
