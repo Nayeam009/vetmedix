@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Package, PackageCheck, PackageX, AlertTriangle, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -59,7 +60,7 @@ function getStatValue(key: string, stats: ProductStats): number {
   }
 }
 
-export function ProductStatsBar({ stats, activeFilter, onFilterChange }: ProductStatsBarProps) {
+export const ProductStatsBar = memo(function ProductStatsBar({ stats, activeFilter, onFilterChange }: ProductStatsBarProps) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mb-4 sm:mb-6">
       {statCards.map(({ key, label, icon: Icon, iconColor, iconBg, bgClass }) => {
@@ -97,4 +98,4 @@ export function ProductStatsBar({ stats, activeFilter, onFilterChange }: Product
       })}
     </div>
   );
-}
+});

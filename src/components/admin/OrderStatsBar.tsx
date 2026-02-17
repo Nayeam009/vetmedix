@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { 
   Clock, 
   Loader2 as Processing, 
@@ -79,7 +80,7 @@ function getStatValue(key: string, stats: OrderStats): number {
   }
 }
 
-export function OrderStatsBar({ stats, activeFilter, onFilterChange }: OrderStatsBarProps) {
+export const OrderStatsBar = memo(function OrderStatsBar({ stats, activeFilter, onFilterChange }: OrderStatsBarProps) {
   return (
     <div className="mb-4 sm:mb-6 space-y-3">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 sm:gap-3">
@@ -165,4 +166,4 @@ export function OrderStatsBar({ stats, activeFilter, onFilterChange }: OrderStat
       </div>
     </div>
   );
-}
+});
