@@ -11,6 +11,8 @@ import { PetProvider } from "@/contexts/PetContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useFocusManagement } from "@/hooks/useFocusManagement";
 import OfflineIndicator from "@/components/OfflineIndicator";
+import { RequireClinicOwner } from "@/components/clinic/RequireClinicOwner";
+import { RequireDoctor } from "@/components/doctor/RequireDoctor";
 
 // ALL page routes lazy-loaded for minimal initial bundle
 const Index = lazy(() => import("./pages/Index"));
@@ -201,18 +203,18 @@ const App = () => (
                     {/* OAuth Role Selection */}
                     <Route path="/select-role" element={<SelectRolePage />} />
                     
-                    {/* Doctor routes */}
-                    <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
-                    <Route path="/doctor/profile" element={<DoctorProfile />} />
-                    <Route path="/doctor/verification" element={<DoctorVerificationPage />} />
+                    {/* Doctor routes - guarded */}
+                    <Route path="/doctor/dashboard" element={<RequireDoctor><DoctorDashboard /></RequireDoctor>} />
+                    <Route path="/doctor/profile" element={<RequireDoctor><DoctorProfile /></RequireDoctor>} />
+                    <Route path="/doctor/verification" element={<RequireDoctor><DoctorVerificationPage /></RequireDoctor>} />
                     
-                    {/* Clinic owner routes */}
-                    <Route path="/clinic/verification" element={<ClinicVerificationPage />} />
-                    <Route path="/clinic/dashboard" element={<ClinicDashboard />} />
-                    <Route path="/clinic/profile" element={<ClinicProfile />} />
+                    {/* Clinic owner routes - guarded */}
+                    <Route path="/clinic/verification" element={<RequireClinicOwner><ClinicVerificationPage /></RequireClinicOwner>} />
+                    <Route path="/clinic/dashboard" element={<RequireClinicOwner><ClinicDashboard /></RequireClinicOwner>} />
+                    <Route path="/clinic/profile" element={<RequireClinicOwner><ClinicProfile /></RequireClinicOwner>} />
                     <Route path="/clinic/owner-profile" element={<Navigate to="/clinic/profile?tab=owner" replace />} />
-                    <Route path="/clinic/services" element={<ClinicServices />} />
-                    <Route path="/clinic/doctors" element={<ClinicDoctors />} />
+                    <Route path="/clinic/services" element={<RequireClinicOwner><ClinicServices /></RequireClinicOwner>} />
+                    <Route path="/clinic/doctors" element={<RequireClinicOwner><ClinicDoctors /></RequireClinicOwner>} />
                     
                     {/* 404 */}
                     <Route path="*" element={<NotFound />} />
