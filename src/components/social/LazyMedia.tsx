@@ -92,6 +92,31 @@ export const LazyImage = forwardRef<HTMLDivElement, LazyImageProps>(
 
 LazyImage.displayName = 'LazyImage';
 
+/** Small helper: video progress bar with proper cleanup */
+const VideoProgressBar = ({ videoRef }: { videoRef: React.RefObject<HTMLVideoElement> }) => {
+  const barRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    const bar = barRef.current;
+    if (!video || !bar) return;
+
+    const update = () => {
+      if (video.duration) {
+        bar.style.width = `${(video.currentTime / video.duration) * 100}%`;
+      }
+    };
+    video.addEventListener('timeupdate', update);
+    return () => video.removeEventListener('timeupdate', update);
+  }, [videoRef]);
+
+  return (
+    <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30">
+      <div ref={barRef} className="h-full bg-primary transition-all" style={{ width: '0%' }} />
+    </div>
+  );
+};
+
 interface LazyVideoProps {
   src: string;
   className?: string;
@@ -263,23 +288,7 @@ export const LazyVideo = forwardRef<HTMLDivElement, LazyVideoProps>(
 
         {/* Progress bar */}
         {isLoaded && isPlaying && (
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30">
-            <div 
-              className="h-full bg-primary transition-all"
-              style={{ width: '0%' }}
-              ref={(el) => {
-                if (el && videoRef.current) {
-                  const updateProgress = () => {
-                    const video = videoRef.current;
-                    if (video && el) {
-                      el.style.width = `${(video.currentTime / video.duration) * 100}%`;
-                    }
-                  };
-                  videoRef.current.addEventListener('timeupdate', updateProgress);
-                }
-              }}
-            />
-          </div>
+          <VideoProgressBar videoRef={videoRef} />
         )}
       </div>
     );
