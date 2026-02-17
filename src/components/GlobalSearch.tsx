@@ -10,6 +10,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import { useDebounce } from '@/hooks/useDebounce';
+
+/** Escape special PostgREST filter characters to prevent injection */
+const sanitizeSearchTerm = (term: string): string => {
+  return term.replace(/[%_,.()"\\]/g, '');
+};
 
 interface SearchResult {
   id: string;
@@ -101,14 +107,20 @@ export const GlobalSearch = ({ className, variant = 'navbar', placeholder }: Glo
     return baseItems;
   }, [user, isAdmin, isClinicOwner, isDoctor]);
 
+  // Debounce search query to prevent database flooding (SEC-2)
+  const debouncedQuery = useDebounce(query, 300);
+
   // Search results from database
   const { data: searchResults, isLoading } = useQuery({
-    queryKey: ['global-search', query, variant],
+    queryKey: ['global-search', debouncedQuery, variant],
     queryFn: async () => {
-      if (!query || query.length < 2) return [];
+      if (!debouncedQuery || debouncedQuery.length < 2) return [];
       
       const results: SearchResult[] = [];
-      const searchTerm = query.toLowerCase();
+      const searchTerm = sanitizeSearchTerm(debouncedQuery.toLowerCase());
+      
+      // Reject if sanitized term is too short
+      if (searchTerm.length < 2) return [];
 
       // Search pets
       const { data: pets } = await supabase
@@ -244,7 +256,7 @@ export const GlobalSearch = ({ className, variant = 'navbar', placeholder }: Glo
 
       return results;
     },
-    enabled: query.length >= 2,
+    enabled: debouncedQuery.length >= 2,
     staleTime: 1000 * 30, // 30 seconds
   });
 
@@ -336,7 +348,7 @@ export const GlobalSearch = ({ className, variant = 'navbar', placeholder }: Glo
                 </div>
               )}
 
-              {!isLoading && query.length >= 2 && (!searchResults || searchResults.length === 0) && filteredQuickNav.length === 0 && (
+              {!isLoading && debouncedQuery.length >= 2 && (!searchResults || searchResults.length === 0) && filteredQuickNav.length === 0 && (
                 <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
                   No results found for "{query}"
                 </CommandEmpty>
