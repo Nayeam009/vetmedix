@@ -100,7 +100,7 @@ const ProfilePage = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, full_name, phone, address, division, district, thana, avatar_url, cover_photo_url')
         .eq('user_id', user!.id)
         .single();
       return data as Profile | null;
@@ -114,7 +114,7 @@ const ProfilePage = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from('orders')
-        .select('*')
+        .select('id, items, total_amount, status, created_at, shipping_address, payment_method, tracking_id, rejection_reason')
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false });
       return (data || []) as Order[];

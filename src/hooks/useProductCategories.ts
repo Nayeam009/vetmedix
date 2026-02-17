@@ -22,7 +22,7 @@ export function useProductCategories() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('product_categories')
-        .select('*')
+        .select('id, name, slug, image_url, product_count, is_active')
         .order('name');
       if (error) throw error;
       return data as ProductCategory[];

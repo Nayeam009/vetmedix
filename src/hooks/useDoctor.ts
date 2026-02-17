@@ -48,7 +48,7 @@ export const useDoctor = () => {
 
       const { data, error } = await supabase
         .from('doctors')
-        .select('*')
+        .select('id, user_id, name, specialization, qualifications, bio, avatar_url, phone, email, experience_years, consultation_fee, is_available, is_verified, verification_status, license_number, created_by_clinic_id, bvc_certificate_url, nid_number, created_at, updated_at')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -197,7 +197,7 @@ export const useDoctorById = (doctorId: string | undefined) => {
       // Use doctors_public view - excludes sensitive contact info (email, phone, license_number)
       const { data, error } = await supabase
         .from('doctors_public')
-        .select('*')
+        .select('id, name, specialization, qualifications, avatar_url, bio, experience_years, consultation_fee, is_available, is_verified, created_by_clinic_id, created_at, updated_at')
         .eq('id', doctorId)
         .single();
 
@@ -223,7 +223,7 @@ export const useClinicDoctors = (clinicId: string | undefined) => {
         .from('clinic_doctors')
         .select(`
           *,
-          doctor:doctors_public(*)
+          doctor:doctors_public(id, name, specialization, qualifications, avatar_url, bio, experience_years, consultation_fee, is_available, is_verified, created_by_clinic_id)
         `)
         .eq('clinic_id', clinicId)
         .eq('status', 'active');
