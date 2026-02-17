@@ -59,7 +59,7 @@ export const AdminHeader = ({
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="relative lg:hidden h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted/60 active:scale-95 transition-all duration-200 rounded-xl"
+                className="relative md:hidden h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted/60 active:scale-95 transition-all duration-200 rounded-xl"
               >
                 <Menu className="h-5 w-5" />
                 {totalPending > 0 && (
@@ -82,7 +82,7 @@ export const AdminHeader = ({
                   variant="ghost" 
                   size="icon" 
                   onClick={onToggleSidebar}
-                  className="hidden lg:flex h-9 w-9 text-muted-foreground hover:text-foreground"
+                  className="hidden md:flex h-9 w-9 text-muted-foreground hover:text-foreground"
                 >
                   <PanelLeft className="h-5 w-5" />
                 </Button>
@@ -94,7 +94,7 @@ export const AdminHeader = ({
           </TooltipProvider>
 
           {/* Logo - Mobile Only */}
-          <Link to="/admin" className="lg:hidden flex items-center gap-2 group">
+          <Link to="/admin" className="md:hidden flex items-center gap-2 group">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-accent/30 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               <img 
@@ -111,14 +111,14 @@ export const AdminHeader = ({
           </Link>
 
           {/* Page Title - Desktop */}
-          <div className="hidden lg:block">
+          <div className="hidden md:block">
             <h1 className="text-base lg:text-lg font-display font-bold text-foreground">{title}</h1>
             {subtitle && <p className="text-xs text-muted-foreground line-clamp-1">{subtitle}</p>}
           </div>
         </div>
 
         {/* Page Title - Mobile/Tablet */}
-        <div className="lg:hidden flex-1 text-center px-2">
+        <div className="md:hidden flex-1 text-center px-2">
           <h1 className="text-sm sm:text-base font-display font-bold text-foreground truncate">{title}</h1>
         </div>
 
