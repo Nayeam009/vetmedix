@@ -44,6 +44,7 @@ import { Label } from '@/components/ui/label';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 import { createNotification, getAdminUserIds } from '@/lib/notifications';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -139,7 +140,7 @@ const AdminDoctors = () => {
     },
     onError: (error) => {
       toast.error('Failed to approve doctor');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -178,7 +179,7 @@ const AdminDoctors = () => {
     },
     onError: (error) => {
       toast.error('Failed to reject doctor');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -218,7 +219,7 @@ const AdminDoctors = () => {
     },
     onError: (error) => {
       toast.error('Failed to update block status');
-      console.error(error);
+      logger.error(error);
     },
   });
 
