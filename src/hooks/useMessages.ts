@@ -18,7 +18,7 @@ export const useConversations = () => {
 
     try {
       const { data, error } = await supabase
-        .from('conversations' as any)
+        .from('conversations')
         .select('*')
         .or(`participant_1_id.eq.${user.id},participant_2_id.eq.${user.id}`)
         .order('last_message_at', { ascending: false });
@@ -40,7 +40,7 @@ export const useConversations = () => {
 
         // Get last message
         const { data: messages } = await supabase
-          .from('messages' as any)
+          .from('messages')
           .select('*')
           .eq('conversation_id', conv.id)
           .order('created_at', { ascending: false })
@@ -48,7 +48,7 @@ export const useConversations = () => {
 
         // Get unread count
         const { count } = await supabase
-          .from('messages' as any)
+          .from('messages')
           .select('*', { count: 'exact', head: true })
           .eq('conversation_id', conv.id)
           .eq('is_read', false)
@@ -85,16 +85,16 @@ export const useConversations = () => {
     try {
       // Check if conversation exists
       const { data: existing } = await supabase
-        .from('conversations' as any)
+        .from('conversations')
         .select('id')
         .or(`and(participant_1_id.eq.${user.id},participant_2_id.eq.${otherUserId}),and(participant_1_id.eq.${otherUserId},participant_2_id.eq.${user.id})`)
         .maybeSingle();
 
-      if (existing) return (existing as any).id;
+      if (existing) return existing.id;
 
       // Create new conversation
       const { data, error } = await supabase
-        .from('conversations' as any)
+        .from('conversations')
         .insert({
           participant_1_id: user.id,
           participant_2_id: otherUserId,
@@ -105,7 +105,7 @@ export const useConversations = () => {
       if (error) throw error;
       
       await fetchConversations();
-      return (data as any).id;
+      return data.id;
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error starting conversation:', error);
@@ -127,7 +127,7 @@ export const useMessages = (conversationId: string) => {
 
     try {
       const { data, error } = await supabase
-        .from('messages' as any)
+        .from('messages')
         .select('*')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
@@ -138,7 +138,7 @@ export const useMessages = (conversationId: string) => {
       // Mark messages as read
       if (user) {
         await supabase
-          .from('messages' as any)
+          .from('messages')
           .update({ is_read: true })
           .eq('conversation_id', conversationId)
           .neq('sender_id', user.id)
@@ -212,7 +212,7 @@ export const useMessages = (conversationId: string) => {
       }
 
       const { error } = await supabase
-        .from('messages' as any)
+        .from('messages')
         .insert({
           conversation_id: conversationId,
           sender_id: user.id,
