@@ -1,3 +1,8 @@
+![Build Status](https://img.shields.io/badge/Build-Production%20Ready-brightgreen)
+![Version](https://img.shields.io/badge/Version-1.0.0-blue)
+
+> **Deployment Status:** Production Ready | Last Updated: 2026-02-17
+
 # VET-MEDIX — Pet Care & Veterinary Platform
 
 A full-stack pet care platform for Bangladesh featuring veterinary clinic discovery,
