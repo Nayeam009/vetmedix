@@ -1748,6 +1748,7 @@ export type Database = {
       }
     }
     Functions: {
+      get_admin_dashboard_stats: { Args: never; Returns: Json }
       get_doctor_id: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
