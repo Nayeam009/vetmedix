@@ -222,7 +222,7 @@ const AuthPage = () => {
           // Check if it's a duplicate error
           if (roleError.code === '23505') {
             // Role already exists, continue
-            console.log('Role already exists, continuing...');
+            // Role already exists, continue silently
           } else {
             console.error('Failed to assign role:', roleError);
             toast({

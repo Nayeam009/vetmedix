@@ -174,7 +174,6 @@ const ShopPage = () => {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  const [category] = useState('All');
   const [productType, setProductType] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
   const [gridCols, setGridCols] = useState<3 | 4 | 6>(4);
@@ -376,7 +375,7 @@ const ShopPage = () => {
                   placeholder="Search products..." 
                   value={searchQuery}
                   onChange={handleSearchChange}
-                  className="w-full h-10 sm:h-11 pl-9 sm:pl-11 pr-4 rounded-lg sm:rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm transition-all"
+                  className="w-full h-10 sm:h-11 pl-9 sm:pl-11 pr-4 rounded-lg sm:rounded-xl bg-muted/50 border border-border focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-base md:text-sm transition-all"
                   aria-label="Search products"
                 />
                 {searchQuery && (

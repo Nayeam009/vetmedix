@@ -57,7 +57,7 @@ export const CommentsSection = ({ postId }: CommentsSectionProps) => {
             onChange={(e) => setNewComment(e.target.value)}
             disabled={!user || submitting}
             maxLength={500}
-            className="w-full h-8 sm:h-9 bg-muted rounded-full px-3 sm:px-4 pr-9 sm:pr-10 text-xs sm:text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+            className="w-full h-8 sm:h-9 bg-muted rounded-full px-3 sm:px-4 pr-9 sm:pr-10 text-base sm:text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
