@@ -65,7 +65,7 @@ export const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => 
       {/* Main Content Area - Offset by sidebar width on desktop */}
       <div className={cn(
         "min-h-screen flex flex-col transition-[margin] duration-300 ease-in-out",
-        collapsed ? "lg:ml-[72px]" : "lg:ml-[260px]"
+        collapsed ? "md:ml-[72px]" : "md:ml-[260px]"
       )}>
         <AdminHeader 
           title={title} 
