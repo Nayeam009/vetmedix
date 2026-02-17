@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { logger } from '@/lib/logger';
 import { useNavigate } from 'react-router-dom';
 import { 
   Save, Loader2, Camera, Building2, MapPin, 
@@ -181,7 +182,7 @@ const ClinicProfile = () => {
         toast.success('Cover photo updated!');
       }
     } catch (error) {
-      console.error('Upload error:', error);
+      logger.error('Upload error:', error);
       toast.error('Failed to upload image');
     } finally {
       setUploading(false);
