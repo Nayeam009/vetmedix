@@ -1,137 +1,135 @@
 
 
-# Upload Integrity Report -- Vetmedix
+# Form Health Report -- Vetmedix
 
-## 1. BROKEN FLOWS
+## 1. VALIDATION GAPS (Forms allowing empty or bad data)
 
-### BRK-1: Video Size Limit Mismatch in Social Feed (Medium)
-**File:** `src/components/social/CreatePostCard.tsx` (lines 34, 85)
+### VAL-1: Auth Page Uses Manual Zod Parsing Instead of zodResolver (Low)
+**File:** `src/pages/AuthPage.tsx`
 
-The code defines `MAX_VIDEO_SIZE = 50 * 1024 * 1024` (50MB) but the error message on line 85 says "exceeds 20MB limit". Users are shown a misleading error. The actual check allows up to 50MB but the toast says 20MB.
+The auth form uses `useState` for every field and manually calls `loginSchema.parse()` / `signupSchema.parse()` inside a `validateForm()` function. While this works, it does not use `react-hook-form` + `zodResolver` -- the standard pattern recommended for all forms. The validation is correct and catches invalid emails / weak passwords before the API call. The submit button correctly disables and shows a Loader2 spinner during submission.
 
-**Fix:** Align the error message with the constant, or lower the constant to match the intended limit.
-
----
-
-### BRK-2: EditPetPage Has No File Validation (High)
-**File:** `src/pages/EditPetPage.tsx` (lines 112-126)
-
-Both `handleAvatarChange` and `handleCoverChange` accept files with **zero validation** -- no file type check (`file.type.startsWith('image/')`) and no file size check. A user could select a 20MB `.exe` file as a pet avatar. The file would be uploaded raw without compression validation.
-
-Compare this to `CreatePetPage.tsx` which correctly enforces a 5MB limit on avatar uploads.
-
-**Fix:** Add `file.type.startsWith('image/')` and size limit checks mirroring `CreatePetPage`.
+**Verdict:** Functionally correct. No immediate fix needed. A refactor to `react-hook-form` would standardize it but is low priority.
 
 ---
 
-### BRK-3: DoctorVerificationPage Has No File Type Validation (High)
-**File:** `src/pages/doctor/DoctorVerificationPage.tsx` (lines 57-66)
+### VAL-2: Contact Form Has No Zod Validation (Medium)
+**File:** `src/pages/ContactPage.tsx` (lines 31-37)
 
-The `handleFileChange` function only checks size (5MB limit) but does NOT validate file type. Any file type (`.exe`, `.js`, `.bat`) can be uploaded to the `doctor-documents` bucket as a "BVC certificate". The file input does not even specify an `accept` attribute in the HTML.
+The contact form validates with basic `if (!formData.name || !formData.email || !formData.message)` -- no Zod schema, no max-length enforcement in JavaScript (only `maxLength` attribute on some inputs, but `name` and `email` fields lack it), no email format validation beyond `type="email"`.
 
-Compare this to `ClinicVerificationPage.tsx` which correctly limits to `.pdf,.jpg,.jpeg,.png,.webp` and validates `file.type` against an allowlist.
-
-**Fix:** Add `accept=".pdf,.jpg,.jpeg,.png,.webp"` to the input and validate `file.type` against an allowlist.
+**Fix:** Create a `contactSchema` in `src/lib/validations.ts` and validate with `safeParse()` before submission. Add `maxLength` attributes to name (100) and email (255) inputs.
 
 ---
 
-### BRK-4: StoriesBar Allows 50MB Uploads Without Compression (Medium)
-**File:** `src/components/social/StoriesBar.tsx` (lines 48-49)
+### VAL-3: AddDoctorWizard Has No Zod Validation (Medium)
+**File:** `src/components/clinic/AddDoctorWizard.tsx`
 
-Story uploads allow files up to 50MB with no compression applied. The `createStory` function is called directly with the raw file. For images, this wastes bandwidth and storage. The main post composer compresses images but stories do not.
+The wizard only checks `formData.name.trim().length >= 2` for step 0. There is no Zod schema applied. Fields like email, phone, experience_years, and consultation_fee have no format or range validation. A clinic owner could enter "abc" as an email or "-5" as experience years.
 
-**Fix:** Apply `compressImage(file, 'story')` before upload for image stories.
-
----
-
-## 2. SECURITY GAPS
-
-### SEC-1: `doctor-documents` Bucket Returns `publicUrl` for Private Bucket (Critical)
-**File:** `src/pages/doctor/DoctorVerificationPage.tsx` (lines 99-103)
-
-The `doctor-documents` bucket is configured as **private** (`Is Public: No`), but the code calls `getPublicUrl()` which generates a URL that will return a 400/403 error for unauthenticated users. This is technically secure (the file is not actually accessible), but the stored URL in the database is a dead link. Admins reviewing verification documents will see broken images.
-
-The correct approach for private buckets is to use `createSignedUrl()` at read-time.
-
-**Fix:** Store only the storage path (not the full public URL) and generate signed URLs when displaying documents on the admin panel.
+**Fix:** Create a `doctorFormSchema` in `src/lib/validations.ts` and validate before final submission (step 3 "Add Doctor" click).
 
 ---
 
-### SEC-2: `clinic-documents` Same Issue as SEC-1 (Critical)
-**File:** `src/pages/clinic/ClinicVerificationPage.tsx` (lines 97-101)
+### VAL-4: BookAppointmentWizard Has No Zod Validation (Low-Medium)
+**File:** `src/components/booking/BookAppointmentWizard.tsx`
 
-Same pattern -- `getPublicUrl()` is called on a private bucket (`clinic-documents`). The BVC certificate and trade license URLs stored in the `clinics` table are non-functional links.
+The wizard uses manual `canProceed()` checks per step. An `appointmentSchema` already exists in `src/lib/validations.ts` but is not imported or used here. The wizard duplicates the validation logic manually.
 
-**Fix:** Same as SEC-1 -- use signed URLs at read-time.
-
----
-
-### SEC-3: `accept="image/*"` Does Not Block Non-Image Files (Medium)
-**Files:** `ProfileHeader.tsx`, `CreatePetPage.tsx`, `EditPetPage.tsx`, `CreatePostCard.tsx`
-
-All image uploaders use `accept="image/*"` on the HTML `<input>` element. This provides a UI hint to the file picker but does NOT prevent a user from selecting "All Files" and choosing a `.js` or `.exe` file. Only `ProfileHeader.tsx` and `CreatePostCard.tsx` additionally validate `file.type.startsWith('image/')` in JavaScript.
-
-`EditPetPage.tsx` does **not** validate file type in JavaScript, so a non-image file would pass through to the upload.
-
-**Fix:** Ensure all upload handlers validate `file.type` in JavaScript, not just via the `accept` attribute.
+**Fix:** Import and use `appointmentSchema.safeParse()` before the final `handleSubmit`.
 
 ---
 
-## 3. STORAGE HYGIENE
+### VAL-5: Product Review Form Has No Max-Length Validation in JS (Low)
+**File:** `src/components/ProductReviewForm.tsx` (line 91)
 
-### HYG-1: Profile Avatar/Cover Updates Create Orphaned Files (High)
-**File:** `src/components/profile/ProfileHeader.tsx` (lines 86-97, 139-148)
+The comment textarea has `maxLength={500}` as an HTML attribute but no Zod schema. The `reviewSchema` exists in `src/lib/validations.ts` but is not imported or used.
 
-When a user updates their avatar or cover photo, a new file is uploaded with a timestamped name (e.g., `user-id/avatar-1234567.webp`), but the **old file is never deleted** from the `avatars` bucket. Over time, each user accumulates orphaned files.
-
-**Fix:** Before uploading a new avatar/cover, call `removeStorageFiles([oldUrl], 'avatars')` to clean up the previous file.
+**Fix:** Import `reviewSchema` and validate before submission.
 
 ---
 
-### HYG-2: Pet Avatar/Cover Updates Create Orphaned Files (High)
-**File:** `src/pages/EditPetPage.tsx` (lines 143-165, 168-190)
+## 2. UX FAILURES (Buttons not disabling, missing feedback)
 
-Same pattern as HYG-1. When editing a pet profile, new avatar and cover files are uploaded but old ones are not deleted from `pet-media`.
+### UX-1: Auth Error Messages Are Generic (Medium)
+**File:** `src/pages/AuthPage.tsx` (lines 316-323)
 
-Note: The `handleDelete` function at line 221 correctly cleans up all files when the pet is deleted. The issue is only with updates.
+When sign-up fails with "User already registered", the error is caught generically and displayed as whatever Supabase returns. The toast shows `error.message` directly, which may be technical (e.g., "User already registered"). While functional, a friendlier mapping (like the one in `ForgotPasswordPage.tsx`) would improve UX.
 
-**Fix:** Before uploading new avatar/cover, delete the old file using `removeStorageFiles([pet.avatar_url], 'pet-media')`.
-
----
-
-### HYG-3: Doctor Verification Document Re-uploads Orphan Previous Files (Medium)
-**File:** `src/pages/doctor/DoctorVerificationPage.tsx` (line 91)
-
-The `upsert: true` flag means the same path is overwritten (good -- since the path is always `{userId}/bvc_certificate.{ext}`). However, if the file extension changes (e.g., from `.pdf` to `.jpg`), the old file with the previous extension remains orphaned.
-
-**Fix:** Use a fixed filename without extension in the path, or delete the old file first.
+**Fix:** Add a `friendlyMessages` map similar to `ForgotPasswordPage.tsx` for common auth errors like "User already registered" and "Invalid login credentials".
 
 ---
 
-### HYG-4: Post Deletion Cleans Up Storage Correctly (Good)
-**File:** `src/components/social/PostCard.tsx` (lines 61-64)
+### UX-2: Checkout Phone Input Missing `type="tel"` (Low)
+**File:** `src/pages/CheckoutPage.tsx` (line 486-494)
 
-Post deletion correctly calls `removeStorageFiles(post.media_urls)` before deleting the database row. This is the correct pattern and should be replicated in the areas identified above.
+The phone input field does not have `type="tel"`. It uses default `type` (text). On mobile, this means the numeric keypad is not triggered automatically.
 
----
-
-## 4. MISSING FEATURES
-
-### MISS-1: No Optimistic Preview for Profile Avatar Upload
-**File:** `src/components/profile/ProfileHeader.tsx`
-
-Unlike `CreatePetPage.tsx` which shows an instant local preview via `URL.createObjectURL()`, the profile avatar upload shows only a spinner. The avatar visually disappears during upload and reappears when complete.
-
-**Fix:** Set a local preview URL immediately on file selection, then replace with the server URL after upload.
+**Fix:** Add `type="tel"` to the phone input.
 
 ---
 
-### MISS-2: No PDF-Specific Download Feature for Products
-**Architecture Gap**
+### UX-3: Delete Product Has No Typed Confirmation (Low)
+**File:** `src/pages/admin/AdminProducts.tsx` (lines 249-263)
 
-There is no "Digital Product" or "Manual/Guide" upload feature for products. The `products` table has no column for downloadable files. The PDF import system (`parse-product-pdf`) is an admin tool for bulk product creation, not a customer-facing download.
+Product deletion uses a simple "Delete" button in a confirmation dialog. There is no requirement to type "DELETE" or the product name. While acceptable for products, this should be noted. Clinic deletion in the admin panel should be checked for similar behavior.
 
-This feature does not exist yet and would need to be designed from scratch.
+**Verdict:** Acceptable for products (non-destructive in the sense that products can be re-added). For clinics or user accounts, a typed confirmation would be advisable. No immediate fix needed for products.
+
+---
+
+### UX-4: Checkout Form Retains Data on Payment Failure (Good)
+**File:** `src/pages/CheckoutPage.tsx` (lines 295-303)
+
+When the order fails (catch block), the form data is NOT cleared -- only `setLoading(false)` is called. The user's shipping details, coupon, and payment method are all preserved. This is correct behavior.
+
+**Verdict:** No fix needed. Good UX.
+
+---
+
+## 3. LOGIC BUGS (Edit forms, race conditions)
+
+### BUG-1: Appointment Wizard Does Not Re-Validate Slot Availability at Submit Time (Medium)
+**File:** `src/components/booking/BookAppointmentWizard.tsx` (lines 215-217)
+
+The wizard fetches booked slots when the date/doctor changes (line 79-96), filtering them from the display. However, when the user clicks "Confirm Booking" on the final step, there is no re-check of slot availability. If another user books the same slot between the time this user selected it and clicked confirm, a race condition occurs.
+
+The actual booking goes through `book_appointment_atomic()` which has a unique index that rejects duplicates with a clear error message ("This time slot is already booked"). So the race condition is handled at the DB level, but the error surfaces as a generic toast rather than a step-back to the date/time selector.
+
+**Fix:** In the `onSubmit` callback (parent component), catch the "already booked" error and show a specific toast prompting the user to select a different time, rather than a generic failure.
+
+---
+
+### BUG-2: Product Edit Form Pre-fills Correctly (Good)
+**File:** `src/pages/admin/AdminProducts.tsx` (lines 309-327)
+
+The `openEditDialog` function correctly maps all product fields (including category, is_active, is_featured, discount, compare_price, sku) to the form state. The Select component for category uses `value={formData.category}` which correctly pre-fills.
+
+**Verdict:** No bug. Pre-fill works correctly including Select/Dropdown components.
+
+---
+
+### BUG-3: WriteReviewDialog Initial State Bug on Re-Open (Low)
+**File:** `src/components/clinic/WriteReviewDialog.tsx` (lines 41-43)
+
+When the dialog is opened with an existing review for editing, `useState(existingReview?.rating || 0)` is used. However, `useState` only uses the initial value on first render. If the user opens the dialog, closes it, and the `existingReview` prop changes (e.g., they edited it elsewhere), the state won't update. This is mitigated because the component is re-mounted when `open` changes in most cases.
+
+**Verdict:** Minor. The dialog likely unmounts on close, so the initial state is recalculated. No immediate fix needed but worth noting.
+
+---
+
+## 4. MOBILE INPUT TYPE AUDIT
+
+| Form | Field | Current `type` | Correct `type` | Status |
+|---|---|---|---|---|
+| Auth (Login/Signup) | Email | `email` | `email` | OK |
+| Auth (Login/Signup) | Password | `password` | `password` | OK |
+| Checkout | Phone | (none/text) | `tel` | **NEEDS FIX** |
+| Checkout | Full Name | (none/text) | `text` | OK |
+| AddDoctorWizard | Phone | `tel` | `tel` | OK |
+| AddDoctorWizard | Email | `email` | `email` | OK |
+| Contact | Email | `email` | `email` | OK |
+| ForgotPassword | Email | `email` | `email` | OK |
 
 ---
 
@@ -139,26 +137,23 @@ This feature does not exist yet and would need to be designed from scratch.
 
 | ID | Severity | Category | Issue |
 |---|---|---|---|
-| SEC-1 | Critical | Security | `doctor-documents` stores dead `publicUrl` for private bucket |
-| SEC-2 | Critical | Security | `clinic-documents` stores dead `publicUrl` for private bucket |
-| BRK-2 | High | Broken Flow | `EditPetPage` has zero file validation |
-| BRK-3 | High | Broken Flow | `DoctorVerificationPage` has no file type validation |
-| HYG-1 | High | Storage Hygiene | Profile avatar/cover updates orphan old files |
-| HYG-2 | High | Storage Hygiene | Pet avatar/cover updates orphan old files |
-| BRK-1 | Medium | Broken Flow | Video size limit error message mismatch |
-| BRK-4 | Medium | Broken Flow | Stories skip image compression |
-| SEC-3 | Medium | Security | `accept="image/*"` not enforced in JS on some uploaders |
-| HYG-3 | Medium | Storage Hygiene | Doctor verification re-upload may orphan files |
-| MISS-1 | Low | UX | No optimistic preview for profile avatar |
-| MISS-2 | N/A | Feature Gap | No digital product download feature exists |
+| VAL-2 | Medium | Validation | Contact form has no Zod validation |
+| VAL-3 | Medium | Validation | AddDoctorWizard has no Zod validation |
+| UX-1 | Medium | UX | Auth error messages are generic |
+| BUG-1 | Medium | Logic | Appointment booking race condition error handling |
+| VAL-4 | Low-Medium | Validation | BookAppointmentWizard ignores existing appointmentSchema |
+| VAL-5 | Low | Validation | ProductReviewForm ignores existing reviewSchema |
+| UX-2 | Low | UX/Mobile | Checkout phone missing type="tel" |
+| VAL-1 | Low | Code Quality | Auth form uses manual parsing instead of zodResolver |
+| UX-3 | Low | UX | Product delete has no typed confirmation |
 
 ## RECOMMENDED FIX PRIORITY
 
-1. **SEC-1 + SEC-2** -- Switch private bucket URL storage to path-only, generate signed URLs at read-time (prevents broken admin review screens)
-2. **BRK-2 + BRK-3 + SEC-3** -- Add file type and size validation to all upload handlers
-3. **HYG-1 + HYG-2** -- Add old file cleanup before new uploads (use existing `removeStorageFiles` utility)
-4. **BRK-1 + BRK-4** -- Fix video error message and add story image compression
-5. **MISS-1** -- Add optimistic preview for profile avatar
+1. **VAL-2 + VAL-3** -- Add Zod schemas and validation to Contact form and AddDoctorWizard (prevents bad data entry)
+2. **UX-1** -- Add friendly error message mapping to AuthPage for common auth errors
+3. **BUG-1** -- Improve appointment booking error handling for race condition ("slot already booked" should prompt re-selection)
+4. **VAL-4 + VAL-5** -- Wire existing Zod schemas (appointmentSchema, reviewSchema) into their respective forms
+5. **UX-2** -- Add `type="tel"` to checkout phone input
 
-No code changes will be made until approval is received.
+**Total: 5 files to modify, 1 new schema to add to validations.ts. No database changes. No new dependencies.**
 
