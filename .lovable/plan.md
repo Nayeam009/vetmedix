@@ -1,79 +1,43 @@
 
 
-# Trash System for Orders and Incomplete Orders
+# Polish Coupons Page Stat Cards to Match Platform Design
 
-## Overview
-Add a soft-delete "Trash" system to both the **Orders** and **Incomplete Orders** pages. Admins can move orders to trash, view trashed items, and permanently delete them. The Orders page card design will also be improved to match the Incomplete Orders style.
+## Problem
+The Coupons page stat cards use a custom layout that doesn't match the unified design pattern used across Orders, Products, and other admin pages. The text and numbers are hard to read compared to those other pages.
 
-## Database Changes
+## What Changes
 
-### 1. Add `trashed_at` column to both tables
-- `orders` table: Add nullable `trashed_at` timestamp column
-- `incomplete_orders` table: Add nullable `trashed_at` timestamp column
-- When `trashed_at` is set, the order is "in trash". When null, it's active.
+### Redesign Coupons Stats Bar
+**File**: `src/pages/admin/AdminCoupons.tsx`
 
-## Code Changes
+Replace the current inline stats section (lines ~175-196) with the same button-based card pattern used by `OrderStatsBar` and `ProductStatsBar`:
 
-### 2. Update `useIncompleteOrders.ts`
-- Change `deleteOrder` to soft-delete (set `trashed_at = now()`) instead of hard-deleting
-- Add `permanentlyDelete` mutation for trash
-- Add `restoreOrder` mutation (set `trashed_at = null`)
-- Add a `trashed` stat count
-- Filter active vs trashed orders
+**Current (hard to read)**:
+- Icon and text stacked vertically inside a flex container
+- Different sizing and spacing from other pages
 
-### 3. Update `AdminIncompleteOrders.tsx`
-- Add a "Trash" stat card alongside existing stats (Incomplete, Recovered, etc.)
-- Clicking the Trash card toggles showing trashed items
-- Trashed view shows "Restore" and "Delete Forever" buttons
-- Active view shows "Move to Trash" (existing trash icon behavior)
-- Add confirmation dialog for permanent deletion
+**New (matching platform standard)**:
+- Horizontal scrollable row of `button` cards
+- Each card: `[icon circle] [bold number + label below]`
+- Same classes: `rounded-xl sm:rounded-2xl`, `px-3 py-2.5 sm:px-4 sm:py-3`, `min-w-[100px] sm:min-w-[120px]`
+- Same font: `text-base sm:text-lg lg:text-xl font-display font-bold`
+- Same label: `text-[10px] sm:text-xs text-muted-foreground`
+- Same icon container: `h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl`
+- Colored number values matching each stat's theme (primary for Total, emerald for Active, red for Expired, amber for Used Up)
+- Active state with `ring-2` highlight when filtering
 
-### 4. Update `useAdmin.ts` / `useAdminOrders`
-- Filter out trashed orders from default view (`trashed_at IS NULL`)
-- Add `trashOrder` mutation (set `trashed_at = now()`)
-- Add `permanentlyDeleteOrder` mutation
-- Add `restoreOrder` mutation
-- Add trashed count to stats
+### Color Mapping
+| Stat | Icon | Number Color | Icon BG Gradient |
+|------|------|-------------|-----------------|
+| Total | Ticket | text-foreground | from-primary/10 to-accent/10 |
+| Active | ToggleRight | text-emerald-700 | from-emerald-500/10 to-green-500/10 |
+| Expired | ToggleLeft | text-red-700 | from-red-500/10 to-rose-500/10 |
+| Used Up | Check | text-amber-700 | from-amber-500/10 to-orange-500/10 |
 
-### 5. Update `AdminOrders.tsx`
-- Add a "Trash" stat card in the OrderStatsBar area
-- Add "Move to Trash" option in the dropdown menu for each order
-- When trash filter is active, show trashed orders with "Restore" and "Delete Forever" actions
-- Add confirmation dialog for permanent deletion
-- **Improve mobile card design**: Match the clean card layout from Incomplete Orders (structured rows with icons, better spacing, touch-friendly targets)
+## Technical Details
 
-### 6. Update `OrderStatsBar.tsx`
-- Add a "Trashed" stat card with trash icon to the stats bar
+Replace the stats `div` block with a standardized scrollable row using the exact same class pattern from `ProductStatsBar.tsx`. No new components needed -- just align the existing inline JSX to the proven pattern.
 
-## UI/UX Details
-
-### Trash Card Design (both pages)
-- Icon: Trash2 icon with red/muted color scheme
-- Shows count of trashed items
-- Acts as a toggle filter (like other stat cards)
-- Active state: `ring-2 ring-primary`
-
-### Trashed Items View
-- Each trashed item shows a muted/faded appearance
-- Two action buttons per item:
-  - "Restore" (undo icon, outline style)
-  - "Delete Forever" (trash icon, destructive style)
-- Permanent delete requires confirmation dialog
-
-### Orders Page Mobile Card Improvements
-- Use structured rows matching Incomplete Orders layout
-- Row 1: Order ID + Status badge
-- Row 2: Customer name with icon + Total amount
-- Row 3: Date + Items count + Payment badges
-- Row 4: Tracking info (if available)
-- Row 5: Action buttons with proper touch targets (h-11, rounded-xl)
-- Add trash button alongside existing actions
-
-## Files to Edit
-1. **Database migration** - Add `trashed_at` to `orders` and `incomplete_orders`
-2. `src/hooks/useIncompleteOrders.ts` - Soft delete, restore, permanent delete
-3. `src/hooks/useAdmin.ts` - Add trash/restore/delete mutations for orders
-4. `src/pages/admin/AdminIncompleteOrders.tsx` - Trash card, trash view, permanent delete dialog
-5. `src/pages/admin/AdminOrders.tsx` - Trash card, trash actions, improved mobile cards
-6. `src/components/admin/OrderStatsBar.tsx` - Add trashed stat
+### File to Edit
+1. `src/pages/admin/AdminCoupons.tsx` - Stats bar section only
 
