@@ -1,173 +1,172 @@
 
 
-# CMS Implementation Plan for Vetmedix
+# Segmented CMS Dashboard for Vetmedix Admin Panel
 
-## What This Adds
+## Overview
 
-A full Content Management System integrated into the admin panel, allowing you to create and publish articles like Health Tips, Vet Care Guides, Pet Announcements, and News -- visible to all visitors on a new public Blog/Resources page.
-
----
-
-## Phase 1: Database Setup
-
-### Table: `cms_articles`
-
-| Column | Type | Purpose |
-|--------|------|---------|
-| id | UUID (PK) | Unique identifier |
-| title | TEXT NOT NULL | Article title |
-| slug | TEXT UNIQUE NOT NULL | URL path (e.g. `/blog/how-to-bathe-your-cat`) |
-| content | TEXT | HTML body content |
-| excerpt | TEXT | Short summary for cards and SEO |
-| featured_image | TEXT | URL from storage bucket |
-| status | TEXT DEFAULT 'draft' | 'draft', 'published', 'archived' |
-| author_id | UUID NOT NULL | References auth.users |
-| category | TEXT NOT NULL | e.g. 'health-tips', 'vet-care', 'announcements', 'news' |
-| tags | TEXT[] | Searchable tag array |
-| published_at | TIMESTAMPTZ | Auto-set when status becomes 'published' |
-| created_at / updated_at | TIMESTAMPTZ | Timestamps with auto-update trigger |
-
-### Table: `cms_categories`
-
-| Column | Type | Purpose |
-|--------|------|---------|
-| id | UUID (PK) | Unique identifier |
-| name | TEXT NOT NULL | Display name |
-| slug | TEXT UNIQUE NOT NULL | URL-friendly key |
-| description | TEXT | Optional |
-| is_active | BOOLEAN DEFAULT true | Soft-disable |
-
-### Storage
-- New public bucket: `cms-media` for article images
-- RLS: Anyone can read; only admins can upload/delete
-
-### Security (RLS)
-- **SELECT on cms_articles**: Anyone can read rows where `status = 'published'`; admins can read all
-- **INSERT/UPDATE/DELETE on cms_articles**: Only users with `admin` role via `has_role(auth.uid(), 'admin')`
-- **SELECT on cms_categories**: Anyone can read active categories
-- **INSERT/UPDATE/DELETE on cms_categories**: Admin only
-
-### Realtime
-- Enable realtime on `cms_articles` for live admin dashboard updates
-
-### Trigger
-- Reuse existing `update_updated_at_column()` trigger on cms_articles
+Transform the existing `/admin/cms` page from a simple article list into a 3-tab CMS dashboard that provides unified content management across Social, E-commerce, and Clinical Operations -- while keeping the existing dedicated pages (`/admin/social`, `/admin/products`, `/admin/doctors`) intact as deep-dive views.
 
 ---
 
-## Phase 2: Data Layer
+## Architecture
 
-### New Hook: `src/hooks/useCMS.ts`
+The CMS page becomes the **command center** with summary views and quick actions. Each tab lazy-loads its content independently. The existing full pages remain accessible from the sidebar for detailed management.
 
-Wraps TanStack Query for all CMS operations:
+### File Structure
 
-- `useCMSArticles(filters)` -- Paginated list with status/category/search filters (admin sees all, public sees published only)
-- `useCMSArticle(id)` -- Single article by ID (admin editor)
-- `useCMSArticleBySlug(slug)` -- Single article by slug (public view)
-- `useCreateArticle()` -- Insert mutation
-- `useUpdateArticle()` -- Update mutation with cache invalidation
-- `useDeleteArticle()` -- Delete mutation
-- `useCMSCategories()` -- Category list
-- `useCMSStats()` -- Counts for dashboard (total, drafts, published this month)
-
-All queries use explicit column selects (no `.select('*')`), consistent with the optimization work already done.
+```text
+src/components/admin/cms/
+  ArticleStatusBadge.tsx    (existing - keep)
+  CMSSocialTab.tsx           (new - social moderation summary)
+  CMSMarketplaceTab.tsx      (new - product/order quick view)
+  CMSClinicalTab.tsx         (new - doctor/clinic verification hub)
+  CMSArticlesTab.tsx         (new - extracted from current AdminCMS)
+```
 
 ---
 
-## Phase 3: Admin Panel Integration
+## Phase 1: Restructure AdminCMS.tsx
 
-### Navigation Update
-Add "Content / CMS" to both `AdminSidebar.tsx` and `AdminMobileNav.tsx`:
-- Icon: `FileText` from lucide-react
-- Placed in the **Platform** section between "Social" and "User Management"
-- Badge showing draft article count
+### Current State
+`/admin/cms` shows only an article list with status filters.
 
-### New Page: `src/pages/admin/AdminCMS.tsx`
-- Route: `/admin/cms`
-- Uses `AdminLayout` + `RequireAdmin` (existing patterns)
-- Tab filters: All / Draft / Published / Archived
-- Search bar filtering by title
-- Data table with columns: Title, Category, Status badge, Published Date, Actions (Edit/Delete/Preview)
-- "New Article" button
-- Bulk actions: Publish selected drafts, archive selected
+### New State
+`/admin/cms` becomes a tabbed dashboard with 4 sections:
 
-### New Page: `src/pages/admin/AdminCMSEditor.tsx`
-- Route: `/admin/cms/new` and `/admin/cms/:id/edit`
-- Form fields using `react-hook-form` + `zod`:
-  - Title (auto-generates slug, editable)
-  - Category (select from cms_categories)
-  - Tags (comma-separated input)
-  - Excerpt (textarea, max 300 chars)
-  - Status (Draft/Published/Archived)
-- **Rich text**: Simple textarea with Markdown support initially. Content stored as HTML after conversion. No heavy editor dependency added -- keeps the bundle lean. A visual preview toggle shows the rendered output side-by-side.
-- **Image upload**: Drag-and-drop zone uploading to `cms-media` bucket, returns public URL inserted into the featured_image field
-- Save as Draft / Publish buttons with appropriate `published_at` logic
+| Tab | Label | Content |
+|-----|-------|---------|
+| articles | Articles | Current article list (extracted to `CMSArticlesTab`) |
+| social | Community | Social moderation summary with post/comment stats and quick delete |
+| marketplace | Marketplace | Product grid with inline stock editing, recent orders summary |
+| clinical | Clinical Ops | Doctor verification queue, clinic status toggles |
+
+### Mobile-First Navigation
+- **Desktop**: Horizontal `TabsList` at the top
+- **Mobile**: `Select` dropdown replacing tabs to save vertical space, with a sticky position so it remains accessible during scroll
 
 ---
 
-## Phase 4: Public-Facing Blog
+## Phase 2: Tab 1 -- Articles (Extract from current page)
 
-### New Page: `src/pages/BlogPage.tsx`
-- Route: `/blog` (lazy-loaded)
-- Fetches only `status = 'published'` ordered by `published_at DESC`
-- Card grid with featured image, title, excerpt, category badge, date
-- Category filter tabs
-- Responsive: 1 column mobile, 2 tablet, 3 desktop
-- Pagination (12 per page)
-
-### New Page: `src/pages/BlogArticlePage.tsx`
-- Route: `/blog/:slug` (lazy-loaded)
-- Full article view with rendered HTML content
-- Author name (from profiles), published date, category, tags
-- Related articles section (same category, max 3)
-- SEO meta tags via existing `SEO` component
-
-### Navigation Updates
-- Add "Blog" link to the main `Navbar.tsx` nav links array
-- Add "Blog" to the `Footer.tsx` quick links
+Extract the existing article list, filters, and pagination from `AdminCMS.tsx` into `CMSArticlesTab.tsx`. This is a direct extraction with no logic changes -- just component isolation for code splitting.
 
 ---
 
-## Phase 5: Dashboard and Realtime Integration
+## Phase 3: Tab 2 -- Community and Social (`CMSSocialTab.tsx`)
 
-- Add `cms_articles` subscription to `useAdminRealtimeDashboard.ts` for live cache invalidation
-- Add CMS stats to the admin dashboard (total articles, drafts pending, published this week) as a new card in the Platform Overview section
-- Update `get_admin_dashboard_stats()` RPC to include CMS counts
+### Data Sources
+- `posts` table (counts, recent flagged)
+- `comments` table (recent, deletable)
+- `pets` table (count)
+- `likes` table (count)
+
+### UI Components
+- **3 Stat Cards**: Total Posts, Active Discussions (comments today), Pet Profiles
+- **Recent Posts List**: Last 10 posts with pet avatar, content preview, like/comment counts
+- **Quick Actions**: Delete post button with confirmation dialog, "View in Social" link to `/admin/social`
+- **Mobile**: Cards stack vertically, action buttons use icon-only mode
+
+### Data Fetching
+Reuses existing query patterns from `AdminSocial.tsx` but with lighter queries (limit 10, no full joins).
 
 ---
 
-## Files to Create (8 new)
+## Phase 4: Tab 3 -- Marketplace (`CMSMarketplaceTab.tsx`)
+
+### Data Sources
+- `products` table (stock levels, active status)
+- `orders` table (recent pending)
+
+### UI Components
+- **3 Stat Cards**: Total Products, Out of Stock count, Pending Orders
+- **Product Quick List**: Table on desktop / Card layout on mobile
+  - Columns: Name, Stock (editable inline), Price, Active toggle
+  - Mobile: Hides Price column, shows compact cards with stock +/- buttons
+- **Recent Orders**: Last 5 pending orders with status badges
+- **Quick Actions**: "Manage Products" link to `/admin/products`, "View Orders" link to `/admin/orders`
+
+### Inline Stock Edit
+Same pattern as `AdminProducts.tsx` quick stock update -- direct Supabase mutation with cache invalidation.
+
+---
+
+## Phase 5: Tab 4 -- Clinical Ops (`CMSClinicalTab.tsx`)
+
+### Data Sources
+- `doctors` table (verification_status, is_blocked)
+- `clinics` table (is_verified, is_blocked)
+
+### UI Components
+- **3 Stat Cards**: Total Doctors, Pending Verifications, Blocked Accounts
+- **Verification Queue**: List of doctors with `verification_status = 'pending'`
+  - Each card shows: Name, specialization, submitted date, BVC certificate thumbnail
+  - Actions: Approve / Reject buttons (reuses mutation logic from `AdminDoctors.tsx`)
+  - Certificate image opens in a lightweight dialog (not a full lightbox dependency)
+- **Clinic Status List**: Clinics with toggle switches for `is_blocked` status
+- **Quick Actions**: "Manage Doctors" link to `/admin/doctors`, "Manage Clinics" link to `/admin/clinics`
+
+### Security
+All mutations use existing RLS policies -- admin-only write access enforced at the database level via `has_role(auth.uid(), 'admin')`.
+
+---
+
+## Phase 6: Performance Optimizations
+
+### Code Splitting
+Each tab component is wrapped in `React.lazy()` inside `AdminCMS.tsx`:
+
+```text
+const CMSArticlesTab = lazy(() => import('./cms/CMSArticlesTab'))
+const CMSSocialTab = lazy(() => import('./cms/CMSSocialTab'))
+const CMSMarketplaceTab = lazy(() => import('./cms/CMSMarketplaceTab'))
+const CMSClinicalTab = lazy(() => import('./cms/CMSClinicalTab'))
+```
+
+Only the active tab's component loads. Switching tabs triggers lazy loading with a skeleton fallback.
+
+### TanStack Query
+All queries use `staleTime: 30000` and existing cache keys to prevent refetching when switching tabs. The `keepPreviousData` equivalent (`placeholderData: keepPreviousData`) prevents layout jank.
+
+### Mobile Sheet for Edits
+When editing stock or reviewing doctor details on mobile, a `Sheet` (side drawer) is used instead of `Dialog` to provide better keyboard accessibility and vertical scroll space.
+
+---
+
+## Phase 7: Sidebar Update
+
+Update `AdminSidebar.tsx` to rename "Content / CMS" to "Content Hub" and keep the path at `/admin/cms`. No new routes needed -- the tabs are managed via component state (or URL search params for deep-linking).
+
+---
+
+## Database Changes
+
+**None required.** All tables (`posts`, `comments`, `products`, `orders`, `doctors`, `clinics`) already exist with appropriate RLS policies. No schema modifications needed.
+
+---
+
+## Files to Create (4 new)
 
 | File | Purpose |
 |------|---------|
-| `supabase/migrations/xxx_create_cms_tables.sql` | Schema, RLS, storage bucket, triggers, realtime |
-| `src/hooks/useCMS.ts` | All CMS data hooks |
-| `src/pages/admin/AdminCMS.tsx` | CMS article list page |
-| `src/pages/admin/AdminCMSEditor.tsx` | Article editor with form + image upload |
-| `src/pages/BlogPage.tsx` | Public blog listing |
-| `src/pages/BlogArticlePage.tsx` | Public article detail |
-| `src/components/admin/cms/ArticleStatusBadge.tsx` | Reusable status badge |
-| `src/components/blog/ArticleCard.tsx` | Public article card component |
+| `src/components/admin/cms/CMSArticlesTab.tsx` | Extracted article list from AdminCMS |
+| `src/components/admin/cms/CMSSocialTab.tsx` | Social moderation summary tab |
+| `src/components/admin/cms/CMSMarketplaceTab.tsx` | Product/order quick management tab |
+| `src/components/admin/cms/CMSClinicalTab.tsx` | Doctor/clinic verification tab |
 
-## Files to Edit (7 existing)
+## Files to Edit (2 existing)
 
 | File | Change |
 |------|--------|
-| `src/App.tsx` | Add 4 lazy routes: `/admin/cms`, `/admin/cms/new`, `/admin/cms/:id/edit`, `/blog`, `/blog/:slug` |
-| `src/components/admin/AdminSidebar.tsx` | Add CMS nav item to Platform section |
-| `src/components/admin/AdminMobileNav.tsx` | Add CMS nav item to Platform section |
-| `src/components/Navbar.tsx` | Add "Blog" to navLinks array |
-| `src/components/Footer.tsx` | Add "Blog" to quickLinks array |
-| `src/hooks/useAdminRealtimeDashboard.ts` | Subscribe to cms_articles changes |
-| `src/components/admin/dashboard/PlatformOverview.tsx` | Add CMS stats card |
+| `src/pages/admin/AdminCMS.tsx` | Complete rewrite to tabbed layout with lazy tabs and mobile Select |
+| `src/components/admin/AdminSidebar.tsx` | Rename label to "Content Hub" |
 
 ## Implementation Order
 
-1. Database migration (schema + RLS + storage + triggers + realtime)
-2. `useCMS` hook with all queries and mutations
-3. Admin CMS list page + sidebar/mobile nav updates
-4. Admin CMS editor page with image upload
-5. Public blog pages + navbar/footer links
-6. Dashboard integration and realtime subscription
-7. End-to-end testing
+1. Extract current article list into `CMSArticlesTab.tsx`
+2. Build `CMSSocialTab.tsx` with stats and recent posts
+3. Build `CMSMarketplaceTab.tsx` with product quick-edit and orders
+4. Build `CMSClinicalTab.tsx` with verification queue
+5. Rewrite `AdminCMS.tsx` with tab navigation and lazy loading
+6. Update sidebar label
+7. Test all tabs on mobile and desktop viewports
 
