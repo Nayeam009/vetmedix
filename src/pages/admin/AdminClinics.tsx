@@ -279,41 +279,40 @@ const AdminClinics = () => {
 
   return (
     <AdminLayout title="Clinics Management" subtitle="Manage and verify veterinary clinics">
-      {/* Stats - Scrollable Cards */}
-      <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1 mb-4 sm:mb-6">
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
         {[
-          { key: 'all', label: 'Total Clinics', value: clinicStats?.totalClinics || 0, icon: Building2, gradient: 'from-primary/10 to-accent/10', iconColor: 'text-primary', valueColor: 'text-foreground', activeRing: 'ring-primary/50' },
-          { key: 'verified', label: 'Verified', value: clinicStats?.verifiedClinics || 0, icon: CheckCircle, gradient: 'from-emerald-500/10 to-green-500/10', iconColor: 'text-emerald-600 dark:text-emerald-400', valueColor: 'text-emerald-700 dark:text-emerald-300', activeRing: 'ring-emerald-400/50' },
-          { key: 'pending', label: 'Pending', value: pendingCount, icon: Clock, gradient: 'from-amber-500/10 to-orange-500/10', iconColor: 'text-amber-600 dark:text-amber-400', valueColor: 'text-amber-700 dark:text-amber-300', activeRing: 'ring-amber-400/50' },
-          { key: 'blocked', label: 'Blocked', value: blockedCount, icon: Ban, gradient: 'from-red-500/10 to-rose-500/10', iconColor: 'text-red-600 dark:text-red-400', valueColor: 'text-red-700 dark:text-red-300', activeRing: 'ring-red-400/50' },
-        ].map(({ key, label, value, icon: Icon, gradient, iconColor, valueColor, activeRing }) => {
+          { key: 'all', label: 'Total Clinics', value: clinicStats?.totalClinics || 0, icon: Building2, iconColor: 'text-teal-600 dark:text-teal-400', iconBg: 'bg-teal-500/10', bgClass: 'bg-gradient-to-br from-teal-50 to-cyan-50/50 border-teal-100 dark:from-teal-950/30 dark:to-cyan-950/20 dark:border-teal-900/50' },
+          { key: 'verified', label: 'Verified', value: clinicStats?.verifiedClinics || 0, icon: CheckCircle, iconColor: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-500/10', bgClass: 'bg-gradient-to-br from-emerald-50 to-green-50/50 border-emerald-100 dark:from-emerald-950/30 dark:to-green-950/20 dark:border-emerald-900/50' },
+          { key: 'pending', label: 'Pending', value: pendingCount, icon: Clock, iconColor: 'text-amber-600 dark:text-amber-400', iconBg: 'bg-amber-500/10', bgClass: 'bg-gradient-to-br from-amber-50 to-orange-50/50 border-amber-100 dark:from-amber-950/30 dark:to-orange-950/20 dark:border-amber-900/50' },
+          { key: 'blocked', label: 'Blocked', value: blockedCount, icon: Ban, iconColor: 'text-red-600 dark:text-red-400', iconBg: 'bg-red-500/10', bgClass: 'bg-gradient-to-br from-red-50 to-rose-50/50 border-red-100 dark:from-red-950/30 dark:to-rose-950/20 dark:border-red-900/50' },
+        ].map(({ key, label, value, icon: Icon, iconColor, iconBg, bgClass }) => {
           const isActive = filterStatus === key;
           return (
-            <button
+            <div
               key={key}
+              role="button"
+              tabIndex={0}
               onClick={() => setFilterStatus(isActive && key !== 'all' ? 'all' : key)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setFilterStatus(isActive && key !== 'all' ? 'all' : key); }}
               className={cn(
-                'flex-shrink-0 bg-card rounded-xl sm:rounded-2xl border border-border shadow-sm hover:shadow-md transition-all',
-                'flex items-center gap-2.5 sm:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 min-w-[100px] sm:min-w-[120px]',
-                'active:scale-[0.98]',
-                isActive
-                  ? `ring-2 ${activeRing} border-transparent hover:scale-[1.02]`
-                  : 'hover:border-primary/20'
+                'rounded-xl sm:rounded-2xl p-3 sm:p-4 border shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-[0.98]',
+                bgClass,
+                isActive && 'ring-2 ring-primary/50'
               )}
             >
-              <div className={cn(
-                'h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0',
-                `bg-gradient-to-br ${gradient}`
-              )}>
-                <Icon className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', iconColor)} />
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider leading-tight mb-0.5 sm:mb-1">
+                    {label}
+                  </p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{value}</p>
+                </div>
+                <div className={cn('h-9 w-9 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0', iconBg)}>
+                  <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5', iconColor)} />
+                </div>
               </div>
-              <div className="text-left min-w-0">
-                <p className={cn('text-base sm:text-lg lg:text-xl font-display font-bold leading-none', valueColor)}>
-                  {value}
-                </p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap mt-0.5">{label}</p>
-              </div>
-            </button>
+            </div>
           );
         })}
       </div>

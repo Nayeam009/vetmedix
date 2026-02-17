@@ -213,41 +213,40 @@ const AdminCustomers = () => {
   return (
     <AdminLayout title="User Management" subtitle="Manage platform users, roles & permissions">
       {/* Stats Bar — clickable to filter */}
-      <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1 mb-4 sm:mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mb-4 sm:mb-6">
         {[
-          { key: 'all' as RoleFilter, label: 'Total Users', value: stats.total, icon: Users, gradient: 'from-primary/10 to-accent/10', iconColor: 'text-primary', valueColor: 'text-foreground', activeRing: 'ring-primary/50' },
-          { key: 'admin' as RoleFilter, label: 'Admins', value: stats.admins, icon: ShieldCheck, gradient: 'from-purple-500/10 to-violet-500/10', iconColor: 'text-purple-600 dark:text-purple-400', valueColor: 'text-purple-700 dark:text-purple-300', activeRing: 'ring-purple-400/50' },
-          { key: 'moderator' as RoleFilter, label: 'Moderators', value: stats.moderators, icon: Shield, gradient: 'from-blue-500/10 to-cyan-500/10', iconColor: 'text-blue-600 dark:text-blue-400', valueColor: 'text-blue-700 dark:text-blue-300', activeRing: 'ring-blue-400/50' },
-          { key: 'doctor' as RoleFilter, label: 'Doctors', value: stats.doctors, icon: Stethoscope, gradient: 'from-teal-500/10 to-emerald-500/10', iconColor: 'text-teal-600 dark:text-teal-400', valueColor: 'text-teal-700 dark:text-teal-300', activeRing: 'ring-teal-400/50' },
-          { key: 'clinic_owner' as RoleFilter, label: 'Clinic Owners', value: stats.clinicOwners, icon: Building2, gradient: 'from-amber-500/10 to-orange-500/10', iconColor: 'text-amber-600 dark:text-amber-400', valueColor: 'text-amber-700 dark:text-amber-300', activeRing: 'ring-amber-400/50' },
-        ].map(({ key, label, value, icon: Icon, gradient, iconColor, valueColor, activeRing }) => {
+          { key: 'all' as RoleFilter, label: 'Total Users', value: stats.total, icon: Users, iconColor: 'text-primary', iconBg: 'bg-primary/10', bgClass: 'bg-gradient-to-br from-primary/5 to-accent/5 border-primary/10 dark:from-primary/10 dark:to-accent/10 dark:border-primary/20' },
+          { key: 'admin' as RoleFilter, label: 'Admins', value: stats.admins, icon: ShieldCheck, iconColor: 'text-purple-600 dark:text-purple-400', iconBg: 'bg-purple-500/10', bgClass: 'bg-gradient-to-br from-purple-50 to-violet-50/50 border-purple-100 dark:from-purple-950/30 dark:to-violet-950/20 dark:border-purple-900/50' },
+          { key: 'moderator' as RoleFilter, label: 'Moderators', value: stats.moderators, icon: Shield, iconColor: 'text-blue-600 dark:text-blue-400', iconBg: 'bg-blue-500/10', bgClass: 'bg-gradient-to-br from-blue-50 to-cyan-50/50 border-blue-100 dark:from-blue-950/30 dark:to-cyan-950/20 dark:border-blue-900/50' },
+          { key: 'doctor' as RoleFilter, label: 'Doctors', value: stats.doctors, icon: Stethoscope, iconColor: 'text-teal-600 dark:text-teal-400', iconBg: 'bg-teal-500/10', bgClass: 'bg-gradient-to-br from-teal-50 to-cyan-50/50 border-teal-100 dark:from-teal-950/30 dark:to-cyan-950/20 dark:border-teal-900/50' },
+          { key: 'clinic_owner' as RoleFilter, label: 'Clinic Owners', value: stats.clinicOwners, icon: Building2, iconColor: 'text-amber-600 dark:text-amber-400', iconBg: 'bg-amber-500/10', bgClass: 'bg-gradient-to-br from-amber-50 to-orange-50/50 border-amber-100 dark:from-amber-950/30 dark:to-orange-950/20 dark:border-amber-900/50' },
+        ].map(({ key, label, value, icon: Icon, iconColor, iconBg, bgClass }) => {
           const isActive = roleFilter === key;
           return (
-            <button
+            <div
               key={key}
+              role="button"
+              tabIndex={0}
               onClick={() => handleStatClick(key)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleStatClick(key); }}
               className={cn(
-                'flex-shrink-0 bg-card rounded-xl sm:rounded-2xl border border-border shadow-sm hover:shadow-md transition-all',
-                'flex items-center gap-2.5 sm:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 min-w-[100px] sm:min-w-[120px]',
-                'active:scale-[0.98]',
-                isActive
-                  ? `ring-2 ${activeRing} border-transparent hover:scale-[1.02]`
-                  : 'hover:border-primary/20'
+                'rounded-xl sm:rounded-2xl p-3 sm:p-4 border shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-[0.98]',
+                bgClass,
+                isActive && 'ring-2 ring-primary/50'
               )}
             >
-              <div className={cn(
-                'h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0',
-                `bg-gradient-to-br ${gradient}`
-              )}>
-                <Icon className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', iconColor)} />
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider leading-tight mb-0.5 sm:mb-1">
+                    {label}
+                  </p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{value}</p>
+                </div>
+                <div className={cn('h-9 w-9 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0', iconBg)}>
+                  <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5', iconColor)} />
+                </div>
               </div>
-              <div className="text-left min-w-0">
-                <p className={cn('text-base sm:text-lg lg:text-xl font-display font-bold leading-none', valueColor)}>
-                  {value}
-                </p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap mt-0.5">{label}</p>
-              </div>
-            </button>
+            </div>
           );
         })}
       </div>

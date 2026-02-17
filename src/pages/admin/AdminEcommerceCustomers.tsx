@@ -230,33 +230,47 @@ const BulkActionBar = ({
   </div>
 );
 
-// --- Stat Card (inline, consistent with reference images) ---
+// --- Stat Card (unified AnalyticsStatCard style) ---
 const EcomStatCard = ({
   title,
   value,
   icon,
+  iconBg,
+  bgClass,
   active,
   onClick,
-  ringColor,
 }: {
   title: string;
   value: string | number;
   icon: React.ReactNode;
+  iconBg?: string;
+  bgClass?: string;
   active?: boolean;
   onClick?: () => void;
-  ringColor?: string;
 }) => (
   <div
+    role={onClick ? 'button' : undefined}
+    tabIndex={onClick ? 0 : undefined}
     onClick={onClick}
+    onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); } : undefined}
     className={cn(
-      'bg-card border border-border rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center text-center transition-all min-h-[80px] sm:min-h-[100px]',
-      onClick && 'cursor-pointer active:scale-95 hover:shadow-md',
-      active && `ring-2 ${ringColor || 'ring-primary'}`
+      'rounded-xl sm:rounded-2xl p-3 sm:p-4 border shadow-sm hover:shadow-md transition-all',
+      bgClass || 'bg-card border-border',
+      onClick && 'cursor-pointer active:scale-[0.98]',
+      active && 'ring-2 ring-primary/50'
     )}
   >
-    <div className="mb-1.5">{icon}</div>
-    <p className="text-lg sm:text-2xl font-bold leading-tight">{value}</p>
-    <p className="text-[10px] sm:text-xs text-muted-foreground font-medium mt-0.5 leading-tight">{title}</p>
+    <div className="flex items-start justify-between gap-2">
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider leading-tight mb-0.5 sm:mb-1">
+          {title}
+        </p>
+        <p className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{value}</p>
+      </div>
+      <div className={cn('h-9 w-9 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0', iconBg || 'bg-primary/10')}>
+        {icon}
+      </div>
+    </div>
   </div>
 );
 
@@ -567,31 +581,36 @@ const AdminEcommerceCustomers = () => {
         <EcomStatCard
           title="Total Sales"
           value={formatBDT(stats.totalSales)}
-          icon={<DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />}
+          icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />}
+          iconBg="bg-emerald-500/10"
+          bgClass="bg-gradient-to-br from-emerald-50 to-green-50/50 border-emerald-100 dark:from-emerald-950/30 dark:to-green-950/20 dark:border-emerald-900/50"
           active={paymentFilter === 'all'}
           onClick={() => setPaymentFilter('all')}
-          ringColor="ring-primary"
         />
         <EcomStatCard
           title="Paid"
           value={formatBDT(stats.paid)}
-          icon={<CreditCard className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />}
+          icon={<CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />}
+          iconBg="bg-blue-500/10"
+          bgClass="bg-gradient-to-br from-blue-50 to-indigo-50/50 border-blue-100 dark:from-blue-950/30 dark:to-indigo-950/20 dark:border-blue-900/50"
           active={paymentFilter === 'paid'}
           onClick={() => setPaymentFilter('paid')}
-          ringColor="ring-emerald-500"
         />
         <EcomStatCard
           title="Pending"
           value={formatBDT(stats.pending)}
-          icon={<Clock className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />}
+          icon={<Clock className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />}
+          iconBg="bg-amber-500/10"
+          bgClass="bg-gradient-to-br from-amber-50 to-orange-50/50 border-amber-100 dark:from-amber-950/30 dark:to-orange-950/20 dark:border-amber-900/50"
           active={paymentFilter === 'unpaid'}
           onClick={() => setPaymentFilter('unpaid')}
-          ringColor="ring-amber-500"
         />
         <EcomStatCard
           title="Total Customers"
           value={stats.totalCustomers}
-          icon={<Users className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />}
+          icon={<Users className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />}
+          iconBg="bg-purple-500/10"
+          bgClass="bg-gradient-to-br from-purple-50 to-violet-50/50 border-purple-100 dark:from-purple-950/30 dark:to-violet-950/20 dark:border-purple-900/50"
         />
       </div>
 

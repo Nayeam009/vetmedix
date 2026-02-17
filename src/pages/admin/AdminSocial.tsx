@@ -56,6 +56,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface Post {
   id: string;
@@ -433,39 +434,48 @@ const AdminSocial = () => {
     comment.pet?.name.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
-  const StatCard = ({ 
+  const SocialStatCard = ({ 
     icon: Icon, 
     value, 
     label, 
-    color, 
-    bgColor, 
+    iconColor, 
+    iconBg, 
+    bgClass,
     onClick,
     active 
   }: { 
     icon: any; 
     value: number; 
     label: string; 
-    color: string; 
-    bgColor: string;
+    iconColor: string; 
+    iconBg: string;
+    bgClass: string;
     onClick: () => void;
     active: boolean;
   }) => (
-    <Card 
-      className={`col-span-1 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${active ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); }}
+      className={cn(
+        'rounded-xl sm:rounded-2xl p-3 sm:p-4 border shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-[0.98]',
+        bgClass,
+        active && 'ring-2 ring-primary/50'
+      )}
     >
-      <CardContent className="p-3 sm:p-4">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className={`p-1.5 sm:p-2 rounded-lg ${bgColor} shrink-0`}>
-            <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${color}`} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-lg sm:text-2xl font-bold truncate">{value}</p>
-            <p className="text-xs sm:text-sm text-muted-foreground truncate">{label}</p>
-          </div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider leading-tight mb-0.5 sm:mb-1">
+            {label}
+          </p>
+          <p className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{value}</p>
         </div>
-      </CardContent>
-    </Card>
+        <div className={cn('h-9 w-9 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0', iconBg)}>
+          <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5', iconColor)} />
+        </div>
+      </div>
+    </div>
   );
 
   const renderViewTitle = () => {
@@ -483,58 +493,64 @@ const AdminSocial = () => {
   return (
     <AdminLayout title="Social Media Management" subtitle="Monitor and manage pet social media content">
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
-        <StatCard
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-4 sm:mb-6">
+        <SocialStatCard
           icon={MessageSquare}
           value={socialStats?.totalPosts || 0}
           label="Total Posts"
-          color="text-primary"
-          bgColor="bg-primary/10"
+          iconColor="text-primary"
+          iconBg="bg-primary/10"
+          bgClass="bg-gradient-to-br from-primary/5 to-accent/5 border-primary/10 dark:from-primary/10 dark:to-accent/10 dark:border-primary/20"
           onClick={() => setActiveView(activeView === 'posts' ? 'overview' : 'posts')}
           active={activeView === 'posts'}
         />
-        <StatCard
+        <SocialStatCard
           icon={Calendar}
           value={socialStats?.postsToday || 0}
           label="Posts Today"
-          color="text-green-500"
-          bgColor="bg-green-500/10"
+          iconColor="text-emerald-600 dark:text-emerald-400"
+          iconBg="bg-emerald-500/10"
+          bgClass="bg-gradient-to-br from-emerald-50 to-green-50/50 border-emerald-100 dark:from-emerald-950/30 dark:to-green-950/20 dark:border-emerald-900/50"
           onClick={() => setActiveView(activeView === 'posts_today' ? 'overview' : 'posts_today')}
           active={activeView === 'posts_today'}
         />
-        <StatCard
+        <SocialStatCard
           icon={PawPrint}
           value={socialStats?.totalPets || 0}
           label="Pet Profiles"
-          color="text-blue-500"
-          bgColor="bg-blue-500/10"
+          iconColor="text-blue-600 dark:text-blue-400"
+          iconBg="bg-blue-500/10"
+          bgClass="bg-gradient-to-br from-blue-50 to-indigo-50/50 border-blue-100 dark:from-blue-950/30 dark:to-indigo-950/20 dark:border-blue-900/50"
           onClick={() => setActiveView(activeView === 'pets' ? 'overview' : 'pets')}
           active={activeView === 'pets'}
         />
-        <StatCard
+        <SocialStatCard
           icon={Users}
           value={socialStats?.petParents || 0}
           label="Pet Parents"
-          color="text-purple-500"
-          bgColor="bg-purple-500/10"
+          iconColor="text-purple-600 dark:text-purple-400"
+          iconBg="bg-purple-500/10"
+          bgClass="bg-gradient-to-br from-purple-50 to-violet-50/50 border-purple-100 dark:from-purple-950/30 dark:to-violet-950/20 dark:border-purple-900/50"
           onClick={() => setActiveView(activeView === 'parents' ? 'overview' : 'parents')}
           active={activeView === 'parents'}
         />
-        <StatCard
+        <SocialStatCard
           icon={Heart}
           value={socialStats?.totalLikes || 0}
           label="Total Likes"
-          color="text-red-500"
-          bgColor="bg-red-500/10"
+          iconColor="text-red-600 dark:text-red-400"
+          iconBg="bg-red-500/10"
+          bgClass="bg-gradient-to-br from-red-50 to-rose-50/50 border-red-100 dark:from-red-950/30 dark:to-rose-950/20 dark:border-red-900/50"
           onClick={() => setActiveView(activeView === 'likes' ? 'overview' : 'likes')}
           active={activeView === 'likes'}
         />
-        <StatCard
+        <SocialStatCard
           icon={MessageSquare}
           value={socialStats?.totalComments || 0}
           label="Comments"
-          color="text-amber-500"
-          bgColor="bg-amber-500/10"
+          iconColor="text-amber-600 dark:text-amber-400"
+          iconBg="bg-amber-500/10"
+          bgClass="bg-gradient-to-br from-amber-50 to-orange-50/50 border-amber-100 dark:from-amber-950/30 dark:to-orange-950/20 dark:border-amber-900/50"
           onClick={() => setActiveView(activeView === 'comments' ? 'overview' : 'comments')}
           active={activeView === 'comments'}
         />
