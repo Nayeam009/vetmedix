@@ -42,6 +42,7 @@ const ProductCard = memo(({ id, name, price, category, image, badge, discount, s
     e.stopPropagation();
     if (isOutOfStock) return;
     addItem({ id: id || name, name, price: finalPrice, image, category });
+    toast.success(name + ' added to cart!');
   };
 
   const handleWishlist = (e: React.MouseEvent) => {
