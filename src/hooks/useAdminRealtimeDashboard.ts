@@ -98,6 +98,17 @@ export const useAdminRealtimeDashboard = (isAdmin: boolean) => {
         queryClient.invalidateQueries({ queryKey: ['admin-appointments'] });
         invalidateAll();
       })
+      // Delivery zones
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_zones' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-delivery-zones'] });
+        invalidateAll();
+      })
+      // Clinic reviews
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clinic_reviews' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['clinic-reviews'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-clinics'] });
+        invalidateAll();
+      })
       .subscribe();
 
     return () => {

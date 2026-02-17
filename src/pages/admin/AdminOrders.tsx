@@ -303,6 +303,8 @@ const AdminOrders = () => {
       if (error) throw error;
       toast({ title: 'Moved to trash' });
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] });
       setTrashDialog(null);
     } catch {
       toast({ title: 'Error', description: 'Failed to move to trash', variant: 'destructive' });
@@ -315,6 +317,8 @@ const AdminOrders = () => {
       if (error) throw error;
       toast({ title: 'Restored from trash' });
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] });
     } catch {
       toast({ title: 'Error', description: 'Failed to restore', variant: 'destructive' });
     }
@@ -326,6 +330,8 @@ const AdminOrders = () => {
       if (error) throw error;
       toast({ title: 'Permanently deleted' });
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] });
       setPermanentDeleteDialog(null);
     } catch {
       toast({ title: 'Error', description: 'Failed to delete', variant: 'destructive' });

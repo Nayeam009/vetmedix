@@ -19,6 +19,7 @@ import {
   MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { prefetchRoute } from '@/lib/imageUtils';
 import Logo from '@/components/Logo';
 import { Badge } from '@/components/ui/badge';
 import { SheetClose } from '@/components/ui/sheet';
@@ -177,6 +178,8 @@ export const AdminMobileNav = ({ pendingOrders = 0, pendingVerifications = 0, pe
                   <SheetClose asChild key={item.path}>
                     <Link
                       to={item.path}
+                      onTouchStart={() => prefetchRoute(item.path)}
+                      onMouseEnter={() => prefetchRoute(item.path)}
                       className={cn(
                         "relative flex items-center gap-3 px-3 py-3.5 rounded-xl transition-all duration-200 active:scale-[0.98]",
                         isActive 

@@ -54,7 +54,11 @@ export const useIncompleteOrders = () => {
       const { error } = await supabase.from('incomplete_orders').update({ trashed_at: new Date().toISOString() }).eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-incomplete-orders'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-incomplete-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] });
+    },
   });
 
   // Restore from trash
@@ -63,7 +67,11 @@ export const useIncompleteOrders = () => {
       const { error } = await supabase.from('incomplete_orders').update({ trashed_at: null }).eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-incomplete-orders'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-incomplete-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] });
+    },
   });
 
   // Permanent delete
@@ -72,7 +80,11 @@ export const useIncompleteOrders = () => {
       const { error } = await supabase.from('incomplete_orders').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-incomplete-orders'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-incomplete-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] });
+    },
   });
 
   const convertMutation = useMutation({
