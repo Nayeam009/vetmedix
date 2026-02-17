@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Package, ShoppingCart, Clock, DollarSign } from 'lucide-react';
+import { Package, Truck, CalendarClock, DollarSign } from 'lucide-react';
 import { StatCard } from '@/components/admin/StatCard';
 
 interface ECommerceOverviewProps {
@@ -31,7 +31,7 @@ export const ECommerceOverview = memo(({ stats }: ECommerceOverviewProps) => (
       <StatCard
         title="Total Orders"
         value={stats?.totalOrders || 0}
-        icon={<ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />}
+        icon={<Truck className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />}
         description={`${stats?.activeOrders || 0} active · ${stats?.cancelledOrders || 0} cancelled`}
         href="/admin/orders"
         className="bg-gradient-to-br from-blue-50 to-indigo-50/50 border-blue-100 dark:from-blue-950/30 dark:to-indigo-950/20 dark:border-blue-900/50"
@@ -46,7 +46,7 @@ export const ECommerceOverview = memo(({ stats }: ECommerceOverviewProps) => (
       <StatCard
         title="Pending"
         value={stats?.pendingOrders || 0}
-        icon={<Clock className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />}
+        icon={<CalendarClock className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />}
         href="/admin/orders?status=pending"
         className="bg-gradient-to-br from-amber-50 to-orange-50/50 border-amber-100 dark:from-amber-950/30 dark:to-orange-950/20 dark:border-amber-900/50"
       />
