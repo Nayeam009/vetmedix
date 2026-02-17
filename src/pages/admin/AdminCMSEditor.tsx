@@ -33,6 +33,25 @@ type FormValues = z.infer<typeof schema>;
 const slugify = (text: string) =>
   text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
+// Simple Markdown to HTML converter
+const markdownToHtml = (md: string): string => {
+  return md
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code>$1</code>')
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:8px;" />')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/^(?!<[hubloi])(.+)$/gm, '<p>$1</p>')
+    .replace(/<p><\/p>/g, '');
+};
+
 const AdminCMSEditor = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -203,7 +222,7 @@ const AdminCMSEditor = () => {
                         {previewMode ? (
                           <Card className="min-h-[300px]">
                             <CardContent className="p-4 prose prose-sm dark:prose-invert max-w-none">
-                              <div dangerouslySetInnerHTML={{ __html: field.value || '<p class="text-muted-foreground">Nothing to preview</p>' }} />
+                              <div dangerouslySetInnerHTML={{ __html: field.value ? markdownToHtml(field.value) : '<p class="text-muted-foreground">Nothing to preview</p>' }} />
                             </CardContent>
                           </Card>
                         ) : (

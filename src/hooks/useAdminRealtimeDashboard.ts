@@ -43,6 +43,7 @@ export const useAdminRealtimeDashboard = (isAdmin: boolean) => {
         invalidateAll();
         queryClient.invalidateQueries({ queryKey: ['admin-clinics'] });
         queryClient.invalidateQueries({ queryKey: ['admin-clinic-stats'] });
+        queryClient.invalidateQueries({ queryKey: ['cms-clinics-status'] });
         if (payload.eventType === 'UPDATE' && (payload.new as any).verification_status === 'pending') {
           toast.info('🏥 New clinic verification request!', {
             action: { label: 'Review', onClick: () => navigate('/admin/clinics') },
@@ -53,6 +54,8 @@ export const useAdminRealtimeDashboard = (isAdmin: boolean) => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'doctors' }, (payload) => {
         invalidateAll();
         queryClient.invalidateQueries({ queryKey: ['admin-doctors'] });
+        queryClient.invalidateQueries({ queryKey: ['cms-clinical-stats'] });
+        queryClient.invalidateQueries({ queryKey: ['cms-pending-doctors'] });
         if (payload.eventType === 'UPDATE' && (payload.new as any).verification_status === 'pending') {
           toast.info('👨‍⚕️ New doctor verification request!', {
             action: { label: 'Review', onClick: () => navigate('/admin/doctors') },
@@ -63,6 +66,8 @@ export const useAdminRealtimeDashboard = (isAdmin: boolean) => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
         invalidateAll();
         queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+        queryClient.invalidateQueries({ queryKey: ['cms-marketplace-stats'] });
+        queryClient.invalidateQueries({ queryKey: ['cms-products-quick'] });
       })
       // Profiles (customers)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
@@ -73,6 +78,8 @@ export const useAdminRealtimeDashboard = (isAdmin: boolean) => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
         queryClient.invalidateQueries({ queryKey: ['admin-posts'] });
         queryClient.invalidateQueries({ queryKey: ['admin-social-stats'] });
+        queryClient.invalidateQueries({ queryKey: ['cms-social-stats'] });
+        queryClient.invalidateQueries({ queryKey: ['cms-recent-posts'] });
         invalidateAll();
       })
       // Contact messages
@@ -81,7 +88,7 @@ export const useAdminRealtimeDashboard = (isAdmin: boolean) => {
         invalidateAll();
         if (payload.eventType === 'INSERT') {
           toast.info('📩 New contact message!', {
-            action: { label: 'View', onClick: () => navigate('/admin/contact-messages') },
+            action: { label: 'View', onClick: () => navigate('/admin/messages') },
           });
         }
       })
