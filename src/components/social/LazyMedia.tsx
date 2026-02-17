@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, forwardRef } from 'react';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface LazyImageProps {
   src: string;
@@ -121,6 +122,8 @@ interface LazyVideoProps {
   src: string;
   className?: string;
   poster?: string;
+  /** When true, show poster + play button instead of loading video. Defaults to true on mobile. */
+  facade?: boolean;
 }
 
 /**
@@ -131,7 +134,10 @@ interface LazyVideoProps {
  * - Supports ref forwarding
  */
 export const LazyVideo = forwardRef<HTMLDivElement, LazyVideoProps>(
-  ({ src, className, poster }, ref) => {
+  ({ src, className, poster, facade: facadeProp }, ref) => {
+    const isMobile = useIsMobile();
+    const useFacade = facadeProp ?? isMobile;
+    const [facadeActive, setFacadeActive] = useState(useFacade);
     const [isInView, setIsInView] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -220,75 +226,106 @@ export const LazyVideo = forwardRef<HTMLDivElement, LazyVideoProps>(
         }}
         className={cn('relative overflow-hidden bg-muted group', className)}
       >
-        {/* Placeholder skeleton */}
-        {!isLoaded && (
-          <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-muted via-muted/80 to-muted flex items-center justify-center">
-            <div className="h-12 w-12 rounded-full bg-black/30 flex items-center justify-center">
-              <div className="w-0 h-0 border-l-[10px] border-l-white border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent ml-1" />
-            </div>
-          </div>
-        )}
-        
-        <video
-          ref={videoRef}
-          src={src}
-          poster={poster}
-          playsInline
-          loop
-          muted={isMuted}
-          preload="metadata"
-          onLoadedData={() => setIsLoaded(true)}
-          onClick={togglePlay}
-          className={cn(
-            'w-full h-full object-cover transition-opacity duration-300 cursor-pointer',
-            isLoaded ? 'opacity-100' : 'opacity-0'
-          )}
-        />
-
-        {/* Play/Pause overlay - shows on hover or when paused */}
-        {isLoaded && (
-          <div 
-            className={cn(
-              'absolute inset-0 flex items-center justify-center transition-opacity duration-200',
-              isPlaying ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
-            )}
-            onClick={togglePlay}
-          >
-            <div className="h-14 w-14 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm">
-              {isPlaying ? (
-                <div className="flex gap-1">
-                  <div className="w-1.5 h-5 bg-white rounded-sm" />
-                  <div className="w-1.5 h-5 bg-white rounded-sm" />
-                </div>
-              ) : (
-                <div className="w-0 h-0 border-l-[14px] border-l-white border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent ml-1" />
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Mute/Unmute button */}
-        {isLoaded && (
-          <button
-            onClick={toggleMute}
-            className="absolute bottom-3 right-3 h-8 w-8 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm hover:bg-black/70 transition-colors"
-          >
-            {isMuted ? (
-              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-              </svg>
+        {/* Facade mode: poster + play button, no video loaded */}
+        {facadeActive && (
+          <>
+            {poster ? (
+              <img
+                src={poster}
+                alt="Video thumbnail"
+                className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
             ) : (
-              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-              </svg>
+              <div className="absolute inset-0 bg-muted" />
             )}
-          </button>
+            <div
+              className="absolute inset-0 flex items-center justify-center cursor-pointer"
+              onClick={() => setFacadeActive(false)}
+            >
+              <div className="h-14 w-14 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm">
+                <div className="w-0 h-0 border-l-[14px] border-l-white border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent ml-1" />
+              </div>
+            </div>
+          </>
         )}
 
-        {/* Progress bar */}
-        {isLoaded && isPlaying && (
-          <VideoProgressBar videoRef={videoRef} />
+        {/* Full video mode */}
+        {!facadeActive && (
+          <>
+            {/* Placeholder skeleton */}
+            {!isLoaded && (
+              <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-muted via-muted/80 to-muted flex items-center justify-center">
+                <div className="h-12 w-12 rounded-full bg-black/30 flex items-center justify-center">
+                  <div className="w-0 h-0 border-l-[10px] border-l-white border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent ml-1" />
+                </div>
+              </div>
+            )}
+            
+            <video
+              ref={videoRef}
+              src={src}
+              poster={poster}
+              playsInline
+              loop
+              muted={isMuted}
+              autoPlay
+              preload="metadata"
+              onLoadedData={() => setIsLoaded(true)}
+              onClick={togglePlay}
+              className={cn(
+                'w-full h-full object-cover transition-opacity duration-300 cursor-pointer',
+                isLoaded ? 'opacity-100' : 'opacity-0'
+              )}
+            />
+
+            {/* Play/Pause overlay */}
+            {isLoaded && (
+              <div 
+                className={cn(
+                  'absolute inset-0 flex items-center justify-center transition-opacity duration-200',
+                  isPlaying ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
+                )}
+                onClick={togglePlay}
+              >
+                <div className="h-14 w-14 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm">
+                  {isPlaying ? (
+                    <div className="flex gap-1">
+                      <div className="w-1.5 h-5 bg-white rounded-sm" />
+                      <div className="w-1.5 h-5 bg-white rounded-sm" />
+                    </div>
+                  ) : (
+                    <div className="w-0 h-0 border-l-[14px] border-l-white border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent ml-1" />
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Mute/Unmute button */}
+            {isLoaded && (
+              <button
+                onClick={toggleMute}
+                className="absolute bottom-3 right-3 h-8 w-8 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm hover:bg-black/70 transition-colors"
+              >
+                {isMuted ? (
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  </svg>
+                )}
+              </button>
+            )}
+
+            {/* Progress bar */}
+            {isLoaded && isPlaying && (
+              <VideoProgressBar videoRef={videoRef} />
+            )}
+          </>
         )}
       </div>
     );
