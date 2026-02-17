@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, Phone, MapPin, Send, Loader2, CheckCircle } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, Loader2, CheckCircle, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,9 +12,13 @@ import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const ContactPage = () => {
   useDocumentTitle('Contact Us');
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -145,7 +149,19 @@ const ContactPage = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {submitted ? (
+                  {!user ? (
+                    <div className="text-center py-8">
+                      <LogIn className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Sign in Required</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Please sign in to send us a message. This helps us prevent spam and respond to you faster.
+                      </p>
+                      <Button onClick={() => navigate('/auth')}>
+                        <LogIn className="h-4 w-4 mr-2" />
+                        Sign In to Contact Us
+                      </Button>
+                    </div>
+                  ) : submitted ? (
                     <div className="text-center py-8">
                       <div className="w-16 h-16 bg-success-light rounded-full flex items-center justify-center mx-auto mb-4">
                         <CheckCircle className="h-8 w-8 text-success" />
