@@ -309,7 +309,7 @@ const AdminCustomers = () => {
             {/* Mobile Card View */}
             <div className="sm:hidden divide-y divide-border">
               {paginatedData.map((customer) => (
-                <div key={customer.id} className="p-3 flex items-center gap-3">
+                <div key={customer.user_id} className="p-3 flex items-center gap-3">
                   <Avatar className="h-10 w-10 flex-shrink-0">
                     {customer.avatar_url && <AvatarImage src={customer.avatar_url} alt={customer.full_name || ''} />}
                     <AvatarFallback className="bg-primary/10 text-primary">
@@ -370,7 +370,7 @@ const AdminCustomers = () => {
                 </TableHeader>
                 <TableBody>
                   {paginatedData.map((customer) => (
-                    <TableRow key={customer.id} className="hover:bg-muted/50 transition-colors">
+                    <TableRow key={customer.user_id} className="hover:bg-muted/50 transition-colors">
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10">

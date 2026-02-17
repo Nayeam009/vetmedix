@@ -107,7 +107,7 @@ export const useAdminProducts = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select('id, name, description, price, compare_price, category, product_type, image_url, stock, badge, discount, is_active, is_featured, sku, created_at')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -125,7 +125,7 @@ export const useAdminOrders = () => {
     queryFn: async () => {
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('*')
+        .select('id, user_id, items, total_amount, status, shipping_address, created_at, tracking_id, payment_method, payment_status, trashed_at, consignment_id, rejection_reason')
         .order('created_at', { ascending: false });
 
       if (ordersError) throw ordersError;
@@ -159,17 +159,25 @@ export const useAdminUsers = () => {
     queryFn: async () => {
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('user_id, full_name, phone, avatar_url, address, division, district, thana, created_at')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       // Fetch roles separately
-      const { data: roles } = await supabase.from('user_roles').select('*');
+      const { data: roles } = await supabase.from('user_roles').select('user_id, role');
       
+      // Use Map for O(1) lookups instead of O(n) filter per profile
+      const roleMap = new Map<string, typeof roles>();
+      for (const r of roles || []) {
+        const existing = roleMap.get(r.user_id) || [];
+        existing.push(r);
+        roleMap.set(r.user_id, existing);
+      }
+
       return profiles?.map(profile => ({
         ...profile,
-        user_roles: roles?.filter(r => r.user_id === profile.user_id) || []
+        user_roles: roleMap.get(profile.user_id) || []
       }));
     },
     enabled: isAdmin,
@@ -184,7 +192,7 @@ export const useAdminClinics = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clinics')
-        .select('*')
+        .select('id, name, address, phone, email, image_url, is_verified, is_open, is_blocked, verification_status, rating, owner_user_id, owner_name, created_at, services, description, blocked_reason, rejection_reason')
         .order('created_at', { ascending: false });
 
       if (error) throw error;

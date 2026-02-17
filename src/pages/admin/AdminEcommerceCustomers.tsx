@@ -19,7 +19,7 @@ import {
   Stethoscope,
   Building2,
   PawPrint,
-  Calendar,
+  
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
@@ -53,14 +53,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { format, subDays, subMonths, subYears, startOfDay, startOfWeek, startOfMonth, startOfYear, isAfter } from 'date-fns';
+import { format, isAfter } from 'date-fns';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { downloadCSV } from '@/lib/csvParser';
 import { usePagination } from '@/hooks/usePagination';
 import { cn } from '@/lib/utils';
+import { TimeFilterBar, getTimeCutoff, type TimeFilter } from '@/components/admin/TimeFilterBar';
+import { AdminStatCard } from '@/components/admin/AdminStatCard';
 
 type PaymentFilter = 'all' | 'paid' | 'unpaid';
-type TimeFilter = 'today' | 'week' | 'month' | 'year' | 'all';
 
 interface EcomCustomer {
   user_id: string;
@@ -75,39 +76,10 @@ interface EcomCustomer {
   roles: string[];
 }
 
-// --- Time Filter Component ---
-const TimeFilterBar = ({ value, onChange }: { value: TimeFilter; onChange: (v: TimeFilter) => void }) => {
-  const presets: { value: TimeFilter; label: string; short: string }[] = [
-    { value: 'today', label: 'Today', short: 'Today' },
-    { value: 'week', label: 'This Week', short: 'Week' },
-    { value: 'month', label: 'This Month', short: 'Month' },
-    { value: 'year', label: 'This Year', short: 'Year' },
-    { value: 'all', label: 'All Time', short: 'All' },
-  ];
-  return (
-    <div className="flex items-center gap-1 sm:gap-1.5">
-      <Calendar className="h-3.5 w-3.5 text-muted-foreground mr-1 hidden sm:block" />
-      {presets.map((p) => (
-        <button
-          key={p.value}
-          onClick={() => onChange(p.value)}
-          className={cn(
-            'px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-medium transition-all',
-            value === p.value
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
-          )}
-        >
-          <span className="sm:hidden">{p.short}</span>
-          <span className="hidden sm:inline">{p.label}</span>
-        </button>
-      ))}
-    </div>
-  );
-};
-
 // --- Role Badge Component (colorful with icons) ---
 const RoleBadge = ({ role }: { role: string }) => {
+
+
   const config: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
     admin: {
       label: 'Admin',
@@ -230,61 +202,7 @@ const BulkActionBar = ({
   </div>
 );
 
-// --- Stat Card (unified AnalyticsStatCard style) ---
-const EcomStatCard = ({
-  title,
-  value,
-  icon,
-  iconBg,
-  bgClass,
-  active,
-  onClick,
-}: {
-  title: string;
-  value: string | number;
-  icon: React.ReactNode;
-  iconBg?: string;
-  bgClass?: string;
-  active?: boolean;
-  onClick?: () => void;
-}) => (
-  <div
-    role={onClick ? 'button' : undefined}
-    tabIndex={onClick ? 0 : undefined}
-    onClick={onClick}
-    onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); } : undefined}
-    className={cn(
-      'rounded-xl sm:rounded-2xl p-3 sm:p-4 border shadow-sm hover:shadow-md transition-all',
-      bgClass || 'bg-card border-border',
-      onClick && 'cursor-pointer active:scale-[0.98]',
-      active && 'ring-2 ring-primary/50'
-    )}
-  >
-    <div className="flex items-start justify-between gap-2">
-      <div className="flex-1 min-w-0">
-        <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider leading-tight mb-0.5 sm:mb-1">
-          {title}
-        </p>
-        <p className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{value}</p>
-      </div>
-      <div className={cn('h-9 w-9 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0', iconBg || 'bg-primary/10')}>
-        {icon}
-      </div>
-    </div>
-  </div>
-);
-
-// --- Helper to get time cutoff ---
-const getTimeCutoff = (filter: TimeFilter): Date | null => {
-  const now = new Date();
-  switch (filter) {
-    case 'today': return startOfDay(now);
-    case 'week': return startOfWeek(now, { weekStartsOn: 0 });
-    case 'month': return startOfMonth(now);
-    case 'year': return startOfYear(now);
-    default: return null;
-  }
-};
+// EcomStatCard and getTimeCutoff replaced by shared AdminStatCard and TimeFilterBar imports
 
 const AdminEcommerceCustomers = () => {
   useDocumentTitle('E-Commerce Customers - Admin');
@@ -347,23 +265,7 @@ const AdminEcommerceCustomers = () => {
     enabled: isAdmin,
   });
 
-  // Realtime subscriptions
-  useEffect(() => {
-    if (!isAdmin) return;
-    const channel = supabase
-      .channel('ecom-customers-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['admin-ecommerce-customers'] });
-        queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
-        queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'incomplete_orders' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['admin-ecommerce-customers'] });
-        queryClient.invalidateQueries({ queryKey: ['admin-incomplete-orders'] });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [isAdmin, queryClient]);
+  // Removed duplicate realtime channel — useAdminRealtimeDashboard already handles orders & incomplete_orders
 
   // Build role map
   const roleMap = useMemo(() => {
@@ -578,37 +480,41 @@ const AdminEcommerceCustomers = () => {
 
       {/* Stats Cards - matching reference design */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
-        <EcomStatCard
-          title="Total Sales"
+        <AdminStatCard
+          label="Total Sales"
           value={formatBDT(stats.totalSales)}
-          icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />}
+          icon={DollarSign}
+          iconColor="text-emerald-600"
           iconBg="bg-emerald-500/10"
           bgClass="bg-gradient-to-br from-emerald-50 to-green-50/50 border-emerald-100 dark:from-emerald-950/30 dark:to-green-950/20 dark:border-emerald-900/50"
           active={paymentFilter === 'all'}
           onClick={() => setPaymentFilter('all')}
         />
-        <EcomStatCard
-          title="Paid"
+        <AdminStatCard
+          label="Paid"
           value={formatBDT(stats.paid)}
-          icon={<CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />}
+          icon={CreditCard}
+          iconColor="text-blue-600"
           iconBg="bg-blue-500/10"
           bgClass="bg-gradient-to-br from-blue-50 to-indigo-50/50 border-blue-100 dark:from-blue-950/30 dark:to-indigo-950/20 dark:border-blue-900/50"
           active={paymentFilter === 'paid'}
           onClick={() => setPaymentFilter('paid')}
         />
-        <EcomStatCard
-          title="Pending"
+        <AdminStatCard
+          label="Pending"
           value={formatBDT(stats.pending)}
-          icon={<Clock className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />}
+          icon={Clock}
+          iconColor="text-amber-600"
           iconBg="bg-amber-500/10"
           bgClass="bg-gradient-to-br from-amber-50 to-orange-50/50 border-amber-100 dark:from-amber-950/30 dark:to-orange-950/20 dark:border-amber-900/50"
           active={paymentFilter === 'unpaid'}
           onClick={() => setPaymentFilter('unpaid')}
         />
-        <EcomStatCard
-          title="Total Customers"
+        <AdminStatCard
+          label="Total Customers"
           value={stats.totalCustomers}
-          icon={<Users className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />}
+          icon={Users}
+          iconColor="text-purple-600"
           iconBg="bg-purple-500/10"
           bgClass="bg-gradient-to-br from-purple-50 to-violet-50/50 border-purple-100 dark:from-purple-950/30 dark:to-violet-950/20 dark:border-purple-900/50"
         />

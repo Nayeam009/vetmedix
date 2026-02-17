@@ -185,7 +185,7 @@ const ShopPage = () => {
   const { data: products = [], isLoading: loading } = useQuery({
     queryKey: ['public-products'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('products').select('*');
+      const { data, error } = await supabase.from('products').select('id, name, price, category, product_type, description, image_url, images, stock, badge, discount, created_at, is_featured, is_active, compare_price, sku');
       if (error) throw error;
       return (data || []) as Product[];
     },

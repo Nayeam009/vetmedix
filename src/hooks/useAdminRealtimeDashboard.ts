@@ -36,6 +36,7 @@ export const useAdminRealtimeDashboard = (isAdmin: boolean) => {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => {
         invalidateAll();
         queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-ecommerce-customers'] });
       })
       // Clinics
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clinics' }, (payload) => {
@@ -71,6 +72,7 @@ export const useAdminRealtimeDashboard = (isAdmin: boolean) => {
       // Posts (social)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
         queryClient.invalidateQueries({ queryKey: ['admin-posts'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-social-stats'] });
         invalidateAll();
       })
       // Contact messages
