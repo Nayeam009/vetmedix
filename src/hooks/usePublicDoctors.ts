@@ -55,7 +55,7 @@ export const usePublicDoctors = () => {
       // Fetch all doctors from the public view
       const { data: allDoctors, error: doctorsError } = await supabase
         .from('doctors_public')
-        .select('*');
+        .select('id, name, specialization, qualifications, avatar_url, bio, experience_years, consultation_fee, is_available, is_verified, created_by_clinic_id, created_at, updated_at');
 
       if (doctorsError) throw doctorsError;
 
@@ -109,7 +109,7 @@ export const usePublicDoctorById = (doctorId: string | undefined) => {
       // Get doctor basic info
       const { data: doctor, error: doctorError } = await supabase
         .from('doctors_public')
-        .select('*')
+        .select('id, name, specialization, qualifications, avatar_url, bio, experience_years, consultation_fee, is_available, is_verified, created_by_clinic_id, created_at, updated_at')
         .eq('id', doctorId)
         .single();
 
@@ -140,7 +140,7 @@ export const usePublicDoctorById = (doctorId: string | undefined) => {
       // Get schedules
       const { data: schedules, error: schedError } = await supabase
         .from('doctor_schedules')
-        .select('*')
+        .select('id, doctor_id, clinic_id, day_of_week, start_time, end_time, slot_duration_minutes, is_available, max_appointments')
         .eq('doctor_id', doctorId);
 
       if (schedError) throw schedError;

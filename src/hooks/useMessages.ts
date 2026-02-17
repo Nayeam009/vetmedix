@@ -19,7 +19,7 @@ export const useConversations = () => {
     try {
       const { data, error } = await supabase
         .from('conversations')
-        .select('*')
+        .select('id, participant_1_id, participant_2_id, last_message_at, created_at')
         .or(`participant_1_id.eq.${user.id},participant_2_id.eq.${user.id}`)
         .order('last_message_at', { ascending: false });
 
@@ -34,14 +34,14 @@ export const useConversations = () => {
         // Get other user's pets
         const { data: pets } = await supabase
           .from('pets')
-          .select('*')
+          .select('id, user_id, name, species, breed, age, avatar_url, location')
           .eq('user_id', otherUserId)
           .limit(1);
 
         // Get last message
         const { data: messages } = await supabase
           .from('messages')
-          .select('*')
+          .select('id, conversation_id, sender_id, content, media_url, media_type, is_read, created_at')
           .eq('conversation_id', conv.id)
           .order('created_at', { ascending: false })
           .limit(1);
@@ -128,7 +128,7 @@ export const useMessages = (conversationId: string) => {
     try {
       const { data, error } = await supabase
         .from('messages')
-        .select('*')
+        .select('id, conversation_id, sender_id, content, media_url, media_type, is_read, created_at')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
 
