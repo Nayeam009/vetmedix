@@ -47,7 +47,7 @@ import { toast } from 'sonner';
 import { createNotification, getAdminUserIds } from '@/lib/notifications';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAdmin } from '@/hooks/useAdmin';
-import { useAuth } from '@/contexts/AuthContext';
+import { RequireAdmin } from '@/components/admin/RequireAdmin';
 
 interface Doctor {
   id: string;
@@ -80,8 +80,7 @@ const AdminDoctors = () => {
   useDocumentTitle('Doctor Management - Admin');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, loading: authLoading } = useAuth();
-  const { isAdmin, roleLoading } = useAdmin();
+  const { isAdmin } = useAdmin();
   useAdminRealtimeDashboard(isAdmin);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -92,10 +91,6 @@ const AdminDoctors = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [blockReason, setBlockReason] = useState('');
 
-  useEffect(() => {
-    if (!authLoading && !user) navigate('/auth');
-    else if (!authLoading && !roleLoading && !isAdmin) navigate('/');
-  }, [user, authLoading, isAdmin, roleLoading, navigate]);
 
   // Fetch all doctors
   const { data: doctors, isLoading } = useQuery({
@@ -268,30 +263,8 @@ const AdminDoctors = () => {
     setIsDetailsOpen(true);
   };
 
-  if (authLoading || roleLoading) {
-    return (
-      <AdminLayout title="Doctor Management" subtitle="Review and manage doctor verifications">
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </AdminLayout>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-          <h1 className="text-xl font-bold mb-2">Access Denied</h1>
-          <p className="text-muted-foreground mb-4">You don't have permission to access this page.</p>
-          <Button onClick={() => navigate('/')}>Go Home</Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
+    <RequireAdmin>
     <AdminLayout title="Doctor Management" subtitle="Review and manage doctor verifications">
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
@@ -686,6 +659,7 @@ const AdminDoctors = () => {
         </AlertDialogContent>
       </AlertDialog>
     </AdminLayout>
+    </RequireAdmin>
   );
 };
 

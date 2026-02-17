@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
@@ -53,7 +53,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useAdmin, useAdminOrders } from '@/hooks/useAdmin';
-import { useAuth } from '@/contexts/AuthContext';
+import { RequireAdmin } from '@/components/admin/RequireAdmin';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -79,8 +79,7 @@ const AdminOrders = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user, loading: authLoading } = useAuth();
-  const { isAdmin, roleLoading } = useAdmin();
+  const { isAdmin } = useAdmin();
   useAdminRealtimeDashboard(isAdmin);
   const { data: orders, isLoading } = useAdminOrders();
   
@@ -109,13 +108,6 @@ const AdminOrders = () => {
     return activeOrders.filter(o => isAfter(new Date(o.created_at), cutoff));
   }, [activeOrders, trashedOrders, timeFilter, statusFilter]);
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    } else if (!authLoading && !roleLoading && !isAdmin) {
-      navigate('/');
-    }
-  }, [user, authLoading, isAdmin, roleLoading, navigate]);
 
   // Compute fraud analysis for all orders (memoized)
   const fraudAnalysisMap = useMemo(() => {
@@ -411,30 +403,8 @@ const AdminOrders = () => {
     toast({ title: 'Success', description: 'Orders exported to CSV' });
   };
 
-  if (authLoading || roleLoading) {
-    return (
-      <AdminLayout title="Orders" subtitle="Manage customer orders">
-        <OrderStatsBarSkeleton />
-        <OrderCardsSkeleton />
-        <OrderTableSkeleton />
-      </AdminLayout>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-          <h1 className="text-xl font-bold mb-2">Access Denied</h1>
-          <p className="text-muted-foreground mb-4">You don't have permission to access this page.</p>
-          <Button onClick={() => navigate('/')}>Go Home</Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
+    <RequireAdmin>
     <AdminLayout title="Orders" subtitle="Manage customer orders">
       {/* High-Risk Pending Alert Banner */}
       {highRiskPendingCount > 0 && (
@@ -1050,6 +1020,7 @@ const AdminOrders = () => {
         </DialogContent>
       </Dialog>
     </AdminLayout>
+    </RequireAdmin>
   );
 };
 

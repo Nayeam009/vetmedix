@@ -1823,6 +1823,10 @@ export type Database = {
       }
     }
     Functions: {
+      decrement_stock: {
+        Args: { p_product_id: string; p_quantity: number }
+        Returns: undefined
+      }
       get_admin_dashboard_stats: { Args: never; Returns: Json }
       get_doctor_id: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
@@ -1835,6 +1839,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_coupon_usage: {
+        Args: { p_coupon_id: string }
+        Returns: undefined
       }
       is_clinic_owner: {
         Args: { _clinic_id: string; _user_id: string }

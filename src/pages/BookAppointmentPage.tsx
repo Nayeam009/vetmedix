@@ -72,6 +72,32 @@ const BookAppointmentPage = () => {
         insertData.doctor_id = formData.doctorId;
       }
 
+      // C2: Check for existing appointment at same slot before inserting
+      const slotQuery = supabase
+        .from('appointments')
+        .select('id')
+        .eq('clinic_id', clinicId)
+        .eq('appointment_date', formData.date)
+        .eq('appointment_time', formData.time)
+        .not('status', 'in', '("cancelled","rejected")');
+      
+      if (formData.doctorId) {
+        slotQuery.eq('doctor_id', formData.doctorId);
+      } else {
+        slotQuery.is('doctor_id', null);
+      }
+
+      const { data: existingSlot } = await slotQuery.maybeSingle();
+      if (existingSlot) {
+        toast({
+          title: 'Slot Unavailable',
+          description: 'This time slot is already booked. Please choose a different time.',
+          variant: 'destructive'
+        });
+        setIsPending(false);
+        return;
+      }
+
       const { data: appointmentData, error } = await supabase
         .from('appointments')
         .insert([insertData])

@@ -47,6 +47,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useAdmin } from '@/hooks/useAdmin';
+import { RequireAdmin } from '@/components/admin/RequireAdmin';
 import { supabase } from '@/integrations/supabase/client';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import { useDeletePost, useDeletePet, useDeleteComment } from '@/hooks/useAdminSocialActions';
@@ -245,6 +246,7 @@ const AdminSocial = () => {
   };
 
   return (
+    <RequireAdmin>
     <AdminLayout title="Social Media Management" subtitle="Monitor and manage pet social media content">
       {/* Stats Cards - using shared AdminStatCard */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-4 sm:mb-6">
@@ -597,6 +599,7 @@ const AdminSocial = () => {
         </AlertDialogContent>
       </AlertDialog>
     </AdminLayout>
+    </RequireAdmin>
   );
 };
 

@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminLayout } from '@/components/admin/AdminLayout';
+import { RequireAdmin } from '@/components/admin/RequireAdmin';
 import { useIncompleteOrders } from '@/hooks/useIncompleteOrders';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -117,6 +118,7 @@ const AdminRecoveryAnalytics = () => {
   }
 
   return (
+    <RequireAdmin>
     <AdminLayout title="Recovery Analytics">
       <div className="p-4 sm:p-6 space-y-5">
         {/* Header */}
@@ -274,6 +276,7 @@ const AdminRecoveryAnalytics = () => {
         </div>
       </div>
     </AdminLayout>
+    </RequireAdmin>
   );
 };
 

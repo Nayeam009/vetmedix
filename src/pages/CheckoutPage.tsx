@@ -81,6 +81,15 @@ const CheckoutPage = () => {
   
   const [loading, setLoading] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
+
+  // M4: Redirect unauthenticated users immediately
+  useEffect(() => {
+    if (!user && items.length > 0) {
+      toast({ title: 'Login Required', description: 'Please login to checkout.', variant: 'destructive' });
+      navigate('/auth');
+    }
+  }, [user]);
+
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
   const [placedItems, setPlacedItems] = useState<typeof items>([]);
   const [placedTotal, setPlacedTotal] = useState(0);
@@ -270,12 +279,14 @@ const CheckoutPage = () => {
 
       if (error) throw error;
 
-      // Increment coupon usage if one was applied
+      // C1: Decrement stock atomically after successful order
+      for (const item of items) {
+        await supabase.rpc('decrement_stock', { p_product_id: item.id, p_quantity: item.quantity });
+      }
+
+      // M3: Increment coupon usage atomically (no race condition)
       if (appliedCoupon) {
-        const { data: couponData } = await supabase.from('coupons').select('used_count').eq('id', appliedCoupon.id).single();
-        if (couponData) {
-          await supabase.from('coupons').update({ used_count: (couponData.used_count || 0) + 1 }).eq('id', appliedCoupon.id);
-        }
+        await supabase.rpc('increment_coupon_usage', { p_coupon_id: appliedCoupon.id });
       }
 
       // Notify admins of new order

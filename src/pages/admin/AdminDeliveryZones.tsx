@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAdmin } from '@/hooks/useAdmin';
-import { useAuth } from '@/contexts/AuthContext';
+import { RequireAdmin } from '@/components/admin/RequireAdmin';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,8 +51,7 @@ const AdminDeliveryZones = () => {
   useDocumentTitle('Delivery Zones - Admin');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, loading: authLoading } = useAuth();
-  const { isAdmin, roleLoading } = useAdmin();
+  const { isAdmin } = useAdmin();
   const isMobile = useIsMobile();
   useAdminRealtimeDashboard(isAdmin);
 
@@ -168,24 +167,11 @@ const AdminDeliveryZones = () => {
     saveMutation.mutate(formData);
   };
 
-  if (authLoading || roleLoading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-  }
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-          <h1 className="text-xl font-bold mb-2">Access Denied</h1>
-          <Button onClick={() => navigate('/')}>Go Home</Button>
-        </div>
-      </div>
-    );
-  }
 
   const activeCount = zones.filter(z => z.is_active).length;
 
   return (
+    <RequireAdmin>
     <AdminLayout title="Delivery Zones" subtitle={`${zones.length} zones configured • ${activeCount} active`}>
       <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div className="flex items-center gap-2">
@@ -402,6 +388,7 @@ const AdminDeliveryZones = () => {
         </Card>
       )}
     </AdminLayout>
+    </RequireAdmin>
   );
 };
 

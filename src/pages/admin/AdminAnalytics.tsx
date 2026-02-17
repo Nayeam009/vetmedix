@@ -1,6 +1,5 @@
 import { useState, useMemo, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
 import {
   AlertCircle,
   TrendingUp,
@@ -32,8 +31,8 @@ import { VerificationFunnelSection } from '@/components/admin/VerificationFunnel
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAdmin } from '@/hooks/useAdmin';
+import { RequireAdmin } from '@/components/admin/RequireAdmin';
 import { useAdminAnalytics, type DateRangePreset } from '@/hooks/useAdminAnalytics';
-import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import {
@@ -76,20 +75,11 @@ CustomTooltip.displayName = 'CustomTooltip';
 const AdminAnalytics = () => {
   useDocumentTitle('Analytics - Admin');
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
-  const { isAdmin, roleLoading } = useAdmin();
+  const { isAdmin } = useAdmin();
   useAdminRealtimeDashboard(isAdmin);
   const queryClient = useQueryClient();
   const [dateRange, setDateRange] = useState<DateRangePreset>('all');
   const { data: analytics, isLoading: analyticsLoading, dataUpdatedAt } = useAdminAnalytics(dateRange);
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    } else if (!authLoading && !roleLoading && !isAdmin) {
-      navigate('/');
-    }
-  }, [user, authLoading, isAdmin, roleLoading, navigate]);
 
   const appointmentDistribution = useMemo(() => {
     if (!analytics) return [];
@@ -110,28 +100,8 @@ const AdminAnalytics = () => {
     ? `Updated ${format(new Date(dataUpdatedAt), 'h:mm a')}`
     : '';
 
-  if (authLoading || roleLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center p-4">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-          <h1 className="text-xl font-bold mb-2">Access Denied</h1>
-          <p className="text-muted-foreground mb-4">You don't have permission to access this page.</p>
-          <Button onClick={() => navigate('/')}>Go Home</Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
+    <RequireAdmin>
     <AdminLayout title="Analytics" subtitle="Track your business performance">
       {/* Header Controls: Date Filter + Export + Refresh */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 sm:mb-6">
@@ -676,6 +646,7 @@ const AdminAnalytics = () => {
         </>
       )}
     </AdminLayout>
+    </RequireAdmin>
   );
 };
 
