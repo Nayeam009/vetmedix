@@ -1,110 +1,140 @@
 
 
-# Visual Harmonization Plan -- Vetmedix Design System Alignment
+# Pre-Launch Punch List -- Gold Master Audit
 
-## Vetmedix Design Rules (Source of Truth)
+## Category 1: CLEANUP (Dead Code and Console Hygiene)
 
-Based on the most polished pages (Admin Dashboard, Clinic Dashboard, Shop, Clinics/Doctors), these are the dominant tokens:
+### CLN-1: Delete Orphaned `App.css` (Low)
+**File:** `src/App.css`
 
-| Token | Standard | Notes |
+This file contains Vite starter template styles (`.logo`, `.read-the-docs`, `.card`, `#root` with `max-width: 1280px`) that are never imported anywhere. The app uses `index.css` with Tailwind. This is dead weight.
+
+**Action:** Delete `src/App.css`.
+
+---
+
+### CLN-2: Replace Unguarded `console.error` with `logger.error` (Medium)
+**Files with bare `console.error()` leaking in production:**
+
+| File | Occurrences | Context |
 |---|---|---|
-| Card Radius | `rounded-xl sm:rounded-2xl` | Used by ClinicCard, Admin StatCard, Clinic Dashboard cards |
-| Input Radius | `rounded-lg sm:rounded-xl` | Shop search, Clinic search, Navbar search |
-| Button Radius | `rounded-xl` | Set globally via `buttonVariants` |
-| Modal/Dialog Radius | `rounded-xl` | shadcn default |
-| Card Shadow | `shadow-sm` resting, `shadow-md`/`shadow-xl` hover | Consistent across admin and clinic |
-| Page Container | `container mx-auto px-3 sm:px-4 py-4 sm:py-6` | Clinic, Doctor, Feed, Shop all use this |
-| Card Padding | `p-3 sm:p-4 lg:p-6` | Admin and Clinic stat cards |
-| Page Background | `bg-background` or `bg-muted/30` or gradient | Varies per portal |
-| Typography H1 | `text-xl sm:text-2xl lg:text-3xl font-bold` | Clinic and Doctor dashboards |
-| Stat Card Layout | Icon top-left (gradient bg, rounded-xl), value below, label bottom | Clinic Dashboard pattern (the most polished) |
-| Grid | `grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4` | Standard for stat cards |
+| `src/hooks/useClinicOwner.ts` | 10 | All `onError` callbacks in mutations |
+| `src/pages/admin/AdminDoctors.tsx` | 3 | Approve/reject/block `onError` |
+| `src/pages/ResetPasswordPage.tsx` | 1 | Password update catch |
+| `src/pages/doctor/DoctorVerificationPage.tsx` | 2 | Verification + profile creation catch |
+| `src/components/clinic/WriteReviewDialog.tsx` | 1 | Review submit catch |
+| `src/pages/ContactPage.tsx` | 1 | Contact form catch |
+| `src/pages/TrackOrderPage.tsx` | 2 | Order fetch + tracking catch |
 
-## Deviations Found
+The project already has a `logger` utility (`src/lib/logger.ts`) that silences output in production. These 20 bare `console.error` calls bypass it and leak table names, error codes, and stack traces to end users.
 
-### DEV-1: Doctor Dashboard Stat Cards -- Different Layout (Medium)
-**File:** `src/pages/doctor/DoctorDashboard.tsx` (lines 215-238)
-
-**Problem:** Doctor stat cards use a **side-by-side** layout (text left, circular icon right) while Clinic Dashboard uses a **stacked** layout (gradient icon top-left, value below). The Doctor cards also use `rounded-full` for icons instead of `rounded-xl sm:rounded-2xl`.
-
-**Clinic standard (target):**
-- Icon: top-left, `w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br`
-- Value: below icon, `text-xl sm:text-2xl lg:text-3xl font-bold`
-- Label: bottom, `text-[10px] sm:text-xs lg:text-sm text-muted-foreground`
-- Card: `hover:shadow-xl hover:-translate-y-1 border-border/50 active:scale-[0.98]`
-
-**Doctor current (deviant):**
-- Icon: right side, `h-10 w-10 sm:h-12 sm:w-12 rounded-full`
-- Value: left side next to icon, `text-xl sm:text-2xl font-bold`
-- Card: `hover:shadow-md active:scale-[0.97]` (weaker hover effect)
-
-**Fix:** Refactor Doctor Dashboard stat cards to match Clinic Dashboard stacked layout with gradient icon backgrounds.
+**Action:** In each file, add `import { logger } from '@/lib/logger'` and replace `console.error(...)` with `logger.error(...)`.
 
 ---
 
-### DEV-2: Doctor Dashboard Missing Hover Depth (Low)
-**File:** `src/pages/doctor/DoctorDashboard.tsx` (line 222)
+### CLN-3: `analytics.ts` Uses `console.log` (Low)
+**File:** `src/lib/analytics.ts` (lines 46, 210)
 
-Cards use `hover:shadow-md` instead of the standard `hover:shadow-xl hover:-translate-y-1`. Also missing `border-border/50 bg-white` classes.
+Two `console.log` calls are already guarded by `import.meta.env.DEV`, so they won't leak. However, for consistency with the `logger` pattern used everywhere else, they should use `logger.info`.
 
-**Fix:** Update Card className to match: `transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-border/50 bg-white active:scale-[0.98]`
-
----
-
-### DEV-3: Doctor Dashboard Page Header -- No Hero Section (Low)
-**File:** `src/pages/doctor/DoctorDashboard.tsx` (lines 184-208)
-
-The Doctor Dashboard uses a simple flex header (title left, buttons right) without any background card/gradient. The Clinic Dashboard wraps its header in a polished hero card: `bg-gradient-to-br from-white via-white to-primary/5 rounded-xl sm:rounded-2xl lg:rounded-3xl p-4 sm:p-5 lg:p-6 xl:p-8 shadow-lg`.
-
-**Fix:** Wrap the Doctor Dashboard welcome section in a styled hero card matching the Clinic Dashboard pattern, with avatar, name, date, verification badge, and action buttons.
+**Action:** Replace with `logger.info(...)` for pattern consistency.
 
 ---
 
-### DEV-4: BlogArticlePage Uses `rounded-lg` Instead of `rounded-xl` (Low)
-**File:** `src/pages/BlogArticlePage.tsx` (line 83)
+## Category 2: POLISH (Visual and Interaction Consistency)
 
-Featured image container uses `rounded-lg` instead of the standard `rounded-xl`.
+### POL-1: MessagesPage Missing `MobileNav` (Medium)
+**File:** `src/pages/MessagesPage.tsx`
 
-**Fix:** Change to `rounded-xl`.
+The Messages page renders `<Navbar />` and `<Footer />` but does NOT render `<MobileNav />`. On mobile, there is no bottom navigation bar, forcing users to use the browser back button. Every other page (Profile, Feed, Shop, Clinics) includes `<MobileNav />`.
+
+**Action:** Add `import MobileNav from '@/components/MobileNav'` and render `<MobileNav />` before the closing `</div>`. Also add `pb-20 md:pb-0` to the root div for bottom nav spacing.
 
 ---
 
-### DEV-5: AdminProducts Inline Buttons Use `rounded-lg` (Low)
-**File:** `src/pages/admin/AdminProducts.tsx` (lines 514-538)
+### POL-2: MessagesPage Empty State Missing CTA Button (Low)
+**File:** `src/pages/MessagesPage.tsx` (lines 113-122)
 
-Inline quick-edit buttons and stock input use `rounded-lg` instead of the global button standard `rounded-xl`. These are small inline action buttons so `rounded-lg` is acceptable at this scale, but for consistency they should use `rounded-xl`.
+The empty state shows text ("Start chatting by visiting a pet profile...") but has no actionable button. The Orders and Appointments empty states both have branded CTA buttons ("Start Shopping", "Find a Clinic").
 
-**Fix:** Change `rounded-lg` to `rounded-xl` on inline product action buttons and stock input.
+**Action:** Add a `<Button onClick={() => navigate('/explore')}>Explore Pets</Button>` to the empty state.
+
+---
+
+### POL-3: MessagesPage Missing `pb-20` for Mobile Bottom Nav (Low)
+**File:** `src/pages/MessagesPage.tsx` (line 89)
+
+The root container uses `min-h-screen bg-background` but lacks `pb-20 md:pb-0` which is the standard padding to prevent content from being hidden behind the mobile bottom nav.
+
+**Action:** Add `pb-20 md:pb-0` to root div className after adding MobileNav (part of POL-1).
+
+---
+
+## Category 3: OPTIMIZATION (Performance and Production Readiness)
+
+### OPT-1: Lazy Loading Already Complete (No Action)
+All routes in `App.tsx` are lazy-loaded via `React.lazy()`. The `manualChunks` config in `vite.config.ts` splits React, React Query, date-fns, and Supabase into separate chunks. No changes needed.
+
+### OPT-2: iOS Safe Area Already Handled (No Action)
+`MobileNav` already uses `style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}`. Cart, Checkout, and ClinicDetail sticky bars also apply this. Admin mobile nav uses `pb-[calc(env(safe-area-inset-bottom)+16px)]`. No changes needed.
+
+### OPT-3: Z-Index Stack Already Correct (No Action)
+- MobileNav: `z-50`
+- Sticky bars (Cart/Checkout): `z-40`
+- Sonner toasts: render at `z-[100]` via default positioning (`bottom-right`)
+- Dialogs: `z-50` (shadcn default)
+
+No z-index conflicts found.
+
+### OPT-4: Empty States Already Branded (No Action)
+Orders, Appointments, Clinic Doctors, Services, Admin tables -- all have icon + heading + description + CTA button empty states. Only MessagesPage is missing the CTA (covered in POL-2).
 
 ---
 
 ## Summary of Changes
 
-| File | Change | Severity |
-|---|---|---|
-| `DoctorDashboard.tsx` | Refactor stat cards to stacked layout (icon top, value below) matching Clinic Dashboard | Medium |
-| `DoctorDashboard.tsx` | Add hero card wrapper around welcome section | Low |
-| `DoctorDashboard.tsx` | Upgrade hover effects to `shadow-xl` + `translate-y` | Low |
-| `BlogArticlePage.tsx` | `rounded-lg` to `rounded-xl` on featured image | Low |
-| `AdminProducts.tsx` | `rounded-lg` to `rounded-xl` on inline buttons | Low |
+| ID | Category | Severity | File | Action |
+|---|---|---|---|---|
+| CLN-1 | Cleanup | Low | `App.css` | Delete file (dead Vite template styles) |
+| CLN-2 | Cleanup | Medium | 7 files | Replace 20 bare `console.error` with `logger.error` |
+| CLN-3 | Cleanup | Low | `analytics.ts` | Replace 2 `console.log` with `logger.info` |
+| POL-1 | Polish | Medium | `MessagesPage.tsx` | Add missing `MobileNav` component |
+| POL-2 | Polish | Low | `MessagesPage.tsx` | Add CTA button to empty state |
 
-**Total: 3 files, 5 changes. No database changes. No new dependencies.**
-
-The highest-impact change is DEV-1 (Doctor Dashboard stat cards), which will bring the Doctor portal into visual parity with the Clinic and Admin portals.
+**Total: 9 files modified, 1 file deleted. No database changes. No new dependencies.**
 
 ## Technical Details
 
-### DEV-1 Implementation (Doctor Stat Cards)
-Replace the current `statCards.map` block (lines 216-238) with the Clinic Dashboard pattern:
-- Each card gets `className={cn("cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-border/50 bg-white active:scale-[0.98]", activeTab === stat.tab && "ring-2 ring-primary shadow-xl")}`
-- `CardContent` uses `p-3 sm:p-4 lg:p-6`
-- Icon container: `w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br {colorGradient}`
-- Value/label stacked below icon
+### CLN-2 Implementation Pattern
+For each file, the change is mechanical:
 
-### DEV-3 Implementation (Doctor Hero Card)
-Wrap lines 185-208 in:
+```typescript
+// Add at top:
+import { logger } from '@/lib/logger';
+
+// Replace each:
+console.error(error);
+// With:
+logger.error(error);
 ```
-<div className="bg-gradient-to-br from-white via-white to-primary/5 rounded-xl sm:rounded-2xl lg:rounded-3xl p-4 sm:p-5 lg:p-6 xl:p-8 shadow-lg shadow-black/5 border border-border/50 mb-4 sm:mb-6 lg:mb-8 relative overflow-hidden">
+
+Files and line counts:
+- `useClinicOwner.ts`: 10 replacements (lines 163, 204, 226, 256, 279, 301, 320, 342, 387, 437)
+- `AdminDoctors.tsx`: 3 replacements (lines 142, 181, 221)
+- `ResetPasswordPage.tsx`: 1 replacement (line 49)
+- `DoctorVerificationPage.tsx`: 2 replacements (lines 134, 170)
+- `WriteReviewDialog.tsx`: 1 replacement (line 96)
+- `ContactPage.tsx`: 1 replacement (line 49)
+- `TrackOrderPage.tsx`: 2 replacements (lines 112, 163)
+
+### POL-1 Implementation (MessagesPage MobileNav)
+Add import and render MobileNav, plus bottom padding:
+
+```tsx
+// Root div:
+<div className="min-h-screen bg-background pb-20 md:pb-0">
+
+// Before closing </div>:
+<MobileNav />
 ```
-Add Doctor avatar, verification badge inline, and decorative accent circle (matching Clinic Dashboard).
 
