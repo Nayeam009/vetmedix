@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { useNavigate } from 'react-router-dom';
 import { User, Building2, Stethoscope, Loader2, Check, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -93,7 +94,7 @@ const SelectRolePage = () => {
           .eq('user_id', user.id);
 
         if (roleError) {
-          console.error('Error checking roles:', roleError);
+          logger.error('Error checking roles:', roleError);
           setError('Failed to check your account status. Please try again.');
           setCheckingRole(false);
           return;
@@ -108,7 +109,7 @@ const SelectRolePage = () => {
           setCheckingRole(false);
         }
       } catch (err) {
-        console.error('Error in role check:', err);
+        logger.error('Error in role check:', err);
         setError('An unexpected error occurred. Please try again.');
         setCheckingRole(false);
       }
@@ -164,7 +165,7 @@ const SelectRolePage = () => {
         });
 
       if (roleError) {
-        console.error('Failed to assign role:', roleError);
+        logger.error('Failed to assign role:', roleError);
         
         // Check if it's a unique constraint violation (role already exists)
         if (roleError.code === '23505') {
@@ -206,7 +207,7 @@ const SelectRolePage = () => {
           });
 
         if (clinicError) {
-          console.error('Failed to create clinic:', clinicError);
+          logger.error('Failed to create clinic:', clinicError);
           toast({
             title: 'Account created',
             description: 'However, there was an issue creating your clinic. Please set it up in your dashboard.',
@@ -228,7 +229,7 @@ const SelectRolePage = () => {
           });
 
         if (doctorError && doctorError.code !== '23505') {
-          console.error('Failed to create doctor profile:', doctorError);
+          logger.error('Failed to create doctor profile:', doctorError);
           toast({
             title: 'Account created',
             description: 'However, there was an issue creating your doctor profile. You can complete this on the verification page.',
@@ -251,7 +252,7 @@ const SelectRolePage = () => {
         redirectBasedOnRoles([selectedRole], selectedRole === 'clinic_owner');
       }
     } catch (err: unknown) {
-      console.error('Setup error:', err);
+      logger.error('Setup error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to complete setup';
       setError(errorMessage);
       toast({
@@ -263,6 +264,13 @@ const SelectRolePage = () => {
       setLoading(false);
     }
   };
+
+  // BUG-2 fix: redirect in useEffect, not during render
+  useEffect(() => {
+    if (!authLoading && !checkingRole && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, checkingRole, navigate]);
 
   if (authLoading || checkingRole) {
     return (
@@ -276,7 +284,6 @@ const SelectRolePage = () => {
   }
 
   if (!user) {
-    navigate('/auth');
     return null;
   }
 

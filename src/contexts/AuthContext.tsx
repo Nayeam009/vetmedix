@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 import { QueryClient } from '@tanstack/react-query';
 
 interface AuthContextType {
@@ -40,7 +41,7 @@ export const AuthProvider = ({ children, queryClient }: { children: ReactNode; q
     // Then get initial session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
-        console.error('Error getting session:', error);
+        logger.error('Error getting session:', error);
         setError(error);
       }
       setSession(session);
@@ -104,7 +105,7 @@ export const AuthProvider = ({ children, queryClient }: { children: ReactNode; q
     try {
       await supabase.auth.signOut();
     } catch (err) {
-      console.error('Error signing out:', err);
+      logger.error('Error signing out:', err);
     }
   };
 
@@ -112,14 +113,14 @@ export const AuthProvider = ({ children, queryClient }: { children: ReactNode; q
     try {
       const { data, error } = await supabase.auth.refreshSession();
       if (error) {
-        console.error('Error refreshing session:', error);
+        logger.error('Error refreshing session:', error);
         setError(error);
       } else if (data.session) {
         setSession(data.session);
         setUser(data.session.user);
       }
     } catch (err) {
-      console.error('Error refreshing session:', err);
+      logger.error('Error refreshing session:', err);
     }
   }, []);
 

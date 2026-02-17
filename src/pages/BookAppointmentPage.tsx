@@ -58,51 +58,33 @@ const BookAppointmentPage = () => {
     
     setIsPending(true);
     try {
-      const insertData: any = {
-        user_id: user.id, 
-        clinic_id: clinicId,
-        appointment_date: formData.date, 
-        appointment_time: formData.time,
-        pet_name: formData.petName, 
-        pet_type: formData.petType, 
-        reason: formData.reason || ''
-      };
+      // Atomic booking via DB function — prevents race conditions
+      const { data: appointmentId, error } = await supabase.rpc('book_appointment_atomic', {
+        p_user_id: user.id,
+        p_clinic_id: clinicId,
+        p_doctor_id: formData.doctorId || null,
+        p_appointment_date: formData.date,
+        p_appointment_time: formData.time,
+        p_pet_name: formData.petName,
+        p_pet_type: formData.petType,
+        p_reason: formData.reason || '',
+      });
 
-      if (formData.doctorId) {
-        insertData.doctor_id = formData.doctorId;
+      if (error) {
+        // The DB function raises a friendly message on slot conflict
+        if (error.message.includes('already booked')) {
+          toast({
+            title: 'Slot Unavailable',
+            description: 'This time slot is already booked. Please choose a different time.',
+            variant: 'destructive'
+          });
+          setIsPending(false);
+          return;
+        }
+        throw error;
       }
 
-      // C2: Check for existing appointment at same slot before inserting
-      const slotQuery = supabase
-        .from('appointments')
-        .select('id')
-        .eq('clinic_id', clinicId)
-        .eq('appointment_date', formData.date)
-        .eq('appointment_time', formData.time)
-        .not('status', 'in', '("cancelled","rejected")');
-      
-      if (formData.doctorId) {
-        slotQuery.eq('doctor_id', formData.doctorId);
-      } else {
-        slotQuery.is('doctor_id', null);
-      }
-
-      const { data: existingSlot } = await slotQuery.maybeSingle();
-      if (existingSlot) {
-        toast({
-          title: 'Slot Unavailable',
-          description: 'This time slot is already booked. Please choose a different time.',
-          variant: 'destructive'
-        });
-        setIsPending(false);
-        return;
-      }
-
-      const { data: appointmentData, error } = await supabase
-        .from('appointments')
-        .insert([insertData])
-        .select('id')
-        .single();
+      const appointmentData = { id: appointmentId };
       
       if (error) throw error;
 
