@@ -76,7 +76,8 @@ const PetProfilePage = () => {
     loading: postsLoading, 
     likePost, 
     unlikePost, 
-    refreshPosts 
+    refreshPosts,
+    updatePostCommentCount
   } = usePosts(id, 'pet');
 
   useEffect(() => {
@@ -242,6 +243,7 @@ const PetProfilePage = () => {
                         onLike={handleLikePost}
                         onUnlike={handleUnlikePost}
                         onDelete={handleRefreshPosts}
+                        onCommentCountChange={updatePostCommentCount}
                       />
                     ))}
                   </div>

@@ -29,7 +29,8 @@ const BelowFoldContent = () => {
     loading, 
     likePost, 
     unlikePost, 
-    refreshPosts 
+    refreshPosts,
+    updatePostCommentCount
   } = usePosts(undefined, feedType);
 
   const handleFeedTypeChange = useCallback((v: string) => {
@@ -133,6 +134,7 @@ const BelowFoldContent = () => {
                           onLike={handleLike}
                           onUnlike={handleUnlike}
                           onDelete={handleRefresh}
+                          onCommentCountChange={updatePostCommentCount}
                         />
                       ))}
                     </div>
@@ -174,6 +176,7 @@ const BelowFoldContent = () => {
                           onLike={handleLike}
                           onUnlike={handleUnlike}
                           onDelete={handleRefresh}
+                          onCommentCountChange={updatePostCommentCount}
                         />
                       ))}
                     </div>

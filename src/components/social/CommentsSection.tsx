@@ -11,9 +11,10 @@ import { toast } from 'sonner';
 
 interface CommentsSectionProps {
   postId: string;
+  onCommentCountChange?: (delta: number) => void;
 }
 
-export const CommentsSection = ({ postId }: CommentsSectionProps) => {
+export const CommentsSection = ({ postId, onCommentCountChange }: CommentsSectionProps) => {
   const { user } = useAuth();
   const { activePet } = usePets();
   const { comments, loading, addComment, deleteComment } = useComments(postId);
@@ -34,6 +35,8 @@ export const CommentsSection = ({ postId }: CommentsSectionProps) => {
     const result = await addComment(newComment.trim(), activePet?.id);
     if (result?.success === false && result?.error) {
       toast.error(result.error);
+    } else if (result?.success) {
+      onCommentCountChange?.(1);
     }
     setNewComment('');
     setSubmitting(false);
@@ -127,7 +130,7 @@ export const CommentsSection = ({ postId }: CommentsSectionProps) => {
                   </button>
                   {user?.id === comment.user_id && (
                     <button
-                      onClick={() => deleteComment(comment.id)}
+                      onClick={() => { deleteComment(comment.id); onCommentCountChange?.(-1); }}
                       className="text-[10px] sm:text-xs font-semibold text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity min-h-[44px] min-w-[44px] flex items-center justify-center"
                       aria-label="Delete comment"
                     >
