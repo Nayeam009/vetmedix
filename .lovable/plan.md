@@ -1,111 +1,88 @@
 
+# Phase 2: Engine-Specific Fixes
 
-# Critical Bug Report: Vetmedix Codebase Audit
-
-## CRITICAL Issues (Security / Data Integrity / App Crashes)
-
-### C1. Stock Not Decremented After Purchase
-- **Severity:** CRITICAL -- Revenue integrity
-- **Location:** `src/pages/CheckoutPage.tsx` (lines 234-311)
-- **Problem:** The checkout flow validates stock before placing an order, but never decrements the product stock count in the database after a successful order. Stock levels remain unchanged, meaning products can be oversold indefinitely.
-- **Root Cause:** No `UPDATE products SET stock = stock - quantity` call exists anywhere in the codebase after order insertion.
-- **Impact:** Unlimited purchases of out-of-stock items; admin dashboard shows incorrect inventory.
-- **Fix:** After successful order insertion (line 271), loop through items and decrement stock. Use a database function or transaction to ensure atomicity and prevent race conditions.
-
-### C2. Appointment Slots Not Blocked -- Double Booking Possible
-- **Severity:** CRITICAL -- Trust engine
-- **Location:** `src/pages/BookAppointmentPage.tsx` (lines 60-80), `appointments` table
-- **Problem:** When a user books an appointment, the system simply inserts a row. There is no check for existing bookings at the same clinic + doctor + date + time combination. Two users can book the exact same slot simultaneously.
-- **Root Cause:** No unique constraint on `(clinic_id, doctor_id, appointment_date, appointment_time)` and no pre-insert validation query.
-- **Impact:** Double-booked appointments, clinic confusion, lost trust.
-- **Fix:** Add a unique constraint or a pre-insert check query. Also filter out already-booked time slots in the `BookAppointmentWizard` by fetching existing appointments for the selected date.
-
-### C3. 12 Admin Pages Lack RequireAdmin Guard
-- **Severity:** CRITICAL -- Security
-- **Location:** All admin pages except `AdminDashboard`, `AdminCMS`, `AdminCMSEditor`, `AdminSettings`
-- **Pages without RequireAdmin:** `AdminProducts`, `AdminOrders`, `AdminCustomers`, `AdminAnalytics`, `AdminClinics`, `AdminSocial`, `AdminDoctors`, `AdminContactMessages`, `AdminCoupons`, `AdminIncompleteOrders`, `AdminRecoveryAnalytics`, `AdminEcommerceCustomers`, `AdminDeliveryZones`
-- **Problem:** These pages use inline `useEffect` redirects instead of the centralized `RequireAdmin` wrapper. While the inline guard does redirect, it:
-  - Briefly renders the admin layout before redirecting (flash of admin content)
-  - Duplicates ~20 lines of guard logic per page
-  - Shows inconsistent loading/error states
-- **Impact:** Momentary exposure of admin UI to unauthorized users; maintenance burden.
-- **Fix:** Wrap each page in `<RequireAdmin>` and remove the manual `useEffect` guard + inline access-denied render blocks.
-
-### C4. CLS Score 3.95 (Poor) -- Layout Shift
-- **Severity:** CRITICAL -- Performance / UX
-- **Source:** Console logs show CLS escalating from 1.78 to 3.95
-- **Problem:** The admin dashboard has extreme Cumulative Layout Shift, likely caused by:
-  - Lazy-loaded components rendering without skeleton placeholders of matching dimensions
-  - Stat cards loading asynchronously and pushing content down
-  - The sidebar collapse/expand transition shifting the main content area
-- **Impact:** Poor Core Web Vitals score; janky user experience, especially on slower connections.
-- **Fix:** Ensure all lazy-loaded admin components have dimension-matched skeleton loaders. Add `min-h` constraints to stat card containers to reserve space.
+This plan addresses all three engines (Social, E-commerce, Trust) with targeted fixes based on the audit findings and current codebase state.
 
 ---
 
-## MAJOR Issues (Broken UI / Logic Gaps)
+## A. Engagement Engine (Social Feed)
 
-### M1. DialogTitle Accessibility Errors (Console Spam)
-- **Severity:** MAJOR -- Accessibility / Console pollution
-- **Source:** Console errors on `/admin` route
-- **Problem:** Multiple `DialogContent` components across admin pages lack `DialogTitle`, causing Radix to throw errors. This affects screen readers and floods the console.
-- **Files to audit:** All admin pages that import `Dialog` or `DialogContent` -- approximately `AdminOrders`, `AdminProducts`, `AdminSocial`, `AdminDoctors`, `AdminClinics`, `AdminCoupons`, `AdminContactMessages`.
-- **Fix:** Add `DialogTitle` (visually hidden if needed) to every `DialogContent` instance across admin pages.
+### A1. Feed Virtualization for Smooth Mobile Scrolling
+- The feed currently renders all loaded posts in a flat list. On mobile with many posts, this causes jank during scrolling.
+- Add CSS `content-visibility: auto` with `contain-intrinsic-size` on each PostCard wrapper in the feed to enable browser-native virtualization (lightweight, no new dependency needed).
+- This approach works with the existing infinite scroll sentinel pattern.
 
-### M2. Admin Orders Page Uses Manual Auth Guard (Duplicate of C3)
-- **Severity:** MAJOR
-- **Location:** `src/pages/admin/AdminOrders.tsx` (lines 112-118, 424-435)
-- **Problem:** Same manual `useEffect` redirect pattern + inline "Access Denied" UI block. This page is the most business-critical admin page.
-- **Fix:** Wrap in `<RequireAdmin>` and remove manual guard.
+### A2. Image Upload Rendering Fix
+- The `CreatePostCard` compresses images before upload, but the `PostCard` media grid doesn't enforce `aspect-ratio` on individual media items, which can cause CLS when images load.
+- Add explicit `width` and `height` attributes to `LazyImage` in the PostCard media grid to prevent layout shift.
+- Ensure fallback skeleton placeholder dimensions match the final rendered image size.
 
-### M3. Coupon Usage Increment Has Race Condition
-- **Severity:** MAJOR -- Data integrity
-- **Location:** `src/pages/CheckoutPage.tsx` (lines 274-279)
-- **Problem:** The coupon `used_count` is incremented via a read-then-write pattern: fetch current count, then update with count + 1. Two simultaneous checkouts using the same coupon could both read the same count and increment to the same value, losing one increment.
-- **Fix:** Use a single atomic SQL update: `UPDATE coupons SET used_count = used_count + 1 WHERE id = ?` instead of the read-then-write pattern.
-
-### M4. Checkout Does Not Require Authentication at Route Level
-- **Severity:** MAJOR -- UX gap
-- **Location:** `src/pages/CheckoutPage.tsx`, `src/App.tsx` (line 150)
-- **Problem:** The checkout page is publicly accessible. An unauthenticated user can fill out the entire form, only to be redirected to `/auth` on submit (line 201-209). Cart data stored in localStorage means they lose context after login redirect.
-- **Fix:** Add an auth check at mount time or protect the route.
+### A3. Optimistic UI Already Implemented -- Verify & Harden
+- Like/Unlike already uses optimistic updates in `usePosts` hook (confirmed in code review).
+- Comments section needs verification -- ensure the comment count updates optimistically when a user posts a comment.
+- Add a debounce guard on the like button to prevent double-tap race conditions on mobile (the current `isLiking` state resets after 300ms but doesn't actually block rapid clicks).
 
 ---
 
-## Additional Findings
+## B. Revenue Engine (E-commerce)
 
-### Security Observations (RLS)
-- **Pet Parent / Clinic Owner isolation:** Clinic financial data (orders, revenue) is protected via RLS -- only admins can SELECT from `orders`. Pet parents can only see their own orders. Clinic owners cannot see other clinics' orders. This is correctly configured.
-- **Doctor patient visibility:** Doctors can only view appointments where `doctor_id` matches their own doctor record (via RLS). This is correctly scoped.
-- **Social tables:** Admin DELETE policies on `posts`, `comments`, `likes`, `pets`, `stories`, `follows` were added in the recent migration -- these are now correctly configured.
+### B1. Checkout Flow -- Already Fixed (Verify)
+- Stock decrement (C1), atomic coupon increment (M3), and auth guard at mount (M4) were implemented in the previous phase.
+- Verify the `decrement_stock` and `increment_coupon_usage` RPC functions are deployed and callable.
 
-### Performance Observations
-- All page routes are already lazy-loaded via `React.lazy()` in `App.tsx`.
-- No fixed-width elements found that would break on mobile. The admin layout uses responsive `md:` breakpoints correctly after the recent refinement.
-- The `manualChunks` configuration in `vite.config.ts` properly splits vendor bundles.
+### B2. Cart Persistence -- Already Working
+- Cart state is persisted via `localStorage` in `CartContext` (confirmed in code review). No fix needed.
+
+### B3. Product Image CLS Prevention
+- `ProductCard` already uses `AspectRatio` with ratio={1} wrapping `OptimizedImage` -- this is correctly preventing CLS.
+- The `ShopPage` product grid needs `min-h` constraints on the grid container to reserve space while products load, similar to the admin dashboard fix.
+
+### B4. Real-Time Stock Updates for Users
+- When an admin updates stock via the Quick Stock Update feature, regular users on the Shop page should see the change.
+- Enable Supabase Realtime on the `products` table and add a subscription in `ShopPage` that invalidates the React Query cache when product data changes.
+- This ensures stock badges ("Stock Out", "X left") update without page refresh.
 
 ---
 
-## Implementation Priority
+## C. Trust Engine (Clinic and Doctor)
 
-| Priority | Issue | Type |
-|----------|-------|------|
-| P0 | C1: Stock not decremented after purchase | Data integrity |
-| P0 | C2: Double-booking possible (no slot blocking) | Logic gap |
-| P0 | C3: 12 admin pages lack RequireAdmin | Security |
-| P1 | C4: CLS 3.95 -- layout shift | Performance |
-| P1 | M1: DialogTitle accessibility errors | Accessibility |
-| P1 | M3: Coupon race condition | Data integrity |
-| P1 | M4: Checkout no auth guard at mount | UX |
+### C1. RLS Verification -- Already Secure
+- Reviewed all RLS policies on `appointments`, `clinics`, `doctors`, `clinic_doctors` tables.
+- Doctors can only view appointments where `doctor_id` matches their own record (via `get_doctor_id(auth.uid())`).
+- Clinic owners can only view appointments/doctors for their own clinic (via `is_clinic_owner` or `owner_user_id` check).
+- No cross-clinic data leakage found.
 
-## Files to Modify
+### C2. Appointment Calendar Mobile Responsiveness
+- `ClinicAppointmentsList` already uses a Card-based layout (not a table) with grouped-by-date cards. This is mobile-friendly.
+- Improve the time badge and action buttons sizing for small screens -- ensure touch targets remain at least 44x44px.
+- Add horizontal scrolling safeguard on the status filter pills (already implemented with `overflow-x-auto`).
+
+### C3. Clinic Owner Edit Flow Verification
+- The `ClinicProfile` page allows clinic owners to edit details. Verify the update mutation uses the correct RLS policy (`owner_user_id = auth.uid()`).
+- Ensure the edit form doesn't submit empty required fields (clinic `name` is NOT NULL).
+
+### C4. Appointment Slot Filtering in Wizard
+- The `BookAppointmentWizard` shows available time slots based on doctor schedules, but doesn't filter out already-booked slots.
+- Fetch existing appointments for the selected date/doctor from the `appointments` table and grey out or hide already-taken time slots.
+- This gives users visual feedback before they attempt to book, complementing the server-side duplicate check added in Phase 1.
+
+---
+
+## Technical Implementation Details
+
+### Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/pages/CheckoutPage.tsx` | Add stock decrement after order, atomic coupon update, early auth check |
-| `src/pages/BookAppointmentPage.tsx` | Add slot availability check before insert |
-| `supabase/migrations/xxx.sql` | Add unique constraint or check on appointments; create stock decrement function |
-| 12 admin pages | Wrap in `<RequireAdmin>`, remove manual guards |
-| Multiple admin dialog files | Add `DialogTitle` to all `DialogContent` |
-| Admin dashboard components | Add dimension-matched skeletons to reduce CLS |
+| `src/pages/FeedPage.tsx` | Add `content-visibility` CSS optimization on post wrappers |
+| `src/components/social/PostCard.tsx` | Harden like button with debounce guard |
+| `src/components/social/LazyMedia.tsx` | Add explicit width/height for CLS prevention |
+| `src/pages/ShopPage.tsx` | Add `min-h` on product grid, add realtime subscription for products |
+| `src/components/booking/BookAppointmentWizard.tsx` | Fetch booked slots and filter available times |
+| `src/pages/clinic/ClinicDashboard.tsx` | Minor touch target adjustments |
 
+### New Migration
+- `ALTER PUBLICATION supabase_realtime ADD TABLE public.products;` to enable real-time stock sync for shoppers.
+
+### No New Dependencies Required
+- All optimizations use existing browser APIs (`content-visibility`, `IntersectionObserver`) and existing Supabase Realtime SDK.
