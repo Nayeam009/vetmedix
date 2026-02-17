@@ -1,88 +1,104 @@
 
 
-# Media Optimization Pipeline -- Gap Analysis and Implementation Plan
+# Iconography Audit and Visual Polish Plan
 
-## Current State (Already Implemented)
+## Current State Assessment
 
-Most of the requested architecture is already in place:
+After auditing all navigation components, dashboards, and cards, the codebase already uses many domain-specific Lucide icons correctly. However, several icons are generic or duplicated, and a few requested semantic mappings are missing.
 
-- **OptimizedImage component** (`src/components/ui/OptimizedImage.tsx`): Intersection Observer lazy loading, skeleton placeholder, fade-in, error fallback, Supabase URL transforms, `fetchPriority` support.
-- **LazyImage / LazyVideo** (`src/components/social/LazyMedia.tsx`): Viewport-based lazy loading for social feed media with autoplay, muted default, progress bar.
-- **Client-side compression** (`src/lib/mediaCompression.ts`): WebP conversion, presets for feed/story/avatar/product/clinic, thumbnail generation, video poster extraction.
-- **All uploaders use compression**: `CreatePetPage`, `EditPetPage`, `ClinicProfile`, `PetProfileCard`, `ImageUpload`, `useStories`, `useMessages` -- all call `compressImage()` before upload.
-- **Storage buckets**: Public (`pet-media`, `avatars`, `clinic-images`, `product-images`, `cms-media`) and private (`clinic-documents`, `doctor-documents`) are properly separated.
+## Icon Availability Check
 
-## Gaps Found (4 Items)
+All requested icons exist in the installed `lucide-react` EXCEPT `ClipboardPulse` (does not exist). Replacement: `HeartPulse` (medical vitals aesthetic) for Medical Records.
 
-### GAP-1: No "Medical" Compression Preset (Medium)
-**File:** `src/lib/mediaCompression.ts`
+## File-by-File Changes
 
-The `COMPRESSION_PRESETS` object has presets for feed, story, avatar, product, and clinic -- but no `medical` preset for doctor-uploaded medical images. Medical images (X-rays, lab results) require high fidelity with minimal lossy compression.
+### 1. Admin Sidebar (`src/components/admin/AdminSidebar.tsx`)
 
-**Fix:** Add a `medical` preset: `{ maxWidth: 3000, maxHeight: 3000, quality: 0.95 }`. Update `validateAndOptimizeMedia` to accept `'medical'` as a context. Add a 10MB hard limit check specific to this preset.
+| Current Icon | Current Label | New Icon | Rationale |
+|---|---|---|---|
+| `ShoppingCart` | Orders | `Truck` | Distinguishes order fulfillment from cart |
+| `Users` | Customers | `ShoppingBag` | E-commerce buyers, not platform users |
+| `ShoppingCart` | Incomplete Orders | `AlertCircle` | Abandoned carts = alert state, avoids duplicate ShoppingCart |
+| `BarChart3` | Recovery Analytics | `BarChart4` | Distinct from main Analytics icon |
+| `MessageSquare` | Social | `MessageCircleHeart` | Community/social feed with heart motif |
+| `Shield` | User Management | `ShieldCheck` | Verified/managed users |
 
----
+Icons already correct: `LayoutDashboard` (Dashboard), `BarChart3` (Analytics), `Package` (Products), `Building2` (Clinics), `Stethoscope` (Doctors), `FileText` (Content Hub), `Mail` (Messages), `Settings` (Settings).
 
-### GAP-2: LazyVideo Auto-plays on Mobile -- No Facade Pattern (Medium)
-**File:** `src/components/social/LazyMedia.tsx`
+### 2. Admin Mobile Nav (`src/components/admin/AdminMobileNav.tsx`)
 
-`LazyVideo` currently loads the full `<video>` element immediately and auto-plays when 50% visible, including on mobile. This wastes bandwidth on cellular connections. The Facade Pattern (show a static poster + play button, only mount `<video>` on click) would eliminate unnecessary video downloads.
+Same icon swaps as AdminSidebar (they share the same `navSections` structure but defined separately):
+- Orders: `ShoppingCart` to `Truck`
+- Customers: `Users` to `ShoppingBag`
+- Incomplete Orders: `ShoppingCart` to `AlertCircle`
+- Recovery Analytics: `BarChart3` to `BarChart4`
+- Social: `MessageSquare` to `MessageCircleHeart`
+- User Management: `Shield` to `ShieldCheck`
 
-**Fix:** Add a `facade` prop (default `true` on mobile via `useIsMobile()`). When facade is active, render only the poster image + a play button overlay. On click, swap in the actual `<video>` element. This avoids loading any video data until the user explicitly requests it.
+### 3. Main Navbar (`src/components/Navbar.tsx`)
 
-**Lighthouse Impact:** Reduces main-thread work and network payload on initial load. Videos in feed won't contribute to LCP/TBT until interaction.
+| Current | Label | New | Rationale |
+|---|---|---|---|
+| `Home` | Feed | `MessageCircleHeart` | Social feed with community feel |
+| `Store` (Blog) | Blog | `FileText` | Blog = articles, not a store |
 
----
+Icons already correct: `Compass` (Explore), `Store` (Shop), `Building2` (Clinics), `Users` (Doctors), `Stethoscope` (Doctor Dashboard), `Shield` (Admin).
 
-### GAP-3: `console.error` in mediaCompression.ts (Low)
-**File:** `src/lib/mediaCompression.ts` (line 184)
+### 4. Mobile Bottom Nav (`src/components/MobileNav.tsx`)
 
-The compression error handler uses bare `console.error` instead of the centralized `logger.error` utility. This was flagged in previous audits for other files but missed here.
+No changes needed. Uses `Home`, `Search`, `MessageCircle`, `Bell`, `User/Shield/Stethoscope/Building2` -- all semantically accurate for the bottom navigation context.
 
-**Fix:** Replace `console.error('Image compression failed, using original:', error)` with `logger.error('Image compression failed, using original:', error)`.
+### 5. E-Commerce Overview (`src/components/admin/dashboard/ECommerceOverview.tsx`)
 
----
+| Current | Label | New | Rationale |
+|---|---|---|---|
+| `ShoppingCart` | Total Orders | `Truck` | Fulfillment context |
+| `Clock` | Pending | `CalendarClock` | Time-aware pending state |
 
-### GAP-4: OptimizedImage Missing Built-in Aspect Ratio Prop (Low)
-**File:** `src/components/ui/OptimizedImage.tsx`
+### 6. Platform Overview (`src/components/admin/dashboard/PlatformOverview.tsx`)
 
-The component relies on the parent to set aspect ratio (e.g., `ProductCard` wraps it in `<AspectRatio ratio={1}>`). Adding an optional `aspectRatio` prop directly on `OptimizedImage` would simplify usage and reduce CLS risk when developers forget to wrap it.
+| Current | Label | New | Rationale |
+|---|---|---|---|
+| `CalendarDays` | Appointments | `CalendarClock` | Time-slot booking feel |
+| `MessageSquare` | Posts | `MessageCircleHeart` | Social posts with community heart |
+| `Users` | Users | `ShieldCheck` | Managed/verified users |
 
-**Fix:** Add an optional `aspectRatio` prop (e.g., `aspectRatio?: number`). When provided, apply `style={{ aspectRatio }}` to the container div alongside the existing `className`. This is additive and non-breaking.
+### 7. Clinic Dashboard Quick Stats (`src/components/clinic/QuickStatsOverview.tsx`)
 
----
+| Current | Label | New | Rationale |
+|---|---|---|---|
+| `Calendar` | Today | `CalendarClock` | Time-aware appointments |
+| `Activity` | This Week | `HeartPulse` | Medical activity pulse |
 
-## Summary Table
+## Visual Polish (Tailwind Classes)
 
-| ID | Category | Severity | File | Description |
-|----|----------|----------|------|-------------|
-| GAP-1 | Compression | Medium | mediaCompression.ts | No medical preset for high-fidelity doctor uploads |
-| GAP-2 | Performance | Medium | LazyMedia.tsx | Video auto-plays on mobile; needs Facade Pattern |
-| GAP-3 | Logging | Low | mediaCompression.ts | Bare `console.error` instead of `logger.error` |
-| GAP-4 | CLS Prevention | Low | OptimizedImage.tsx | No built-in `aspectRatio` prop |
+### Increased Whitespace
+- StatCard / QuickStatsOverview card padding: `p-3 sm:p-4` to `p-4 sm:p-5` (inner content area)
+- ClinicDashboard stats grid cards: `p-3 sm:p-4 lg:p-6` to `p-4 sm:p-5 lg:p-6` (minor bump on small)
 
-## Implementation Details
+### Softened Borders
+- Verify all Cards already use `rounded-xl` or `rounded-2xl` -- they do. No changes needed here.
+- DoctorCard and ClinicCard already use `rounded-xl sm:rounded-2xl` -- correct.
 
-### Fix 1: Medical Compression Preset
-- Add `medical: { maxWidth: 3000, maxHeight: 3000, quality: 0.95 }` to `COMPRESSION_PRESETS` in `mediaCompression.ts`
-- Update `validateAndOptimizeMedia` type to accept `'medical'`
-- Add a 10MB size gate: if file > 10MB and preset is medical, reject with error before compression
+### Button Hierarchy
+Already follows the correct pattern:
+- "Book Now", "Add Appointment", "Checkout" = `variant="default"` (solid primary)
+- "View Profile", "View Details", "Edit" = `variant="outline"` or `variant="secondary"`
+- No violations found.
 
-### Fix 2: Video Facade Pattern
-- Add `facade?: boolean` prop to `LazyVideo`
-- Default to `true` when `useIsMobile()` returns true (import from `@/hooks/use-mobile`)
-- When facade is active: render poster image (or first-frame thumbnail) + centered play button overlay
-- On click: set `facadeClicked = true`, mount the actual `<video>` element, call `.play()`
-- When facade is inactive (desktop): keep current auto-play behavior unchanged
+### Touch Targets
+All mobile clickable elements already enforce `min-h-[44px]` or use `h-9 w-9` / `h-10 w-10` wrappers. No changes needed.
 
-### Fix 3: Logger in mediaCompression
-- Add `import { logger } from '@/lib/logger'` at top
-- Replace line 184: `console.error(...)` with `logger.error(...)`
+## Summary of Changes
 
-### Fix 4: AspectRatio Prop on OptimizedImage
-- Add `aspectRatio?: number` to `OptimizedImageProps`
-- In the container `<div>`, merge `style={{ aspectRatio, ...style }}`
-- Non-breaking: when not provided, behavior is unchanged
+| File | Changes |
+|---|---|
+| `AdminSidebar.tsx` | 6 icon swaps in imports and `navSections` |
+| `AdminMobileNav.tsx` | 6 icon swaps (same set) |
+| `Navbar.tsx` | 2 icon swaps (Feed, Blog) |
+| `ECommerceOverview.tsx` | 2 icon swaps |
+| `PlatformOverview.tsx` | 3 icon swaps |
+| `QuickStatsOverview.tsx` | 2 icon swaps + padding bump `p-3 sm:p-4` to `p-4 sm:p-5` |
 
-**Total: 3 files modified (`mediaCompression.ts`, `LazyMedia.tsx`, `OptimizedImage.tsx`). No database changes. No new dependencies.**
+**Total: 6 files, 21 icon replacements, 1 padding adjustment. No new dependencies. No database changes.**
 
