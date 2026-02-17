@@ -24,6 +24,8 @@ import {
   Loader2,
   X,
   Calendar,
+  Trash2,
+  Undo2,
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -134,14 +136,20 @@ const AdminOrders = () => {
   const [orderForAction, setOrderForAction] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkShipping, setIsBulkShipping] = useState(false);
+  const [trashDialog, setTrashDialog] = useState<string | null>(null);
+  const [permanentDeleteDialog, setPermanentDeleteDialog] = useState<string | null>(null);
 
-  // Time-filtered orders
+  // Split active vs trashed
+  const activeOrders = useMemo(() => orders?.filter(o => !(o as any).trashed_at) || [], [orders]);
+  const trashedOrders = useMemo(() => orders?.filter(o => !!(o as any).trashed_at) || [], [orders]);
+
+  // Time-filtered orders (only from active)
   const timeFilteredOrders = useMemo(() => {
-    if (!orders) return [];
+    if (statusFilter === 'trashed') return trashedOrders;
     const cutoff = getTimeCutoff(timeFilter);
-    if (!cutoff) return orders;
-    return orders.filter(o => isAfter(new Date(o.created_at), cutoff));
-  }, [orders, timeFilter]);
+    if (!cutoff) return activeOrders;
+    return activeOrders.filter(o => isAfter(new Date(o.created_at), cutoff));
+  }, [activeOrders, trashedOrders, timeFilter, statusFilter]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -170,10 +178,14 @@ const AdminOrders = () => {
   }, [orders]);
 
   const orderStats = useMemo(() => {
-    if (!timeFilteredOrders.length) return { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, flagged: 0, total: 0, revenue: 0 };
+    const base = { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, flagged: 0, trashed: trashedOrders.length, total: 0, revenue: 0 };
+    // Use activeOrders filtered by time for stats (not trashed view)
+    const cutoff = getTimeCutoff(timeFilter);
+    const statsOrders = cutoff ? activeOrders.filter(o => isAfter(new Date(o.created_at), cutoff)) : activeOrders;
+    if (!statsOrders.length) return base;
     const excludedStatuses = ['cancelled', 'rejected'];
     let pending = 0, processing = 0, shipped = 0, delivered = 0, cancelled = 0, flagged = 0, revenue = 0;
-    for (const order of timeFilteredOrders) {
+    for (const order of statsOrders) {
       switch (order.status) {
         case 'pending': pending++; break;
         case 'processing': processing++; break;
@@ -186,8 +198,8 @@ const AdminOrders = () => {
       const analysis = fraudAnalysisMap.get(order.id);
       if (analysis && (analysis.level === 'medium' || analysis.level === 'high')) flagged++;
     }
-    return { pending, processing, shipped, delivered, cancelled, flagged, total: timeFilteredOrders.length, revenue };
-  }, [timeFilteredOrders, fraudAnalysisMap]);
+    return { pending, processing, shipped, delivered, cancelled, flagged, trashed: trashedOrders.length, total: statsOrders.length, revenue };
+  }, [activeOrders, trashedOrders, timeFilter, fraudAnalysisMap]);
 
   const highRiskPendingCount = useMemo(() => {
     if (!timeFilteredOrders.length) return 0;
@@ -285,6 +297,41 @@ const AdminOrders = () => {
     }
   };
 
+  const trashOrder = async (orderId: string) => {
+    try {
+      const { error } = await supabase.from('orders').update({ trashed_at: new Date().toISOString() } as any).eq('id', orderId);
+      if (error) throw error;
+      toast({ title: 'Moved to trash' });
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      setTrashDialog(null);
+    } catch {
+      toast({ title: 'Error', description: 'Failed to move to trash', variant: 'destructive' });
+    }
+  };
+
+  const restoreOrder = async (orderId: string) => {
+    try {
+      const { error } = await supabase.from('orders').update({ trashed_at: null } as any).eq('id', orderId);
+      if (error) throw error;
+      toast({ title: 'Restored from trash' });
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+    } catch {
+      toast({ title: 'Error', description: 'Failed to restore', variant: 'destructive' });
+    }
+  };
+
+  const permanentlyDeleteOrder = async (orderId: string) => {
+    try {
+      const { error } = await supabase.from('orders').delete().eq('id', orderId);
+      if (error) throw error;
+      toast({ title: 'Permanently deleted' });
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      setPermanentDeleteDialog(null);
+    } catch {
+      toast({ title: 'Error', description: 'Failed to delete', variant: 'destructive' });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'delivered':
@@ -361,6 +408,7 @@ const AdminOrders = () => {
         customerName.includes(lowerQuery) ||
         (order as any).tracking_id?.toLowerCase().includes(lowerQuery);
       
+      if (statusFilter === 'trashed') return matchesSearch; // already filtered to trashed in timeFilteredOrders
       if (statusFilter === 'flagged') {
         const analysis = fraudAnalysisMap.get(order.id);
         return matchesSearch && analysis && (analysis.level === 'medium' || analysis.level === 'high');
@@ -633,43 +681,48 @@ const AdminOrders = () => {
 
                     {/* Action Buttons */}
                     <div className="flex gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
-                      {order.status === 'pending' && (
+                      {statusFilter === 'trashed' ? (
                         <>
-                          <Button 
-                            size="sm" 
-                            className="flex-1 h-11 rounded-xl text-sm gap-1.5 active:scale-95 transition-transform"
-                            onClick={() => { setOrderForAction(order); setIsAcceptOpen(true); }}
-                          >
-                            <Zap className="h-4 w-4" />
-                            Accept & Ship
+                          <Button size="sm" variant="outline" className="flex-1 h-11 rounded-xl text-sm gap-1.5 active:scale-95 transition-transform" onClick={() => restoreOrder(order.id)}>
+                            <Undo2 className="h-4 w-4" /> Restore
                           </Button>
-                          <Button 
-                            size="sm" 
-                            variant="destructive"
-                            className="flex-1 h-11 rounded-xl text-sm gap-1.5 active:scale-95 transition-transform"
-                            onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}
-                          >
-                            <Ban className="h-4 w-4" />
-                            Reject
+                          <Button size="sm" variant="destructive" className="flex-1 h-11 rounded-xl text-sm gap-1.5 active:scale-95 transition-transform" onClick={() => setPermanentDeleteDialog(order.id)}>
+                            <Trash2 className="h-4 w-4" /> Delete Forever
                           </Button>
                         </>
-                      )}
-                      {order.status !== 'pending' && order.status !== 'cancelled' && order.status !== 'delivered' && order.status !== 'rejected' && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="flex-1 h-11 rounded-xl text-sm">
-                              <MoreHorizontal className="h-4 w-4 mr-1" /> Actions
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'shipped')}>
-                              <Truck className="h-4 w-4 mr-2" /> Mark Shipped
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'delivered')}>
-                              <CheckCircle className="h-4 w-4 mr-2" /> Mark Delivered
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                      ) : (
+                        <>
+                          {order.status === 'pending' && (
+                            <>
+                              <Button size="sm" className="flex-1 h-11 rounded-xl text-sm gap-1.5 active:scale-95 transition-transform" onClick={() => { setOrderForAction(order); setIsAcceptOpen(true); }}>
+                                <Zap className="h-4 w-4" /> Accept & Ship
+                              </Button>
+                              <Button size="sm" variant="destructive" className="flex-1 h-11 rounded-xl text-sm gap-1.5 active:scale-95 transition-transform" onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}>
+                                <Ban className="h-4 w-4" /> Reject
+                              </Button>
+                            </>
+                          )}
+                          {order.status !== 'pending' && order.status !== 'cancelled' && order.status !== 'delivered' && order.status !== 'rejected' && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="flex-1 h-11 rounded-xl text-sm">
+                                  <MoreHorizontal className="h-4 w-4 mr-1" /> Actions
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'shipped')}>
+                                  <Truck className="h-4 w-4 mr-2" /> Mark Shipped
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'delivered')}>
+                                  <CheckCircle className="h-4 w-4 mr-2" /> Mark Delivered
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                          <Button size="sm" variant="ghost" className="h-11 w-11 rounded-xl text-muted-foreground active:scale-95 transition-transform" onClick={() => setTrashDialog(order.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -779,34 +832,52 @@ const AdminOrders = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => { setSelectedOrder(order); setIsViewOpen(true); }}>
-                                <Eye className="h-4 w-4 mr-2" /> View Details
-                              </DropdownMenuItem>
-                              
-                              {order.status === 'pending' && (
+                              {statusFilter === 'trashed' ? (
                                 <>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem onClick={() => { setOrderForAction(order); setIsAcceptOpen(true); }}>
-                                    <Zap className="h-4 w-4 mr-2" /> Accept & Ship
+                                  <DropdownMenuItem onClick={() => restoreOrder(order.id)}>
+                                    <Undo2 className="h-4 w-4 mr-2" /> Restore
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem className="text-destructive" onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}>
-                                    <Ban className="h-4 w-4 mr-2" /> Reject Order
+                                  <DropdownMenuItem className="text-destructive" onClick={() => setPermanentDeleteDialog(order.id)}>
+                                    <Trash2 className="h-4 w-4 mr-2" /> Delete Forever
                                   </DropdownMenuItem>
                                 </>
-                              )}
-                              
-                              {order.status !== 'pending' && order.status !== 'cancelled' && order.status !== 'delivered' && order.status !== 'rejected' && (
+                              ) : (
                                 <>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'shipped')}>
-                                    <Truck className="h-4 w-4 mr-2" /> Mark Shipped
+                                  <DropdownMenuItem onClick={() => { setSelectedOrder(order); setIsViewOpen(true); }}>
+                                    <Eye className="h-4 w-4 mr-2" /> View Details
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'delivered')}>
-                                    <CheckCircle className="h-4 w-4 mr-2" /> Mark Delivered
-                                  </DropdownMenuItem>
+                                  
+                                  {order.status === 'pending' && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem onClick={() => { setOrderForAction(order); setIsAcceptOpen(true); }}>
+                                        <Zap className="h-4 w-4 mr-2" /> Accept & Ship
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem className="text-destructive" onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}>
+                                        <Ban className="h-4 w-4 mr-2" /> Reject Order
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                  
+                                  {order.status !== 'pending' && order.status !== 'cancelled' && order.status !== 'delivered' && order.status !== 'rejected' && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'shipped')}>
+                                        <Truck className="h-4 w-4 mr-2" /> Mark Shipped
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => updateOrderStatus(order.id, 'delivered')}>
+                                        <CheckCircle className="h-4 w-4 mr-2" /> Mark Delivered
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem className="text-destructive" onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}>
+                                        <XCircle className="h-4 w-4 mr-2" /> Cancel Order
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                  
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="text-destructive" onClick={() => { setOrderForAction(order); setIsRejectOpen(true); }}>
-                                    <XCircle className="h-4 w-4 mr-2" /> Cancel Order
+                                  <DropdownMenuItem className="text-muted-foreground" onClick={() => setTrashDialog(order.id)}>
+                                    <Trash2 className="h-4 w-4 mr-2" /> Move to Trash
                                   </DropdownMenuItem>
                                 </>
                               )}
@@ -1003,6 +1074,34 @@ const AdminOrders = () => {
         onClose={() => { setIsRejectOpen(false); setOrderForAction(null); }}
         order={orderForAction}
       />
+
+      {/* Trash Confirmation Dialog */}
+      <Dialog open={!!trashDialog} onOpenChange={() => setTrashDialog(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Trash2 className="h-5 w-5 text-muted-foreground" />Move to Trash</DialogTitle>
+            <DialogDescription>This order will be moved to trash. You can restore it later or permanently delete it.</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setTrashDialog(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => trashDialog && trashOrder(trashDialog)}>Move to Trash</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Permanent Delete Confirmation Dialog */}
+      <Dialog open={!!permanentDeleteDialog} onOpenChange={() => setPermanentDeleteDialog(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Trash2 className="h-5 w-5 text-destructive" />Delete Forever</DialogTitle>
+            <DialogDescription>This will permanently delete this order. This action cannot be undone.</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setPermanentDeleteDialog(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => permanentDeleteDialog && permanentlyDeleteOrder(permanentDeleteDialog)}>Delete Forever</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 };

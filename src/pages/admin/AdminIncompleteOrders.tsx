@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import {
   ShoppingCart, TrendingUp, DollarSign, AlertTriangle,
-  Search, Trash2, ArrowUpRight, Phone, Mail, MapPin, Clock, Package
+  Search, Trash2, ArrowUpRight, Phone, Mail, MapPin, Clock, Package, Undo2
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -53,11 +53,17 @@ const AdminIncompleteOrders = () => {
   useDocumentTitle('Incomplete Orders');
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const { orders, isLoading, totalIncomplete, totalRecovered, recoveryRate, lostRevenue, deleteOrder, convertOrder, isConverting } = useIncompleteOrders();
+  const {
+    orders, trashedOrders, isLoading, totalIncomplete, totalRecovered, totalTrashed,
+    recoveryRate, lostRevenue, trashOrder, restoreOrder, permanentlyDelete,
+    convertOrder, isConverting
+  } = useIncompleteOrders();
+
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'incomplete' | 'recovered'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'incomplete' | 'recovered' | 'trashed'>('all');
   const [convertDialog, setConvertDialog] = useState<IncompleteOrder | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<string | null>(null);
+  const [permanentDeleteDialog, setPermanentDeleteDialog] = useState<string | null>(null);
 
   // Fetch delivery zones for fee calculation
   const { data: deliveryZones = [] } = useQuery({
@@ -82,7 +88,6 @@ const AdminIncompleteOrders = () => {
     division: '',
   });
 
-  // Pre-fill form when dialog opens
   useEffect(() => {
     if (convertDialog) {
       setConvertFormData({
@@ -95,7 +100,6 @@ const AdminIncompleteOrders = () => {
     }
   }, [convertDialog]);
 
-  // Calculate delivery fee based on selected division
   const matchedZone = useMemo(() => {
     if (!convertFormData.division) return null;
     const normalizedDiv = convertFormData.division.trim();
@@ -107,7 +111,6 @@ const AdminIncompleteOrders = () => {
   const deliveryCharge = matchedZone ? Number(matchedZone.charge) : (convertFormData.division ? 120 : 60);
   const convertGrandTotal = (convertDialog?.cart_total || 0) + deliveryCharge;
 
-  // Get unique divisions from all zones for the dropdown
   const allDivisions = useMemo(() => {
     const divs = new Set<string>();
     deliveryZones.forEach(z => {
@@ -118,12 +121,17 @@ const AdminIncompleteOrders = () => {
 
   const isFormValid = convertFormData.customer_name.trim() && convertFormData.customer_phone.trim() && convertFormData.shipping_address.trim();
 
-  const filtered = orders.filter(o => {
-    // Always hide 100% complete + recovered (already placed orders)
-    if (o.status === 'recovered') {
-      if (statusFilter !== 'recovered') return false;
+  // Use trashed orders when filter is "trashed", otherwise use active orders
+  const displayOrders = statusFilter === 'trashed' ? trashedOrders : orders;
+
+  const filtered = displayOrders.filter(o => {
+    if (statusFilter === 'trashed') {
+      // Show all trashed
+    } else if (statusFilter === 'recovered') {
+      if (o.status !== 'recovered') return false;
+    } else if (statusFilter === 'incomplete') {
+      if (o.status !== 'incomplete') return false;
     }
-    if (statusFilter !== 'all' && statusFilter !== 'recovered' && o.status !== statusFilter) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return (o.customer_name?.toLowerCase().includes(q)) ||
@@ -142,14 +150,34 @@ const AdminIncompleteOrders = () => {
     }
   };
 
-  const handleDelete = async () => {
+  const handleTrash = async () => {
     if (!deleteDialog) return;
     try {
-      await deleteOrder(deleteDialog);
-      toast.success('Incomplete order moved to trash');
+      await trashOrder(deleteDialog);
+      toast.success('Moved to trash');
       setDeleteDialog(null);
     } catch {
+      toast.error('Failed to move to trash');
+    }
+  };
+
+  const handlePermanentDelete = async () => {
+    if (!permanentDeleteDialog) return;
+    try {
+      await permanentlyDelete(permanentDeleteDialog);
+      toast.success('Permanently deleted');
+      setPermanentDeleteDialog(null);
+    } catch {
       toast.error('Failed to delete');
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    try {
+      await restoreOrder(id);
+      toast.success('Restored from trash');
+    } catch {
+      toast.error('Failed to restore');
     }
   };
 
@@ -158,8 +186,8 @@ const AdminIncompleteOrders = () => {
       <AdminLayout title="Incomplete Orders">
         <div className="p-4 sm:p-6 space-y-6">
           <Skeleton className="h-8 w-64" />
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {[1,2,3,4].map(i => <Skeleton key={i} className="h-20" />)}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-20" />)}
           </div>
           <Skeleton className="h-64" />
         </div>
@@ -177,15 +205,16 @@ const AdminIncompleteOrders = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           <StatCard icon={ShoppingCart} label="Incomplete" value={totalIncomplete} color="bg-amber-500/10 text-amber-600" active={statusFilter === 'incomplete'} onClick={() => setStatusFilter(f => f === 'incomplete' ? 'all' : 'incomplete')} />
           <StatCard icon={TrendingUp} label="Recovered" value={totalRecovered} color="bg-green-500/10 text-green-600" active={statusFilter === 'recovered'} onClick={() => setStatusFilter(f => f === 'recovered' ? 'all' : 'recovered')} />
           <StatCard icon={AlertTriangle} label="Recovery Rate" value={`${recoveryRate}%`} color="bg-blue-500/10 text-blue-600" onClick={() => navigate('/admin/recovery-analytics')} />
           <StatCard icon={DollarSign} label="Lost Revenue" value={`৳${lostRevenue.toLocaleString()}`} color="bg-red-500/10 text-red-600" active={statusFilter === 'incomplete'} onClick={() => setStatusFilter(f => f === 'incomplete' ? 'all' : 'incomplete')} />
+          <StatCard icon={Trash2} label="Trashed" value={totalTrashed} color="bg-muted text-muted-foreground" active={statusFilter === 'trashed'} onClick={() => setStatusFilter(f => f === 'trashed' ? 'all' : 'trashed')} />
         </div>
 
         {/* Revenue Banner */}
-        {lostRevenue > 0 && (
+        {lostRevenue > 0 && statusFilter !== 'trashed' && (
           <div className="p-4 rounded-xl bg-gradient-to-r from-red-500/10 to-amber-500/10 border border-red-500/20">
             <div className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-red-600 dark:text-red-400" />
@@ -204,9 +233,9 @@ const AdminIncompleteOrders = () => {
         {/* Table / Cards */}
         {isMobile ? (
           <div className="space-y-3">
-            {filtered.length === 0 && <p className="text-center text-muted-foreground py-8">No incomplete orders</p>}
+            {filtered.length === 0 && <p className="text-center text-muted-foreground py-8">{statusFilter === 'trashed' ? 'Trash is empty' : 'No incomplete orders'}</p>}
             {filtered.map(order => (
-              <Card key={order.id} className="border-border/50">
+              <Card key={order.id} className={`border-border/50 ${statusFilter === 'trashed' ? 'opacity-70' : ''}`}>
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
@@ -226,14 +255,27 @@ const AdminIncompleteOrders = () => {
                       <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{formatDistanceToNow(new Date(order.created_at), { addSuffix: true })}</p>
                     </div>
                     <div className="flex gap-2">
-                      {order.status === 'incomplete' && (
-                        <Button size="sm" variant="default" className="h-8 text-xs" onClick={() => setConvertDialog(order)}>
-                          <ArrowUpRight className="h-3 w-3 mr-1" />Convert
-                        </Button>
+                      {statusFilter === 'trashed' ? (
+                        <>
+                          <Button size="sm" variant="outline" className="h-9 text-xs gap-1" onClick={() => handleRestore(order.id)}>
+                            <Undo2 className="h-3 w-3" />Restore
+                          </Button>
+                          <Button size="sm" variant="destructive" className="h-9 text-xs gap-1" onClick={() => setPermanentDeleteDialog(order.id)}>
+                            <Trash2 className="h-3 w-3" />Delete
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          {order.status === 'incomplete' && (
+                            <Button size="sm" variant="default" className="h-9 text-xs" onClick={() => setConvertDialog(order)}>
+                              <ArrowUpRight className="h-3 w-3 mr-1" />Convert
+                            </Button>
+                          )}
+                          <Button size="sm" variant="ghost" className="h-9 text-xs text-destructive" onClick={() => setDeleteDialog(order.id)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </>
                       )}
-                      <Button size="sm" variant="ghost" className="h-8 text-xs text-destructive" onClick={() => setDeleteDialog(order.id)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -257,10 +299,10 @@ const AdminIncompleteOrders = () => {
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 && (
-                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No incomplete orders</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{statusFilter === 'trashed' ? 'Trash is empty' : 'No incomplete orders'}</TableCell></TableRow>
                 )}
                 {filtered.map(order => (
-                  <TableRow key={order.id}>
+                  <TableRow key={order.id} className={statusFilter === 'trashed' ? 'opacity-70' : ''}>
                     <TableCell>
                       <div>
                         <p className="font-medium text-sm">{order.customer_name || 'Unknown'}</p>
@@ -284,14 +326,27 @@ const AdminIncompleteOrders = () => {
                     <TableCell className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(order.created_at), { addSuffix: true })}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        {order.status === 'incomplete' && (
-                          <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => setConvertDialog(order)}>
-                            <ArrowUpRight className="h-3 w-3 mr-1" />Convert
-                          </Button>
+                        {statusFilter === 'trashed' ? (
+                          <>
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => handleRestore(order.id)}>
+                              <Undo2 className="h-3 w-3" />Restore
+                            </Button>
+                            <Button size="sm" variant="destructive" className="h-7 text-xs gap-1" onClick={() => setPermanentDeleteDialog(order.id)}>
+                              <Trash2 className="h-3 w-3" />Delete
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            {order.status === 'incomplete' && (
+                              <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => setConvertDialog(order)}>
+                                <ArrowUpRight className="h-3 w-3 mr-1" />Convert
+                              </Button>
+                            )}
+                            <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => setDeleteDialog(order.id)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </>
                         )}
-                        <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => setDeleteDialog(order.id)}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -301,7 +356,7 @@ const AdminIncompleteOrders = () => {
           </Card>
         )}
 
-        {/* Convert Dialog - Editable Form */}
+        {/* Convert Dialog */}
         <Dialog open={!!convertDialog} onOpenChange={() => setConvertDialog(null)}>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -310,7 +365,6 @@ const AdminIncompleteOrders = () => {
             </DialogHeader>
             {convertDialog && (
               <div className="space-y-4">
-                {/* Editable fields */}
                 <div className="space-y-3">
                   <div>
                     <Label htmlFor="conv-name" className="text-xs">Customer Name <span className="text-destructive">*</span></Label>
@@ -328,7 +382,7 @@ const AdminIncompleteOrders = () => {
                     <Label htmlFor="conv-address" className="text-xs">Shipping Address <span className="text-destructive">*</span></Label>
                     <Input id="conv-address" placeholder="Enter full shipping address" value={convertFormData.shipping_address} onChange={e => setConvertFormData(p => ({ ...p, shipping_address: e.target.value }))} className="mt-1" />
                   </div>
-                <div>
+                  <div>
                     <Label htmlFor="conv-division" className="text-xs">Division <span className="text-destructive">*</span></Label>
                     {allDivisions.length > 0 ? (
                       <Select value={convertFormData.division} onValueChange={v => setConvertFormData(p => ({ ...p, division: v }))}>
@@ -378,16 +432,30 @@ const AdminIncompleteOrders = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Delete Confirmation Dialog */}
+        {/* Move to Trash Confirmation Dialog */}
         <Dialog open={!!deleteDialog} onOpenChange={() => setDeleteDialog(null)}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2"><Trash2 className="h-5 w-5 text-destructive" />Move to Trash</DialogTitle>
-              <DialogDescription>Are you sure you want to delete this incomplete order? This action cannot be undone.</DialogDescription>
+              <DialogDescription>This order will be moved to trash. You can restore it later or permanently delete it.</DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDeleteDialog(null)}>Cancel</Button>
-              <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+              <Button variant="destructive" onClick={handleTrash}>Move to Trash</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Permanent Delete Confirmation Dialog */}
+        <Dialog open={!!permanentDeleteDialog} onOpenChange={() => setPermanentDeleteDialog(null)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><Trash2 className="h-5 w-5 text-destructive" />Delete Forever</DialogTitle>
+              <DialogDescription>This will permanently delete this order. This action cannot be undone.</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPermanentDeleteDialog(null)}>Cancel</Button>
+              <Button variant="destructive" onClick={handlePermanentDelete}>Delete Forever</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
