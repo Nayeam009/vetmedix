@@ -677,6 +677,17 @@ const ClinicDetailPage = () => {
       <MobileNav />
 
       {/* Booking Dialog */}
+      {/* Sticky Mobile Book Now Bar */}
+      <div className="fixed bottom-14 left-0 right-0 z-40 bg-card/95 backdrop-blur-lg border-t border-border p-3 md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <Button 
+          className="w-full min-h-[44px] shadow-lg shadow-primary/25"
+          onClick={() => setShowBookingDialog(true)}
+        >
+          <Calendar className="h-4 w-4 mr-2" />
+          Book Appointment
+        </Button>
+      </div>
+
       <BookAppointmentDialog
         open={showBookingDialog}
         onOpenChange={setShowBookingDialog}

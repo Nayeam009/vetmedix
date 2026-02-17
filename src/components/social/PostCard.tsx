@@ -1,4 +1,4 @@
-import { useState, memo } from 'react';
+import { useState, memo, forwardRef } from 'react';
 import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, Globe, Bookmark, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -25,7 +25,7 @@ interface PostCardProps {
   onCommentCountChange?: (postId: string, delta: number) => void;
 }
 
-const PostCardComponent = ({ post, onLike, onUnlike, onDelete, onCommentCountChange }: PostCardProps) => {
+const PostCardComponent = forwardRef<HTMLDivElement, PostCardProps>(({ post, onLike, onUnlike, onDelete, onCommentCountChange }, ref) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showComments, setShowComments] = useState(false);
@@ -101,7 +101,7 @@ const PostCardComponent = ({ post, onLike, onUnlike, onDelete, onCommentCountCha
     : post.content;
 
   return (
-    <div>
+    <div ref={ref}>
     <article className="bg-card rounded-xl sm:rounded-2xl shadow-sm border border-border/50 overflow-hidden">
       {/* Header */}
       <div className="flex items-start justify-between p-3 sm:p-4 pb-2 sm:pb-3">
@@ -289,7 +289,7 @@ const PostCardComponent = ({ post, onLike, onUnlike, onDelete, onCommentCountCha
     </article>
     </div>
   );
-};
+});
 
 // Memoize the PostCard to prevent unnecessary re-renders
 const MemoizedPostCard = memo(PostCardComponent, (prevProps, nextProps) => {
