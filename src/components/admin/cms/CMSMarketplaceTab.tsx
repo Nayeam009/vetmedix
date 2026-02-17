@@ -156,14 +156,21 @@ const CMSMarketplaceTab = () => {
                       <span className="text-xs text-muted-foreground">৳{product.price}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleStockUpdate(product.id, (product.stock ?? 0) - 1)}>
-                      <Minus className="h-3 w-3" />
-                    </Button>
-                    <span className="text-sm font-medium w-8 text-center">{product.stock ?? 0}</span>
-                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleStockUpdate(product.id, (product.stock ?? 0) + 1)}>
-                      <Plus className="h-3 w-3" />
-                    </Button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Switch
+                      checked={product.is_active ?? true}
+                      onCheckedChange={(v) => handleToggleActive(product.id, v)}
+                      className="scale-90"
+                    />
+                    <div className="flex items-center gap-1.5">
+                      <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleStockUpdate(product.id, (product.stock ?? 0) - 1)}>
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="text-sm font-medium w-8 text-center">{product.stock ?? 0}</span>
+                      <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleStockUpdate(product.id, (product.stock ?? 0) + 1)}>
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}

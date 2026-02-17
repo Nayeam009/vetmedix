@@ -147,7 +147,7 @@ const CMSClinicalTab = () => {
         ) : (
           <>
             <StatCard title="Total Doctors" value={stats?.totalDoctors || 0} icon={<Stethoscope className="h-5 w-5 text-cyan-500" />} iconClassName="bg-cyan-500/10" href="/admin/doctors" />
-            <StatCard title="Pending Verifications" value={stats?.pendingVerifications || 0} icon={<Clock className="h-5 w-5 text-amber-500" />} iconClassName="bg-amber-500/10" />
+            <StatCard title="Pending Verifications" value={stats?.pendingVerifications || 0} icon={<Clock className="h-5 w-5 text-amber-500" />} iconClassName="bg-amber-500/10" href="/admin/doctors" />
             <StatCard title="Blocked Accounts" value={stats?.blockedAccounts || 0} icon={<Ban className="h-5 w-5 text-destructive" />} iconClassName="bg-destructive/10" />
           </>
         )}

@@ -11,12 +11,14 @@ import { format } from 'date-fns';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const CMSArticlesTab = () => {
   const [status, setStatus] = useState('all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebounce(search, 300);
+  const isMobile = useIsMobile();
 
   const { data, isLoading } = useCMSArticles({ status, search: debouncedSearch, page, perPage: 20, adminMode: true });
   const deleteArticle = useDeleteArticle();
@@ -58,44 +60,88 @@ const CMSArticlesTab = () => {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-xs">Title</TableHead>
-              <TableHead className="text-xs hidden sm:table-cell">Category</TableHead>
-              <TableHead className="text-xs">Status</TableHead>
-              <TableHead className="text-xs hidden md:table-cell">Date</TableHead>
-              <TableHead className="text-xs text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                  <TableCell className="hidden sm:table-cell"><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                  <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
-                </TableRow>
-              ))
-            ) : articles.length === 0 ? (
+      {/* Content */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}
+        </div>
+      ) : articles.length === 0 ? (
+        <div className="text-center py-10 text-muted-foreground text-sm border rounded-lg">
+          No articles found
+        </div>
+      ) : isMobile ? (
+        /* Mobile Card Layout */
+        <div className="space-y-2.5">
+          {articles.map((article) => (
+            <div key={article.id} className="p-3 rounded-lg border bg-card space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate">{article.title}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <ArticleStatusBadge status={article.status} />
+                    <span className="text-[10px] text-muted-foreground capitalize">{article.category.replace('-', ' ')}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {format(new Date(article.published_at || article.created_at), 'MMM d, yyyy')}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  {article.status === 'published' && (
+                    <Link to={`/blog/${article.slug}`} target="_blank">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Preview">
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                    </Link>
+                  )}
+                  <Link to={`/admin/cms/${article.id}/edit`}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Edit">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  </Link>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" aria-label="Delete">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete article?</AlertDialogTitle>
+                        <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteArticle.mutate(article.id)}>Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* Desktop Table */
+        <div className="border rounded-lg overflow-hidden">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-10 text-muted-foreground text-sm">
-                  No articles found
-                </TableCell>
+                <TableHead className="text-xs">Title</TableHead>
+                <TableHead className="text-xs">Category</TableHead>
+                <TableHead className="text-xs">Status</TableHead>
+                <TableHead className="text-xs">Date</TableHead>
+                <TableHead className="text-xs text-right">Actions</TableHead>
               </TableRow>
-            ) : (
-              articles.map((article) => (
+            </TableHeader>
+            <TableBody>
+              {articles.map((article) => (
                 <TableRow key={article.id}>
                   <TableCell className="font-medium text-sm max-w-[200px] truncate">{article.title}</TableCell>
-                  <TableCell className="hidden sm:table-cell text-xs capitalize text-muted-foreground">
+                  <TableCell className="text-xs capitalize text-muted-foreground">
                     {article.category.replace('-', ' ')}
                   </TableCell>
                   <TableCell><ArticleStatusBadge status={article.status} /></TableCell>
-                  <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
+                  <TableCell className="text-xs text-muted-foreground">
                     {format(new Date(article.published_at || article.created_at), 'MMM d, yyyy')}
                   </TableCell>
                   <TableCell className="text-right">
@@ -132,11 +178,11 @@ const CMSArticlesTab = () => {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (

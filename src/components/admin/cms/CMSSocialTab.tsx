@@ -59,8 +59,8 @@ const CMSSocialTab = () => {
           Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
         ) : (
           <>
-            <StatCard title="Total Posts" value={stats?.totalPosts || 0} icon={<MessageSquare className="h-5 w-5 text-primary" />} iconClassName="bg-primary/10" />
-            <StatCard title="Active Discussions" value={stats?.commentsToday || 0} description="Comments today" icon={<Heart className="h-5 w-5 text-rose-500" />} iconClassName="bg-rose-500/10" />
+            <StatCard title="Total Posts" value={stats?.totalPosts || 0} icon={<MessageSquare className="h-5 w-5 text-primary" />} iconClassName="bg-primary/10" href="/admin/social" />
+            <StatCard title="Active Discussions" value={stats?.commentsToday || 0} description="Comments today" icon={<Heart className="h-5 w-5 text-rose-500" />} iconClassName="bg-rose-500/10" href="/admin/social" />
             <StatCard title="Pet Profiles" value={stats?.totalPets || 0} icon={<PawPrint className="h-5 w-5 text-blue-500" />} iconClassName="bg-blue-500/10" />
           </>
         )}

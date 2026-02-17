@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
+import { RequireAdmin } from '@/components/admin/RequireAdmin';
 import { 
   Loader2,
   AlertCircle,
@@ -171,12 +172,12 @@ const SaveButton = ({ isPending, onClick, label = 'Save Changes' }: { isPending:
   </Button>
 );
 
-const AdminSettings = () => {
+const AdminSettingsContent = () => {
   useDocumentTitle('Settings - Admin');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, loading: authLoading } = useAuth();
-  const { isAdmin, roleLoading } = useAdmin();
+  const { user } = useAuth();
+  const { isAdmin } = useAdmin();
   useAdminRealtimeDashboard(isAdmin);
 
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(defaultStoreSettings);
@@ -212,11 +213,6 @@ const AdminSettings = () => {
     }
   }, [settings]);
 
-  useEffect(() => {
-    if (!authLoading && !user) navigate('/auth');
-    else if (!authLoading && !roleLoading && !isAdmin) navigate('/');
-  }, [user, authLoading, isAdmin, roleLoading, navigate]);
-
   const createSaveMutation = (key: string, successMsg: string) =>
     useMutation({
       mutationFn: async (data: unknown) => {
@@ -246,26 +242,6 @@ const AdminSettings = () => {
   const saveNotificationsMutation = createSaveMutation('notifications', 'Notification preferences saved');
   const savePlatformMutation = createSaveMutation('platform', 'Platform settings saved');
 
-  if (authLoading || roleLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-          <h1 className="text-xl font-bold mb-2">Access Denied</h1>
-          <p className="text-muted-foreground mb-4">You don't have permission to access this page.</p>
-          <Button onClick={() => navigate('/')}>Go Home</Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <AdminLayout title="Settings" subtitle="Configure your platform settings">
@@ -549,5 +525,11 @@ const AdminSettings = () => {
     </AdminLayout>
   );
 };
+
+const AdminSettings = () => (
+  <RequireAdmin>
+    <AdminSettingsContent />
+  </RequireAdmin>
+);
 
 export default AdminSettings;
