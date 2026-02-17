@@ -19,7 +19,7 @@ export const ECommerceOverview = memo(({ stats }: ECommerceOverviewProps) => (
     <h2 className="text-xs sm:text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 sm:mb-3">
       E-Commerce Overview
     </h2>
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 min-h-[88px] sm:min-h-[100px] lg:min-h-[112px]">
       <StatCard
         title="Active Revenue"
         value={`৳${stats?.activeRevenue?.toLocaleString() || 0}`}
