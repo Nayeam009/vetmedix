@@ -1,104 +1,110 @@
 
 
-# Iconography Audit and Visual Polish Plan
+# Visual Harmonization Plan -- Vetmedix Design System Alignment
 
-## Current State Assessment
+## Vetmedix Design Rules (Source of Truth)
 
-After auditing all navigation components, dashboards, and cards, the codebase already uses many domain-specific Lucide icons correctly. However, several icons are generic or duplicated, and a few requested semantic mappings are missing.
+Based on the most polished pages (Admin Dashboard, Clinic Dashboard, Shop, Clinics/Doctors), these are the dominant tokens:
 
-## Icon Availability Check
+| Token | Standard | Notes |
+|---|---|---|
+| Card Radius | `rounded-xl sm:rounded-2xl` | Used by ClinicCard, Admin StatCard, Clinic Dashboard cards |
+| Input Radius | `rounded-lg sm:rounded-xl` | Shop search, Clinic search, Navbar search |
+| Button Radius | `rounded-xl` | Set globally via `buttonVariants` |
+| Modal/Dialog Radius | `rounded-xl` | shadcn default |
+| Card Shadow | `shadow-sm` resting, `shadow-md`/`shadow-xl` hover | Consistent across admin and clinic |
+| Page Container | `container mx-auto px-3 sm:px-4 py-4 sm:py-6` | Clinic, Doctor, Feed, Shop all use this |
+| Card Padding | `p-3 sm:p-4 lg:p-6` | Admin and Clinic stat cards |
+| Page Background | `bg-background` or `bg-muted/30` or gradient | Varies per portal |
+| Typography H1 | `text-xl sm:text-2xl lg:text-3xl font-bold` | Clinic and Doctor dashboards |
+| Stat Card Layout | Icon top-left (gradient bg, rounded-xl), value below, label bottom | Clinic Dashboard pattern (the most polished) |
+| Grid | `grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4` | Standard for stat cards |
 
-All requested icons exist in the installed `lucide-react` EXCEPT `ClipboardPulse` (does not exist). Replacement: `HeartPulse` (medical vitals aesthetic) for Medical Records.
+## Deviations Found
 
-## File-by-File Changes
+### DEV-1: Doctor Dashboard Stat Cards -- Different Layout (Medium)
+**File:** `src/pages/doctor/DoctorDashboard.tsx` (lines 215-238)
 
-### 1. Admin Sidebar (`src/components/admin/AdminSidebar.tsx`)
+**Problem:** Doctor stat cards use a **side-by-side** layout (text left, circular icon right) while Clinic Dashboard uses a **stacked** layout (gradient icon top-left, value below). The Doctor cards also use `rounded-full` for icons instead of `rounded-xl sm:rounded-2xl`.
 
-| Current Icon | Current Label | New Icon | Rationale |
-|---|---|---|---|
-| `ShoppingCart` | Orders | `Truck` | Distinguishes order fulfillment from cart |
-| `Users` | Customers | `ShoppingBag` | E-commerce buyers, not platform users |
-| `ShoppingCart` | Incomplete Orders | `AlertCircle` | Abandoned carts = alert state, avoids duplicate ShoppingCart |
-| `BarChart3` | Recovery Analytics | `BarChart4` | Distinct from main Analytics icon |
-| `MessageSquare` | Social | `MessageCircleHeart` | Community/social feed with heart motif |
-| `Shield` | User Management | `ShieldCheck` | Verified/managed users |
+**Clinic standard (target):**
+- Icon: top-left, `w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br`
+- Value: below icon, `text-xl sm:text-2xl lg:text-3xl font-bold`
+- Label: bottom, `text-[10px] sm:text-xs lg:text-sm text-muted-foreground`
+- Card: `hover:shadow-xl hover:-translate-y-1 border-border/50 active:scale-[0.98]`
 
-Icons already correct: `LayoutDashboard` (Dashboard), `BarChart3` (Analytics), `Package` (Products), `Building2` (Clinics), `Stethoscope` (Doctors), `FileText` (Content Hub), `Mail` (Messages), `Settings` (Settings).
+**Doctor current (deviant):**
+- Icon: right side, `h-10 w-10 sm:h-12 sm:w-12 rounded-full`
+- Value: left side next to icon, `text-xl sm:text-2xl font-bold`
+- Card: `hover:shadow-md active:scale-[0.97]` (weaker hover effect)
 
-### 2. Admin Mobile Nav (`src/components/admin/AdminMobileNav.tsx`)
+**Fix:** Refactor Doctor Dashboard stat cards to match Clinic Dashboard stacked layout with gradient icon backgrounds.
 
-Same icon swaps as AdminSidebar (they share the same `navSections` structure but defined separately):
-- Orders: `ShoppingCart` to `Truck`
-- Customers: `Users` to `ShoppingBag`
-- Incomplete Orders: `ShoppingCart` to `AlertCircle`
-- Recovery Analytics: `BarChart3` to `BarChart4`
-- Social: `MessageSquare` to `MessageCircleHeart`
-- User Management: `Shield` to `ShieldCheck`
+---
 
-### 3. Main Navbar (`src/components/Navbar.tsx`)
+### DEV-2: Doctor Dashboard Missing Hover Depth (Low)
+**File:** `src/pages/doctor/DoctorDashboard.tsx` (line 222)
 
-| Current | Label | New | Rationale |
-|---|---|---|---|
-| `Home` | Feed | `MessageCircleHeart` | Social feed with community feel |
-| `Store` (Blog) | Blog | `FileText` | Blog = articles, not a store |
+Cards use `hover:shadow-md` instead of the standard `hover:shadow-xl hover:-translate-y-1`. Also missing `border-border/50 bg-white` classes.
 
-Icons already correct: `Compass` (Explore), `Store` (Shop), `Building2` (Clinics), `Users` (Doctors), `Stethoscope` (Doctor Dashboard), `Shield` (Admin).
+**Fix:** Update Card className to match: `transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-border/50 bg-white active:scale-[0.98]`
 
-### 4. Mobile Bottom Nav (`src/components/MobileNav.tsx`)
+---
 
-No changes needed. Uses `Home`, `Search`, `MessageCircle`, `Bell`, `User/Shield/Stethoscope/Building2` -- all semantically accurate for the bottom navigation context.
+### DEV-3: Doctor Dashboard Page Header -- No Hero Section (Low)
+**File:** `src/pages/doctor/DoctorDashboard.tsx` (lines 184-208)
 
-### 5. E-Commerce Overview (`src/components/admin/dashboard/ECommerceOverview.tsx`)
+The Doctor Dashboard uses a simple flex header (title left, buttons right) without any background card/gradient. The Clinic Dashboard wraps its header in a polished hero card: `bg-gradient-to-br from-white via-white to-primary/5 rounded-xl sm:rounded-2xl lg:rounded-3xl p-4 sm:p-5 lg:p-6 xl:p-8 shadow-lg`.
 
-| Current | Label | New | Rationale |
-|---|---|---|---|
-| `ShoppingCart` | Total Orders | `Truck` | Fulfillment context |
-| `Clock` | Pending | `CalendarClock` | Time-aware pending state |
+**Fix:** Wrap the Doctor Dashboard welcome section in a styled hero card matching the Clinic Dashboard pattern, with avatar, name, date, verification badge, and action buttons.
 
-### 6. Platform Overview (`src/components/admin/dashboard/PlatformOverview.tsx`)
+---
 
-| Current | Label | New | Rationale |
-|---|---|---|---|
-| `CalendarDays` | Appointments | `CalendarClock` | Time-slot booking feel |
-| `MessageSquare` | Posts | `MessageCircleHeart` | Social posts with community heart |
-| `Users` | Users | `ShieldCheck` | Managed/verified users |
+### DEV-4: BlogArticlePage Uses `rounded-lg` Instead of `rounded-xl` (Low)
+**File:** `src/pages/BlogArticlePage.tsx` (line 83)
 
-### 7. Clinic Dashboard Quick Stats (`src/components/clinic/QuickStatsOverview.tsx`)
+Featured image container uses `rounded-lg` instead of the standard `rounded-xl`.
 
-| Current | Label | New | Rationale |
-|---|---|---|---|
-| `Calendar` | Today | `CalendarClock` | Time-aware appointments |
-| `Activity` | This Week | `HeartPulse` | Medical activity pulse |
+**Fix:** Change to `rounded-xl`.
 
-## Visual Polish (Tailwind Classes)
+---
 
-### Increased Whitespace
-- StatCard / QuickStatsOverview card padding: `p-3 sm:p-4` to `p-4 sm:p-5` (inner content area)
-- ClinicDashboard stats grid cards: `p-3 sm:p-4 lg:p-6` to `p-4 sm:p-5 lg:p-6` (minor bump on small)
+### DEV-5: AdminProducts Inline Buttons Use `rounded-lg` (Low)
+**File:** `src/pages/admin/AdminProducts.tsx` (lines 514-538)
 
-### Softened Borders
-- Verify all Cards already use `rounded-xl` or `rounded-2xl` -- they do. No changes needed here.
-- DoctorCard and ClinicCard already use `rounded-xl sm:rounded-2xl` -- correct.
+Inline quick-edit buttons and stock input use `rounded-lg` instead of the global button standard `rounded-xl`. These are small inline action buttons so `rounded-lg` is acceptable at this scale, but for consistency they should use `rounded-xl`.
 
-### Button Hierarchy
-Already follows the correct pattern:
-- "Book Now", "Add Appointment", "Checkout" = `variant="default"` (solid primary)
-- "View Profile", "View Details", "Edit" = `variant="outline"` or `variant="secondary"`
-- No violations found.
+**Fix:** Change `rounded-lg` to `rounded-xl` on inline product action buttons and stock input.
 
-### Touch Targets
-All mobile clickable elements already enforce `min-h-[44px]` or use `h-9 w-9` / `h-10 w-10` wrappers. No changes needed.
+---
 
 ## Summary of Changes
 
-| File | Changes |
-|---|---|
-| `AdminSidebar.tsx` | 6 icon swaps in imports and `navSections` |
-| `AdminMobileNav.tsx` | 6 icon swaps (same set) |
-| `Navbar.tsx` | 2 icon swaps (Feed, Blog) |
-| `ECommerceOverview.tsx` | 2 icon swaps |
-| `PlatformOverview.tsx` | 3 icon swaps |
-| `QuickStatsOverview.tsx` | 2 icon swaps + padding bump `p-3 sm:p-4` to `p-4 sm:p-5` |
+| File | Change | Severity |
+|---|---|---|
+| `DoctorDashboard.tsx` | Refactor stat cards to stacked layout (icon top, value below) matching Clinic Dashboard | Medium |
+| `DoctorDashboard.tsx` | Add hero card wrapper around welcome section | Low |
+| `DoctorDashboard.tsx` | Upgrade hover effects to `shadow-xl` + `translate-y` | Low |
+| `BlogArticlePage.tsx` | `rounded-lg` to `rounded-xl` on featured image | Low |
+| `AdminProducts.tsx` | `rounded-lg` to `rounded-xl` on inline buttons | Low |
 
-**Total: 6 files, 21 icon replacements, 1 padding adjustment. No new dependencies. No database changes.**
+**Total: 3 files, 5 changes. No database changes. No new dependencies.**
+
+The highest-impact change is DEV-1 (Doctor Dashboard stat cards), which will bring the Doctor portal into visual parity with the Clinic and Admin portals.
+
+## Technical Details
+
+### DEV-1 Implementation (Doctor Stat Cards)
+Replace the current `statCards.map` block (lines 216-238) with the Clinic Dashboard pattern:
+- Each card gets `className={cn("cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-border/50 bg-white active:scale-[0.98]", activeTab === stat.tab && "ring-2 ring-primary shadow-xl")}`
+- `CardContent` uses `p-3 sm:p-4 lg:p-6`
+- Icon container: `w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br {colorGradient}`
+- Value/label stacked below icon
+
+### DEV-3 Implementation (Doctor Hero Card)
+Wrap lines 185-208 in:
+```
+<div className="bg-gradient-to-br from-white via-white to-primary/5 rounded-xl sm:rounded-2xl lg:rounded-3xl p-4 sm:p-5 lg:p-6 xl:p-8 shadow-lg shadow-black/5 border border-border/50 mb-4 sm:mb-6 lg:mb-8 relative overflow-hidden">
+```
+Add Doctor avatar, verification badge inline, and decorative accent circle (matching Clinic Dashboard).
 
