@@ -57,7 +57,7 @@ const MobileNav = forwardRef<HTMLElement, object>((_, ref) => {
               key={index}
               to={item.path}
               onTouchStart={() => prefetchRoute(item.path)}
-              className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors active:scale-95 ${
+              className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors active:scale-95 active:bg-primary/10 rounded-lg ${
                 active ? 'text-primary' : 'text-muted-foreground'
               }`}
             >

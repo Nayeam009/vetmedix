@@ -177,9 +177,15 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Ensure touch targets are large enough */
+  /* Ensure touch targets are large enough - 44px on mobile (WCAG), 32px on desktop */
   button, a, [role="button"], input[type="checkbox"], input[type="radio"] {
-    min-height: 32px;
+    min-height: 44px;
+  }
+
+  @media (min-width: 768px) {
+    button, a, [role="button"], input[type="checkbox"], input[type="radio"] {
+      min-height: 32px;
+    }
   }
 
   /* Improve image rendering */
