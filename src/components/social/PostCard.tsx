@@ -101,6 +101,7 @@ const PostCardComponent = ({ post, onLike, onUnlike, onDelete, onCommentCountCha
     : post.content;
 
   return (
+    <div>
     <article className="bg-card rounded-xl sm:rounded-2xl shadow-sm border border-border/50 overflow-hidden">
       {/* Header */}
       <div className="flex items-start justify-between p-3 sm:p-4 pb-2 sm:pb-3">
@@ -286,6 +287,7 @@ const PostCardComponent = ({ post, onLike, onUnlike, onDelete, onCommentCountCha
         </div>
       )}
     </article>
+    </div>
   );
 };
 
