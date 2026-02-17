@@ -1,88 +1,80 @@
 
-# Phase 2: Engine-Specific Fixes
 
-This plan addresses all three engines (Social, E-commerce, Trust) with targeted fixes based on the audit findings and current codebase state.
+# Phase 3: "App-Like" Polish -- Performance and UX
 
----
-
-## A. Engagement Engine (Social Feed)
-
-### A1. Feed Virtualization for Smooth Mobile Scrolling
-- The feed currently renders all loaded posts in a flat list. On mobile with many posts, this causes jank during scrolling.
-- Add CSS `content-visibility: auto` with `contain-intrinsic-size` on each PostCard wrapper in the feed to enable browser-native virtualization (lightweight, no new dependency needed).
-- This approach works with the existing infinite scroll sentinel pattern.
-
-### A2. Image Upload Rendering Fix
-- The `CreatePostCard` compresses images before upload, but the `PostCard` media grid doesn't enforce `aspect-ratio` on individual media items, which can cause CLS when images load.
-- Add explicit `width` and `height` attributes to `LazyImage` in the PostCard media grid to prevent layout shift.
-- Ensure fallback skeleton placeholder dimensions match the final rendered image size.
-
-### A3. Optimistic UI Already Implemented -- Verify & Harden
-- Like/Unlike already uses optimistic updates in `usePosts` hook (confirmed in code review).
-- Comments section needs verification -- ensure the comment count updates optimistically when a user posts a comment.
-- Add a debounce guard on the like button to prevent double-tap race conditions on mobile (the current `isLiking` state resets after 300ms but doesn't actually block rapid clicks).
+This phase converts Vetmedix from a "website" feel into a smooth, native-like web app experience. Most of the heavy lifting is already done -- this plan targets the remaining gaps.
 
 ---
 
-## B. Revenue Engine (E-commerce)
+## What's Already Working (No Changes Needed)
 
-### B1. Checkout Flow -- Already Fixed (Verify)
-- Stock decrement (C1), atomic coupon increment (M3), and auth guard at mount (M4) were implemented in the previous phase.
-- Verify the `decrement_stock` and `increment_coupon_usage` RPC functions are deployed and callable.
+These items from the request are already implemented correctly:
 
-### B2. Cart Persistence -- Already Working
-- Cart state is persisted via `localStorage` in `CartContext` (confirmed in code review). No fix needed.
-
-### B3. Product Image CLS Prevention
-- `ProductCard` already uses `AspectRatio` with ratio={1} wrapping `OptimizedImage` -- this is correctly preventing CLS.
-- The `ShopPage` product grid needs `min-h` constraints on the grid container to reserve space while products load, similar to the admin dashboard fix.
-
-### B4. Real-Time Stock Updates for Users
-- When an admin updates stock via the Quick Stock Update feature, regular users on the Shop page should see the change.
-- Enable Supabase Realtime on the `products` table and add a subscription in `ShopPage` that invalidates the React Query cache when product data changes.
-- This ensures stock badges ("Stock Out", "X left") update without page refresh.
+- **Route transitions**: CSS-only `animate-page-enter` (fade + slide-up, 250ms) via `PageTransition` wrapper in `App.tsx` -- lightweight, no Framer Motion needed.
+- **Lazy loading**: All 50+ routes use `React.lazy()` with a shared `Suspense` fallback (slim progress bar).
+- **Feed skeletons**: `FeedSkeletons` and `PostCardSkeleton` are used in `FeedPage.tsx` for loading states.
+- **Admin mobile sidebar**: `AdminHeader` already renders a `Sheet` with `AdminMobileNav` on mobile, auto-closing on link click.
+- **Main mobile nav**: Bottom tab bar (`MobileNav`) + hamburger `Sheet` sidebar in `Navbar`, both with `min-h-[44px]` touch targets and `active:scale-[0.98]` feedback.
+- **Input iOS zoom prevention**: `input.tsx` already uses `text-base` (16px) on mobile, preventing Safari auto-zoom.
+- **Image lazy loading**: `OptimizedImage` and `LazyMedia` components use `loading="lazy"` by default; hero images use `loading="eager"`.
 
 ---
 
-## C. Trust Engine (Clinic and Doctor)
+## Changes Required
 
-### C1. RLS Verification -- Already Secure
-- Reviewed all RLS policies on `appointments`, `clinics`, `doctors`, `clinic_doctors` tables.
-- Doctors can only view appointments where `doctor_id` matches their own record (via `get_doctor_id(auth.uid())`).
-- Clinic owners can only view appointments/doctors for their own clinic (via `is_clinic_owner` or `owner_user_id` check).
-- No cross-clinic data leakage found.
+### 1. Fix iOS Auto-Zoom on Textarea and Select (Accessibility)
 
-### C2. Appointment Calendar Mobile Responsiveness
-- `ClinicAppointmentsList` already uses a Card-based layout (not a table) with grouped-by-date cards. This is mobile-friendly.
-- Improve the time badge and action buttons sizing for small screens -- ensure touch targets remain at least 44x44px.
-- Add horizontal scrolling safeguard on the status filter pills (already implemented with `overflow-x-auto`).
+**Problem**: `textarea.tsx` and `select.tsx` use `text-sm` (14px) on all screen sizes. On iOS Safari, any input with font-size below 16px triggers an automatic zoom that disorients users.
 
-### C3. Clinic Owner Edit Flow Verification
-- The `ClinicProfile` page allows clinic owners to edit details. Verify the update mutation uses the correct RLS policy (`owner_user_id = auth.uid()`).
-- Ensure the edit form doesn't submit empty required fields (clinic `name` is NOT NULL).
+**Files**: `src/components/ui/textarea.tsx`, `src/components/ui/select.tsx`
 
-### C4. Appointment Slot Filtering in Wizard
-- The `BookAppointmentWizard` shows available time slots based on doctor schedules, but doesn't filter out already-booked slots.
-- Fetch existing appointments for the selected date/doctor from the `appointments` table and grey out or hide already-taken time slots.
-- This gives users visual feedback before they attempt to book, complementing the server-side duplicate check added in Phase 1.
+**Change**: Apply the same pattern as `input.tsx` -- use `text-base md:text-sm` so mobile gets 16px and desktop gets 14px.
+
+### 2. Increase Base Touch Target from 32px to 44px (Mobile UX)
+
+**Problem**: The global CSS rule in `index.css` sets `min-height: 32px` for buttons, links, and interactive elements. The WCAG recommended minimum is 44px on touch devices.
+
+**File**: `src/index.css` (line 182)
+
+**Change**: Update the base rule to use `min-height: 44px` on mobile only via a media query, keeping 32px on desktop where mouse precision is higher.
+
+### 3. Add Skeleton Loaders to ShopPage Product Grid
+
+**Problem**: The ShopPage shows a skeleton grid during loading, but the product grid container has no reserved height during the initial empty state, causing a brief layout shift.
+
+**File**: `src/pages/ShopPage.tsx`
+
+**Change**: The `min-h-[400px]` was already added in the previous phase. Verify the skeleton cards have explicit `aspect-ratio` to match final card dimensions and prevent CLS. If needed, add `aspect-square` to skeleton items.
+
+### 4. Enhance Page Transition Smoothness
+
+**Problem**: The current `animate-page-enter` uses a simple fade+slide. On faster navigations, there's a brief flash because `ScrollToTop` resets scroll position before the animation starts.
+
+**File**: `src/App.tsx`
+
+**Change**: Wrap the scroll-to-top call in a `requestAnimationFrame` to sync with the paint cycle, eliminating the visual flash during fast route transitions.
+
+### 5. Add Haptic-Style Feedback to Bottom Navigation
+
+**Problem**: The bottom `MobileNav` icons lack visual pressed state beyond `active:scale-95`.
+
+**File**: `src/components/MobileNav.tsx`
+
+**Change**: Add a subtle background highlight on press (`active:bg-primary/10`) for tactile feedback, matching the Sheet sidebar pattern.
 
 ---
 
-## Technical Implementation Details
+## Technical Details
 
-### Files to Modify
+| File | Change | Risk |
+|------|--------|------|
+| `src/components/ui/textarea.tsx` | `text-sm` to `text-base md:text-sm` | None -- matches input.tsx pattern |
+| `src/components/ui/select.tsx` | `text-sm` to `text-base md:text-sm` (SelectTrigger only) | None -- matches input.tsx pattern |
+| `src/index.css` (line 182) | Media query for 44px touch targets on mobile | Low -- only affects mobile |
+| `src/App.tsx` (ScrollToTop) | Wrap `scrollTo` in `requestAnimationFrame` | None |
+| `src/components/MobileNav.tsx` | Add `active:bg-primary/10` to nav items | None -- additive CSS |
 
-| File | Changes |
-|------|---------|
-| `src/pages/FeedPage.tsx` | Add `content-visibility` CSS optimization on post wrappers |
-| `src/components/social/PostCard.tsx` | Harden like button with debounce guard |
-| `src/components/social/LazyMedia.tsx` | Add explicit width/height for CLS prevention |
-| `src/pages/ShopPage.tsx` | Add `min-h` on product grid, add realtime subscription for products |
-| `src/components/booking/BookAppointmentWizard.tsx` | Fetch booked slots and filter available times |
-| `src/pages/clinic/ClinicDashboard.tsx` | Minor touch target adjustments |
+### No New Dependencies
 
-### New Migration
-- `ALTER PUBLICATION supabase_realtime ADD TABLE public.products;` to enable real-time stock sync for shoppers.
+All changes use existing CSS, browser APIs, and Tailwind utilities. No Framer Motion or other animation libraries needed -- the existing CSS-only approach is lighter and already performant.
 
-### No New Dependencies Required
-- All optimizations use existing browser APIs (`content-visibility`, `IntersectionObserver`) and existing Supabase Realtime SDK.
