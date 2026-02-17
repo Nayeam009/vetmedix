@@ -280,7 +280,7 @@ const DoctorVerificationPage = () => {
     <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background to-background pb-20 md:pb-0">
       <Navbar />
 
-      <main className="container mx-auto px-4 py-6 max-w-2xl">
+      <main id="main-content" className="container mx-auto px-4 py-6 max-w-2xl">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <Button

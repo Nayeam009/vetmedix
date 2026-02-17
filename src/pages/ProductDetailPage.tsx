@@ -200,6 +200,7 @@ const ProductDetailPage = () => {
         url={`https://vetmedix.lovable.app/product/${product.id}`}
         type="product"
         schema={productSchema}
+        canonicalUrl={`https://vetmedix.lovable.app/product/${product.id}`}
       />
       <Navbar />
       
@@ -222,7 +223,7 @@ const ProductDetailPage = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6 lg:py-10">
+      <main id="main-content" className="container mx-auto px-4 py-6 lg:py-10">
         {/* Back Button - Mobile Only */}
         <button 
           onClick={() => navigate(-1)}
@@ -263,6 +264,7 @@ const ProductDetailPage = () => {
               <div className="absolute top-4 right-4 flex flex-col gap-2">
                 <button 
                   onClick={() => id && toggleWishlist(id)}
+                  aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
                   className={`h-10 w-10 rounded-full flex items-center justify-center transition-all shadow-sm ${
                     wishlisted 
                       ? 'bg-destructive text-destructive-foreground' 
@@ -271,7 +273,10 @@ const ProductDetailPage = () => {
                 >
                   <Heart className={`h-5 w-5 ${wishlisted ? 'fill-current' : ''}`} />
                 </button>
-                <button className="h-10 w-10 rounded-full bg-background border border-border flex items-center justify-center hover:border-primary transition-all shadow-sm">
+                <button 
+                  aria-label="Share product"
+                  className="h-10 w-10 rounded-full bg-background border border-border flex items-center justify-center hover:border-primary transition-all shadow-sm"
+                >
                   <Share2 className="h-5 w-5" />
                 </button>
               </div>
@@ -284,6 +289,7 @@ const ProductDetailPage = () => {
                   <button
                     key={idx}
                     onClick={() => setSelectedImage(idx)}
+                    aria-label={`View image ${idx + 1} of ${productImages.length}`}
                     className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 transition-all ${
                       selectedImage === idx 
                         ? 'border-primary ring-2 ring-primary/20' 
@@ -457,6 +463,7 @@ const ProductDetailPage = () => {
                 <div className="flex items-center">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    aria-label="Decrease quantity"
                     className="h-10 w-10 rounded-l-lg border border-border flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-50"
                     disabled={quantity <= 1}
                   >
@@ -467,6 +474,7 @@ const ProductDetailPage = () => {
                   </div>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
+                    aria-label="Increase quantity"
                     className="h-10 w-10 rounded-r-lg border border-border flex items-center justify-center hover:bg-muted transition-colors"
                   >
                     <Plus className="h-4 w-4" />
@@ -561,6 +569,7 @@ const ProductDetailPage = () => {
                 <div className="flex items-center">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    aria-label="Decrease quantity"
                     className="h-9 w-9 rounded-l-lg border border-border flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-50"
                     disabled={quantity <= 1}
                   >
@@ -571,6 +580,7 @@ const ProductDetailPage = () => {
                   </div>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
+                    aria-label="Increase quantity"
                     className="h-9 w-9 rounded-r-lg border border-border flex items-center justify-center hover:bg-muted transition-colors"
                   >
                     <Plus className="h-4 w-4" />
@@ -728,7 +738,7 @@ const ProductDetailPage = () => {
             </div>
           </div>
         )}
-      </div>
+      </main>
       <MobileNav />
     </div>
   );

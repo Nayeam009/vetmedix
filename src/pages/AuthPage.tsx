@@ -356,7 +356,7 @@ const AuthPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
+    <main id="main-content" className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
       <div className="w-full max-w-md">
         <div className="bg-card border border-border rounded-2xl shadow-xl p-6 sm:p-8">
           {/* Header */}
@@ -616,7 +616,7 @@ const AuthPage = () => {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 

@@ -271,7 +271,7 @@ const ClinicProfile = () => {
     <div className="min-h-screen bg-gradient-to-b from-orange-50/30 via-background to-background pb-24 md:pb-8">
       <Navbar />
       
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-3xl">
+      <main id="main-content" className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-3xl">
         {/* Header */}
         <div className="flex items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="flex items-center gap-3 sm:gap-4">

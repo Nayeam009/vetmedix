@@ -90,7 +90,7 @@ const MessagesPage = () => {
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-6 max-w-2xl" role="main" aria-label="Messages">
+      <main id="main-content" className="container mx-auto px-4 py-6 max-w-2xl" role="main" aria-label="Messages">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold" id="messages-heading">Messages</h1>
         </div>

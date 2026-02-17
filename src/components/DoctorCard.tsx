@@ -61,7 +61,7 @@ const DoctorCard = memo(({
     .slice(0, 2);
 
   return (
-    <div className="group bg-card rounded-xl sm:rounded-2xl border border-border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+    <article className="group bg-card rounded-xl sm:rounded-2xl border border-border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden" aria-label={`Dr. ${name}, ${specialization || 'General Veterinarian'}`}>
       {/* Header with avatar */}
       <div className="relative p-4 sm:p-5 pb-0">
         <div className="flex gap-3 sm:gap-4">
@@ -140,6 +140,10 @@ const DoctorCard = memo(({
           <div 
             className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors flex-1 min-w-0"
             onClick={() => navigate(`/clinic/${clinic_id}`)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && navigate(`/clinic/${clinic_id}`)}
+            aria-label={`View ${clinic_name} clinic`}
           >
             <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
             <span className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
@@ -190,7 +194,7 @@ const DoctorCard = memo(({
           {is_available ? 'Book Now' : 'Unavailable'}
         </Button>
       </div>
-    </div>
+    </article>
   );
 });
 
