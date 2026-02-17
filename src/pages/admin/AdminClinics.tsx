@@ -242,10 +242,6 @@ const AdminClinics = () => {
     },
   });
 
-  return (
-    <RequireAdmin>
-    <AdminLayout title="Clinics Management" subtitle="Manage and verify veterinary clinics">
-
   // Filter clinics
   const filteredClinics = clinics?.filter((clinic) => {
     const matchesSearch =
@@ -265,6 +261,7 @@ const AdminClinics = () => {
   const blockedCount = clinics?.filter(c => c.is_blocked).length || 0;
 
   return (
+    <RequireAdmin>
     <AdminLayout title="Clinics Management" subtitle="Manage and verify veterinary clinics">
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
