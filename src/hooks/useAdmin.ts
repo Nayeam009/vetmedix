@@ -53,14 +53,14 @@ export const useAdminStats = () => {
         supabase.from('appointments').select('*', { count: 'exact', head: true }),
         supabase.from('clinics').select('*', { count: 'exact', head: true }).eq('is_verified', true),
         supabase.from('doctors').select('*', { count: 'exact', head: true }).eq('verification_status', 'pending'),
-        supabase.from('orders').select('*', { count: 'exact', head: true }),
-        supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('orders').select('*', { count: 'exact', head: true }).in('status', ['cancelled', 'rejected']),
+        supabase.from('orders').select('*', { count: 'exact', head: true }).is('trashed_at', null),
+        supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending').is('trashed_at', null),
+        supabase.from('orders').select('*', { count: 'exact', head: true }).in('status', ['cancelled', 'rejected']).is('trashed_at', null),
         supabase.from('posts').select('*', { count: 'exact', head: true }).gte('created_at', today),
         supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('appointment_date', today),
-        supabase.from('orders').select('id, total_amount, status, created_at').order('created_at', { ascending: false }).limit(5),
+        supabase.from('orders').select('id, total_amount, status, created_at').is('trashed_at', null).order('created_at', { ascending: false }).limit(5),
         // Only fetch amount+status for revenue calc — minimal columns
-        supabase.from('orders').select('total_amount, status'),
+        supabase.from('orders').select('total_amount, status').is('trashed_at', null),
       ]);
 
       const rows = revenueRows || [];

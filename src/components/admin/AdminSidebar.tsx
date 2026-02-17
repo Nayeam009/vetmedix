@@ -19,6 +19,7 @@ import {
   MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { prefetchRoute } from '@/lib/imageUtils';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -201,6 +202,7 @@ export const AdminSidebar = ({ collapsed, onToggle, pendingOrders = 0, pendingVe
                       <Link
                         key={item.path}
                         to={item.path}
+                        onMouseEnter={() => prefetchRoute(item.path)}
                         className={cn(
                           "relative flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200",
                           collapsed ? "px-3 py-2.5 justify-center mx-auto" : "px-3 py-2.5",
