@@ -82,7 +82,7 @@ export const CreatePostCard = forwardRef<HTMLDivElement, CreatePostCardProps>(({
       }
     } else {
       if (file.size > MAX_VIDEO_SIZE) {
-        toast.error(`Video "${file.name}" exceeds 20MB limit`);
+        toast.error(`Video "${file.name}" exceeds 50MB limit`);
         return false;
       }
 

@@ -47,6 +47,7 @@ import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 import { createNotification, getAdminUserIds } from '@/lib/notifications';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { getSignedUrl } from '@/lib/storageUtils';
 import { useAdmin } from '@/hooks/useAdmin';
 import { RequireAdmin } from '@/components/admin/RequireAdmin';
 
@@ -523,11 +524,18 @@ const AdminDoctors = () => {
               {selectedDoctor.bvc_certificate_url && (
                 <div>
                   <Label className="text-xs text-muted-foreground">BVC Certificate</Label>
-                  <Button variant="outline" size="sm" className="mt-1" asChild>
-                    <a href={selectedDoctor.bvc_certificate_url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      View Document
-                    </a>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-1" 
+                    onClick={async () => {
+                      const url = await getSignedUrl(selectedDoctor.bvc_certificate_url!, 'doctor-documents');
+                      if (url) window.open(url, '_blank');
+                      else toast.error('Failed to load document');
+                    }}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    View Document
                   </Button>
                 </div>
               )}
