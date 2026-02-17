@@ -2,6 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 import type { Notification } from '@/types/social';
 
 export const useNotifications = () => {
@@ -48,6 +49,14 @@ export const useNotifications = () => {
         (payload) => {
           // Invalidate instead of optimistic set to get joined actor_pet data
           queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
+          
+          // Show toast for new notifications (TRG-1)
+          if (payload.eventType === 'INSERT' && payload.new) {
+            const n = payload.new as { title?: string; message?: string };
+            toast(n.title || 'New notification', {
+              description: n.message || undefined,
+            });
+          }
         }
       )
       .subscribe();
