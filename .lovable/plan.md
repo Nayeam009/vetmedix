@@ -1,115 +1,69 @@
 
-# Unify All Admin Stat Cards to Match Analytics Page Design
 
-## Problem
-The admin panel has 7+ different stat card designs across pages. The user wants ALL cards to look like the **Analytics page** cards -- large rounded cards with uppercase title, big bold number, icon circle on the right, subtitle below, and colored gradient backgrounds in a grid layout.
+# Admin Panel Optimization and Bug Fixes
 
-## Target Design (from Analytics page screenshots)
-- Rounded card (`rounded-xl sm:rounded-2xl`) with soft colored border/background gradient
-- Layout: Title (uppercase, small) at top-left, large bold number below, icon circle at top-right
-- Subtitle/description text below the number
-- Grid layout (`grid grid-cols-2`) instead of horizontal scrolling
-- Clickable with hover/active feedback
-- `AnalyticsStatCard` component is already the canonical implementation
+## Issues Found
 
-## Pages and Components to Update
+### 1. Dashboard Stats Include Trashed Orders (Bug)
+The `useAdminStats` hook in `src/hooks/useAdmin.ts` counts ALL orders including trashed ones for `totalOrders`, `pendingOrders`, `cancelledOrders`, and revenue calculations. This means the dashboard shows inflated numbers.
 
-### 1. `src/components/admin/StatCard.tsx` (Dashboard overview cards)
-- Already very close to AnalyticsStatCard -- just align title to uppercase tracking-wider, match sizing exactly
+**Fix**: Add `.is('trashed_at', null)` filter to all order queries in `useAdminStats`.
 
-### 2. `src/components/admin/OrderStatsBar.tsx` (Orders page)
-- Currently: horizontal scroll button cards with icon-left layout
-- Change to: grid of AnalyticsStatCard-style cards
+### 2. Slow Page Transitions Between Admin Pages
+Admin routes are lazy-loaded but there's no prefetching when hovering sidebar/mobile nav links. This causes a loading flash when navigating.
 
-### 3. `src/components/admin/ProductStatsBar.tsx` (Products page)
-- Currently: horizontal scroll button cards with icon-left layout
-- Change to: grid of AnalyticsStatCard-style cards
+**Fix**: Add route prefetching to `AdminSidebar.tsx` and `AdminMobileNav.tsx` using `onMouseEnter`/`onTouchStart` handlers that trigger dynamic imports for the target page chunks.
 
-### 4. `src/pages/admin/AdminIncompleteOrders.tsx` (inline StatCard)
-- Currently: Card-wrapped horizontal layout
-- Change to: AnalyticsStatCard-style grid cards
+### 3. Realtime: delivery_zones Table Not Subscribed
+The `useAdminRealtimeDashboard` hook doesn't subscribe to `delivery_zones` table changes. If another admin updates zones, the current admin won't see changes.
 
-### 5. `src/pages/admin/AdminRecoveryAnalytics.tsx` (inline StatCard)
-- Currently: Card-wrapped horizontal layout
-- Change to: AnalyticsStatCard-style grid cards
+**Fix**: Add `delivery_zones` subscription to the centralized realtime hook.
 
-### 6. `src/pages/admin/AdminSocial.tsx` (inline StatCard)
-- Currently: Card-wrapped with centered icon, grid layout
-- Change to: AnalyticsStatCard-style with icon at top-right
+### 4. Dashboard Stats Query Not Excluding Trashed from Revenue
+The revenue calculation fetches `total_amount, status` from orders but doesn't filter out trashed orders, leading to inaccurate revenue display.
 
-### 7. `src/pages/admin/AdminEcommerceCustomers.tsx` (EcomStatCard)
-- Currently: centered vertical layout
-- Change to: AnalyticsStatCard-style with title-top, number-below, icon-right
+**Fix**: Add trashed_at filter to the revenue query as well.
 
-### 8. `src/pages/admin/AdminCustomers.tsx` (User Management stats)
-- Currently: horizontal scroll button cards
-- Change to: grid of AnalyticsStatCard-style cards
+### 5. AdminOrders: Trashed Count Not Refreshing in Stats
+When trashing/restoring on the Orders page, the `admin-stats` query isn't invalidated, so the dashboard stat cards show stale data.
 
-### 9. `src/pages/admin/AdminDoctors.tsx` (Doctor stats)
-- Currently: horizontal scroll button cards
-- Change to: grid of AnalyticsStatCard-style cards
-
-### 10. `src/pages/admin/AdminClinics.tsx` (Clinic stats)
-- Currently: horizontal scroll button cards
-- Change to: grid of AnalyticsStatCard-style cards
-
-### 11. `src/pages/admin/AdminCoupons.tsx` (Coupon stats)
-- Currently: horizontal scroll button cards
-- Change to: grid of AnalyticsStatCard-style cards
-
-### 12. `src/components/admin/dashboard/ECommerceOverview.tsx` and `PlatformOverview.tsx`
-- Already use `StatCard` component -- will be updated via StatCard changes
-
-## Implementation Approach
-
-Rather than importing `AnalyticsStatCard` everywhere (it has trend/href props not all pages need), the approach will be:
-
-1. **Update `StatCard.tsx`** to exactly match `AnalyticsStatCard` styling (uppercase title, consistent sizing)
-2. **Replace inline stat cards** in each page with direct use of the `AnalyticsStatCard` component where appropriate, or replicate the exact same CSS pattern inline
-3. **Switch layouts from horizontal scroll to grid**: `grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3`
-4. **Apply colored gradient backgrounds** to each card matching the Analytics page color coding
+**Fix**: Add `admin-stats` invalidation to trash/restore/delete operations in `AdminOrders.tsx`.
 
 ## Technical Details
 
-### Card CSS Pattern (unified)
-```
-bg-card rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-5 border border-border shadow-sm
-hover:shadow-md transition-all
-```
+### File 1: `src/hooks/useAdmin.ts`
+- Add `.is('trashed_at', null)` to these queries inside `useAdminStats`:
+  - `totalOrders` count query
+  - `pendingOrdersCount` query
+  - `cancelledOrdersCount` query
+  - `recentOrders` data query
+  - `revenueRows` data query
 
-### Inner Layout Pattern
-```
-flex items-start justify-between gap-2 sm:gap-3
-  Left: title (uppercase tracking-wider text-[10px] sm:text-xs) + value (text-lg sm:text-xl lg:text-2xl font-bold) + subtitle
-  Right: icon circle (h-9 w-9 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl)
-```
+### File 2: `src/hooks/useAdminRealtimeDashboard.ts`
+- Add `delivery_zones` table subscription
+- Add `clinic_reviews` table subscription for rating updates
+- Add query invalidation for `admin-delivery-zones`
 
-### Grid Layout Pattern
-```
-grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mb-4 sm:mb-6
-```
-For pages with more than 4 cards: `grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6`
+### File 3: `src/components/admin/AdminSidebar.tsx`
+- Add `onMouseEnter` prefetch handlers on nav `Link` elements
+- Map each admin path to its lazy import for chunk preloading
 
-### Active/Filter State
-Cards that act as filters will add `ring-2 ring-{color}/50 cursor-pointer active:scale-[0.98]` when active, plus `onClick` handler.
+### File 4: `src/components/admin/AdminMobileNav.tsx`
+- Add `onTouchStart` prefetch handlers on mobile nav links
+- Same prefetch mapping as sidebar
 
-### Colored Backgrounds (per Analytics page design)
-Each card gets a subtle gradient background like:
-- `bg-gradient-to-br from-emerald-50 to-green-50/50 border-emerald-100` (light mode)
-- `dark:from-emerald-950/30 dark:to-green-950/20 dark:border-emerald-900/50` (dark mode)
+### File 5: `src/pages/admin/AdminOrders.tsx`
+- Add `admin-stats` invalidation in `trashOrder`, `restoreOrder`, and `permanentlyDeleteOrder` functions
+- Add `admin-pending-counts` invalidation too
 
-## Files to Edit (14 files)
-1. `src/components/admin/StatCard.tsx` - Align to AnalyticsStatCard styling
-2. `src/components/admin/OrderStatsBar.tsx` - Grid layout, AnalyticsStatCard style
-3. `src/components/admin/ProductStatsBar.tsx` - Grid layout, AnalyticsStatCard style
-4. `src/components/admin/OrdersSkeleton.tsx` - Update skeleton to match new grid
-5. `src/pages/admin/AdminIncompleteOrders.tsx` - Replace inline StatCard
-6. `src/pages/admin/AdminRecoveryAnalytics.tsx` - Replace inline StatCard
-7. `src/pages/admin/AdminSocial.tsx` - Replace inline StatCard
-8. `src/pages/admin/AdminEcommerceCustomers.tsx` - Replace EcomStatCard
-9. `src/pages/admin/AdminCustomers.tsx` - Replace inline scroll cards
-10. `src/pages/admin/AdminDoctors.tsx` - Replace inline scroll cards
-11. `src/pages/admin/AdminClinics.tsx` - Replace inline scroll cards
-12. `src/pages/admin/AdminCoupons.tsx` - Replace inline scroll cards
-13. `src/components/admin/dashboard/ECommerceOverview.tsx` - Minor alignment via StatCard
-14. `src/components/admin/dashboard/PlatformOverview.tsx` - Minor alignment via StatCard
+### File 6: `src/hooks/useIncompleteOrders.ts`
+- Add `admin-stats` invalidation in trash/restore/delete mutation `onSuccess` callbacks
+
+## Files to Edit (6 files)
+1. `src/hooks/useAdmin.ts` - Filter trashed orders from stats
+2. `src/hooks/useAdminRealtimeDashboard.ts` - Add missing table subscriptions
+3. `src/components/admin/AdminSidebar.tsx` - Add prefetching for faster navigation
+4. `src/components/admin/AdminMobileNav.tsx` - Add prefetching for mobile
+5. `src/pages/admin/AdminOrders.tsx` - Invalidate stats on trash actions
+6. `src/hooks/useIncompleteOrders.ts` - Invalidate stats on trash actions
+
