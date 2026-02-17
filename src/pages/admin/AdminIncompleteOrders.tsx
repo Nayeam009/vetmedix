@@ -20,26 +20,31 @@ import {
   ShoppingCart, TrendingUp, DollarSign, AlertTriangle,
   Search, Trash2, ArrowUpRight, Phone, Mail, MapPin, Clock, Package, Undo2
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
-const StatCard = ({ icon: Icon, label, value, color, active, onClick }: { icon: React.ElementType; label: string; value: string | number; color: string; active?: boolean; onClick?: () => void }) => (
-  <Card
-    className={`border-border/50 cursor-pointer transition-all hover:shadow-md active:scale-95 ${active ? 'ring-2 ring-primary shadow-md' : ''}`}
+const IncompleteStatCard = ({ icon: Icon, label, value, iconColor, iconBg, bgClass, active, onClick }: { icon: React.ElementType; label: string; value: string | number; iconColor: string; iconBg: string; bgClass: string; active?: boolean; onClick?: () => void }) => (
+  <div
+    className={cn(
+      'rounded-xl sm:rounded-2xl p-3 sm:p-4 border shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-[0.98]',
+      bgClass,
+      active && 'ring-2 ring-primary/50'
+    )}
     onClick={onClick}
     role="button"
     tabIndex={0}
     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick?.(); }}
   >
-    <CardContent className="p-4 flex items-center gap-3">
-      <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${color}`}>
-        <Icon className="h-5 w-5" />
+    <div className="flex items-start justify-between gap-2">
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider leading-tight mb-0.5 sm:mb-1">{label}</p>
+        <p className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{value}</p>
       </div>
-      <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-lg font-bold text-foreground">{value}</p>
+      <div className={cn('h-9 w-9 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0', iconBg)}>
+        <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5', iconColor)} />
       </div>
-    </CardContent>
-  </Card>
+    </div>
+  </div>
 );
 
 const CompletenessBadge = ({ value }: { value: number }) => {
@@ -205,12 +210,12 @@ const AdminIncompleteOrders = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          <StatCard icon={ShoppingCart} label="Incomplete" value={totalIncomplete} color="bg-amber-500/10 text-amber-600" active={statusFilter === 'incomplete'} onClick={() => setStatusFilter(f => f === 'incomplete' ? 'all' : 'incomplete')} />
-          <StatCard icon={TrendingUp} label="Recovered" value={totalRecovered} color="bg-green-500/10 text-green-600" active={statusFilter === 'recovered'} onClick={() => setStatusFilter(f => f === 'recovered' ? 'all' : 'recovered')} />
-          <StatCard icon={AlertTriangle} label="Recovery Rate" value={`${recoveryRate}%`} color="bg-blue-500/10 text-blue-600" onClick={() => navigate('/admin/recovery-analytics')} />
-          <StatCard icon={DollarSign} label="Lost Revenue" value={`৳${lostRevenue.toLocaleString()}`} color="bg-red-500/10 text-red-600" active={statusFilter === 'incomplete'} onClick={() => setStatusFilter(f => f === 'incomplete' ? 'all' : 'incomplete')} />
-          <StatCard icon={Trash2} label="Trashed" value={totalTrashed} color="bg-muted text-muted-foreground" active={statusFilter === 'trashed'} onClick={() => setStatusFilter(f => f === 'trashed' ? 'all' : 'trashed')} />
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
+          <IncompleteStatCard icon={ShoppingCart} label="Incomplete" value={totalIncomplete} iconColor="text-amber-600 dark:text-amber-400" iconBg="bg-amber-500/10" bgClass="bg-gradient-to-br from-amber-50 to-orange-50/50 border-amber-100 dark:from-amber-950/30 dark:to-orange-950/20 dark:border-amber-900/50" active={statusFilter === 'incomplete'} onClick={() => setStatusFilter(f => f === 'incomplete' ? 'all' : 'incomplete')} />
+          <IncompleteStatCard icon={TrendingUp} label="Recovered" value={totalRecovered} iconColor="text-emerald-600 dark:text-emerald-400" iconBg="bg-emerald-500/10" bgClass="bg-gradient-to-br from-emerald-50 to-green-50/50 border-emerald-100 dark:from-emerald-950/30 dark:to-green-950/20 dark:border-emerald-900/50" active={statusFilter === 'recovered'} onClick={() => setStatusFilter(f => f === 'recovered' ? 'all' : 'recovered')} />
+          <IncompleteStatCard icon={AlertTriangle} label="Recovery Rate" value={`${recoveryRate}%`} iconColor="text-blue-600 dark:text-blue-400" iconBg="bg-blue-500/10" bgClass="bg-gradient-to-br from-blue-50 to-indigo-50/50 border-blue-100 dark:from-blue-950/30 dark:to-indigo-950/20 dark:border-blue-900/50" onClick={() => navigate('/admin/recovery-analytics')} />
+          <IncompleteStatCard icon={DollarSign} label="Lost Revenue" value={`৳${lostRevenue.toLocaleString()}`} iconColor="text-red-600 dark:text-red-400" iconBg="bg-red-500/10" bgClass="bg-gradient-to-br from-red-50 to-rose-50/50 border-red-100 dark:from-red-950/30 dark:to-rose-950/20 dark:border-red-900/50" active={statusFilter === 'incomplete'} onClick={() => setStatusFilter(f => f === 'incomplete' ? 'all' : 'incomplete')} />
+          <IncompleteStatCard icon={Trash2} label="Trashed" value={totalTrashed} iconColor="text-muted-foreground" iconBg="bg-muted" bgClass="bg-muted/30 border-border" active={statusFilter === 'trashed'} onClick={() => setStatusFilter(f => f === 'trashed' ? 'all' : 'trashed')} />
         </div>
 
         {/* Revenue Banner */}

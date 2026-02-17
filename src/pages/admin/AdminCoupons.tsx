@@ -5,6 +5,7 @@ import {
   Loader2, AlertCircle, Plus, Pencil, Trash2, ToggleLeft, ToggleRight,
   Ticket, Percent, Truck, DollarSign, Copy, Check
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -200,26 +201,32 @@ const AdminCoupons = () => {
   return (
     <AdminLayout title="Coupons" subtitle="Create and manage discount coupons">
       {/* Stats Bar */}
-      <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1 mb-4 sm:mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
         {[
-          { key: 'all', label: 'Total', value: coupons.length, icon: Ticket, gradient: 'from-primary/10 to-accent/10', iconColor: 'text-primary', valueColor: 'text-foreground', activeRing: 'ring-primary/50' },
-          { key: 'active', label: 'Active', value: coupons.filter(c => c.is_active && !isExpired(c) && !isUsedUp(c)).length, icon: ToggleRight, gradient: 'from-emerald-500/10 to-green-500/10', iconColor: 'text-emerald-600 dark:text-emerald-400', valueColor: 'text-emerald-700 dark:text-emerald-300', activeRing: 'ring-emerald-400/50' },
-          { key: 'expired', label: 'Expired', value: coupons.filter(c => isExpired(c)).length, icon: ToggleLeft, gradient: 'from-red-500/10 to-rose-500/10', iconColor: 'text-red-600 dark:text-red-400', valueColor: 'text-red-700 dark:text-red-300', activeRing: 'ring-red-400/50' },
-          { key: 'used-up', label: 'Used Up', value: coupons.filter(c => isUsedUp(c)).length, icon: Check, gradient: 'from-amber-500/10 to-orange-500/10', iconColor: 'text-amber-600 dark:text-amber-400', valueColor: 'text-amber-700 dark:text-amber-300', activeRing: 'ring-amber-400/50' },
-        ].map(({ key, label, value, icon: Icon, gradient, iconColor, valueColor, activeRing }) => (
-          <button
+          { key: 'all', label: 'Total Coupons', value: coupons.length, icon: Ticket, iconColor: 'text-primary', iconBg: 'bg-primary/10', bgClass: 'bg-gradient-to-br from-primary/5 to-accent/5 border-primary/10 dark:from-primary/10 dark:to-accent/10 dark:border-primary/20' },
+          { key: 'active', label: 'Active', value: coupons.filter(c => c.is_active && !isExpired(c) && !isUsedUp(c)).length, icon: ToggleRight, iconColor: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-500/10', bgClass: 'bg-gradient-to-br from-emerald-50 to-green-50/50 border-emerald-100 dark:from-emerald-950/30 dark:to-green-950/20 dark:border-emerald-900/50' },
+          { key: 'expired', label: 'Expired', value: coupons.filter(c => isExpired(c)).length, icon: ToggleLeft, iconColor: 'text-red-600 dark:text-red-400', iconBg: 'bg-red-500/10', bgClass: 'bg-gradient-to-br from-red-50 to-rose-50/50 border-red-100 dark:from-red-950/30 dark:to-rose-950/20 dark:border-red-900/50' },
+          { key: 'used-up', label: 'Used Up', value: coupons.filter(c => isUsedUp(c)).length, icon: Check, iconColor: 'text-amber-600 dark:text-amber-400', iconBg: 'bg-amber-500/10', bgClass: 'bg-gradient-to-br from-amber-50 to-orange-50/50 border-amber-100 dark:from-amber-950/30 dark:to-orange-950/20 dark:border-amber-900/50' },
+        ].map(({ key, label, value, icon: Icon, iconColor, iconBg, bgClass }) => (
+          <div
             key={key}
-            onClick={() => {}}
-            className={`flex-shrink-0 bg-card rounded-xl sm:rounded-2xl border border-border shadow-sm hover:shadow-md transition-all flex items-center gap-2.5 sm:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 min-w-[100px] sm:min-w-[120px] active:scale-[0.98] hover:border-primary/20`}
+            className={cn(
+              'rounded-xl sm:rounded-2xl p-3 sm:p-4 border shadow-sm hover:shadow-md transition-all',
+              bgClass
+            )}
           >
-            <div className={`h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${gradient}`}>
-              <Icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${iconColor}`} />
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider leading-tight mb-0.5 sm:mb-1">
+                  {label}
+                </p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{value}</p>
+              </div>
+              <div className={cn('h-9 w-9 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0', iconBg)}>
+                <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5', iconColor)} />
+              </div>
             </div>
-            <div className="text-left min-w-0">
-              <p className={`text-base sm:text-lg lg:text-xl font-display font-bold leading-none ${valueColor}`}>{value}</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap mt-0.5">{label}</p>
-            </div>
-          </button>
+          </div>
         ))}
       </div>
 

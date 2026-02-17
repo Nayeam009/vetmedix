@@ -10,27 +10,31 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ShoppingCart, TrendingUp, DollarSign, Percent, Phone, Package } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { subDays, format, isAfter, startOfDay } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--muted-foreground))'];
 
-const StatCard = ({ icon: Icon, label, value, color, onClick }: { icon: React.ElementType; label: string; value: string | number; color: string; onClick?: () => void }) => (
-  <Card 
-    className="border-border/50 cursor-pointer transition-all hover:shadow-md active:scale-95"
+const RecoveryStatCard = ({ icon: Icon, label, value, iconColor, iconBg, bgClass, onClick }: { icon: React.ElementType; label: string; value: string | number; iconColor: string; iconBg: string; bgClass: string; onClick?: () => void }) => (
+  <div
+    className={cn(
+      'rounded-xl sm:rounded-2xl p-3 sm:p-4 border shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-[0.98]',
+      bgClass
+    )}
     onClick={onClick}
     role="button"
     tabIndex={0}
     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick?.(); }}
   >
-    <CardContent className="p-4 flex items-center gap-3">
-      <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${color}`}>
-        <Icon className="h-5 w-5" />
+    <div className="flex items-start justify-between gap-2">
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider leading-tight mb-0.5 sm:mb-1">{label}</p>
+        <p className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground">{value}</p>
       </div>
-      <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-lg font-bold text-foreground">{value}</p>
+      <div className={cn('h-9 w-9 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0', iconBg)}>
+        <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5', iconColor)} />
       </div>
-    </CardContent>
-  </Card>
+    </div>
+  </div>
 );
 
 const AdminRecoveryAnalytics = () => {
@@ -136,11 +140,11 @@ const AdminRecoveryAnalytics = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard icon={ShoppingCart} label="Total Incomplete" value={totalIncomplete} color="bg-amber-500/10 text-amber-600" onClick={() => navigate('/admin/incomplete-orders')} />
-          <StatCard icon={TrendingUp} label="Recovered" value={totalRecovered} color="bg-green-500/10 text-green-600" onClick={() => navigate('/admin/incomplete-orders')} />
-          <StatCard icon={Percent} label="Recovery Rate" value={`${recoveryRate}%`} color="bg-blue-500/10 text-blue-600" />
-          <StatCard icon={DollarSign} label="Recovered Revenue" value={`৳${recoveredRevenue.toLocaleString()}`} color="bg-emerald-500/10 text-emerald-600" onClick={() => navigate('/admin/incomplete-orders')} />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+          <RecoveryStatCard icon={ShoppingCart} label="Total Incomplete" value={totalIncomplete} iconColor="text-amber-600 dark:text-amber-400" iconBg="bg-amber-500/10" bgClass="bg-gradient-to-br from-amber-50 to-orange-50/50 border-amber-100 dark:from-amber-950/30 dark:to-orange-950/20 dark:border-amber-900/50" onClick={() => navigate('/admin/incomplete-orders')} />
+          <RecoveryStatCard icon={TrendingUp} label="Recovered" value={totalRecovered} iconColor="text-emerald-600 dark:text-emerald-400" iconBg="bg-emerald-500/10" bgClass="bg-gradient-to-br from-emerald-50 to-green-50/50 border-emerald-100 dark:from-emerald-950/30 dark:to-green-950/20 dark:border-emerald-900/50" onClick={() => navigate('/admin/incomplete-orders')} />
+          <RecoveryStatCard icon={Percent} label="Recovery Rate" value={`${recoveryRate}%`} iconColor="text-blue-600 dark:text-blue-400" iconBg="bg-blue-500/10" bgClass="bg-gradient-to-br from-blue-50 to-indigo-50/50 border-blue-100 dark:from-blue-950/30 dark:to-indigo-950/20 dark:border-blue-900/50" />
+          <RecoveryStatCard icon={DollarSign} label="Recovered Revenue" value={`৳${recoveredRevenue.toLocaleString()}`} iconColor="text-emerald-600 dark:text-emerald-400" iconBg="bg-emerald-500/10" bgClass="bg-gradient-to-br from-emerald-50 to-green-50/50 border-emerald-100 dark:from-emerald-950/30 dark:to-green-950/20 dark:border-emerald-900/50" onClick={() => navigate('/admin/incomplete-orders')} />
         </div>
 
         {/* Revenue Banners */}
