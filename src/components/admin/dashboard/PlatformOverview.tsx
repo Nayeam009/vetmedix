@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Users, Building2, MessageSquare, CalendarDays, Stethoscope } from 'lucide-react';
+import { Users, Building2, MessageSquare, CalendarDays, Stethoscope, FileText } from 'lucide-react';
 import { StatCard } from '@/components/admin/StatCard';
 
 interface PlatformOverviewProps {
@@ -13,6 +13,9 @@ interface PlatformOverviewProps {
     totalPosts?: number;
     postsToday?: number;
     totalUsers?: number;
+    totalArticles?: number;
+    draftArticles?: number;
+    publishedThisMonth?: number;
   } | undefined;
 }
 
@@ -21,7 +24,7 @@ export const PlatformOverview = memo(({ stats }: PlatformOverviewProps) => (
     <h2 className="text-xs sm:text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 sm:mb-3">
       Platform Overview
     </h2>
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 lg:gap-4">
       <StatCard
         title="Doctors"
         value={stats?.totalDoctors || 0}
@@ -53,6 +56,14 @@ export const PlatformOverview = memo(({ stats }: PlatformOverviewProps) => (
         description={`${stats?.postsToday || 0} today`}
         href="/admin/social"
         className="bg-gradient-to-br from-indigo-50 to-purple-50/50 border-indigo-100 dark:from-indigo-950/30 dark:to-purple-950/20 dark:border-indigo-900/50"
+      />
+      <StatCard
+        title="Articles"
+        value={stats?.totalArticles || 0}
+        icon={<FileText className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />}
+        description={`${stats?.draftArticles || 0} drafts`}
+        href="/admin/cms"
+        className="bg-gradient-to-br from-emerald-50 to-green-50/50 border-emerald-100 dark:from-emerald-950/30 dark:to-green-950/20 dark:border-emerald-900/50"
       />
       <StatCard
         title="Users"

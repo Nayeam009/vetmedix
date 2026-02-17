@@ -16,7 +16,8 @@ import {
   Stethoscope,
   Mail,
   Ticket,
-  MapPin
+  MapPin,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { prefetchRoute } from '@/lib/imageUtils';
@@ -68,6 +69,7 @@ const navSections: NavSection[] = [
       { icon: Building2, label: 'Clinics', path: '/admin/clinics', description: 'Verify & manage' },
       { icon: Stethoscope, label: 'Doctors', path: '/admin/doctors', description: 'Verify doctors' },
       { icon: MessageSquare, label: 'Social', path: '/admin/social', description: 'Posts & content' },
+      { icon: FileText, label: 'Content / CMS', path: '/admin/cms', description: 'Articles & blog' },
       { icon: Shield, label: 'User Management', path: '/admin/customers', description: 'Roles & permissions' },
       { icon: Mail, label: 'Messages', path: '/admin/messages', description: 'Contact submissions' },
     ]

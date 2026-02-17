@@ -7,6 +7,7 @@ const quickLinks = [
   { label: 'Shop', path: '/shop' },
   { label: 'Clinics', path: '/clinics' },
   { label: 'Doctors', path: '/doctors' },
+  { label: 'Blog', path: '/blog' },
   { label: 'About Us', path: '/about' },
   { label: 'Contact', path: '/contact' },
   { label: 'FAQs', path: '/faq' },

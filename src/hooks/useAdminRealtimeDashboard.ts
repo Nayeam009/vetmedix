@@ -111,6 +111,12 @@ export const useAdminRealtimeDashboard = (isAdmin: boolean) => {
         queryClient.invalidateQueries({ queryKey: ['admin-clinics'] });
         invalidateAll();
       })
+      // CMS articles
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cms_articles' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['cms-articles'] });
+        queryClient.invalidateQueries({ queryKey: ['cms-stats'] });
+        invalidateAll();
+      })
       .subscribe();
 
     return () => {
