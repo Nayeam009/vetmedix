@@ -1823,6 +1823,30 @@ export type Database = {
       }
     }
     Functions: {
+      book_appointment_atomic: {
+        Args: {
+          p_appointment_date?: string
+          p_appointment_time?: string
+          p_clinic_id: string
+          p_doctor_id?: string
+          p_pet_name?: string
+          p_pet_type?: string
+          p_reason?: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      create_order_with_stock: {
+        Args: {
+          p_coupon_id?: string
+          p_items: Json
+          p_payment_method?: string
+          p_shipping_address?: string
+          p_total_amount: number
+          p_user_id: string
+        }
+        Returns: string
+      }
       decrement_stock: {
         Args: { p_product_id: string; p_quantity: number }
         Returns: undefined

@@ -34,8 +34,14 @@ const ForgotPasswordPage = () => {
       setSent(true);
       toast.success('Password reset link sent to your email');
     } catch (error: any) {
-      console.error('Password reset error:', error);
-      toast.error(error.message || 'Failed to send reset link');
+      const friendlyMessages: Record<string, string> = {
+        'Email rate limit exceeded': 'Too many requests. Please wait a few minutes before trying again.',
+        'Unable to validate email address: invalid format': 'Please enter a valid email address.',
+        'For security purposes, you can only request this after': 'Please wait before requesting another reset link.',
+      };
+      const raw = error?.message || '';
+      const matched = Object.entries(friendlyMessages).find(([key]) => raw.includes(key));
+      toast.error(matched ? matched[1] : 'Failed to send reset link. Please try again.');
     } finally {
       setLoading(false);
     }

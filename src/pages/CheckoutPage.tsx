@@ -241,53 +241,34 @@ const CheckoutPage = () => {
     setLoading(true);
 
     try {
-      // Stock validation before placing order
-      const productIds = items.map(item => item.id);
-      const { data: stockData, error: stockError } = await supabase
-        .from('products')
-        .select('id, name, stock')
-        .in('id', productIds);
-
-      if (stockError) throw stockError;
-
-      const outOfStock = items.filter(item => {
-        const product = stockData?.find(p => p.id === item.id);
-        return product && product.stock !== null && product.stock < item.quantity;
-      });
-
-      if (outOfStock.length > 0) {
-        const names = outOfStock.map(i => i.name).join(', ');
-        toast({
-          title: 'Stock Unavailable',
-          description: `The following items are out of stock or have insufficient quantity: ${names}`,
-          variant: 'destructive',
-        });
-        setLoading(false);
-        return;
-      }
-
       const validatedData = validationResult.data;
       const shippingAddress = `${validatedData.fullName}, ${validatedData.phone}, ${validatedData.address}, ${validatedData.thana}, ${validatedData.district}, ${validatedData.division}`;
       
-      const { data: orderData, error } = await supabase.from('orders').insert([{
-        user_id: user.id,
-        items: items as any,
-        total_amount: grandTotal,
-        shipping_address: shippingAddress,
-        payment_method: paymentMethod,
-      }]).select('id').single();
+      // Atomic order creation + stock decrement via DB function
+      const { data: orderId, error } = await supabase.rpc('create_order_with_stock', {
+        p_user_id: user.id,
+        p_items: items as any,
+        p_total_amount: grandTotal,
+        p_shipping_address: shippingAddress,
+        p_payment_method: paymentMethod,
+        p_coupon_id: appliedCoupon?.id || null,
+      });
 
-      if (error) throw error;
-
-      // C1: Decrement stock atomically after successful order
-      for (const item of items) {
-        await supabase.rpc('decrement_stock', { p_product_id: item.id, p_quantity: item.quantity });
+      if (error) {
+        // Surface stock-related errors clearly
+        if (error.message.includes('Insufficient stock')) {
+          toast({
+            title: 'Stock Unavailable',
+            description: error.message,
+            variant: 'destructive',
+          });
+          setLoading(false);
+          return;
+        }
+        throw error;
       }
 
-      // M3: Increment coupon usage atomically (no race condition)
-      if (appliedCoupon) {
-        await supabase.rpc('increment_coupon_usage', { p_coupon_id: appliedCoupon.id });
-      }
+      const orderData = { id: orderId };
 
       // Notify admins of new order
       if (orderData) {

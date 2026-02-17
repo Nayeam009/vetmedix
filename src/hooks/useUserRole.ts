@@ -35,7 +35,7 @@ export const useUserRole = (): UserRoleData => {
         .eq('user_id', user.id);
 
       if (error) {
-        console.error('Error fetching user roles:', error);
+        if (import.meta.env.DEV) console.error('Error fetching user roles:', error);
         throw error;
       }
 
