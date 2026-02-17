@@ -55,7 +55,7 @@ const BlogArticlePage = () => {
 
   return (
     <>
-      <SEO title={`${article.title} - VET-MEDIX Blog`} description={article.excerpt || article.title} />
+      <SEO title={article.title} description={article.excerpt || article.title} canonicalUrl={`https://vetmedix.lovable.app/blog/${slug}`} />
       <Navbar />
       <main id="main-content" className="container mx-auto px-4 py-6 sm:py-8 max-w-3xl">
         {/* Back */}

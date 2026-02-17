@@ -235,7 +235,7 @@ const TrackOrderPage = () => {
     return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
         <Navbar />
-        <main className="container mx-auto px-4 py-6 sm:py-8">
+        <main id="main-content" className="container mx-auto px-4 py-6 sm:py-8">
           <div className="max-w-md mx-auto">
             <Card>
               <CardHeader className="text-center">
@@ -266,7 +266,7 @@ const TrackOrderPage = () => {
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-6 sm:py-8">
+      <main id="main-content" className="container mx-auto px-4 py-6 sm:py-8">
         <Button
           variant="ghost"
           className="mb-6"

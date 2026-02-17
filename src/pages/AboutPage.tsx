@@ -44,7 +44,7 @@ const AboutPage = () => {
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
       
-      <main>
+      <main id="main-content">
         {/* Hero Section */}
         <section className="relative py-16 sm:py-24 bg-gradient-to-br from-primary/5 via-background to-background overflow-hidden">
           <div className="container mx-auto px-4">

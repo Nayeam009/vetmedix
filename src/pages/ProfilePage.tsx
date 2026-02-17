@@ -287,7 +287,7 @@ const ProfilePage = () => {
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
       
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8" role="main" aria-label="User profile">
+      <main id="main-content" className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8" role="main" aria-label="User profile">
         {/* Profile Header */}
         {user && (
           <ProfileHeader

@@ -362,7 +362,7 @@ const ShopPage = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6" role="main" aria-label="Shop products">
+      <main id="main-content" className="container mx-auto px-3 sm:px-4 py-4 sm:py-6" role="main" aria-label="Shop products">
         {/* Search, Filter & Sort Bar */}
         <div className="bg-background rounded-xl sm:rounded-2xl border border-border shadow-sm p-3 sm:p-4 mb-4 sm:mb-6">
           <div className="flex flex-col gap-3 sm:gap-4">
