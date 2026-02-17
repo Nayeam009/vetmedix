@@ -1,176 +1,149 @@
 
 
-# Comprehensive Admin Panel Audit: Performance, Architecture, and Query Optimization
+# Performance Optimization Plan: Lighthouse 90+ and App-Like Transitions
 
-## High Impact Refactoring Tasks
+## Current State Analysis
 
-### 1. Overfetching with `.select('*')` across 36 files
-**Impact**: Reduces payload size by 30-60%, faster Time to Interactive (TTI)
-**Details**: 275 instances of `.select('*')` found across 36 files. Key offenders:
-- `useAdminProducts` fetches all product columns when tables/cards only show name, price, stock, category, image_url, badge, is_active, is_featured
-- `useAdminOrders` fetches full order rows then only uses id, status, total_amount, user_id, items, shipping_address, created_at, tracking_id, payment_method, payment_status, trashed_at
-- `useAdminUsers` fetches all profile columns + all user_roles when only name, phone, avatar_url, location, created_at, user_id are displayed
-- `useAdminClinics` fetches all clinic columns including document URLs (bvc_certificate_url, trade_license_url, nid) that are only needed in detail views
-- `ShopPage` fetches all product columns for the public shop when only display fields are needed
-- `PetContext` fetches all pet columns globally for every authenticated user
+The app already has solid foundations: most routes are lazy-loaded, vendor chunks are split (`manualChunks`), hero images use `fetchPriority="high"`, and `loading="lazy"` is used broadly. The main bottlenecks are:
 
-**Fix**: Replace `.select('*')` with explicit column lists. Example: `useAdminProducts` should use `.select('id, name, price, category, product_type, image_url, stock, badge, discount, is_active, is_featured, compare_price, sku, created_at')`
+- **5 page modules statically imported** in `App.tsx` (Index, AuthPage, ShopPage, ClinicsPage, DoctorsPage) -- these all end up in the initial bundle
+- **Index.tsx is 606 lines** and imports heavy social components (StoriesBar, PostCard, CreatePostCard, CommentsSection) that render below the fold
+- **No page transition animations** -- route changes cause abrupt jumps
+- **`recharts` in manualChunks** forces the entire charting library into a named chunk loaded early, even though only 2 files use it
+- **Hero image (`hero-cat-social.png`)** is a static import that gets inlined/bundled rather than served as a separate asset with proper preload
 
 ---
 
-### 2. AdminOrders.tsx is 1,115 lines -- needs decomposition
-**Impact**: Improves maintainability, reduces cognitive load, enables better tree-shaking
-**Details**: This single file contains:
-- `TimeFilterBar` component (lines 89-117)
-- Order status/payment badge helpers (lines 341-381)
-- Customer name/phone parsers (lines 384-400)
-- CSV export logic (lines 448-471)
-- Order detail dialog (large inline JSX)
-- Fraud analysis memoization
-- Bulk shipping logic
-- Trash/restore/delete handlers
+## Phase 1: Critical Bundle Reduction (Biggest Lighthouse Impact)
 
-**Fix**: Extract into:
-- `components/admin/orders/TimeFilterBar.tsx`
-- `components/admin/orders/OrderStatusBadges.tsx`
-- `components/admin/orders/OrderDetailDialog.tsx`
-- `components/admin/orders/BulkShipActions.tsx`
-- `hooks/useOrderActions.ts` (status update, trash, restore, delete mutations)
+### 1.1 Lazy-load ALL page routes in `App.tsx`
+**File:** `src/App.tsx`
+- Convert the 5 static imports (Index, AuthPage, ShopPage, ClinicsPage, DoctorsPage) to `React.lazy()` dynamic imports
+- This removes those modules and all their transitive dependencies from the initial JS bundle
+- **Impact:** Estimated 40-60% reduction in initial bundle. Index.tsx alone pulls in StoriesBar, PostCard, CreatePostCard, usePosts, PetContext queries, ScrollArea, and the entire social feed -- none of which are needed until that route renders
 
----
+### 1.2 Split Index.tsx into above-fold and below-fold
+**Files:** `src/pages/Index.tsx`, new `src/components/home/BelowFoldContent.tsx`
+- The hero section (lines 124-354) is above the fold; everything after (stories, feed, sidebar, featured products) is below the fold
+- Wrap below-fold content in a lazy-loaded component that only mounts after the hero is visible
+- Use `React.lazy` + `Suspense` for the social feed section, or use Intersection Observer to defer rendering
+- **Impact:** Hero renders immediately without waiting for social feed data queries
 
-### 3. AdminSocial.tsx is 1,049 lines with 5 separate data queries
-**Impact**: Reduces initial load, prevents waterfall fetches
-**Details**: This page fires 5 separate queries (social-stats, admin-posts, admin-pets, admin-pet-parents, admin-comments) -- some conditionally. The `SocialStatCard` component is defined inline (lines 437-479) despite being identical to the pattern used everywhere else. Delete mutations for posts, pets, and comments are all inline.
-
-**Fix**: Extract:
-- Move delete mutations to `hooks/useAdminSocialActions.ts`
-- Remove inline `SocialStatCard` -- it's identical to the pattern in other pages
-- Break view sections (PostsList, PetsList, ParentsList, CommentsList) into separate components
+### 1.3 Remove `recharts` from manualChunks
+**File:** `vite.config.ts`
+- Remove `'vendor-charts': ['recharts']` from manualChunks
+- Recharts is only imported in `AdminRecoveryAnalytics.tsx` and `chart.tsx` -- both are already in lazy-loaded routes
+- Vite will naturally tree-shake it into those chunks only
+- **Impact:** Removes ~200KB from the named chunk that gets loaded during initial discovery
 
 ---
 
-### 4. Duplicate `TimeFilterBar` and `EcomStatCard` components defined inline in multiple files
-**Impact**: Reduces bundle duplication, single source of truth
-**Details**: `TimeFilterBar` is defined identically in both `AdminOrders.tsx` (lines 89-117) and `AdminEcommerceCustomers.tsx` (lines 79-107). `EcomStatCard` in AdminEcommerceCustomers (lines 234-275) is identical to `IncompleteStatCard` in AdminIncompleteOrders (lines 26-48) and `RecoveryStatCard` in AdminRecoveryAnalytics (lines 17-38) and `SocialStatCard` in AdminSocial (lines 437-479). All are the same AnalyticsStatCard pattern.
+## Phase 2: App-Like Page Transitions (UX)
 
-**Fix**: Create a shared `components/admin/AdminStatCard.tsx` that unifies all these. Create `components/admin/TimeFilterBar.tsx` as a shared component.
+### 2.1 CSS-only page transitions (no new dependencies)
+**Files:** `src/App.tsx`, `src/index.css`
+- Instead of adding `framer-motion` (45KB gzipped), use CSS animations with the existing `Suspense` boundary
+- Create a `PageTransition` wrapper component that applies a CSS `fade-slide-up` animation on mount using `animation: fadeSlideUp 0.25s ease-out`
+- Wrap `<Routes>` content in this component keyed by `location.pathname`
+- **Impact:** Smooth transitions with zero bundle cost
 
----
-
-### 5. `useAdminStats` fires 15 parallel queries on every dashboard load
-**Impact**: Reduces database load, faster dashboard render
-**Details**: The hook makes 15 `Promise.all` calls to count rows across 7 tables. Several could be combined or use database views/functions. The revenue calculation fetches ALL non-trashed order rows just to sum amounts client-side -- this should be a DB aggregate.
-
-**Fix**: Create a database function `get_admin_dashboard_stats()` that returns all counts and sums in a single RPC call. This reduces 15 round-trips to 1.
-
----
-
-### 6. Missing `memo()` on frequently re-rendered list item components
-**Impact**: Reduces unnecessary re-renders in admin tables/lists
-**Details**: Only 19 files use `memo()`. Key components that should be memoized but aren't:
-- `ProductCard` (rendered in grids of 20+ items on ShopPage)
-- `OrderStatsBar` / `ProductStatsBar` (re-render on every parent state change)
-- Admin table rows in AdminOrders, AdminProducts, AdminCustomers
-- `FeaturedProducts` section on Index page
-
-**Fix**: Wrap list-item components and stat bars with `memo()` with appropriate comparison functions.
+### 2.2 Upgrade PageLoader to show progress
+**File:** `src/App.tsx`
+- The existing `PageLoader` already has a progress bar animation -- keep it but make the animation smoother (use `cubic-bezier` timing)
+- Add `will-change: width` for GPU acceleration
+- **Impact:** Users perceive faster loads because they see progress
 
 ---
 
-## Medium Impact Refactoring Tasks
+## Phase 3: LCP and CLS Optimization
 
-### 7. AdminEcommerceCustomers.tsx (820 lines) has its own realtime channel duplicating the centralized one
-**Impact**: Eliminates duplicate Supabase channel subscriptions
-**Details**: Lines 351-366 create a separate `ecom-customers-realtime` channel for orders and incomplete_orders, but `useAdminRealtimeDashboard` already subscribes to both these tables. This causes double invalidations.
+### 3.1 Preload hero image in index.html
+**File:** `index.html`
+- Add `<link rel="preload" as="image" href="/src/assets/hero-cat-social.png">` for the LCP element
+- Currently the hero image is a JS static import which means it only starts loading after the JS bundle parses
+- **Impact:** Reduces LCP by starting image fetch in parallel with JS parsing
 
-**Fix**: Remove the local channel subscription; rely on `useAdminRealtimeDashboard`.
+### 3.2 Enforce width/height on all remaining images
+**Files:** Multiple components (PostCard, ProductCard, ClinicCard, DoctorCard, ExplorePetCard)
+- Audit and add explicit `width` and `height` attributes to any `<img>` tags missing them
+- Use `aspect-ratio` Tailwind class (`aspect-square`, `aspect-video`) on containers as a fallback
+- **Impact:** Eliminates CLS from image loading
 
----
-
-### 8. `useAdminOrders` fetches ALL orders then filters client-side for trashed/active
-**Impact**: Reduces transfer size as order count grows
-**Details**: The hook fetches every order (no limit), splits into active vs trashed in the component. As order volume grows, this will hit the 1000-row Supabase default limit.
-
-**Fix**: Add pagination or split into two queries: active orders and trashed orders (only fetched when viewing trash tab).
-
----
-
-### 9. `useAdminUsers` creates an N+1-like pattern
-**Impact**: Reduces data processing overhead
-**Details**: Fetches ALL profiles, then ALL user_roles, then `.filter()` joins them in JavaScript (line 170-173). With 500+ users, this means iterating roles array for every profile.
-
-**Fix**: Use a Map lookup (already partially done) but also consider fetching only needed columns: `profiles.select('user_id, full_name, phone, avatar_url, address, division, district, thana, created_at')`.
+### 3.3 Convert hero cat image to WebP
+**Action:** Convert `hero-cat-social.png` to WebP format (typically 30-50% smaller)
+- Use `<picture>` element with WebP source and PNG fallback
+- **Impact:** Faster LCP paint
 
 ---
 
-### 10. AdminProducts.tsx is 837 lines with inline form handling
-**Impact**: Improves testability and readability
-**Details**: Product add/edit/delete handlers, form validation, CSV export, category management all live in one file.
+## Phase 4: Accessibility Quick Wins
 
-**Fix**: Extract `useProductMutations.ts` hook for CRUD operations, and move category dialog to its own component.
+### 4.1 Add missing `aria-label` to icon-only buttons
+**Files:** `src/components/MobileNav.tsx`, `src/components/social/NotificationBell.tsx`, `src/components/GlobalSearch.tsx`
+- Scan for `<Button size="icon">` patterns without `aria-label`
+- The Navbar already has good coverage -- extend to other components
+- **Impact:** Screen reader accessibility compliance
 
----
-
-### 11. Cart/Wishlist contexts loaded for ALL users including admin
-**Impact**: Minor -- reduces provider nesting overhead for admin-only sessions
-**Details**: `CartProvider` and `WishlistProvider` wrap the entire app including admin routes where they're never used.
-
-**Fix**: Move these providers to only wrap the public/shop routes, or lazy-initialize them.
-
----
-
-## Low Impact Refactoring Tasks
-
-### 12. Hardcoded status colors repeated across 4+ files
-**Impact**: Single source of truth, easier theme changes
-**Details**: `getStatusColor`, `getPaymentMethodBadge`, `getPaymentStatusBadge` functions are defined inline in AdminOrders.tsx and partially duplicated in AdminEcommerceCustomers.tsx. Status badge patterns repeat in TrackOrderPage, ProfilePage.
-
-**Fix**: Create `lib/statusColors.ts` with shared badge/color utilities.
+### 4.2 Verify color contrast
+**File:** `src/index.css`
+- The muted-foreground has already been darkened to 38% lightness (line 28) which helps
+- Verify `--primary: 15 85% 60%` (coral) against white backgrounds meets WCAG AA (4.5:1 for text)
+- If needed, darken to `--primary: 15 85% 50%` for text-only usage
+- **Impact:** WCAG AA compliance
 
 ---
 
-### 13. `useAdminRealtimeDashboard` uses `useNavigate` for toast actions
-**Impact**: Minor optimization
-**Details**: The hook imports `useNavigate` from react-router, which causes it to re-subscribe whenever the router context changes (though the `navigate` reference is stable in v7). Still, the `navigate` dependency in the `useEffect` deps array is unnecessary overhead.
+## Phase 5: Runtime Performance
 
-**Fix**: Use `window.location.href` for toast actions or move navigate to a ref.
+### 5.1 Add `memo()` to heavy list-item components
+**Files:** `src/components/ProductCard.tsx`, `src/components/social/PostCard.tsx`, `src/components/DoctorCard.tsx`, `src/components/ClinicCard.tsx`
+- Wrap with `React.memo()` to prevent re-renders when parent state changes (e.g., filter toggles, search input)
+- **Impact:** Fewer re-renders in grids of 20+ items
 
----
-
-### 14. `PlatformOverview` shows "posts today" as the Users card description instead of actual user stats
-**Impact**: Data accuracy bug
-**Details**: Line 62 in PlatformOverview.tsx: `description={\`${stats?.postsToday || 0} posts today\`}` for the Users card. This shows post count, not user-related info.
-
-**Fix**: Change to a meaningful stat like "X new this month" or remove the misleading description.
-
----
-
-### 15. Several admin pages duplicate the auth/role guard pattern
-**Impact**: Reduces boilerplate across 12+ admin pages
-**Details**: Every admin page has identical `useEffect` for auth redirect + identical "Access Denied" JSX block (~15 lines each).
-
-**Fix**: Create a `RequireAdmin` wrapper component or integrate into `AdminLayout`.
+### 5.2 Defer non-critical context providers
+**File:** `src/App.tsx`
+- `CartProvider`, `WishlistProvider`, and `PetProvider` initialize Supabase queries on mount for ALL routes including admin
+- Wrap them in a lazy boundary or move them inside only the routes that need them
+- **Impact:** Reduces initial query count from 5+ to 2 (auth only)
 
 ---
 
-## Summary Priority Matrix
+## Priority and File Checklist
 
-| Priority | Task | Performance Gain |
-|----------|------|-----------------|
-| HIGH | 1. Replace `.select('*')` with explicit columns | 30-60% smaller payloads |
-| HIGH | 2. Decompose AdminOrders.tsx (1115 lines) | Better code splitting, maintainability |
-| HIGH | 3. Decompose AdminSocial.tsx (1049 lines) | Reduced initial parse time |
-| HIGH | 4. Extract duplicate inline components | ~5KB bundle reduction from deduplication |
-| HIGH | 5. Single RPC for dashboard stats | 15 queries reduced to 1 |
-| HIGH | 6. Add `memo()` to list components | Fewer re-renders in data-heavy views |
-| MEDIUM | 7. Remove duplicate realtime channel | Eliminates double invalidations |
-| MEDIUM | 8. Paginate admin orders query | Prevents 1000-row limit issues |
-| MEDIUM | 9. Optimize useAdminUsers columns | Smaller payload for user management |
-| MEDIUM | 10. Extract AdminProducts mutations | Maintainability improvement |
-| MEDIUM | 11. Scope Cart/Wishlist providers | Minor render reduction for admin |
-| LOW | 12. Shared status color utilities | Maintainability, ~200 lines deduped |
-| LOW | 13. Optimize realtime hook deps | Negligible perf, cleaner code |
-| LOW | 14. Fix Users card description bug | Data accuracy |
-| LOW | 15. Extract admin auth guard pattern | ~180 lines of boilerplate removed |
+| Priority | Task | File(s) | Lighthouse Impact |
+|----------|------|---------|-------------------|
+| P0 | Lazy-load all 5 static page imports | `App.tsx` | -30% initial JS |
+| P0 | Remove recharts from manualChunks | `vite.config.ts` | -200KB named chunk |
+| P0 | Preload hero image | `index.html` | -500ms LCP |
+| P1 | Split Index.tsx below-fold content | `Index.tsx`, new component | -20% route chunk |
+| P1 | CSS page transitions | `App.tsx`, `index.css` | Perceived perf boost |
+| P1 | Enforce width/height on images | 6+ component files | CLS score improvement |
+| P2 | memo() on list components | 4 component files | Fewer re-renders |
+| P2 | Defer context providers | `App.tsx` | -3 initial queries |
+| P2 | Aria-labels audit | 3 component files | Accessibility score |
+| P3 | WebP hero image | `Index.tsx`, asset file | -30% image size |
+| P3 | Color contrast check | `index.css` | Accessibility score |
+
+## How React.lazy Reduces the 6.2MB Bundle
+
+Currently, `Index.tsx`, `ShopPage.tsx`, `ClinicsPage.tsx`, `DoctorsPage.tsx`, and `AuthPage.tsx` are statically imported. This means Vite includes them **and all their transitive dependencies** in the main entry chunk:
+
+```text
+App.tsx (entry)
+  +-- Index.tsx (606 lines)
+  |     +-- StoriesBar, PostCard, CreatePostCard (social feed)
+  |     +-- usePosts, PetContext queries (data layer)
+  |     +-- FeaturedProducts + ProductCard (shop)
+  |     +-- ScrollArea, Tabs (UI primitives)
+  +-- ShopPage.tsx
+  |     +-- ProductCard, useProductCategories, useProductRatings
+  +-- ClinicsPage.tsx
+  |     +-- ClinicCard, useGeocode
+  +-- DoctorsPage.tsx
+  |     +-- DoctorCard, usePublicDoctors
+  +-- AuthPage.tsx
+        +-- Form validation, role selector
+```
+
+Converting these to `React.lazy()` moves each page and its dependencies into separate chunks that only load when the user navigates to that route. The initial bundle drops to just: React core, router, auth context, and the PageLoader skeleton -- estimated at under 300KB gzipped.
 
