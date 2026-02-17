@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Loader2, User, Calendar, Clock, PawPrint, FileText, Check, ChevronRight, ChevronLeft, Stethoscope } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,16 +56,50 @@ interface BookAppointmentWizardProps {
   doctors: Doctor[];
   onCancel?: () => void;
   clinicName?: string;
+  clinicId?: string;
   preSelectedDoctorId?: string;
 }
 
-const BookAppointmentWizard = ({ onSubmit, isPending, doctors, onCancel, clinicName, preSelectedDoctorId }: BookAppointmentWizardProps) => {
+const BookAppointmentWizard = ({ onSubmit, isPending, doctors, onCancel, clinicName, clinicId, preSelectedDoctorId }: BookAppointmentWizardProps) => {
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState<AppointmentFormData>(() => ({
     ...initialFormData,
     doctorId: preSelectedDoctorId || '',
   }));
   const [availableSlots, setAvailableSlots] = useState<string[]>(DEFAULT_TIME_SLOTS);
+  const [bookedSlots, setBookedSlots] = useState<Set<string>>(new Set());
+
+  // Fetch already-booked slots for selected date + doctor to prevent double booking
+  useEffect(() => {
+    if (!formData.date || !clinicId) {
+      setBookedSlots(new Set());
+      return;
+    }
+
+    const fetchBookedSlots = async () => {
+      let query = supabase
+        .from('appointments')
+        .select('appointment_time')
+        .eq('clinic_id', clinicId)
+        .eq('appointment_date', formData.date)
+        .in('status', ['pending', 'confirmed']);
+
+      if (formData.doctorId) {
+        query = query.eq('doctor_id', formData.doctorId);
+      }
+
+      const { data } = await query;
+      setBookedSlots(new Set(data?.map(a => a.appointment_time) || []));
+    };
+
+    fetchBookedSlots();
+  }, [formData.date, formData.doctorId, clinicId]);
+
+  // Filter out booked slots from available ones
+  const displaySlots = useMemo(() => 
+    availableSlots.filter(slot => !bookedSlots.has(slot)),
+    [availableSlots, bookedSlots]
+  );
 
   // Set pre-selected doctor if provided and exists in doctors list
   useEffect(() => {
@@ -155,12 +190,12 @@ const BookAppointmentWizard = ({ onSubmit, isPending, doctors, onCancel, clinicN
     }
   }, [formData.date, formData.doctorId, doctors]);
 
-  // Reset time if not available
+  // Reset time if not available in display slots
   useEffect(() => {
-    if (formData.time && !availableSlots.includes(formData.time)) {
+    if (formData.time && !displaySlots.includes(formData.time)) {
       setFormData(prev => ({ ...prev, time: '' }));
     }
-  }, [availableSlots, formData.time]);
+  }, [displaySlots, formData.time]);
 
   const canProceed = () => {
     switch (step) {
@@ -417,15 +452,17 @@ const BookAppointmentWizard = ({ onSubmit, isPending, doctors, onCancel, clinicN
               <Label className="text-base">
                 Select Time <span className="text-destructive">*</span>
               </Label>
-              {availableSlots.length === 0 ? (
+              {displaySlots.length === 0 ? (
                 <div className="text-center py-6 bg-destructive/5 rounded-xl border border-destructive/20">
                   <Clock className="h-8 w-8 text-destructive/60 mx-auto mb-2" />
-                  <p className="text-sm text-destructive">No available slots for this date</p>
+                  <p className="text-sm text-destructive">
+                    {availableSlots.length === 0 ? 'No available slots for this date' : 'All slots are booked'}
+                  </p>
                   <p className="text-xs text-muted-foreground mt-1">Try selecting a different date or doctor</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                  {availableSlots.map((time) => (
+                  {displaySlots.map((time) => (
                     <button
                       key={time}
                       type="button"
@@ -542,7 +579,7 @@ const BookAppointmentWizard = ({ onSubmit, isPending, doctors, onCancel, clinicN
             <Button
               type="button"
               onClick={handleSubmit}
-              disabled={isPending || !canProceed() || availableSlots.length === 0}
+              disabled={isPending || !canProceed() || displaySlots.length === 0}
               className="w-full sm:w-auto min-w-[160px]"
             >
               {isPending ? (

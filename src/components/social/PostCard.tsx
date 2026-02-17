@@ -39,8 +39,10 @@ const PostCardComponent = ({ post, onLike, onUnlike, onDelete }: PostCardProps) 
       navigate('/auth');
       return;
     }
+    // Debounce guard: block rapid double-taps
+    if (isLiking) return;
     setIsLiking(true);
-    setTimeout(() => setIsLiking(false), 300);
+    setTimeout(() => setIsLiking(false), 500);
     
     if (post.liked_by_user) {
       onUnlike(post.id);

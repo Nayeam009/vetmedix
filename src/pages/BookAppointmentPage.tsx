@@ -278,6 +278,7 @@ const BookAppointmentPage = () => {
                 doctors={doctorsWithSchedules}
                 onCancel={() => navigate(-1)}
                 clinicName={clinic?.name}
+                clinicId={clinicId}
                 preSelectedDoctorId={preSelectedDoctorId || undefined}
               />
             )}
