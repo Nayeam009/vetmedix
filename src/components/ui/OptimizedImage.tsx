@@ -11,6 +11,8 @@ interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> 
   priority?: boolean;
   /** Fallback element on error */
   fallback?: React.ReactNode;
+  /** Built-in aspect ratio to prevent CLS */
+  aspectRatio?: number;
 }
 
 /**
@@ -31,6 +33,7 @@ const OptimizedImage = memo(
         skeleton = true,
         priority = false,
         fallback,
+        aspectRatio,
         width,
         height,
         style,
@@ -72,7 +75,7 @@ const OptimizedImage = memo(
             else if (ref) ref.current = node;
           }}
           className={cn('relative overflow-hidden', className)}
-          style={style}
+          style={{ aspectRatio, ...style }}
         >
           {/* Skeleton placeholder */}
           {skeleton && !loaded && !error && (

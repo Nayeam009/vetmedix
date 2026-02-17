@@ -3,6 +3,8 @@
  * Client-side image and video optimization for fast loading
  */
 
+import { logger } from '@/lib/logger';
+
 export interface CompressionSettings {
   maxWidth: number;
   maxHeight: number;
@@ -26,6 +28,7 @@ export const COMPRESSION_PRESETS: Record<string, CompressionSettings> = {
   thumbnail: { maxWidth: 50, maxHeight: 50, quality: 0.6 },
   product: { maxWidth: 1200, maxHeight: 1200, quality: 0.85 },
   clinic: { maxWidth: 1600, maxHeight: 1200, quality: 0.8 },
+  medical: { maxWidth: 3000, maxHeight: 3000, quality: 0.95 },
 };
 
 /**
@@ -181,7 +184,7 @@ export async function compressImage(
       compressionRatio: originalSize / blob.size,
     };
   } catch (error) {
-    console.error('Image compression failed, using original:', error);
+    logger.error('Image compression failed, using original:', error);
     return {
       file,
       originalSize,
@@ -281,8 +284,12 @@ function loadImage(file: File): Promise<HTMLImageElement> {
  */
 export async function validateAndOptimizeMedia(
   file: File,
-  context: 'feed' | 'story' | 'avatar' | 'product' | 'clinic' = 'feed'
+  context: 'feed' | 'story' | 'avatar' | 'product' | 'clinic' | 'medical' = 'feed'
 ): Promise<{ file: File; thumbnail?: string; poster?: string; stats: CompressedMedia | null }> {
+  // Hard 10MB limit for medical uploads
+  if (context === 'medical' && file.size > 10 * 1024 * 1024) {
+    throw new Error('Medical images must be under 10MB');
+  }
   const isImage = file.type.startsWith('image/');
   const isVideo = file.type.startsWith('video/');
 
