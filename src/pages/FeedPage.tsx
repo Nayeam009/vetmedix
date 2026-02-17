@@ -86,13 +86,17 @@ const FeedPage = () => {
       <>
         <div role="feed" aria-label="Posts" aria-busy={loadingMore} className="space-y-3 sm:space-y-4">
           {posts.map((post) => (
-            <PostCard
+            <div
               key={post.id}
-              post={post}
-              onLike={handleLikePost}
-              onUnlike={handleUnlikePost}
-              onDelete={handleRefreshPosts}
-            />
+              style={{ contentVisibility: 'auto', containIntrinsicSize: '0 520px' }}
+            >
+              <PostCard
+                post={post}
+                onLike={handleLikePost}
+                onUnlike={handleUnlikePost}
+                onDelete={handleRefreshPosts}
+              />
+            </div>
           ))}
         </div>
 

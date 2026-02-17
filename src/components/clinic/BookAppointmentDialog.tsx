@@ -103,6 +103,7 @@ const BookAppointmentDialog = ({
           isPending={isBooking}
           doctors={doctors}
           clinicName={clinicName}
+          clinicId={clinicId}
           onCancel={() => onOpenChange(false)}
         />
       )}
