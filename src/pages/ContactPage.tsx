@@ -11,6 +11,7 @@ import Footer from '@/components/Footer';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { contactSchema } from '@/lib/validations';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -30,8 +31,10 @@ const ContactPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.message) {
-      toast.error('Please fill in all required fields');
+    const result = contactSchema.safeParse(formData);
+    if (!result.success) {
+      const firstError = result.error.errors[0]?.message || 'Please fill in all required fields';
+      toast.error(firstError);
       return;
     }
 
@@ -189,6 +192,7 @@ const ContactPage = () => {
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             required
                             aria-required="true"
+                            maxLength={100}
                           />
                         </div>
                         <div className="space-y-2">
@@ -201,6 +205,7 @@ const ContactPage = () => {
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             required
                             aria-required="true"
+                            maxLength={255}
                           />
                         </div>
                       </div>

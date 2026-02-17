@@ -131,6 +131,72 @@ export const postSchema = z.object({
 
 export type PostFormData = z.infer<typeof postSchema>;
 
+// ========== Contact Form Validation Schema ==========
+
+export const contactSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Name is required')
+    .max(100, 'Name must be less than 100 characters')
+    .regex(noXSSRegex, 'Name cannot contain < or > characters'),
+  email: emailSchema,
+  subject: z
+    .string()
+    .max(200, 'Subject must be less than 200 characters')
+    .regex(noXSSRegex, 'Subject cannot contain < or > characters')
+    .optional()
+    .or(z.literal('')),
+  message: z
+    .string()
+    .min(1, 'Message is required')
+    .max(2000, 'Message must be less than 2000 characters')
+    .regex(noXSSRegex, 'Message cannot contain < or > characters'),
+});
+
+export type ContactFormData = z.infer<typeof contactSchema>;
+
+// ========== Doctor Form Validation Schema ==========
+
+export const doctorFormSchema = z.object({
+  name: z
+    .string()
+    .min(2, 'Name must be at least 2 characters')
+    .max(100, 'Name must be less than 100 characters')
+    .regex(noXSSRegex, 'Name cannot contain < or > characters'),
+  email: z
+    .string()
+    .email('Please enter a valid email address')
+    .max(255, 'Email must be less than 255 characters')
+    .optional()
+    .or(z.literal('')),
+  phone: z
+    .string()
+    .max(20, 'Phone must be less than 20 characters')
+    .optional()
+    .or(z.literal('')),
+  specialization: z.string().max(100).optional().or(z.literal('')),
+  license_number: z.string().max(50).optional().or(z.literal('')),
+  experience_years: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine(
+      (val) => !val || (Number(val) >= 0 && Number(val) <= 60),
+      'Experience must be between 0 and 60 years'
+    ),
+  consultation_fee: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine(
+      (val) => !val || (Number(val) >= 0 && Number(val) <= 100000),
+      'Fee must be between 0 and 100,000'
+    ),
+  bio: z.string().max(2000, 'Bio must be less than 2000 characters').optional().or(z.literal('')),
+});
+
+export type DoctorFormSchemaData = z.infer<typeof doctorFormSchema>;
+
 // ========== Admin Product Validation Schema ==========
 
 // Product form validation schema for admin UI (mirrors csvParser schema)

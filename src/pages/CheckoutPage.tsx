@@ -485,6 +485,7 @@ const CheckoutPage = () => {
                       </Label>
                       <Input
                         id="phone"
+                        type="tel"
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value.slice(0, 20) })}
                         placeholder="+880 1XXX-XXXXXX"
