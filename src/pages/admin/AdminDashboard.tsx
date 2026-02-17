@@ -22,7 +22,7 @@ const AdminDashboard = () => {
         <ECommerceOverview stats={stats} />
         <PlatformOverview stats={stats} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 min-h-[320px]">
           <RecentOrdersList orders={stats?.recentOrders} isLoading={statsLoading} />
 
           <div className="space-y-3 sm:space-y-4 lg:space-y-6">

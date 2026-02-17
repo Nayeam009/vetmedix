@@ -16,7 +16,7 @@ export const RecentOrdersList = memo(({ orders, isLoading }: RecentOrdersListPro
   const navigate = useNavigate();
 
   return (
-    <Card className="lg:col-span-2 shadow-sm border-border/50">
+    <Card className="lg:col-span-2 shadow-sm border-border/50 min-h-[280px]">
       <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-4 lg:p-5 pb-0">
         <div className="min-w-0 flex-1">
           <CardTitle className="flex items-center gap-2 text-sm sm:text-base lg:text-lg">
