@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { CommentsSection } from './CommentsSection';
 import { LazyImage, LazyVideo } from './LazyMedia';
 import type { Post } from '@/types/social';
+import { removeStorageFiles } from '@/lib/storageUtils';
 
 interface PostCardProps {
   post: Post;
@@ -57,6 +58,11 @@ const PostCardComponent = forwardRef<HTMLDivElement, PostCardProps>(({ post, onL
     
     setDeleting(true);
     try {
+      // Clean up storage files before deleting the post row
+      if (post.media_urls && post.media_urls.length > 0) {
+        await removeStorageFiles(post.media_urls);
+      }
+
       const { error } = await supabase
         .from('posts')
         .delete()
