@@ -18,6 +18,7 @@ export interface IncompleteOrder {
   expires_at: string;
   created_at: string;
   updated_at: string;
+  trashed_at: string | null;
 }
 
 export const useIncompleteOrders = () => {
@@ -47,7 +48,26 @@ export const useIncompleteOrders = () => {
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
 
-  const deleteMutation = useMutation({
+  // Soft delete (move to trash)
+  const trashMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('incomplete_orders').update({ trashed_at: new Date().toISOString() }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-incomplete-orders'] }),
+  });
+
+  // Restore from trash
+  const restoreMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('incomplete_orders').update({ trashed_at: null }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-incomplete-orders'] }),
+  });
+
+  // Permanent delete
+  const permanentDeleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('incomplete_orders').delete().eq('id', id);
       if (error) throw error;
@@ -68,7 +88,6 @@ export const useIncompleteOrders = () => {
       deliveryCharge?: number;
       grandTotal?: number;
     }) => {
-      // Update incomplete order with admin-entered data
       await supabase.from('incomplete_orders').update({
         customer_name: editedData.customer_name,
         customer_phone: editedData.customer_phone,
@@ -78,7 +97,6 @@ export const useIncompleteOrders = () => {
         completeness: 100,
       }).eq('id', order.id);
 
-      // Create real order with complete data including delivery fee
       const shippingAddress = [
         editedData.customer_name,
         editedData.customer_phone,
@@ -103,7 +121,6 @@ export const useIncompleteOrders = () => {
 
       if (orderError) throw orderError;
 
-      // Mark as recovered
       await supabase
         .from('incomplete_orders')
         .update({ status: 'recovered', recovered_order_id: newOrder.id })
@@ -117,28 +134,39 @@ export const useIncompleteOrders = () => {
     },
   });
 
-  // Stats
-  const incomplete = orders.filter(o => o.status === 'incomplete');
-  const recovered = orders.filter(o => o.status === 'recovered');
+  // Split active vs trashed
+  const activeOrders = orders.filter(o => !o.trashed_at);
+  const trashedOrders = orders.filter(o => !!o.trashed_at);
+
+  // Stats (only from active orders)
+  const incomplete = activeOrders.filter(o => o.status === 'incomplete');
+  const recovered = activeOrders.filter(o => o.status === 'recovered');
   const totalIncomplete = incomplete.length;
   const totalRecovered = recovered.length;
-  const recoveryRate = orders.length > 0 ? Math.round((totalRecovered / orders.length) * 100) : 0;
+  const totalTrashed = trashedOrders.length;
+  const recoveryRate = activeOrders.length > 0 ? Math.round((totalRecovered / activeOrders.length) * 100) : 0;
   const lostRevenue = incomplete.reduce((sum, o) => sum + (o.cart_total || 0), 0);
   const recoveredRevenue = recovered.reduce((sum, o) => sum + (o.cart_total || 0), 0);
 
   return {
-    orders,
+    orders: activeOrders,
+    trashedOrders,
     isLoading,
     incomplete,
     recovered,
     totalIncomplete,
     totalRecovered,
+    totalTrashed,
     recoveryRate,
     lostRevenue,
     recoveredRevenue,
-    deleteOrder: deleteMutation.mutateAsync,
+    trashOrder: trashMutation.mutateAsync,
+    restoreOrder: restoreMutation.mutateAsync,
+    permanentlyDelete: permanentDeleteMutation.mutateAsync,
     convertOrder: convertMutation.mutateAsync,
     isConverting: convertMutation.isPending,
-    isDeleting: deleteMutation.isPending,
+    isTrashing: trashMutation.isPending,
+    isRestoring: restoreMutation.isPending,
+    isDeleting: permanentDeleteMutation.isPending,
   };
 };

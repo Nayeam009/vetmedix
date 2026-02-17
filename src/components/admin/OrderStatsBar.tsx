@@ -6,6 +6,7 @@ import {
   XCircle, 
   ShoppingCart,
   ShieldAlert,
+  Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -16,6 +17,7 @@ interface OrderStats {
   delivered: number;
   cancelled: number;
   flagged: number;
+  trashed: number;
   total: number;
   revenue: number;
 }
@@ -146,18 +148,43 @@ export function OrderStatsBar({ stats, activeFilter, onFilterChange }: OrderStat
               'flex items-center gap-2.5 sm:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 min-w-[100px] sm:min-w-[120px]',
               'active:scale-[0.98]',
               activeFilter === 'flagged'
-                ? 'ring-2 ring-red-400/50 border-transparent hover:scale-[1.02]'
+                ? 'ring-2 ring-destructive/50 border-transparent hover:scale-[1.02]'
                 : 'hover:border-primary/20'
             )}
           >
-            <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-red-500/10 to-rose-500/10">
-              <ShieldAlert className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-600 dark:text-red-400" />
+            <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-destructive/10 to-destructive/5">
+              <ShieldAlert className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-destructive" />
             </div>
             <div className="text-left min-w-0">
-              <p className="text-base sm:text-lg lg:text-xl font-display font-bold leading-none text-red-700 dark:text-red-300">
+              <p className="text-base sm:text-lg lg:text-xl font-display font-bold leading-none text-destructive">
                 {stats.flagged}
               </p>
               <p className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap mt-0.5">Flagged</p>
+            </div>
+          </button>
+        )}
+
+        {/* Trashed card */}
+        {stats.trashed > 0 && (
+          <button
+            onClick={() => onFilterChange(activeFilter === 'trashed' ? 'all' : 'trashed')}
+            className={cn(
+              'flex-shrink-0 bg-card rounded-xl sm:rounded-2xl border border-border shadow-sm hover:shadow-md transition-all',
+              'flex items-center gap-2.5 sm:gap-3 px-3 py-2.5 sm:px-4 sm:py-3 min-w-[100px] sm:min-w-[120px]',
+              'active:scale-[0.98]',
+              activeFilter === 'trashed'
+                ? 'ring-2 ring-muted-foreground/50 border-transparent hover:scale-[1.02]'
+                : 'hover:border-primary/20'
+            )}
+          >
+            <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-muted-foreground/10 to-muted/10">
+              <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
+            </div>
+            <div className="text-left min-w-0">
+              <p className="text-base sm:text-lg lg:text-xl font-display font-bold leading-none text-muted-foreground">
+                {stats.trashed}
+              </p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap mt-0.5">Trashed</p>
             </div>
           </button>
         )}

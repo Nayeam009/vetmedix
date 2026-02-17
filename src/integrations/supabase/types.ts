@@ -958,6 +958,7 @@ export type Database = {
           recovered_order_id: string | null
           shipping_address: string | null
           status: string | null
+          trashed_at: string | null
           updated_at: string | null
           user_id: string | null
         }
@@ -975,6 +976,7 @@ export type Database = {
           recovered_order_id?: string | null
           shipping_address?: string | null
           status?: string | null
+          trashed_at?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -992,6 +994,7 @@ export type Database = {
           recovered_order_id?: string | null
           shipping_address?: string | null
           status?: string | null
+          trashed_at?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -1175,6 +1178,7 @@ export type Database = {
           status: string | null
           total_amount: number
           tracking_id: string | null
+          trashed_at: string | null
           user_id: string
         }
         Insert: {
@@ -1190,6 +1194,7 @@ export type Database = {
           status?: string | null
           total_amount: number
           tracking_id?: string | null
+          trashed_at?: string | null
           user_id: string
         }
         Update: {
@@ -1205,6 +1210,7 @@ export type Database = {
           status?: string | null
           total_amount?: number
           tracking_id?: string | null
+          trashed_at?: string | null
           user_id?: string
         }
         Relationships: []
