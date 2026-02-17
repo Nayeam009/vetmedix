@@ -9,6 +9,7 @@ import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import Footer from '@/components/Footer';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
@@ -46,7 +47,7 @@ const ContactPage = () => {
       setSubmitted(true);
       toast.success('Message sent successfully! We\'ll get back to you soon.');
     } catch (error) {
-      console.error('Error submitting contact form:', error);
+      logger.error('Error submitting contact form:', error);
       toast.error('Failed to send message. Please try again.');
     } finally {
       setLoading(false);

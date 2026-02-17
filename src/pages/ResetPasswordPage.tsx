@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Logo from '@/components/Logo';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const ResetPasswordPage = () => {
@@ -46,7 +47,7 @@ const ResetPasswordPage = () => {
         navigate('/auth');
       }, 3000);
     } catch (error: any) {
-      console.error('Password update error:', error);
+      logger.error('Password update error:', error);
       toast.error(error.message || 'Failed to update password');
     } finally {
       setLoading(false);

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 import { Clinic } from '@/types/database';
 import { createAppointmentNotification } from '@/lib/notifications';
 import { format } from 'date-fns';
@@ -160,7 +161,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to update clinic');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -201,7 +202,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to add doctor');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -223,7 +224,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to update doctor');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -253,7 +254,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to remove doctor');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -276,7 +277,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to add service');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -298,7 +299,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to update service');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -317,7 +318,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to delete service');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -339,7 +340,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to update doctor status');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -384,7 +385,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to update appointment');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -434,7 +435,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to create appointment');
-      console.error(error);
+      logger.error(error);
     },
   });
 

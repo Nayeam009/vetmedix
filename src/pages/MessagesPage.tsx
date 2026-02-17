@@ -11,6 +11,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { useConversations } from '@/hooks/useMessages';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import MobileNav from '@/components/MobileNav';
 
 // Memoized conversation card for performance
 const ConversationCard = memo(({ conv, onClick }: { conv: any; onClick: () => void }) => {
@@ -86,7 +87,7 @@ const MessagesPage = () => {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
       
       <main className="container mx-auto px-4 py-6 max-w-2xl" role="main" aria-label="Messages">
@@ -115,9 +116,10 @@ const MessagesPage = () => {
             <CardContent className="py-12 text-center">
               <MessageCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" aria-hidden="true" />
               <p className="text-muted-foreground mb-2">No conversations yet</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground mb-4">
                 Start chatting by visiting a pet's profile and clicking "Message"
               </p>
+              <Button onClick={() => navigate('/explore')}>Explore Pets</Button>
             </CardContent>
           </Card>
         ) : (
@@ -134,6 +136,7 @@ const MessagesPage = () => {
       </main>
 
       <Footer />
+      <MobileNav />
     </div>
   );
 };

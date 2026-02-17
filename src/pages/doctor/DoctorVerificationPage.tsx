@@ -18,6 +18,7 @@ import { useDoctor } from '@/hooks/useDoctor';
 import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 import { createAdminNotification } from '@/lib/notifications';
 
 const DoctorVerificationPage = () => {
@@ -131,7 +132,7 @@ const DoctorVerificationPage = () => {
       toast.success('Verification submitted successfully! We will review your documents shortly.');
       navigate('/doctor/dashboard');
     } catch (error: any) {
-      console.error('Verification error:', error);
+      logger.error('Verification error:', error);
       toast.error('Failed to submit verification. Please try again.');
     } finally {
       setSubmitting(false);
@@ -167,7 +168,7 @@ const DoctorVerificationPage = () => {
       toast.success('Doctor profile created! You can now submit your verification.');
       window.location.reload();
     } catch (error: any) {
-      console.error('Failed to create doctor profile:', error);
+      logger.error('Failed to create doctor profile:', error);
       toast.error('Failed to create doctor profile. Please try again.');
     } finally {
       setCreatingProfile(false);

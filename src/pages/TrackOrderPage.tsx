@@ -20,6 +20,7 @@ import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import Footer from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
@@ -109,7 +110,7 @@ const TrackOrderPage = () => {
         await fetchTrackingStatus(data.tracking_id);
       }
     } catch (error) {
-      console.error('Error fetching order:', error);
+      logger.error('Error fetching order:', error);
       toast({
         title: 'Error',
         description: 'Could not fetch order details',
@@ -160,7 +161,7 @@ const TrackOrderPage = () => {
       }
       setTrackingStatus(data);
     } catch (error) {
-      console.error('Error tracking order:', error);
+      logger.error('Error tracking order:', error);
     } finally {
       setIsTracking(false);
     }
