@@ -29,7 +29,7 @@ export const useIncompleteOrders = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('incomplete_orders')
-        .select('*')
+        .select('id, user_id, customer_name, customer_phone, customer_email, items, cart_total, shipping_address, division, completeness, status, recovered_order_id, expires_at, created_at, updated_at, trashed_at')
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data as IncompleteOrder[];

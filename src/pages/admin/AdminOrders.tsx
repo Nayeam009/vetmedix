@@ -23,7 +23,6 @@ import {
   CheckCircle2,
   Loader2,
   X,
-  Calendar,
   Trash2,
   Undo2,
 } from 'lucide-react';
@@ -59,7 +58,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
-import { format, startOfDay, startOfWeek, startOfMonth, startOfYear, isAfter } from 'date-fns';
+import { format, isAfter } from 'date-fns';
 import { createOrderNotification } from '@/lib/notifications';
 import { SendToCourierDialog } from '@/components/admin/SendToCourierDialog';
 import { RejectOrderDialog } from '@/components/admin/RejectOrderDialog';
@@ -72,49 +71,8 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { cn } from '@/lib/utils';
 import { downloadCSV } from '@/lib/csvParser';
 import { analyzeFraudRisk, parseShippingAddress, type FraudAnalysis } from '@/lib/fraudDetection';
-
-type TimeFilter = 'today' | 'week' | 'month' | 'year' | 'all';
-
-const getTimeCutoff = (filter: TimeFilter): Date | null => {
-  const now = new Date();
-  switch (filter) {
-    case 'today': return startOfDay(now);
-    case 'week': return startOfWeek(now, { weekStartsOn: 0 });
-    case 'month': return startOfMonth(now);
-    case 'year': return startOfYear(now);
-    default: return null;
-  }
-};
-
-const TimeFilterBar = ({ value, onChange }: { value: TimeFilter; onChange: (v: TimeFilter) => void }) => {
-  const presets: { value: TimeFilter; label: string; short: string }[] = [
-    { value: 'today', label: 'Today', short: 'Today' },
-    { value: 'week', label: 'This Week', short: 'Week' },
-    { value: 'month', label: 'This Month', short: 'Month' },
-    { value: 'year', label: 'This Year', short: 'Year' },
-    { value: 'all', label: 'All Time', short: 'All' },
-  ];
-  return (
-    <div className="flex items-center gap-1 sm:gap-1.5">
-      <Calendar className="h-3.5 w-3.5 text-muted-foreground mr-1 hidden sm:block" />
-      {presets.map((p) => (
-        <button
-          key={p.value}
-          onClick={() => onChange(p.value)}
-          className={cn(
-            'px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-medium transition-all',
-            value === p.value
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
-          )}
-        >
-          <span className="sm:hidden">{p.short}</span>
-          <span className="hidden sm:inline">{p.label}</span>
-        </button>
-      ))}
-    </div>
-  );
-};
+import { getStatusColor } from '@/lib/statusColors';
+import { TimeFilterBar, getTimeCutoff, type TimeFilter } from '@/components/admin/TimeFilterBar';
 
 const AdminOrders = () => {
   useDocumentTitle('Orders Management - Admin');
@@ -338,24 +296,7 @@ const AdminOrders = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'delivered':
-      case 'completed':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'processing':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-      case 'shipped':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
-      case 'cancelled':
-      case 'rejected':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-      default:
-        return 'bg-muted text-muted-foreground';
-    }
-  };
+  // getStatusColor imported from '@/lib/statusColors'
 
   const getPaymentMethodBadge = (method: string) => {
     switch (method?.toLowerCase()) {

@@ -30,7 +30,7 @@ export const PetProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('pets')
-        .select('*')
+        .select('id, user_id, name, species, breed, age, bio, avatar_url, cover_photo_url, location, created_at, updated_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 

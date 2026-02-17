@@ -58,7 +58,7 @@ export const PlatformOverview = memo(({ stats }: PlatformOverviewProps) => (
         title="Users"
         value={stats?.totalUsers || 0}
         icon={<Users className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />}
-        description={`${stats?.postsToday || 0} posts today`}
+        description={`${stats?.totalUsers || 0} registered`}
         href="/admin/customers"
         className="bg-gradient-to-br from-orange-50 to-amber-50/50 border-orange-100 dark:from-orange-950/30 dark:to-amber-950/20 dark:border-orange-900/50"
       />
