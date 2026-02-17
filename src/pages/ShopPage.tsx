@@ -667,7 +667,7 @@ const ShopPage = () => {
         )}
 
         {/* Products Grid */}
-        <section className="flex-1" aria-label="Products list">
+        <section className="flex-1 min-h-[400px]" aria-label="Products list">
           {loading ? (
             <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-3" aria-busy="true" aria-label="Loading products">
               {[...Array(8)].map((_, i) => (
