@@ -34,6 +34,8 @@ import { toast } from 'sonner';
 import type { Pet } from '@/types/social';
 import { compressImage, getCompressionMessage } from '@/lib/mediaCompression';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { removeStorageFiles } from '@/lib/storageUtils';
+import { logger } from '@/lib/logger';
 
 const speciesOptions = [
   'Dog', 'Cat', 'Bird', 'Fish', 'Rabbit', 'Hamster', 
@@ -221,6 +223,26 @@ const EditPetPage = () => {
 
     setDeleting(true);
     try {
+      // Collect all storage URLs to clean up (pet avatar, cover, and all post media)
+      const urlsToRemove: string[] = [];
+      if (pet.avatar_url) urlsToRemove.push(pet.avatar_url);
+      if (pet.cover_photo_url) urlsToRemove.push(pet.cover_photo_url);
+
+      // Fetch post media URLs before cascade deletes them
+      const { data: posts } = await supabase
+        .from('posts')
+        .select('media_urls')
+        .eq('pet_id', pet.id);
+
+      if (posts) {
+        for (const post of posts) {
+          if (post.media_urls) {
+            urlsToRemove.push(...post.media_urls);
+          }
+        }
+      }
+
+      // Delete DB row (cascades to posts, likes, comments, follows, stories)
       const { error } = await supabase
         .from('pets')
         .delete()
@@ -228,13 +250,16 @@ const EditPetPage = () => {
 
       if (error) throw error;
 
+      // Clean up storage files after successful DB deletion
+      if (urlsToRemove.length > 0) {
+        await removeStorageFiles(urlsToRemove);
+      }
+
       await refreshPets();
       toast.success('Pet profile deleted');
       navigate('/feed');
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error deleting pet:', error);
-      }
+      logger.error('Error deleting pet:', error);
       toast.error('Failed to delete pet profile');
     } finally {
       setDeleting(false);

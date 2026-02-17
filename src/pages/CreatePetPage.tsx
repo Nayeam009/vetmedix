@@ -29,7 +29,7 @@ const speciesOptions = [
 ];
 
 const MAX_PETS = 30;
-const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB (will be compressed)
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
 const CreatePetPage = () => {
   useDocumentTitle('Add New Pet');
