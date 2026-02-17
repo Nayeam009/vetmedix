@@ -1,132 +1,164 @@
 
 
-# Discovery and Alerting Audit -- Search and Notifications
+# Upload Integrity Report -- Vetmedix
 
-## SECURITY GAPS
+## 1. BROKEN FLOWS
 
-### SEC-1: Search Query SQL Injection Risk (Critical)
-**File:** `src/components/GlobalSearch.tsx` (lines 117, 135, 154, 159, 191, 209, 230)
+### BRK-1: Video Size Limit Mismatch in Social Feed (Medium)
+**File:** `src/components/social/CreatePostCard.tsx` (lines 34, 85)
 
-Every search query interpolates raw user input directly into Supabase filter strings:
-```typescript
-.or(`name.ilike.%${searchTerm}%,species.ilike.%${searchTerm}%`)
-```
+The code defines `MAX_VIDEO_SIZE = 50 * 1024 * 1024` (50MB) but the error message on line 85 says "exceeds 20MB limit". Users are shown a misleading error. The actual check allows up to 50MB but the toast says 20MB.
 
-A malicious user can craft a `searchTerm` containing Supabase filter operators (e.g., commas, parentheses, dots) to manipulate the query logic. The `ilike` pattern is injected without escaping special characters like `%`, `_`, `,`, `.`, or `)`.
-
-**Fix:** Sanitize the search term by escaping special PostgREST filter characters before interpolation, or move search logic to a server-side RPC function that uses parameterized queries.
+**Fix:** Align the error message with the constant, or lower the constant to match the intended limit.
 
 ---
 
-### SEC-2: Search Has No Debouncing -- Database Flooding (High)
-**File:** `src/components/GlobalSearch.tsx` (line 106)
+### BRK-2: EditPetPage Has No File Validation (High)
+**File:** `src/pages/EditPetPage.tsx` (lines 112-126)
 
-The search query fires a React Query fetch on every keystroke (as soon as `query.length >= 2`). There is no debouncing. Typing "cat food" triggers 7 separate database round-trips (one per character after the 2nd), each executing 4-7 parallel table queries. A fast typer or automated script could generate hundreds of queries per minute.
+Both `handleAvatarChange` and `handleCoverChange` accept files with **zero validation** -- no file type check (`file.type.startsWith('image/')`) and no file size check. A user could select a 20MB `.exe` file as a pet avatar. The file would be uploaded raw without compression validation.
 
-The project already has a `useDebounce` hook (`src/hooks/useDebounce.ts`) that is not being used here.
+Compare this to `CreatePetPage.tsx` which correctly enforces a 5MB limit on avatar uploads.
 
-**Fix:** Apply `useDebounce(query, 300)` to the search query before passing it to React Query's `queryKey`.
-
----
-
-### SEC-3: Client-Side Role Filtering for Search Scope (Medium)
-**File:** `src/components/GlobalSearch.tsx` (lines 186, 225)
-
-Admin-only searches (orders, user profiles) and clinic-owner searches (appointments) are gated by client-side `if (isAdmin)` and `if (isClinicOwner)` checks. While RLS on these tables provides backend protection (e.g., only admins can SELECT from `orders` for other users), the queries are still executed client-side. This means:
-
-- A non-admin user's query to `orders` returns zero rows (RLS blocks it) but still consumes a database connection
-- The search logic reveals which tables exist and what columns are queryable via browser DevTools inspection
-
-This is not a data leak (RLS protects the data), but it is unnecessary query overhead and information leakage about the schema.
-
-**Fix:** The current RLS policies are strong enough to prevent data exposure. However, for efficiency and defense-in-depth, the role checks should remain to avoid wasteful queries. No urgent action needed, but migrating to a server-side RPC would eliminate this entirely.
+**Fix:** Add `file.type.startsWith('image/')` and size limit checks mirroring `CreatePetPage`.
 
 ---
 
-### SEC-4: Notifications Use `as any` Type Casting (Medium)
-**File:** `src/hooks/useNotifications.ts` (lines 17, 73, 88)
+### BRK-3: DoctorVerificationPage Has No File Type Validation (High)
+**File:** `src/pages/doctor/DoctorVerificationPage.tsx` (lines 57-66)
 
-Three occurrences of `.from('notifications' as any)` bypass TypeScript's type system. This means column name typos, missing fields, or schema mismatches will not be caught at compile time.
+The `handleFileChange` function only checks size (5MB limit) but does NOT validate file type. Any file type (`.exe`, `.js`, `.bat`) can be uploaded to the `doctor-documents` bucket as a "BVC certificate". The file input does not even specify an `accept` attribute in the HTML.
 
-**Fix:** Add the `notifications` table to the generated Supabase types (it likely already exists in the database but may not be in the type definition), then remove all `as any` casts.
+Compare this to `ClinicVerificationPage.tsx` which correctly limits to `.pdf,.jpg,.jpeg,.png,.webp` and validates `file.type` against an allowlist.
 
----
-
-## MISSING TRIGGERS
-
-### TRG-1: No Toast on New Notification Arrival (Medium)
-**File:** `src/hooks/useNotifications.ts` (line 48)
-
-The realtime subscription correctly invalidates the React Query cache when a new notification arrives, but it does NOT trigger a `sonner` toast. Users must manually check the bell icon to see new notifications. On desktop, a new appointment booking or order status change goes completely unnoticed unless the user is already looking at the bell.
-
-**Fix:** In the realtime callback, when `payload.eventType === 'INSERT'`, trigger a `toast()` with the notification title and message. Import `toast` from `sonner`.
+**Fix:** Add `accept=".pdf,.jpg,.jpeg,.png,.webp"` to the input and validate `file.type` against an allowlist.
 
 ---
 
-### TRG-2: No Notification Created When Appointment is Booked (High)
+### BRK-4: StoriesBar Allows 50MB Uploads Without Compression (Medium)
+**File:** `src/components/social/StoriesBar.tsx` (lines 48-49)
+
+Story uploads allow files up to 50MB with no compression applied. The `createStory` function is called directly with the raw file. For images, this wastes bandwidth and storage. The main post composer compresses images but stories do not.
+
+**Fix:** Apply `compressImage(file, 'story')` before upload for image stories.
+
+---
+
+## 2. SECURITY GAPS
+
+### SEC-1: `doctor-documents` Bucket Returns `publicUrl` for Private Bucket (Critical)
+**File:** `src/pages/doctor/DoctorVerificationPage.tsx` (lines 99-103)
+
+The `doctor-documents` bucket is configured as **private** (`Is Public: No`), but the code calls `getPublicUrl()` which generates a URL that will return a 400/403 error for unauthenticated users. This is technically secure (the file is not actually accessible), but the stored URL in the database is a dead link. Admins reviewing verification documents will see broken images.
+
+The correct approach for private buckets is to use `createSignedUrl()` at read-time.
+
+**Fix:** Store only the storage path (not the full public URL) and generate signed URLs when displaying documents on the admin panel.
+
+---
+
+### SEC-2: `clinic-documents` Same Issue as SEC-1 (Critical)
+**File:** `src/pages/clinic/ClinicVerificationPage.tsx` (lines 97-101)
+
+Same pattern -- `getPublicUrl()` is called on a private bucket (`clinic-documents`). The BVC certificate and trade license URLs stored in the `clinics` table are non-functional links.
+
+**Fix:** Same as SEC-1 -- use signed URLs at read-time.
+
+---
+
+### SEC-3: `accept="image/*"` Does Not Block Non-Image Files (Medium)
+**Files:** `ProfileHeader.tsx`, `CreatePetPage.tsx`, `EditPetPage.tsx`, `CreatePostCard.tsx`
+
+All image uploaders use `accept="image/*"` on the HTML `<input>` element. This provides a UI hint to the file picker but does NOT prevent a user from selecting "All Files" and choosing a `.js` or `.exe` file. Only `ProfileHeader.tsx` and `CreatePostCard.tsx` additionally validate `file.type.startsWith('image/')` in JavaScript.
+
+`EditPetPage.tsx` does **not** validate file type in JavaScript, so a non-image file would pass through to the upload.
+
+**Fix:** Ensure all upload handlers validate `file.type` in JavaScript, not just via the `accept` attribute.
+
+---
+
+## 3. STORAGE HYGIENE
+
+### HYG-1: Profile Avatar/Cover Updates Create Orphaned Files (High)
+**File:** `src/components/profile/ProfileHeader.tsx` (lines 86-97, 139-148)
+
+When a user updates their avatar or cover photo, a new file is uploaded with a timestamped name (e.g., `user-id/avatar-1234567.webp`), but the **old file is never deleted** from the `avatars` bucket. Over time, each user accumulates orphaned files.
+
+**Fix:** Before uploading a new avatar/cover, call `removeStorageFiles([oldUrl], 'avatars')` to clean up the previous file.
+
+---
+
+### HYG-2: Pet Avatar/Cover Updates Create Orphaned Files (High)
+**File:** `src/pages/EditPetPage.tsx` (lines 143-165, 168-190)
+
+Same pattern as HYG-1. When editing a pet profile, new avatar and cover files are uploaded but old ones are not deleted from `pet-media`.
+
+Note: The `handleDelete` function at line 221 correctly cleans up all files when the pet is deleted. The issue is only with updates.
+
+**Fix:** Before uploading new avatar/cover, delete the old file using `removeStorageFiles([pet.avatar_url], 'pet-media')`.
+
+---
+
+### HYG-3: Doctor Verification Document Re-uploads Orphan Previous Files (Medium)
+**File:** `src/pages/doctor/DoctorVerificationPage.tsx` (line 91)
+
+The `upsert: true` flag means the same path is overwritten (good -- since the path is always `{userId}/bvc_certificate.{ext}`). However, if the file extension changes (e.g., from `.pdf` to `.jpg`), the old file with the previous extension remains orphaned.
+
+**Fix:** Use a fixed filename without extension in the path, or delete the old file first.
+
+---
+
+### HYG-4: Post Deletion Cleans Up Storage Correctly (Good)
+**File:** `src/components/social/PostCard.tsx` (lines 61-64)
+
+Post deletion correctly calls `removeStorageFiles(post.media_urls)` before deleting the database row. This is the correct pattern and should be replicated in the areas identified above.
+
+---
+
+## 4. MISSING FEATURES
+
+### MISS-1: No Optimistic Preview for Profile Avatar Upload
+**File:** `src/components/profile/ProfileHeader.tsx`
+
+Unlike `CreatePetPage.tsx` which shows an instant local preview via `URL.createObjectURL()`, the profile avatar upload shows only a spinner. The avatar visually disappears during upload and reappears when complete.
+
+**Fix:** Set a local preview URL immediately on file selection, then replace with the server URL after upload.
+
+---
+
+### MISS-2: No PDF-Specific Download Feature for Products
 **Architecture Gap**
 
-When a Pet Parent books an appointment via `book_appointment_atomic()`, the function inserts into `appointments` but does NOT insert into `notifications` for the Doctor or Clinic Owner. The only appointment notification trigger is `notify_waitlist_on_cancellation()` which fires on cancellation, not on booking.
+There is no "Digital Product" or "Manual/Guide" upload feature for products. The `products` table has no column for downloadable files. The PDF import system (`parse-product-pdf`) is an admin tool for bulk product creation, not a customer-facing download.
 
-This means Doctors and Clinic Owners have no way to know a new appointment was booked until they manually check their dashboard.
-
-**Fix:** Create a database trigger `notify_on_new_appointment()` that fires on INSERT into `appointments`, creating notification records for the clinic owner (and assigned doctor if applicable).
+This feature does not exist yet and would need to be designed from scratch.
 
 ---
 
-### TRG-3: No Notification Created When Order is Placed (High)
-**Architecture Gap**
-
-When a Pet Parent places an order via `create_order_with_stock()`, no notification is sent to the Admin. Admins only discover new orders by manually visiting the orders page.
-
-**Fix:** Create a database trigger `notify_admin_on_new_order()` that fires on INSERT into `orders`, creating a notification for all admin-role users.
-
----
-
-### TRG-4: No Notification on Order Status Change (Medium)
-**Architecture Gap**
-
-When an Admin updates an order status (accepted, shipped, delivered, rejected), no notification is sent to the Pet Parent who placed the order. The user must manually check their order history.
-
-**Fix:** Create a database trigger `notify_user_on_order_update()` that fires on UPDATE of `orders.status`, creating a notification for the order's `user_id`.
-
----
-
-## REFACTOR PLAN
-
-### Phase 1: Search Security and Performance (3 files)
-
-| File | Change |
-|---|---|
-| `src/components/GlobalSearch.tsx` | 1. Add `useDebounce(query, 300)` for the search query. 2. Sanitize search input by escaping PostgREST special characters (`%`, `_`, `,`, `.`, `(`, `)`) before interpolation. |
-| No new files needed | The existing Command component pattern is correct. No architectural change needed. |
-
-### Phase 2: Notification Triggers (1 SQL migration)
-
-| Change | Type |
-|---|---|
-| `notify_on_new_appointment()` trigger | DB trigger on `appointments` INSERT -- notifies clinic owner and assigned doctor |
-| `notify_admin_on_new_order()` trigger | DB trigger on `orders` INSERT -- notifies all admin users |
-| `notify_user_on_order_update()` trigger | DB trigger on `orders` UPDATE (status change) -- notifies the order's user |
-
-### Phase 3: Notification UX (1 file)
-
-| File | Change |
-|---|---|
-| `src/hooks/useNotifications.ts` | 1. Add `toast()` call in the realtime callback for INSERT events. 2. Remove `as any` casts if `notifications` table is in the generated types. |
-
-### Summary
+## SUMMARY MATRIX
 
 | ID | Severity | Category | Issue |
 |---|---|---|---|
-| SEC-1 | Critical | Security | Search query injection via unescaped PostgREST filters |
-| SEC-2 | High | Performance | No debouncing on search -- database flooding |
-| TRG-2 | High | Missing Trigger | No notification when appointment is booked |
-| TRG-3 | High | Missing Trigger | No notification when order is placed |
-| SEC-3 | Medium | Security | Client-side role filtering (mitigated by RLS) |
-| SEC-4 | Medium | Code Quality | Notifications use `as any` type casts |
-| TRG-1 | Medium | UX | No toast on new notification arrival |
-| TRG-4 | Medium | Missing Trigger | No notification on order status change |
+| SEC-1 | Critical | Security | `doctor-documents` stores dead `publicUrl` for private bucket |
+| SEC-2 | Critical | Security | `clinic-documents` stores dead `publicUrl` for private bucket |
+| BRK-2 | High | Broken Flow | `EditPetPage` has zero file validation |
+| BRK-3 | High | Broken Flow | `DoctorVerificationPage` has no file type validation |
+| HYG-1 | High | Storage Hygiene | Profile avatar/cover updates orphan old files |
+| HYG-2 | High | Storage Hygiene | Pet avatar/cover updates orphan old files |
+| BRK-1 | Medium | Broken Flow | Video size limit error message mismatch |
+| BRK-4 | Medium | Broken Flow | Stories skip image compression |
+| SEC-3 | Medium | Security | `accept="image/*"` not enforced in JS on some uploaders |
+| HYG-3 | Medium | Storage Hygiene | Doctor verification re-upload may orphan files |
+| MISS-1 | Low | UX | No optimistic preview for profile avatar |
+| MISS-2 | N/A | Feature Gap | No digital product download feature exists |
 
-**Total: 1 SQL migration (3 triggers), 2 files modified. No new dependencies.**
+## RECOMMENDED FIX PRIORITY
+
+1. **SEC-1 + SEC-2** -- Switch private bucket URL storage to path-only, generate signed URLs at read-time (prevents broken admin review screens)
+2. **BRK-2 + BRK-3 + SEC-3** -- Add file type and size validation to all upload handlers
+3. **HYG-1 + HYG-2** -- Add old file cleanup before new uploads (use existing `removeStorageFiles` utility)
+4. **BRK-1 + BRK-4** -- Fix video error message and add story image compression
+5. **MISS-1** -- Add optimistic preview for profile avatar
+
+No code changes will be made until approval is received.
 
