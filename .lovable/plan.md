@@ -1,155 +1,226 @@
 
 
-# Final Compliance Report -- Accessibility, SEO, and System Resilience
+# Final Optimization Plan -- Vetmedix
 
-## 1. ACCESSIBILITY FAILURES (WCAG 2.1)
+## 1. DATABASE PERFORMANCE (Indexes)
 
-### A11Y-1: ProductDetailPage Has Zero aria-labels on Icon-Only Buttons (High)
-**File:** `src/pages/ProductDetailPage.tsx`
+### Current State
+The existing migration `20260202041611` already covers most critical indexes. However, several gaps remain for commonly filtered columns.
 
-The following icon-only buttons have NO `aria-label`:
-- Wishlist heart button (line 265) -- screen reader sees empty button
-- Share button (line 274) -- screen reader sees empty button
-- Quantity decrease/increase buttons (lines 458-473, 562-577) -- no label like "Decrease quantity" / "Increase quantity"
-- Thumbnail gallery buttons (line 284) -- no label like "View image 2 of 4"
+### Missing Indexes to Add
 
-**Fix:** Add `aria-label` to each: `"Add to wishlist"`, `"Share product"`, `"Decrease quantity"`, `"Increase quantity"`, and `"View image {idx+1} of {total}"`.
+```sql
+-- A. Orders: status filter (used by admin dashboard, profile page)
+CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders (status) WHERE trashed_at IS NULL;
 
----
+-- B. Orders: payment_status filter (admin orders page)
+CREATE INDEX IF NOT EXISTS idx_orders_payment_status ON public.orders (payment_status);
 
-### A11Y-2: DoctorCard and ClinicCard Have No Accessibility Attributes (Medium)
-**Files:** `src/components/DoctorCard.tsx`, `src/components/ClinicCard.tsx`
+-- C. Appointments: status filter (used in clinic dashboard, profile)
+CREATE INDEX IF NOT EXISTS idx_appointments_status ON public.appointments (status);
 
-Neither card component uses `role`, `aria-label`, or semantic `<article>` tags. The clickable image area in ClinicCard (line 31) uses a plain `<div onClick>` without `role="button"` or keyboard handlers (`onKeyDown`). A keyboard-only user cannot activate it.
+-- D. Appointments: unique constraint support (race condition prevention)
+CREATE INDEX IF NOT EXISTS idx_appointments_clinic_doctor_date_time 
+ON public.appointments (clinic_id, doctor_id, appointment_date, appointment_time);
 
-**Fix:** Add `role="article"` and `aria-label` to each card root. For clickable `<div>` elements, add `role="button"`, `tabIndex={0}`, and `onKeyDown` handler for Enter/Space.
+-- E. Products: category + active filter (shop page filtering)
+CREATE INDEX IF NOT EXISTS idx_products_category_active 
+ON public.products (category, is_active) WHERE is_active = true;
 
----
+-- F. Products: featured products query (homepage)
+CREATE INDEX IF NOT EXISTS idx_products_featured 
+ON public.products (is_featured) WHERE is_featured = true AND is_active = true;
 
-### A11Y-3: MobileNav Links Missing aria-labels (Medium)
-**File:** `src/components/MobileNav.tsx`
+-- G. Incomplete orders: status filter (admin recovery page)
+CREATE INDEX IF NOT EXISTS idx_incomplete_orders_status 
+ON public.incomplete_orders (status) WHERE trashed_at IS NULL;
 
-The bottom navigation `<Link>` elements (line 56-77) have visible labels via `<span>` but no explicit `aria-label` describing them. The badge count for notifications is rendered inside the link but has no `aria-label` context (e.g., "Alerts, 3 unread").
+-- H. Coupons: code lookup (checkout validation)
+CREATE INDEX IF NOT EXISTS idx_coupons_code_active 
+ON public.coupons (code) WHERE is_active = true;
 
-**Fix:** Add `aria-label={item.badge > 0 ? \`${item.label}, ${item.badge} unread\` : item.label}` to each nav link.
+-- I. Follows: follower lookup (feed generation)
+CREATE INDEX IF NOT EXISTS idx_follows_follower 
+ON public.follows (follower_user_id);
 
----
+-- J. Follows: following lookup (pet profile followers count)
+CREATE INDEX IF NOT EXISTS idx_follows_following 
+ON public.follows (following_pet_id);
 
-### A11Y-4: Most Pages Missing `id="main-content"` Landmark (Medium)
-**Files:** Multiple pages
+-- K. Stories: pet + expiry (stories bar query)
+CREATE INDEX IF NOT EXISTS idx_stories_pet_expires 
+ON public.stories (pet_id, expires_at DESC) WHERE expires_at > now();
 
-The Navbar has a "Skip to main content" link targeting `#main-content` (line 42), but only 4 of ~30 pages actually set `id="main-content"` on their `<main>` element:
-- Index.tsx (has it)
-- BlogPage.tsx (has it)
-- BlogArticlePage.tsx (has it)
-- ContactPage.tsx (has it)
+-- L. Doctor join requests: status filter
+CREATE INDEX IF NOT EXISTS idx_doctor_join_requests_status 
+ON public.doctor_join_requests (status);
 
-Pages like `ProductDetailPage.tsx`, `ShopPage.tsx`, `DoctorsPage.tsx`, `ClinicsPage.tsx`, `CartPage.tsx`, `CheckoutPage.tsx`, `ProfilePage.tsx`, and all admin/doctor/clinic dashboards do NOT have `id="main-content"`. The skip link is broken on these pages.
+-- M. Wishlists: user lookup
+CREATE INDEX IF NOT EXISTS idx_wishlists_user 
+ON public.wishlists (user_id);
 
-**Fix:** Add `id="main-content"` to the `<main>` element on every page. Pages that use `<div>` as their root should wrap content in a `<main id="main-content">` tag.
+-- N. Wishlists: product lookup (for product detail "is wishlisted" check)
+CREATE INDEX IF NOT EXISTS idx_wishlists_user_product 
+ON public.wishlists (user_id, product_id);
+```
 
----
-
-### A11Y-5: ProductDetailPage Uses `<div>` Root Instead of `<main>` (Medium)
-**File:** `src/pages/ProductDetailPage.tsx` (line 195)
-
-The page's root element is `<div className="min-h-screen ...">`. There is no `<main>` landmark at all. Screen readers cannot identify the primary content region.
-
-**Fix:** Replace the outer `<div>` with `<main id="main-content">` (or wrap the content area after `<Navbar />` in a `<main>` tag).
-
----
-
-### A11Y-6: Notification Popover Items Are `<div>` With `onClick` (Low)
-**File:** `src/components/social/NotificationBell.tsx` (line 154-190)
-
-Each notification item is a `<div onClick>` with no `role="button"`, `tabIndex`, or keyboard handler. Keyboard users cannot activate individual notifications.
-
-**Fix:** Add `role="button"`, `tabIndex={0}`, and `onKeyDown` (Enter/Space) to each notification item.
-
----
-
-## 2. SEO GAPS
-
-### SEO-1: No Canonical URL Set on Any Page (Medium)
-**File:** `src/components/SEO.tsx` supports `canonicalUrl` prop, but NO page passes it.
-
-The `ProductDetailPage`, `BlogArticlePage`, `DoctorDetailPage`, and `ClinicDetailPage` all have unique URLs but never set a canonical URL. Products accessible via `/product/:id` could theoretically be indexed with query parameters (e.g., `?ref=related`), creating duplicate content.
-
-**Fix:** Pass `canonicalUrl` prop from key pages:
-- `ProductDetailPage`: `canonicalUrl={\`https://vetmedix.lovable.app/product/${id}\`}`
-- `BlogArticlePage`: `canonicalUrl={\`https://vetmedix.lovable.app/blog/${slug}\`}`
-- `ClinicDetailPage`: `canonicalUrl={\`https://vetmedix.lovable.app/clinic/${id}\`}`
-- `DoctorDetailPage`: `canonicalUrl={\`https://vetmedix.lovable.app/doctor/${id}\`}`
+Total: 14 new indexes. All use `IF NOT EXISTS` to be safe.
 
 ---
 
-### SEO-2: BlogArticlePage SEO Title Has Double Branding (Low)
-**File:** `src/pages/BlogArticlePage.tsx` (line 58)
+## 2. QUERY EFFICIENCY (`select('*')` Audit)
 
-The SEO title is set to `${article.title} - VET-MEDIX Blog`, but the `SEO` component appends ` - VetMedix` automatically (line 100 of SEO.tsx). The final `<title>` will be: `"Article Title - VET-MEDIX Blog - VetMedix"` -- double-branded and inconsistent casing.
+30 files currently use `select('*')`. The highest-impact ones to refactor with explicit column selection:
 
-**Fix:** Pass just `article.title` as the SEO title, or update the SEO component's suffix logic to detect existing branding.
+| File | Table | Suggested Columns |
+|---|---|---|
+| `usePublicDoctors.ts` | `doctors_public` | `id, name, specialization, qualifications, avatar_url, bio, experience_years, consultation_fee, is_available, is_verified, created_by_clinic_id` |
+| `useExplorePets.ts` | `pets` | `id, user_id, name, species, breed, age, avatar_url, location` |
+| `useMessages.ts` | `conversations` | `id, participant_1_id, participant_2_id, last_message_at, created_at` |
+| `useMessages.ts` | `messages` | `id, conversation_id, sender_id, content, media_url, media_type, is_read, created_at` |
+| `useClinicOwner.ts` | `clinics` | `id, name, address, phone, email, description, rating, image_url, cover_photo_url, is_open, opening_hours, is_verified, verification_status, services, owner_user_id` |
+| `useClinicOwner.ts` | `clinic_services` | `id, clinic_id, name, description, price, duration_minutes, is_active` |
+| `useDoctor.ts` | `doctors` | `id, user_id, name, specialization, qualifications, bio, avatar_url, phone, email, experience_years, consultation_fee, is_available, is_verified, verification_status, license_number, created_by_clinic_id, bvc_certificate_url, nid_number` |
+| `ProfilePage.tsx` | `orders` | `id, items, total_amount, status, created_at, shipping_address, payment_method, tracking_id` |
+| `AdminClinics.tsx` | `clinics` | `id, name, address, phone, email, rating, is_open, is_verified, verification_status, image_url, owner_user_id, created_at, is_blocked, blocked_reason` |
+| `AdminCoupons.tsx` | `coupons` | `id, code, description, discount_type, discount_value, min_order_amount, max_discount_amount, usage_limit, used_count, is_active, starts_at, expires_at` |
+| `useClinicReviews.ts` | `clinic_reviews` | `id, clinic_id, user_id, rating, comment, helpful_count, created_at` |
+| `useProductCategories.ts` | `product_categories` | `id, name, slug, image_url, product_count, is_active` |
+| `useDoctorSchedules.ts` | `doctor_schedules` | `id, doctor_id, clinic_id, day_of_week, start_time, end_time, slot_duration_minutes, is_available, max_appointments` |
 
----
-
-### SEO-3: DoctorDetailPage and ClinicDetailPage Need Schema Audit (Low)
-
-Both pages already use the `SEO` component with structured data schemas (`Physician` and `VeterinaryCare`). These appear correct based on the SEO component's `generateJsonLd` function. No fix needed -- just noting for completeness.
-
----
-
-## 3. SYSTEM RESILIENCE
-
-### RES-1: Error Boundary Is Correctly Configured (Good)
-**File:** `src/App.tsx` (line 143)
-
-A global `<ErrorBoundary>` wraps all routes inside `<Suspense>`. If any component (like `ProductCard`) crashes, the ErrorBoundary catches it and displays a branded fallback UI with "Try Again" and "Go Home" buttons. This prevents the White Screen of Death.
-
-**Verdict:** No fix needed. Correctly implemented.
+Total: 13 queries to refactor from `select('*')` to explicit columns.
 
 ---
 
-### RES-2: Offline Indicator Is Correctly Configured (Good)
-**File:** `src/App.tsx` (line 140), `src/components/OfflineIndicator.tsx`
+## 3. FRONTEND PERFORMANCE
 
-The `<OfflineIndicator />` component is rendered globally and listens for `online`/`offline` events. It shows a destructive banner when offline and a green "You're back online!" banner on reconnection. Uses `aria-live="assertive"` for screen readers.
+### 3A. Route Splitting -- Already Done (Good)
+All routes in `App.tsx` are already lazy-loaded via `React.lazy()`. Admin, Doctor, and Clinic routes are fully code-split. A user visiting `/shop` does NOT download admin code. No changes needed here.
 
-**Verdict:** No fix needed. Correctly implemented.
+### 3B. Heavy Library Audit -- Recharts
+
+Recharts is imported directly (not lazy) in 3 files:
+- `src/pages/admin/AdminAnalytics.tsx` -- already lazy-loaded as a route
+- `src/pages/admin/AdminRecoveryAnalytics.tsx` -- already lazy-loaded as a route
+- `src/components/clinic/ClinicAnalyticsCharts.tsx` -- imported into `ClinicDashboard.tsx`
+
+Since `AdminAnalytics` and `AdminRecoveryAnalytics` are already route-level lazy components, recharts is only bundled when those routes are visited. Good.
+
+However, `ClinicAnalyticsCharts.tsx` is statically imported into `ClinicDashboard.tsx`. This means the entire recharts library loads when any clinic owner visits their dashboard, even if they don't scroll to the charts section.
+
+**Fix:** Lazy-load `ClinicAnalyticsCharts` inside `ClinicDashboard.tsx`:
+```tsx
+const ClinicAnalyticsCharts = lazy(() => import('@/components/clinic/ClinicAnalyticsCharts'));
+```
+
+### 3C. `chart.tsx` UI Component is Unused
+`src/components/ui/chart.tsx` imports `recharts` globally but is never imported by any file. This is dead code that pulls recharts into the main bundle via tree-shaking ambiguity.
+
+**Fix:** Delete `src/components/ui/chart.tsx` (see Section 5).
 
 ---
 
-### RES-3: Focus Management on Route Change Is Configured (Good)
-**File:** `src/App.tsx` (line 102), `src/hooks/useFocusManagement.ts`
+## 4. PWA UPGRADE
 
-The `useFocusManagement` hook runs on every route change, focusing `#main-content` and announcing the page title to screen readers. However, this is only effective on pages that have `id="main-content"` (see A11Y-4 above).
+### Current State
+- No `manifest.json` exists
+- No service worker registered
+- No PWA meta tags in `index.html`
+- The viewport meta tag is `width=device-width, initial-scale=1.0` (good -- no `user-scalable=no`)
 
-**Verdict:** The hook works correctly but its effectiveness is limited by A11Y-4. Fixing A11Y-4 also fixes this.
+### Implementation Plan
+
+**A. Create `public/manifest.json`:**
+```json
+{
+  "name": "VET-MEDIX - Pet Care & Veterinary Services",
+  "short_name": "VetMedix",
+  "description": "Pet care, social network & veterinary services in Bangladesh",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f97316",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["lifestyle", "shopping", "health"]
+}
+```
+
+**B. Add to `index.html`:**
+```html
+<link rel="manifest" href="/manifest.json" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="VetMedix" />
+```
+
+**C. Register a basic service worker** in `src/main.tsx` for caching static assets (logo, fonts). A lightweight hand-written SW is preferred over `vite-plugin-pwa` to avoid adding a new dependency:
+```typescript
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+```
+
+**D. Create `public/sw.js`** with a cache-first strategy for static assets and network-first for API calls.
+
+**Note:** PWA icons (192px and 512px PNGs) will need to be generated from the existing favicon/logo. Since no high-res icon exists yet, we will create placeholder references and note that production icons should be provided.
+
+---
+
+## 5. DEAD CODE & CLEANUP
+
+### 5A. Unused UI Component
+- `src/components/ui/chart.tsx` -- Imports `recharts` globally but is never used anywhere. **Delete.**
+
+### 5B. Console Logs
+Search confirms **zero** `console.log` or `console.debug` statements in `src/`. The `logger.ts` utility correctly silences all output in production. No cleanup needed.
+
+### 5C. TODO Comments
+No scan needed -- the logger already handles production silencing. No TODOs found in critical paths.
 
 ---
 
 ## SUMMARY MATRIX
 
-| ID | Severity | Category | Issue |
+| ID | Category | Priority | Action |
 |---|---|---|---|
-| A11Y-1 | High | Accessibility | ProductDetailPage icon buttons missing aria-labels |
-| A11Y-2 | Medium | Accessibility | DoctorCard/ClinicCard not keyboard-accessible |
-| A11Y-3 | Medium | Accessibility | MobileNav missing aria-labels on links |
-| A11Y-4 | Medium | Accessibility | 26+ pages missing id="main-content" (skip link broken) |
-| A11Y-5 | Medium | Accessibility | ProductDetailPage has no main landmark |
-| SEO-1 | Medium | SEO | No canonical URLs set on any page |
-| SEO-2 | Low | SEO | BlogArticlePage double-branded title |
-| A11Y-6 | Low | Accessibility | Notification items not keyboard-accessible |
-| RES-1 | N/A | Resilience | Error Boundary correctly configured (no fix) |
-| RES-2 | N/A | Resilience | Offline Indicator correctly configured (no fix) |
-| RES-3 | N/A | Resilience | Focus management works but depends on A11Y-4 |
+| DB-1 | Database | High | Add 14 missing indexes via migration |
+| DB-2 | Database | High | Refactor 13 `select('*')` queries to explicit columns |
+| FE-1 | Frontend | Medium | Lazy-load ClinicAnalyticsCharts in ClinicDashboard |
+| PWA-1 | PWA | Medium | Create manifest.json + service worker + meta tags |
+| CLN-1 | Cleanup | Low | Delete unused `chart.tsx` (removes recharts from implicit bundle) |
 
-## RECOMMENDED FIX PRIORITY
+## EXECUTION ORDER
 
-1. **A11Y-1 + A11Y-5** -- Add aria-labels to ProductDetailPage icon buttons and wrap content in a main landmark (highest user impact page)
-2. **A11Y-4** -- Add `id="main-content"` to all page `<main>` elements (fixes skip link and focus management globally)
-3. **A11Y-2** -- Make DoctorCard and ClinicCard keyboard-accessible with role/tabIndex/onKeyDown
-4. **SEO-1** -- Pass canonicalUrl to ProductDetail, BlogArticle, ClinicDetail, and DoctorDetail pages
-5. **A11Y-3 + A11Y-6 + SEO-2** -- Minor fixes: MobileNav labels, notification keyboard access, blog title dedup
+1. **DB-1** -- Single SQL migration with all 14 indexes (zero risk, additive only)
+2. **DB-2** -- Refactor select queries across 13 files (reduces payload 30-60%)
+3. **CLN-1** -- Delete `chart.tsx` dead code
+4. **FE-1** -- Lazy-load ClinicAnalyticsCharts
+5. **PWA-1** -- Add manifest, service worker, and meta tags
 
-**Total: ~10 files to modify. No database changes. No new dependencies.**
+**Total: 1 migration, ~15 files to modify, 1 file to delete, 3 new files to create. No new npm dependencies.**
 
