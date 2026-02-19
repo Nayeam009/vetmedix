@@ -41,6 +41,7 @@ const ProductDetailPage = () => {
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const { user } = useAuth();
@@ -71,7 +72,8 @@ const ProductDetailPage = () => {
         .single();
 
       if (error || !data) {
-        navigate('/');
+        setFetchError(true);
+        setLoading(false);
         return;
       }
 
@@ -155,7 +157,30 @@ const ProductDetailPage = () => {
     );
   }
 
-  if (!product) return null;
+
+  // Friendly error state — product not found or network failure
+  if (fetchError || !product) {
+    return (
+      <div className="min-h-screen bg-muted/30">
+        <Navbar />
+        <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center text-center gap-6">
+          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+            <Package className="h-8 w-8 text-destructive" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-foreground">Product Not Found</h2>
+            <p className="text-muted-foreground">This product may have been removed or the link is incorrect.</p>
+          </div>
+          <Button onClick={() => navigate('/shop')} className="gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Shop
+          </Button>
+        </div>
+        <MobileNav />
+      </div>
+    );
+  }
+
 
   const discountedPrice = product.discount 
     ? Math.round(product.price * (1 - product.discount / 100))
