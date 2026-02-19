@@ -14,18 +14,16 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    // Primary singleton guarantee: all imports of these packages resolve to ONE copy.
-    // This is the correct low-level fix — resolve.dedupe ensures a single module
-    // instance regardless of how many packages import React.
+    // resolve.dedupe ensures ALL packages that import react/react-dom/react/jsx-runtime
+    // resolve to the EXACT same physical file on disk. This is the key guarantee:
+    // even if esbuild creates two chunks, they import the same module instance.
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   optimizeDeps: {
-    // DO NOT use force: true — it re-runs esbuild on every server start which
-    // causes two-pass bundling and mismatched ReactCurrentDispatcher singletons.
-    // DO NOT use esbuildOptions.banner — it changes chunk content hashes, causing
-    // the browser to mix stale cached chunks with freshly built ones.
-    // All React-consuming packages must be listed together so esbuild processes
-    // them in ONE pass, producing a single shared React internals chunk.
+    // force: true ensures the cache is fresh on every server start.
+    // Combined with resolve.dedupe above, esbuild processes react + react-dom
+    // together → single ReactCurrentDispatcher object shared by all chunks.
+    force: true,
     include: [
       "react",
       "react-dom",
@@ -49,7 +47,7 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: {
-          // All React in ONE chunk — guarantees single instance in production
+          // All React runtime in ONE chunk — single ReactCurrentDispatcher in prod.
           "vendor-react": [
             "react",
             "react-dom",
