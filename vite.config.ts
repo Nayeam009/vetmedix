@@ -20,10 +20,10 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   optimizeDeps: {
-    // force: true ensures the cache is fresh on every server start.
-    // Combined with resolve.dedupe above, esbuild processes react + react-dom
-    // together → single ReactCurrentDispatcher object shared by all chunks.
-    force: true,
+    // DO NOT use force: true — it re-runs esbuild on every server start,
+    // producing separate passes for react vs react-dom → mismatched chunk
+    // hashes → duplicate ReactCurrentDispatcher → useState crash.
+    // The reactSingleton.ts guard in main.tsx is the runtime safety net.
     include: [
       "react",
       "react-dom",
