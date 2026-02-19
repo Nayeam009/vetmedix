@@ -1,75 +1,89 @@
 /**
- * React Singleton Guard — Runtime Dispatcher Bridge
+ * React Dispatcher Bridge — THE definitive fix for the duplicate-React crash.
  *
- * This is the RUNTIME FALLBACK for the duplicate-React-instance crash.
- * The PRIMARY fix is vite.config.ts → cacheDir: "node_modules/.vite-vetmedix",
- * which forces a fresh esbuild pre-bundle that co-bundles react + react-dom
- * into one chunk with a single shared ReactCurrentDispatcher.
+ * ROOT CAUSE:
+ *   Vite pre-bundles `react` and `react-dom` into SEPARATE chunk files.
+ *   Each chunk has its OWN `ReactCurrentDispatcher` object (a plain JS object).
+ *   - react-dom's renderWithHooks() SETS:  reactDOMInternals.ReactCurrentDispatcher.current = dispatcher
+ *   - react's useState() READS:            reactInternals.ReactCurrentDispatcher.current
+ *   These are DIFFERENT objects → react reads null → crash.
  *
- * If two React chunks somehow still end up loaded (e.g. edge cases with
- * third-party libs bundling their own react), this guard ensures they share
- * one dispatcher via Object.defineProperty proxying.
+ * THE FIX:
+ *   Import react-dom here and proxy react-dom's ReactCurrentDispatcher.current
+ *   so that any SET also writes to react's ReactCurrentDispatcher.current.
+ *   This way renderWithHooks (react-dom) and useState (react) share one dispatcher.
  *
- * MUST be the very first import in main.tsx so it runs before any hooks.
+ * MUST be the very first import in main.tsx.
  */
 
 import React from "react";
+// We must import react-dom to access its internal dispatcher object.
+// This import is safe — it doesn't render anything, just loads the module.
+import * as ReactDOMModule from "react-dom";
 
-type ReactInternals = {
-  ReactCurrentDispatcher: { current: unknown };
-  ReactCurrentBatchConfig: { transition: unknown };
-  ReactCurrentOwner: { current: unknown };
-};
+const getInternals = (mod: any) =>
+  mod?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED ?? 
+  mod?.default?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
 
-declare global {
-  interface Window {
-    __REACT_SINGLETON__?: ReactInternals;
+const reactInternals = getInternals(React);
+const reactDOMInternals = getInternals(ReactDOMModule);
+
+if (typeof window !== "undefined" && reactInternals && reactDOMInternals) {
+  const WIN = window as any;
+
+  // ── Store the canonical (first-loaded) React internals ──────────────────
+  if (!WIN.__REACT_CANONICAL__) {
+    WIN.__REACT_CANONICAL__ = reactInternals;
   }
-}
 
-const internals = (React as any)
-  .__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED as ReactInternals;
+  const canonical: typeof reactInternals = WIN.__REACT_CANONICAL__;
+  const canonDispatcher = canonical.ReactCurrentDispatcher;
 
-if (typeof window !== "undefined") {
-  if (!window.__REACT_SINGLETON__) {
-    // First (and ideally only) React chunk — register as canonical.
-    window.__REACT_SINGLETON__ = internals;
-  } else {
-    // A second React chunk loaded. Proxy its dispatcher .current to the
-    // canonical one so reads/writes always go through the same object.
-    const canonical = window.__REACT_SINGLETON__;
-    const localDisp  = internals.ReactCurrentDispatcher;
-    const canonDisp  = canonical.ReactCurrentDispatcher;
+  // ── Cross-wire react-dom's dispatcher → react's dispatcher ──────────────
+  // When renderWithHooks (inside react-dom's chunk) writes:
+  //   ReactCurrentDispatcher.current = workInProgressHook
+  // we intercept that write and ALSO set react's dispatcher.
+  // So when useState (inside react's chunk) reads ReactCurrentDispatcher.current
+  // it gets the correct dispatcher instead of null.
+  const reactDOMDispatcher = reactDOMInternals.ReactCurrentDispatcher;
+  if (canonDispatcher && reactDOMDispatcher && canonDispatcher !== reactDOMDispatcher) {
+    Object.defineProperty(reactDOMDispatcher, "current", {
+      get() { return canonDispatcher.current; },
+      set(v) { canonDispatcher.current = v; },
+      configurable: true,
+      enumerable: true,
+    });
+  }
 
-    if (localDisp && canonDisp && localDisp !== canonDisp) {
-      Object.defineProperty(localDisp, "current", {
-        get()  { return canonDisp.current; },
-        set(v) { canonDisp.current = v;    },
-        configurable: true,
-        enumerable:   true,
-      });
-    }
+  // ── Also cross-wire react's own dispatcher if it differs from canonical ─
+  // (handles the case where reactSingleton itself is a secondary React chunk)
+  const reactDispatcher = reactInternals.ReactCurrentDispatcher;
+  if (canonDispatcher && reactDispatcher && canonDispatcher !== reactDispatcher) {
+    Object.defineProperty(reactDispatcher, "current", {
+      get() { return canonDispatcher.current; },
+      set(v) { canonDispatcher.current = v; },
+      configurable: true,
+      enumerable: true,
+    });
+  }
 
-    const localBatch = internals.ReactCurrentBatchConfig;
-    const canonBatch = canonical.ReactCurrentBatchConfig;
-    if (localBatch && canonBatch && localBatch !== canonBatch) {
-      Object.defineProperty(localBatch, "transition", {
-        get()  { return canonBatch.transition; },
-        set(v) { canonBatch.transition = v;    },
-        configurable: true,
-        enumerable:   true,
-      });
-    }
-
-    const localOwner = internals.ReactCurrentOwner;
-    const canonOwner = canonical.ReactCurrentOwner;
-    if (localOwner && canonOwner && localOwner !== canonOwner) {
-      Object.defineProperty(localOwner, "current", {
-        get()  { return canonOwner.current; },
-        set(v) { canonOwner.current = v;    },
-        configurable: true,
-        enumerable:   true,
-      });
+  // ── Cross-wire ReactCurrentBatchConfig and ReactCurrentOwner ────────────
+  for (const key of ["ReactCurrentBatchConfig", "ReactCurrentOwner"] as const) {
+    const canonObj = canonical[key];
+    const domObj = reactDOMInternals[key];
+    if (canonObj && domObj && canonObj !== domObj) {
+      for (const prop of Object.keys(canonObj)) {
+        try {
+          Object.defineProperty(domObj, prop, {
+            get() { return canonObj[prop]; },
+            set(v) { canonObj[prop] = v; },
+            configurable: true,
+            enumerable: true,
+          });
+        } catch {
+          // Property may not be configurable — skip
+        }
+      }
     }
   }
 }
