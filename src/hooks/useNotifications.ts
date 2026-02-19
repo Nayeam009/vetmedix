@@ -14,8 +14,11 @@ export const useNotifications = () => {
     queryFn: async () => {
       if (!user) return [] as Notification[];
 
+      // H-3 Fix: removed 'as any' cast — notifications is properly typed in schema.
+      // The FK join actor_pet is safe because actor_pet_id is nullable and
+      // PostgREST returns null for the joined object when actor_pet_id is null.
       const { data, error } = await supabase
-        .from('notifications' as any)
+        .from('notifications')
         .select(`
           *,
           actor_pet:pets!notifications_actor_pet_id_fkey(*)
@@ -50,7 +53,7 @@ export const useNotifications = () => {
           // Invalidate instead of optimistic set to get joined actor_pet data
           queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
           
-          // Show toast for new notifications (TRG-1)
+          // Show toast for new notifications
           if (payload.eventType === 'INSERT' && payload.new) {
             const n = payload.new as { title?: string; message?: string };
             toast(n.title || 'New notification', {
@@ -78,10 +81,19 @@ export const useNotifications = () => {
       (old) => old?.map(n => n.id === notificationId ? { ...n, is_read: true } : n) || []
     );
 
-    await supabase
-      .from('notifications' as any)
+    // H-3 Fix: Check the error from markAsRead and revert optimistic update on failure
+    const { error } = await supabase
+      .from('notifications')
       .update({ is_read: true })
       .eq('id', notificationId);
+
+    if (error) {
+      // Revert optimistic update
+      queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
+      if (import.meta.env.DEV) {
+        console.error('Error marking notification as read:', error);
+      }
+    }
   }, [user, queryClient]);
 
   const markAllAsRead = useCallback(async () => {
@@ -93,11 +105,21 @@ export const useNotifications = () => {
       (old) => old?.map(n => ({ ...n, is_read: true })) || []
     );
 
-    await supabase
-      .from('notifications' as any)
+    // H-3 Fix: Check the error and revert on failure
+    const { error } = await supabase
+      .from('notifications')
       .update({ is_read: true })
       .eq('user_id', user.id)
       .eq('is_read', false);
+
+    if (error) {
+      // Revert optimistic update
+      queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
+      toast.error('Failed to mark notifications as read');
+      if (import.meta.env.DEV) {
+        console.error('Error marking all notifications as read:', error);
+      }
+    }
   }, [user, queryClient]);
 
   const refresh = useCallback(() => {

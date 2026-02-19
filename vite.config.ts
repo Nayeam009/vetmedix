@@ -5,8 +5,6 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // Fresh cache dir forces new chunk hashes — browser cannot serve stale v=XXXX chunks
-  cacheDir: ".vite-cache-v3",
   server: {
     host: "::",
     port: 8080,
@@ -16,26 +14,18 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    // Primary singleton guarantee: all imports of these packages resolve to ONE copy
+    // Primary singleton guarantee: all imports of these packages resolve to ONE copy.
+    // This is the correct low-level fix — resolve.dedupe ensures a single module
+    // instance regardless of how many packages import React.
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   optimizeDeps: {
-    // force: true discards node_modules/.vite/deps/ on every server start.
-    // Combined with the package reinstall (which changes the lock file hash),
-    // this guarantees a single fresh esbuild pass that co-bundles react+react-dom
-    // into chunks with matching internal ReactCurrentDispatcher references.
-    force: true,
-    esbuildOptions: {
-      // This banner changes the CONTENT (and therefore the hash) of every
-      // pre-bundled chunk. Any CDN or filesystem cache serving the old
-      // chunk-TKA7E7G6.js?v=4112562a will miss, and fresh chunks are fetched.
-      banner: {
-        js: "/* vetmedix-react-dedup-v2 */",
-      },
-    },
-    // All packages that import React must be listed so they're ALL processed
-    // in a SINGLE esbuild invocation. esbuild then creates one shared chunk
-    // for the React internals (ReactCurrentDispatcher) that every package uses.
+    // DO NOT use force: true — it re-runs esbuild on every server start which
+    // causes two-pass bundling and mismatched ReactCurrentDispatcher singletons.
+    // DO NOT use esbuildOptions.banner — it changes chunk content hashes, causing
+    // the browser to mix stale cached chunks with freshly built ones.
+    // All React-consuming packages must be listed together so esbuild processes
+    // them in ONE pass, producing a single shared React internals chunk.
     include: [
       "react",
       "react-dom",

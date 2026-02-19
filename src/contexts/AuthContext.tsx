@@ -25,7 +25,10 @@ export const AuthProvider = ({ children, queryClient }: { children: ReactNode; q
   const [error, setError] = useState<AuthError | null>(null);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    // M-1 Fix: Use ONLY onAuthStateChange — it fires INITIAL_SESSION immediately
+    // with the current session, making the redundant getSession() call unnecessary.
+    // Removing getSession() eliminates the double state-update that caused every
+    // context consumer to re-render twice on every page load.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       // Handle sign out - clear query cache
       if (event === 'SIGNED_OUT' && queryClient) {
@@ -36,17 +39,6 @@ export const AuthProvider = ({ children, queryClient }: { children: ReactNode; q
       setUser(session?.user ?? null);
       setLoading(false);
       setError(null);
-    });
-
-    // Then get initial session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        logger.error('Error getting session:', error);
-        setError(error);
-      }
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
