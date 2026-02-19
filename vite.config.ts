@@ -11,19 +11,22 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
-    // Force ONE React instance across ALL packages (prevents "useState null" crash)
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "react": path.resolve(__dirname, "./node_modules/react"),
-      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
-      "react/jsx-runtime": path.resolve(__dirname, "./node_modules/react/jsx-runtime"),
+      // React aliases removed — dedupe handles deduplication correctly
     },
-    // Belt-and-suspenders: also use dedupe so Vite's module graph deduplicates
+    // Belt-and-suspenders: dedupe so Vite's module graph deduplicates React
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   optimizeDeps: {
     // Pre-bundle these together so they share the same module instance in dev
-    include: ["react", "react-dom", "react/jsx-runtime", "@tanstack/react-query"],
+    include: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "@tanstack/react-query",
+      "react-router-dom",
+    ],
   },
   build: {
     rollupOptions: {
