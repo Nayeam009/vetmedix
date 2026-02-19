@@ -1,212 +1,212 @@
-# Comprehensive Codebase Audit Report
+
+# Full Regression & Audit Report — VetMedix
 
 ## Executive Summary
 
-The codebase is architecturally well-structured with many good practices already in place (optimistic updates, React Query caching, memoized components, error boundaries). However, the audit has identified **one critical infrastructure bug** causing the white screen, **three high-severity issues**, **four medium-severity issues**, and **three low-severity issues** that need to be resolved to achieve full stability.
+The previous audit's fixes have been correctly implemented in the code: `AuthContext`, `CartContext`, `PetContext`, `PostCard`, `useComments`, `useNotifications`, `useStories`, `useMessages`, and `useAdmin` all show the correct, hardened implementations. However, the duplicate React instance error **persists** because the root fix strategy is contradictory, and two new issues have been introduced. This report identifies every remaining bug, ordered by severity.
 
 ---
 
-## CRITICAL: The Root Cause of the useState White Screen Crash
+## CRITICAL-1: The useState/useEffect Crash — Root Cause Is Still Present
 
-**Finding:** The error stack trace reveals two different version hashes for the same session:
-
-- `chunk-PMKBOVCG.js?v=0f21b65e` (contains the `useState` export)
-- `chunk-TKA7E7G6.js?v=4112562a` (contains `renderWithHooks`, the React DOM renderer)
-
-These two hashes do not match, which is the definition of a **duplicate React instance**. React DOM's `renderWithHooks` sets an internal dispatcher on a `ReactCurrentDispatcher` object owned by its own copy of React core. When `CartContext.tsx` calls `useState`, it resolves to a *different* copy of React core (via `chunk-PMKBOVCG.js`) whose dispatcher was never initialized — so it is `null`. This is a **Vite dev-server pre-bundling infrastructure problem**, not a code bug.
-
-**Root Cause:** Vite's pre-bundler (`esbuild`) ran in two separate passes — one for React core (`react`, `react/jsx-runtime`) and one for React DOM. Because they ran in separate passes, they produced separate output chunks with separate content hashes. The browser then loaded two chunks with two separate `ReactCurrentDispatcher` singletons.
-
-**The Definitive Fix:**
-
-All previous attempts have modified `vite.config.ts` without addressing the core issue. The real solution is to ensure React core and React DOM are always co-bundled in the **exact same esbuild invocation**. The fix requires:
-
-1. Removing `force: true` from `optimizeDeps` — this flag re-runs the pre-bundler on *every* server start, which is counterproductive and is the exact mechanism that keeps regenerating mismatched chunks during a live session.
-2. Removing the `esbuildOptions.banner` — the banner changes chunk content hashes, which is causing the browser to fetch stale mismatched versions from the infrastructure cache.
-3. Removing the custom `cacheDir: ".vite-cache-v3"` — custom cache dirs are not recognized by the Lovable Cloud infrastructure's pre-warming step, so the deps cache is always empty on start, causing two-pass bundling.
-4. Keeping `resolve.dedupe` for React packages — this is the correct, low-level guarantee.
-5. Keeping the `optimizeDeps.include` list but **removing** `force: true` so Vite caches the result.
-
----
-
-## HIGH SEVERITY Issues
-
-### H-1: Memory Leak in `useConversations` (useMessages.ts)
-
-**Location:** `src/hooks/useMessages.ts`, lines 12-80
-
-**Finding:** The `fetchConversations` function is defined inside the hook body without `useCallback`. It is then called inside a `useEffect` with `[user]` as a dependency — but `fetchConversations` itself is not in the dependency array. This is a React Hook rules violation flagged by ESLint (`react-hooks/exhaustive-deps`). More critically, for each conversation in the list, the hook fires **3 sequential `await` database calls** inside a `Promise.all`:
-
-1. Fetch pets for the other user
-2. Fetch the last message
-3. Count unread messages
-
-For a user with 20 conversations, this creates **60 sequential Supabase round-trips** on every mount. There is no abort controller or cleanup, so if the component unmounts mid-fetch, every pending promise will still attempt to call `setConversations` on an unmounted component, causing a state-update-after-unmount memory leak.
-
-**Solution:** Wrap `fetchConversations` in `useCallback([user])`, add an `AbortController`/`isMounted` ref, and replace the 3-per-conversation queries with a single SQL join query or a Supabase RPC function.
-
----
-
-### H-2: `PetContext` refreshPets Has a Stale Closure / Missing Dependency
-
-**Location:** `src/contexts/PetContext.tsx`, lines 22-57
-
-**Finding:** The `refreshPets` function is defined as a regular `async function` (not `useCallback`), yet it is listed in the Provider's value and called from `useEffect([user])`. The function closes over `activePet` at definition time (line 43: `if (petsData.length > 0 && !activePet)`). Because `refreshPets` is recreated on every render but `activePet` is stale inside the old reference, calling `refreshPets` from a child component after the first pet is selected will always see `activePet` as `null` (its initial value from the previous render closure), potentially resetting the active pet selection unexpectedly.
-
-**Solution:** Wrap `refreshPets` in `useCallback` with `[user, activePet]` as dependencies, or use a functional state update pattern that reads the current value of `activePet` from a ref.
-
----
-
-### H-3: Unhandled Null Response and Missing Error Feedback in `useNotifications` / `useStories`
-
-**Location:** `src/hooks/useNotifications.ts` (line 18), `src/hooks/useStories.ts` (lines 16, 30)
-
-**Finding 1 (useNotifications):** The query fetches from `'notifications' as any` with a joined `actor_pet:pets!notifications_actor_pet_id_fkey(*)`. If this FK relationship does not exist (or if `actor_pet_id` is null), the PostgREST join will either throw or return null. The `markAsRead` and `markAllAsRead` functions fire `await supabase...update(...)` without checking the returned `error` object. A failed update (e.g., RLS rejection) will silently fail while the optimistic UI shows the notification as read.
-
-**Finding 2 (useStories):** The hook queries `story_views as any`, meaning the TypeScript type system provides zero safety. If the `story_views` table does not exist in the deployed schema, the entire stories feature silently fails with an empty array and no error toast. The `markAsViewed` function catches errors silently with a comment of "Ignore duplicate errors" but this also swallows real errors.
-
-**Solution:** Replace `as any` casts with proper typed table names. Add error handling with user-facing feedback on `markAsRead` failures. Add a distinction between "duplicate" errors (code `23505`) and genuine failures.
-
----
-
-### H-4: `PostCard` Bookmark is Fake — Data is Lost on Remount
-
-**Location:** `src/components/social/PostCard.tsx`, lines 36, 253-258
-
-**Finding:** The `isBookmarked` state is local to the `PostCard` component with no persistence: `const [isBookmarked, setIsBookmarked] = useState(false)`. When the component unmounts and remounts (e.g., feed refresh, tab switch), the bookmark state is lost. The user sees a success toast ("Saved to collection") but the data is never written to any database table. There is no `bookmarks` or `saved_posts` table in the schema. This is a **broken feature masquerading as a working one** — it creates false user expectations.
-
-**Solution:** Either remove the bookmark UI entirely until a `saved_posts` table is created and the feature is fully implemented, or replace the `useState` with a proper database-backed hook.
-
----
-
-## MEDIUM SEVERITY Issues
-
-### M-1: `AuthContext` Double-Fires State Updates on Every Auth Event
-
-**Location:** `src/contexts/AuthContext.tsx`, lines 27-53
-
-**Finding:** The `useEffect` sets up `onAuthStateChange` (which fires immediately with the current session, setting state) AND then also calls `supabase.auth.getSession()` (which fires again, setting state a second time). On every page load, every child of `AuthProvider` re-renders **twice**: once from the listener and once from `getSession`. This causes two render cycles for every context consumer (`CartProvider`, `WishlistProvider`, `PetProvider`, etc.) on app startup.
-
-**Solution:** Use only `onAuthStateChange` and remove the redundant `getSession()` call. The `INITIAL_SESSION` event from `onAuthStateChange` already provides the initial session reliably.
-
----
-
-### M-2: `useComments` Has No Real-Time Subscription
-
-**Location:** `src/hooks/useComments.ts`, lines 38-40
-
-**Finding:** Comments are fetched once on mount (`useEffect([postId])`). If another user posts a comment on the same post while the current user is viewing the comments section, the new comment does not appear without a manual page refresh. The `PostCard` wraps `CommentsSection` and the `PostCardSkeleton` shows a loading skeleton — but once loaded, the comments list is effectively static. Meanwhile, `useNotifications` and `useMessages` both implement real-time subscriptions correctly, creating an inconsistent experience.
-
-**Solution:** Add a Supabase `postgres_changes` subscription inside `useComments` for `INSERT` events on the `comments` table, filtered by `post_id=eq.${postId}`, matching the pattern already used in `useNotifications`.
-
----
-
-### M-3: `useAdminOrders` and `useAdminUsers` Have No Pagination — 1000 Row Supabase Limit
-
-**Location:** `src/hooks/useAdmin.ts`, lines 79-109 and 111-140
-
-**Finding:** Both `useAdminOrders` and `useAdminUsers` call `.select()` without a `.limit()` or `.range()`. Supabase's default query limit is **1000 rows**. If the platform grows beyond 1000 orders or users (which is the goal of a growing e-commerce platform), these queries will silently truncate results. An admin reviewing "all orders" would only see the first 1000, with no indication that more exist. This is a **data completeness bug** that becomes a business logic bug at scale.
-
-**Solution:** Implement server-side pagination using `.range(from, to)` combined with a total count query using `{ count: 'exact', head: true }`. Add pagination UI to the admin tables.
-
----
-
-### M-4: `CartContext` — `totalItems` and `totalAmount` Are Recomputed on Every Render
-
-**Location:** `src/contexts/CartContext.tsx`, lines 72-73
-
-**Finding:** The computed values `totalItems` and `totalAmount` are calculated directly in the render body of `CartProvider`:
-
-```tsx
-const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+**The error reported:**
+```
+chunk-PMKBOVCG.js?v=4112562a  — useState is null
+chunk-LPF6KSF2.js?v=0e4f4a97  — renderWithHooks
 ```
 
-These `.reduce()` calls run on every single render of `CartProvider`, including renders triggered by unrelated state changes in parent providers. With many cart items, this is wasted computation. Since these values are passed to the context, every consumer also re-renders whenever the provider re-renders, even if `items` hasn't changed.
+**Diagnosis via chain-of-thought:**
 
-**Solution:** Wrap both computed values in `useMemo([items])`.
+The stack trace shows the *preview environment* (`lovableproject.com`), not the published build (`lovable.app`). The published build uses `vendor-react-DAHpftMA.js` — a single unified chunk — which is working. The crash only happens in the **Lovable Cloud dev-preview iframe**, where Vite's pre-bundler runs independently of the `manualChunks` production config.
 
----
+The current `vite.config.ts` has an internal contradiction that perpetuates the crash:
 
-## LOW SEVERITY Issues
+- `resolve.dedupe: ["react", "react-dom", "react/jsx-runtime"]` — correct, ensures the same file is resolved.
+- `optimizeDeps.include: [...]` without `force: true` — correct in theory, but the Lovable Cloud preview infrastructure pre-warms the dep cache before the app starts. This pre-warming runs esbuild in **two separate passes**: one for `react/react/jsx-runtime` and one for `react-dom` (because `@tanstack/react-query`, `react-router-dom`, etc. each pull in `react-dom` independently). Result: two separate chunks with mismatched hashes, two `ReactCurrentDispatcher` singletons.
+- `src/lib/reactProxy.ts` exists (`import React from 'react'; import ReactDOM from 'react-dom'`) but is **not referenced anywhere in `vite.config.ts`**. There is no `optimizeDeps.entries` field pointing to it. The file is therefore completely dead code — esbuild never processes it as the co-bundling entry point it was designed to be.
+- `src/lib/reactSingleton.ts` IS imported in `main.tsx` as the first line. This is the correct runtime safety net. However, it only works if `reactSingleton` itself imports from a React that has already been initialized. If the infrastructure pre-warms the cache with a chunk that has `ReactCurrentDispatcher: null`, the singleton guard runs but there is nothing valid to copy — it copies `null` from the stale chunk.
 
-### L-1: `PostCard` — Share URL Points to a Non-Existent Route
+**The definitive fix requires two simultaneous changes:**
 
-**Location:** `src/components/social/PostCard.tsx`, line 82
-
-**Finding:** The share handler constructs a URL: `const shareUrl = \`${window.location.origin}/post/${post.id}`. Looking at` App.tsx`, there is no route defined for` /post/:id`. The URL shared to other users or copied to clipboard leads to the **404 Not Found** page. This is a broken social sharing feature.
-
-**Solution:** Either add a route `/post/:id` in `App.tsx` that renders a single-post view, or change the share URL to point to the author's pet profile: `/pet/${post.pet_id}`.
-
----
-
-### L-2: `useConversations` Not Using React Query — No Cache Sharing
-
-**Location:** `src/hooks/useMessages.ts`, lines 7-118
-
-**Finding:** `useConversations` uses raw `useState` + `useEffect` instead of `useQuery`. This means:
-
-- Every mount of `MessagesPage` fires fresh network requests
-- There is no shared cache between `MessagesPage` and `NotificationBell` (if it shows message counts)
-- The `staleTime` optimization from the global `QueryClient` config (`2 minutes`) is bypassed entirely
-- This is inconsistent with all other data-fetching hooks that use React Query
-
-**Solution:** Migrate `useConversations` to `useQuery` with a key like `['conversations', user?.id]`.
+1. Wire `reactProxy.ts` into `optimizeDeps.entries` so esbuild is forced to process `react` + `react-dom` in a single co-bundled pass:
+   ```ts
+   optimizeDeps: {
+     entries: ["src/lib/reactProxy.ts", "src/main.tsx"],
+     include: [...existing list...]
+   }
+   ```
+2. Keep `resolve.dedupe` and `reactSingleton.ts` as the runtime fallback.
 
 ---
 
-### L-3: `useStories` — `fetchStories` Is Not Wrapped in `useCallback`
+## CRITICAL-2: `ProfilePage` Chunk-Load Failure — Stale Asset Hash in Production
 
-**Location:** `src/hooks/useStories.ts`, lines 13-76
+**Console log from the user's preview:**
+```
+TypeError: Failed to fetch dynamically imported module:
+https://...lovable.app/assets/ProfilePage-nMbYVXKw.js
+```
 
-**Finding:** `fetchStories` is a plain `async function` defined inside the hook. It is called in `useEffect([user])` directly. However, it closes over `user` from its outer scope. Because it is not memoized:
+**Diagnosis:**
 
-- It creates a new function reference on every render
-- It cannot be safely passed to child components or used as a dependency
-- The `refresh: fetchStories` exposed in the hook's return value is a new function reference on every render, which could cause unnecessary re-renders in any component that uses it as a `useCallback` dependency
+This error comes from the **published production build** (`lovable.app`), not the dev preview. It means:
 
-**Solution:** Wrap `fetchStories` in `useCallback([user])`.
+- The app was previously published with `ProfilePage-nMbYVXKw.js` as the lazy-loaded chunk name.
+- A subsequent code change was published, which changed the content hash to a new value (e.g., `ProfilePage-ABCDEFG.js`).
+- A user who has the **old HTML cached** in their browser still requests `ProfilePage-nMbYVXKw.js` — which no longer exists on the CDN — causing a fetch failure and a blank screen for that route.
+
+This is a **cache invalidation problem** that occurs after every publish that changes the ProfilePage chunk. It is caught by `ErrorBoundary` but currently shows an error card instead of recovering automatically.
+
+**Root cause in code:** The `ErrorBoundary` component (line 48-50) only offers manual retry. It does not detect the specific `Failed to fetch dynamically imported module` error and auto-recover with a hard reload, which is the standard industry fix for this problem.
+
+**Fix:** In `ErrorBoundary.componentDidCatch`, detect chunk-load errors by checking if the error message includes `"Failed to fetch dynamically imported module"` or `"Loading chunk"` and automatically call `window.location.reload()` on first occurrence (using `sessionStorage` to prevent reload loops).
+
+---
+
+## HIGH-1: `AdminOrders` Page Does Not Pass `page` Parameter — Pagination Is Broken
+
+**Location:** `src/pages/admin/AdminOrders.tsx`, line 84
+
+**Finding:**
+
+`useAdminOrders` was updated in the audit to support server-side pagination via `(page = 0, pageSize = 50)` parameters. The function correctly uses `.range(from, to)`. However, the `AdminOrders` page calls it with **no arguments**:
+
+```tsx
+const { data: ordersData, isLoading } = useAdminOrders();
+// Called with page=0, pageSize=50 — always fetches page 0
+```
+
+There is no pagination state wired in `AdminOrders.tsx`. The page renders a filter bar, a search bar, and a status filter — all of which apply to only the first 50 orders. Orders 51-N are invisible to the admin. This means the pagination feature exists in the hook but is completely unused by the page. The admin sees at most 50 orders with no way to navigate to more.
+
+**Secondary issue:** `AdminCustomers.tsx` has the same problem — line 66 calls `useAdminUsers()` with no page argument.
+
+**Fix:** Add a `page` state variable to both admin pages and wire it to the hook, then render pagination controls using the existing `usePagination` hook (already imported in `AdminCustomers.tsx`).
+
+---
+
+## HIGH-2: `reactProxy.ts` Is Dead Code — Not Connected to Vite Config
+
+**Location:** `src/lib/reactProxy.ts` + `vite.config.ts`
+
+**Finding:**
+
+`src/lib/reactProxy.ts` was created with the explicit intent to force esbuild to co-bundle `react` and `react-dom` in one pass. The file's own comment states:
+> "This file is referenced by the vite.config.ts `optimizeDeps.entries` option"
+
+But examining `vite.config.ts` shows there is **no `optimizeDeps.entries` field at all**. The file is never read by esbuild during dependency pre-bundling. It is imported nowhere in the application itself either. It achieves nothing.
+
+This is a configuration bug introduced by a previous fix attempt. The intent was correct but the wiring was never completed.
+
+---
+
+## MEDIUM-1: `useAdminUsers` Fetches All `user_roles` Without Pagination — O(N) Memory Leak
+
+**Location:** `src/hooks/useAdmin.ts`, line 140
+
+**Finding:**
+
+Inside `useAdminUsers`, the roles fetch is:
+```ts
+const { data: roles } = await supabase.from('user_roles').select('user_id, role');
+```
+
+This fetches **every role row in the entire database** without any `.range()` or `.in()` filter. If the platform has 5,000 users, this returns up to 5,000 role rows (Supabase 1000-row limit) on every paginated user query. The roles are then joined in memory.
+
+**Fix:** Filter the roles query to only fetch roles for the user IDs in the current page:
+```ts
+const userIds = profiles?.map(p => p.user_id) || [];
+const { data: roles } = await supabase.from('user_roles').select('user_id, role').in('user_id', userIds);
+```
+
+---
+
+## MEDIUM-2: `usePosts` — No `isMounted` Guard on Async Fetch
+
+**Location:** `src/hooks/usePosts.ts`, lines 32-119
+
+**Finding:**
+
+`fetchPage` is a `useCallback` that fires async Supabase queries, then calls `setPosts`, `setLoading`, `setLoadingMore`, and `setHasMore`. There is no `isMountedRef` guard. If the user navigates away from the `FeedPage` while a fetch is in progress (e.g., during the `likePost` query), the callback will still attempt to call `setLoadingMore(false)` on an unmounted component. React 18 suppresses the warning but the state updates still execute on a dead component tree, which is wasted work and a memory leak for large feeds.
+
+The `useMessages` hook correctly uses `isMountedRef` — `usePosts` should follow the same pattern.
+
+---
+
+## MEDIUM-3: `WishlistContext` — Supabase Errors Are Silently Swallowed
+
+**Location:** `src/contexts/WishlistContext.tsx`, lines 34, 70-78
+
+**Finding:**
+
+Two `catch` blocks are completely empty:
+```ts
+} catch {
+  // silently fail
+}
+```
+and the `toggleWishlist` revert:
+```ts
+} catch {
+  // Revert on error — no user feedback
+}
+```
+
+If an RLS policy blocks the insert (e.g., user not authenticated, or a quota limit), the wishlist button will flash optimistically and then silently revert with no toast notification. The user has no idea their action failed. This violates the "Progressive Enhancement" rule from the audit brief.
+
+**Fix:** Add `toast.error('Failed to update wishlist')` inside both catch blocks.
+
+---
+
+## LOW-1: `reactProxy.ts` Imports `react-dom` (Non-Client) — Wrong Import Path
+
+**Location:** `src/lib/reactProxy.ts`, line 14
+
+**Finding:**
+
+```ts
+import ReactDOM from 'react-dom';
+```
+
+The app uses React 18 with `createRoot` from `react-dom/client`. The correct package for React 18 rendering is `react-dom/client`, not the legacy `react-dom`. While they share the same underlying module, importing the wrong path can cause esbuild to treat them as separate dependency entries and produce separate chunks — which is the exact problem this file is supposed to prevent.
+
+**Fix:** Change line 14 to `import ReactDOM from 'react-dom/client'` and add `react-dom/client` to the `optimizeDeps.entries` list.
+
+---
+
+## LOW-2: `AdminOrders` — `selectedPendingOrders` Is Referenced Before Declaration
+
+**Location:** `src/pages/admin/AdminOrders.tsx`, line 172
+
+**Finding:**
+
+`handleBulkShip` at line 171 references `selectedPendingOrders`:
+```ts
+if (!selectedPendingOrders.length) return;
+```
+But `selectedPendingOrders` is a `useMemo` that is defined later in the file at approximately line 155+. JavaScript hoisting applies to `const` declarations — they are in the temporal dead zone until their line is reached. However, since `handleBulkShip` is an `async function` defined after the `useMemo`, this works at runtime because the function is not called during render. This is confusing code organization that could cause bugs if the order is changed during future refactoring. The `useMemo` should be defined before the function that uses it.
 
 ---
 
 ## Implementation Order (Priority Queue)
 
 ```text
-PRIORITY 1 (Do first — blocks all users)
-  └── CRITICAL: Fix vite.config.ts to stop force-rebuilding on every start
-      Remove: force: true, esbuildOptions.banner, cacheDir: ".vite-cache-v3"
-      Keep:   resolve.dedupe, optimizeDeps.include
+PRIORITY 1 — Fix the white screen crash (blocks all users)
+  CRITICAL-1: Add optimizeDeps.entries to vite.config.ts pointing to reactProxy.ts
+  HIGH-2:     Wire the entries — reactProxy.ts is currently dead code
 
-PRIORITY 2 (Fix next — correctness & data integrity)
-  └── H-1: Fix useConversations memory leak + N+1 query pattern
-  └── H-2: Wrap PetContext refreshPets in useCallback
-  └── H-3: Add error handling to markAsRead / fix story_views as any
-  └── H-4: Remove fake bookmark feature or implement it properly
+PRIORITY 2 — Fix the chunk-load production crash (breaks navigation for cached users)
+  CRITICAL-2: Update ErrorBoundary to auto-reload on "Failed to fetch dynamically
+              imported module" errors, using sessionStorage to prevent reload loops
 
-PRIORITY 3 (Fix after — user experience)
-  └── M-1: Remove redundant getSession() call from AuthContext
-  └── M-2: Add real-time comment subscription to useComments
-  └── M-3: Add pagination to admin orders and users queries
-  └── M-4: Wrap CartContext totals in useMemo
+PRIORITY 3 — Fix admin data completeness
+  HIGH-1:     Add page state + pagination UI to AdminOrders.tsx and AdminCustomers.tsx
+  MEDIUM-1:   Scope the user_roles query in useAdminUsers to current page user IDs
 
-PRIORITY 4 (Fix last — polish)
-  └── L-1: Fix share URL to point to existing route
-  └── L-2: Migrate useConversations to React Query
-  └── L-3: Wrap useStories fetchStories in useCallback
-```
+PRIORITY 4 — Fix silent failures & memory leaks
+  MEDIUM-2:   Add isMountedRef to usePosts.fetchPage
+  MEDIUM-3:   Add toast.error() to WishlistContext catch blocks
 
-&nbsp;
-
-&nbsp;
-
-```
-**Task:** Implement the fixes identified in the codebase audit. 
-
-**Execution Rules:**
-1.  **Step-by-Step:** Do not fix everything at once. We will implement the fixes incrementally to avoid breaking working features [14, 15]. Start with the most critical "High Risk" issue you identified.
-2.  **Fragile Update Protocol:** This is a delicate update. Carefully examine all related code and dependencies before making changes [16, 17]. Avoid any modifications to unrelated components or files [17].
-3.  **Root Cause Resolution:** Ensure you are addressing the underlying root cause of the logic bug, not just silencing a console error symptom [18].
-4.  **Progressive Enhancement:** If implementing error boundaries or fallbacks, utilize shadcn/ui components (like `Alert`, `Toast`, or `Skeleton`) to ensure a polished user experience [19, 20].
-
-Please implement the first critical fix now. Once completed and verified, summarize what the issue was and how we fixed it [21].
+PRIORITY 5 — Polish
+  LOW-1:      Fix reactProxy.ts import to use react-dom/client
+  LOW-2:      Move selectedPendingOrders useMemo above handleBulkShip
 ```
