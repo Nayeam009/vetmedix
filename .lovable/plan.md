@@ -1,158 +1,56 @@
 
-# Infinite Scroll Product Feed — Vetmedix Shop Upgrade
+# Fix: Doctor List Empty for Unauthenticated Users
 
-## What This Solves
+## Root Cause (Confirmed)
 
-The current shop loads **all products at once** (one large network payload) and uses a manual "Load More" button. This plan replaces that with **true infinite scroll**: products are fetched in pages of 20 as the user scrolls, using React Query's `useInfiniteQuery` with the existing Supabase `.range()` API. The result is a faster initial load, seamless auto-loading, and premium skeleton loading states — all while preserving every existing feature (hero, featured section, filters, sort, grid toggle, recently viewed, realtime).
+The `clinic_doctors` table has a SELECT RLS policy that reads:
 
----
-
-## Architecture
-
-The key change is the data-fetching layer in `ShopPage.tsx`. Everything else (UI, filters, ProductCard) stays intact.
-
-```text
-BEFORE:
-  useQuery(['public-products'])
-    → SELECT * FROM products (ALL rows at once)
-    → Client-side slice with visibleCount
-    → Manual "Load More" button
-
-AFTER:
-  useInfiniteQuery(['shop-products', { search, category, price, sort }])
-    → SELECT ... RANGE(page*20, page*20+19) (20 rows per page, server-side)
-    → IntersectionObserver sentinel at bottom of grid
-    → Auto-triggers fetchNextPage() when sentinel enters viewport
-    → Skeleton grid shown while next page loads
+```
+"Authenticated users can view clinic doctors" — USING (true) TO authenticated
 ```
 
----
+The `TO authenticated` clause means **anonymous/logged-out visitors get zero rows** from `clinic_doctors`. Since `usePublicDoctors` uses this query to build the list of verified clinic doctor IDs, the result is an empty `verifiedClinicDoctorIds` array. Every doctor gets filtered out, producing "0 doctors found."
 
-## Technical Implementation Details
+The data is fine — 8 doctors, 2 verified clinics, 6 active `clinic_doctors` links all exist in the database.
 
-### 1. `useInfiniteQuery` Migration (core change)
+## Fix
 
-Replace the current `useQuery` in `ShopPage.tsx` with `useInfiniteQuery`. The query function receives `pageParam` (starts at `0`) and uses Supabase's `.range(start, end)`:
+### 1. Database: Add a Public SELECT Policy to `clinic_doctors`
 
-```ts
-useInfiniteQuery({
-  queryKey: ['shop-products', { search, category, price, sort }],
-  queryFn: async ({ pageParam = 0 }) => {
-    const from = pageParam * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
-    // Build query with all filters applied server-side
-    let query = supabase
-      .from('products')
-      .select('id, name, price, ...')
-      .eq('is_active', true)
-      .range(from, to);
-    // Apply sort, category, price filters...
-    return data;
-  },
-  getNextPageParam: (lastPage, pages) =>
-    lastPage.length === PAGE_SIZE ? pages.length : undefined,
-  initialPageParam: 0,
-});
+Add a new RLS policy that allows the public (anonymous) role to SELECT from `clinic_doctors`. This is safe because `clinic_doctors` only contains non-sensitive join data (doctor ID, clinic ID, and affiliation status).
+
+```sql
+CREATE POLICY "Public can view active clinic doctor affiliations"
+ON public.clinic_doctors
+FOR SELECT
+TO public
+USING (status = 'active');
 ```
 
-**Key benefit:** Filters (`search`, `category`, `price`, `sort`) are now part of the `queryKey`. When the user changes a filter, React Query automatically discards the old pages and starts a fresh paginated fetch — no manual reset of `visibleCount` needed.
+This restricts public reads to only `active` affiliations (not pending/rejected ones).
 
-### 2. Server-Side Filtering
+### 2. Code: Harden `usePublicDoctors` with Error Logging
 
-All filtering that was previously done client-side moves to the Supabase query:
-- **Search:** `.ilike('name', '%query%')`
-- **Category:** `.eq('category', value)`
-- **Price range:** `.gte('price', min).lte('price', max)`
-- **Sort:** `.order(column, { ascending })` — mapped from the sort dropdown values
+Update `src/hooks/usePublicDoctors.ts` to log errors and data counts so future issues are immediately visible in the browser console. Add a fallback: if `clinic_doctors` returns empty but doctors exist with `is_verified = true`, show them as independent practitioners (already coded but blocked by the RLS gap).
 
-### 3. IntersectionObserver Sentinel (using existing hook)
+### 3. Code: Improve DoctorsPage Error/Empty State
 
-The existing `useInfiniteScroll` hook in `src/hooks/useInfiniteScroll.ts` is already built for this exact purpose. It will be wired to `fetchNextPage`:
+Update `src/pages/DoctorsPage.tsx` to display a visible red `Alert` banner if the query returns an error object, making future failures immediately diagnosable.
 
-```tsx
-const { sentinelRef } = useInfiniteScroll(
-  fetchNextPage,
-  { isLoading: isFetchingNextPage, hasMore: !!hasNextPage }
-);
+## Why This is Safe
 
-// Placed at the bottom of the product grid:
-<div ref={sentinelRef} className="h-1" aria-hidden="true" />
-```
+- `clinic_doctors` contains only UUIDs (doctor ID, clinic ID) and status strings — no PII.
+- The policy is scoped to `status = 'active'` only, so pending/rejected affiliations remain hidden.
+- The `doctors` table itself already has a public view (`doctors_public`) which strips sensitive fields (phone, email, NID, license number) — that security layer is already in place and is not changed.
 
-### 4. Loading State: Skeleton Grid (not spinner)
+## Files to Change
 
-Two loading states:
-- **Initial load:** Full skeleton grid of 12 cards (existing shimmer style, already in the codebase).
-- **Next page loading:** A smaller skeleton row of 6 cards appended **below** the current products while the next page fetches. This creates the "content is appearing" feel.
-
-### 5. Ratings Adaptation
-
-`useProductRatings` currently takes a flat array of IDs. With infinite query, products come back in pages. The IDs will be collected from all loaded pages (`data.pages.flatMap(p => p.map(p => p.id))`) and passed to the existing hook — no changes needed to `useProductRatings`.
-
-### 6. Realtime Subscription
-
-The realtime channel is preserved, but instead of `invalidateQueries`, it will call `refetch()` on the infinite query to reset from page 0 when a product change occurs in the database.
-
-### 7. Featured Products Section
-
-The featured products section currently uses the full `products` array. Since infinite query no longer fetches everything at once, a **separate small `useQuery`** will be added to fetch only `is_featured = true` products (already exists as `['featured-products']` cache key from `FeaturedProducts.tsx`). This is already done correctly in the existing code — it just needs to be decoupled from the main paginated query.
-
----
-
-## Files to Modify
-
-| File | Change |
+| Change | Details |
 |---|---|
-| `src/pages/ShopPage.tsx` | Replace `useQuery` → `useInfiniteQuery`; move filters server-side; add sentinel; replace Load More button with auto-scroll; add next-page skeleton |
-| `src/hooks/useInfiniteScroll.ts` | Minor: expose `isFetchingNextPage` guard fix (already compatible, no change needed) |
+| Database migration | Add `TO public` SELECT policy on `clinic_doctors` |
+| `src/hooks/usePublicDoctors.ts` | Add console logging for debugging; improve independent doctor fallback |
+| `src/pages/DoctorsPage.tsx` | Add error state Alert; ensure `isError` from the query is handled |
 
-**No new files needed.** No database changes. No new dependencies.
+## Expected Result After Fix
 
----
-
-## What Is Preserved
-
-- Hero banner with sliding background images
-- Featured products horizontal scroll (via a separate small query)
-- Category filter chips (desktop + mobile sheet)
-- Price range filter
-- Sort dropdown (newest, price, discount, top-rated)
-- Grid view toggle (3/4/6 columns)
-- Active filter badges with X to remove
-- "No results" state with popular products fallback
-- Recently Viewed section
-- Realtime product updates
-- Cart/wishlist buttons in the search bar
-- All SEO and accessibility attributes
-
----
-
-## UX Flow
-
-```text
-User opens /shop
-  → Initial skeleton grid (12 cards, instant feel)
-  → Page 1 loads (20 products appear with fade-in)
-  → User scrolls
-  → Sentinel enters viewport 200px before bottom
-  → 6-card skeleton row appended instantly
-  → Page 2 fetches silently
-  → Page 2 products replace skeletons
-  → Repeat until no more products
-  → "All X products loaded" end-of-list message
-```
-
----
-
-## Filter Change Behavior
-
-When user changes any filter:
-- `queryKey` changes → React Query clears pages → fetches page 0 fresh
-- Scroll position is not reset (browser handles naturally since new content replaces old)
-- Debounce applied to search input (300ms) to prevent rapid re-fetches while typing
-
----
-
-## Mobile Behavior
-
-On mobile the grid remains `grid-cols-3` (compact). The sentinel fires when scrolling near the bottom of the page. Touch scrolling momentum continues uninterrupted since IntersectionObserver is passive and does not block the scroll thread.
+All 6 clinic-affiliated doctors + 2 independent verified doctors = **8 doctors visible** on the `/doctors` page without requiring login.
