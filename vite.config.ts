@@ -5,6 +5,11 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // Use a non-default cacheDir to bypass any infrastructure-level pre-warm
+  // of node_modules/.vite. When Vite finds no cache here it re-bundles
+  // from scratch using our optimizeDeps.entries config, guaranteeing
+  // react + react-dom land in ONE esbuild chunk with a shared dispatcher.
+  cacheDir: "node_modules/.vite-vetmedix",
   server: {
     host: "::",
     port: 8080,
