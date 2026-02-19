@@ -23,6 +23,8 @@ export interface PublicDoctor {
 export const usePublicDoctors = () => {
   return useQuery({
     queryKey: ['public-doctors'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
     queryFn: async () => {
       // Strategy: Fetch doctors from two sources and merge:
       // 1. Doctors affiliated with verified clinics (via clinic_doctors)
@@ -103,6 +105,8 @@ export const usePublicDoctors = () => {
 export const usePublicDoctorById = (doctorId: string | undefined) => {
   return useQuery({
     queryKey: ['public-doctor', doctorId],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
     queryFn: async () => {
       if (!doctorId) return null;
 
