@@ -136,7 +136,6 @@ const AdminDoctors = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-doctors'] });
-      queryClient.invalidateQueries({ queryKey: ['public-doctors'] });
       toast.success('Doctor approved successfully');
       setIsDetailsOpen(false);
     },
@@ -174,7 +173,6 @@ const AdminDoctors = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-doctors'] });
-      queryClient.invalidateQueries({ queryKey: ['public-doctors'] });
       toast.success('Doctor verification rejected');
       setIsRejectOpen(false);
       setIsDetailsOpen(false);
@@ -215,7 +213,6 @@ const AdminDoctors = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin-doctors'] });
-      queryClient.invalidateQueries({ queryKey: ['public-doctors'] });
       toast.success(variables.block ? 'Doctor blocked' : 'Doctor unblocked');
       setIsBlockOpen(false);
       setIsDetailsOpen(false);

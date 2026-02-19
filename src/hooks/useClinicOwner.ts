@@ -198,7 +198,6 @@ export const useClinicOwner = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clinic-doctors-list'] });
-      queryClient.invalidateQueries({ queryKey: ['public-doctors'] });
       toast.success('Doctor added successfully');
     },
     onError: (error) => {
@@ -221,7 +220,6 @@ export const useClinicOwner = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clinic-doctors-list'] });
-      queryClient.invalidateQueries({ queryKey: ['public-doctors'] });
       toast.success('Doctor updated successfully');
     },
     onError: (error) => {
@@ -252,7 +250,6 @@ export const useClinicOwner = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clinic-doctors-list'] });
-      queryClient.invalidateQueries({ queryKey: ['public-doctors'] });
       toast.success('Doctor removed successfully');
     },
     onError: (error) => {

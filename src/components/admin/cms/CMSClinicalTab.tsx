@@ -90,7 +90,6 @@ const CMSClinicalTab = () => {
       queryClient.invalidateQueries({ queryKey: ['cms-pending-doctors'] });
       queryClient.invalidateQueries({ queryKey: ['cms-clinical-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-doctors'] });
-      queryClient.invalidateQueries({ queryKey: ['public-doctors'] });
       toast.success('Doctor approved');
     },
     onError: () => toast.error('Failed to approve doctor'),
@@ -115,7 +114,6 @@ const CMSClinicalTab = () => {
       queryClient.invalidateQueries({ queryKey: ['cms-pending-doctors'] });
       queryClient.invalidateQueries({ queryKey: ['cms-clinical-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-doctors'] });
-      queryClient.invalidateQueries({ queryKey: ['public-doctors'] });
       setRejectId(null);
       setRejectReason('');
       toast.success('Doctor rejected');
