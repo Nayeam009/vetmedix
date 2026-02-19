@@ -5,6 +5,8 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // Fresh cache dir forces new chunk hashes — browser cannot serve stale v=XXXX chunks
+  cacheDir: ".vite-cache-v3",
   server: {
     host: "::",
     port: 8080,
