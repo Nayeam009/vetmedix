@@ -76,16 +76,22 @@ export const useAdminProducts = () => {
   });
 };
 
-export const useAdminOrders = () => {
+export const useAdminOrders = (page = 0, pageSize = 50) => {
   const { isAdmin } = useAdmin();
 
   return useQuery({
-    queryKey: ['admin-orders'],
+    queryKey: ['admin-orders', page, pageSize],
     queryFn: async () => {
-      const { data: ordersData, error: ordersError } = await supabase
+      // M-3 Fix: Use .range() for server-side pagination to avoid the 1000-row
+      // Supabase default limit silently truncating results.
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+
+      const { data: ordersData, error: ordersError, count } = await supabase
         .from('orders')
-        .select('id, user_id, items, total_amount, status, shipping_address, created_at, tracking_id, payment_method, payment_status, trashed_at, consignment_id, rejection_reason')
-        .order('created_at', { ascending: false });
+        .select('id, user_id, items, total_amount, status, shipping_address, created_at, tracking_id, payment_method, payment_status, trashed_at, consignment_id, rejection_reason', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (ordersError) throw ordersError;
 
@@ -99,25 +105,35 @@ export const useAdminOrders = () => {
         (profilesData || []).map(p => [p.user_id, { full_name: p.full_name, phone: p.phone }])
       );
 
-      return (ordersData || []).map(order => ({
-        ...order,
-        profile: profileMap.get(order.user_id) || null,
-      }));
+      return {
+        orders: (ordersData || []).map(order => ({
+          ...order,
+          profile: profileMap.get(order.user_id) || null,
+        })),
+        totalCount: count || 0,
+        page,
+        pageSize,
+      };
     },
     enabled: isAdmin,
   });
 };
 
-export const useAdminUsers = () => {
+export const useAdminUsers = (page = 0, pageSize = 50) => {
   const { isAdmin } = useAdmin();
 
   return useQuery({
-    queryKey: ['admin-users'],
+    queryKey: ['admin-users', page, pageSize],
     queryFn: async () => {
-      const { data: profiles, error } = await supabase
+      // M-3 Fix: Use .range() for server-side pagination
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+
+      const { data: profiles, error, count } = await supabase
         .from('profiles')
-        .select('user_id, full_name, phone, avatar_url, address, division, district, thana, created_at')
-        .order('created_at', { ascending: false });
+        .select('user_id, full_name, phone, avatar_url, address, division, district, thana, created_at', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
 
@@ -130,10 +146,15 @@ export const useAdminUsers = () => {
         roleMap.set(r.user_id, existing);
       }
 
-      return profiles?.map(profile => ({
-        ...profile,
-        user_roles: roleMap.get(profile.user_id) || []
-      }));
+      return {
+        users: profiles?.map(profile => ({
+          ...profile,
+          user_roles: roleMap.get(profile.user_id) || []
+        })) || [],
+        totalCount: count || 0,
+        page,
+        pageSize,
+      };
     },
     enabled: isAdmin,
   });

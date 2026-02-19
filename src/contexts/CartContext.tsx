@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 
 export interface CartItem {
   id: string;
@@ -69,8 +69,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setItems([]);
   };
 
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  // M-4 Fix: Wrap computed values in useMemo so they only recompute when
+  // items actually changes, not on every CartProvider re-render.
+  const totalItems = useMemo(
+    () => items.reduce((sum, item) => sum + item.quantity, 0),
+    [items]
+  );
+  const totalAmount = useMemo(
+    () => items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+    [items]
+  );
 
   return (
     <CartContext.Provider value={{ 

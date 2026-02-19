@@ -81,7 +81,8 @@ const AdminOrders = () => {
   const queryClient = useQueryClient();
   const { isAdmin } = useAdmin();
   useAdminRealtimeDashboard(isAdmin);
-  const { data: orders, isLoading } = useAdminOrders();
+  const { data: ordersData, isLoading } = useAdminOrders();
+  const orders = ordersData?.orders ?? [];
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
