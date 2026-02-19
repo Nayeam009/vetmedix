@@ -178,7 +178,7 @@ const DoctorCard = memo(({
           variant="outline"
           size="sm"
           onClick={handleViewProfile}
-          className="flex-1 h-9 sm:h-10 text-xs sm:text-sm"
+          className="flex-1 h-9 sm:h-10 text-xs sm:text-sm active:scale-95 transition-transform"
         >
           View Profile
         </Button>
@@ -187,7 +187,7 @@ const DoctorCard = memo(({
           onClick={handleBookAppointment}
           disabled={!is_available}
           className={cn(
-            "flex-1 h-9 sm:h-10 text-xs sm:text-sm",
+            "flex-1 h-9 sm:h-10 text-xs sm:text-sm active:scale-95 transition-transform",
             !is_available && "opacity-50"
           )}
         >

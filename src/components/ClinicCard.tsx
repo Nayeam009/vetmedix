@@ -23,7 +23,7 @@ const ClinicCard = memo(forwardRef<HTMLDivElement, ClinicCardProps>(({ name, rat
   const isGopalganj = name?.toLowerCase().includes('gopalganj');
   
   return (
-    <article ref={ref} className="group bg-card rounded-xl sm:rounded-2xl overflow-hidden border border-border/60 hover:border-primary/40 transition-all duration-300 hover:shadow-lg sm:hover:shadow-xl hover:shadow-primary/5" aria-label={`${name} clinic, rated ${rating.toFixed(1)}`}>
+    <article ref={ref} className="group bg-card rounded-xl sm:rounded-2xl overflow-hidden border border-border/60 hover:border-primary/40 transition-all duration-300 hover:shadow-lg sm:hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 active:scale-[0.98]" aria-label={`${name} clinic, rated ${rating.toFixed(1)}`}>
       <div className="flex">
         {/* Image Section with stable aspect ratio */}
         <div 
