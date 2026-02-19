@@ -11,5 +11,5 @@
  * so esbuild always starts from here.
  */
 import React from 'react';
-import ReactDOM from 'react-dom';
+import ReactDOM from 'react-dom/client';
 export { React, ReactDOM };

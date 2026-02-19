@@ -137,8 +137,13 @@ export const useAdminUsers = (page = 0, pageSize = 50) => {
 
       if (error) throw error;
 
-      const { data: roles } = await supabase.from('user_roles').select('user_id, role');
-      
+      // Scope the roles query to only the user IDs on this page — prevents
+      // fetching all rows in the table (O(N) memory leak on large platforms).
+      const pageUserIds = profiles?.map(p => p.user_id) || [];
+      const { data: roles } = pageUserIds.length > 0
+        ? await supabase.from('user_roles').select('user_id, role').in('user_id', pageUserIds)
+        : { data: [] };
+
       const roleMap = new Map<string, typeof roles>();
       for (const r of roles || []) {
         const existing = roleMap.get(r.user_id) || [];

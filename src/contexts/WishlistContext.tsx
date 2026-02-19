@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface WishlistContextType {
   wishlistIds: Set<string>;
@@ -32,7 +33,7 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
         setWishlistIds(new Set(data.map(w => w.product_id)));
       }
     } catch {
-      // silently fail
+      toast.error('Failed to load wishlist');
     } finally {
       setLoading(false);
     }
@@ -75,6 +76,7 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
         else next.delete(productId);
         return next;
       });
+      toast.error('Failed to update wishlist');
       return false;
     }
   }, [user, wishlistIds]);

@@ -43,6 +43,22 @@ class ErrorBoundary extends Component<Props, State> {
       componentStack: errorInfo.componentStack,
       url: window.location.href,
     });
+
+    // Auto-recover from chunk-load failures caused by stale cached HTML
+    // referencing old asset hashes after a new deploy. Use sessionStorage
+    // to prevent infinite reload loops (only reload once per session per error).
+    const isChunkLoadError =
+      error.message?.includes('Failed to fetch dynamically imported module') ||
+      error.message?.includes('Loading chunk') ||
+      error.message?.includes('Importing a module script failed');
+
+    if (isChunkLoadError) {
+      const reloadKey = `chunk_reload_${error.message.slice(0, 60)}`;
+      if (!sessionStorage.getItem(reloadKey)) {
+        sessionStorage.setItem(reloadKey, '1');
+        window.location.reload();
+      }
+    }
   }
 
   private handleRetry = () => {
