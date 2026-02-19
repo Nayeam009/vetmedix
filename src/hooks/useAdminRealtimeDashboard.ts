@@ -54,6 +54,7 @@ export const useAdminRealtimeDashboard = (isAdmin: boolean) => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'doctors' }, (payload) => {
         invalidateAll();
         queryClient.invalidateQueries({ queryKey: ['admin-doctors'] });
+        queryClient.invalidateQueries({ queryKey: ['public-doctors'] });
         queryClient.invalidateQueries({ queryKey: ['cms-clinical-stats'] });
         queryClient.invalidateQueries({ queryKey: ['cms-pending-doctors'] });
         if (payload.eventType === 'UPDATE' && (payload.new as any).verification_status === 'pending') {

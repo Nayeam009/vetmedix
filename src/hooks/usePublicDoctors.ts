@@ -23,6 +23,8 @@ export interface PublicDoctor {
 export const usePublicDoctors = () => {
   return useQuery({
     queryKey: ['public-doctors'],
+    refetchInterval: 60000,
+    staleTime: 30000,
     queryFn: async () => {
       // Strategy: Fetch doctors from two sources and merge:
       // 1. Doctors affiliated with verified clinics (via clinic_doctors)
