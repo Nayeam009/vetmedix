@@ -4,7 +4,6 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
-// Cache-bust: 2026-02-19T00:00:00Z — forces fresh dep optimization on restart
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -15,38 +14,29 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    // Primary deduplication mechanism — all React imports resolve to one copy
+    // Deduplicate React so all imports share a single module instance.
     dedupe: [
       "react",
       "react-dom",
       "react/jsx-runtime",
-      "@tanstack/react-query",
-      "react-router-dom",
     ],
   },
   optimizeDeps: {
-    // force: true discards node_modules/.vite/deps/ cache on every server start.
-    // This permanently prevents stale chunks from being served alongside new ones.
-    force: true,
-    // Scan these entry points so ALL transitive React imports are discovered upfront.
-    // Prevents Vite from doing a mid-session "discovered dependency" re-optimization
-    // that would create a second React bundle with a different version hash.
-    entries: [
-      "src/main.tsx",
-      "src/App.tsx",
-    ],
-    // Pre-bundle React core + renderer + JSX transform in a single esbuild pass.
-    // Every package listed here (and their transitive deps) shares ONE React instance.
+    // EXCLUDE React from Vite's esbuild pre-bundler entirely.
+    //
+    // Why: Vite's dep optimizer has been creating two separate pre-bundled chunks
+    // for react (chunk-PMKBOVCG) and react-dom (chunk-TKA7E7G6) with different
+    // content hashes, causing "Cannot read properties of null (reading 'useState')".
+    //
+    // When React is EXCLUDED, Vite serves it directly from node_modules without
+    // creating .vite/deps/ chunks. There is no chunk, so there can be no stale
+    // chunk, and no version-hash mismatch. resolve.dedupe above handles the
+    // singleton guarantee at the module-graph level.
+    exclude: ["react", "react-dom", "react/jsx-runtime"],
+    // Pre-bundle all other packages normally
     include: [
-      // React core — must all be in the same pass
-      "react",
-      "react-dom",
-      "react/jsx-runtime",
-      // Routing
-      "react-router-dom",
-      // Data fetching
       "@tanstack/react-query",
-      // UI libraries that import React (prevents lazy re-optimization)
+      "react-router-dom",
       "react-hook-form",
       "@hookform/resolvers/zod",
       "react-day-picker",
@@ -57,26 +47,8 @@ export default defineConfig(({ mode }) => ({
       "vaul",
       "next-themes",
       "lucide-react",
-      // Radix UI primitives (all import React)
-      "@radix-ui/react-accordion",
-      "@radix-ui/react-alert-dialog",
-      "@radix-ui/react-avatar",
-      "@radix-ui/react-checkbox",
-      "@radix-ui/react-collapsible",
-      "@radix-ui/react-dialog",
-      "@radix-ui/react-dropdown-menu",
-      "@radix-ui/react-label",
-      "@radix-ui/react-popover",
-      "@radix-ui/react-progress",
-      "@radix-ui/react-radio-group",
-      "@radix-ui/react-scroll-area",
-      "@radix-ui/react-select",
-      "@radix-ui/react-separator",
-      "@radix-ui/react-slot",
-      "@radix-ui/react-switch",
-      "@radix-ui/react-tabs",
-      "@radix-ui/react-toast",
-      "@radix-ui/react-tooltip",
+      "@supabase/supabase-js",
+      "date-fns",
     ],
   },
   build: {
@@ -90,11 +62,8 @@ export default defineConfig(({ mode }) => ({
             "react/jsx-runtime",
             "react-router-dom",
           ],
-          // React Query for data fetching
           "vendor-query": ["@tanstack/react-query"],
-          // Date utilities
           "vendor-date": ["date-fns"],
-          // Supabase client
           "vendor-supabase": ["@supabase/supabase-js"],
         },
       },
