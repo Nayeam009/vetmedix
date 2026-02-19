@@ -4,7 +4,6 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
-// Rebuild token: 20260219-C — forces fresh dep optimization pass
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -15,15 +14,26 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    // Sole deduplication mechanism: ensures all React imports share one instance
+    // Primary singleton guarantee: all imports of these packages resolve to ONE copy
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   optimizeDeps: {
-    // force: true busts the .vite/deps/ cache on every server start
+    // force: true discards node_modules/.vite/deps/ on every server start.
+    // Combined with the package reinstall (which changes the lock file hash),
+    // this guarantees a single fresh esbuild pass that co-bundles react+react-dom
+    // into chunks with matching internal ReactCurrentDispatcher references.
     force: true,
-    // All React packages + their heavy consumers in one esbuild pass.
-    // Listing them together guarantees esbuild creates shared chunks,
-    // not separate chunks with diverging internal references.
+    esbuildOptions: {
+      // This banner changes the CONTENT (and therefore the hash) of every
+      // pre-bundled chunk. Any CDN or filesystem cache serving the old
+      // chunk-TKA7E7G6.js?v=4112562a will miss, and fresh chunks are fetched.
+      banner: {
+        js: "/* vetmedix-react-dedup-v2 */",
+      },
+    },
+    // All packages that import React must be listed so they're ALL processed
+    // in a SINGLE esbuild invocation. esbuild then creates one shared chunk
+    // for the React internals (ReactCurrentDispatcher) that every package uses.
     include: [
       "react",
       "react-dom",
@@ -47,6 +57,7 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: {
+          // All React in ONE chunk — guarantees single instance in production
           "vendor-react": [
             "react",
             "react-dom",
