@@ -11,18 +11,25 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
+    // Force ONE React instance across ALL packages (prevents "useState null" crash)
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // Force all packages to use the same React instance (prevents "Invalid hook call")
       "react": path.resolve(__dirname, "./node_modules/react"),
       "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
+      "react/jsx-runtime": path.resolve(__dirname, "./node_modules/react/jsx-runtime"),
     },
+    // Belt-and-suspenders: also use dedupe so Vite's module graph deduplicates
+    dedupe: ["react", "react-dom", "react/jsx-runtime"],
+  },
+  optimizeDeps: {
+    // Pre-bundle these together so they share the same module instance in dev
+    include: ["react", "react-dom", "react/jsx-runtime", "@tanstack/react-query"],
   },
   build: {
     rollupOptions: {
       output: {
         manualChunks: {
-          // Core React libraries
+          // Core React libraries — single chunk guarantees one instance
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           // React Query for data fetching
           'vendor-query': ['@tanstack/react-query'],
