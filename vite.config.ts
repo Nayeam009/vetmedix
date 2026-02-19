@@ -4,6 +4,7 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
+// Rebuild token: 20260219-C — forces fresh dep optimization pass
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -14,48 +15,38 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    // Deduplicate React so all imports share a single module instance.
-    dedupe: [
+    // Sole deduplication mechanism: ensures all React imports share one instance
+    dedupe: ["react", "react-dom", "react/jsx-runtime"],
+  },
+  optimizeDeps: {
+    // force: true busts the .vite/deps/ cache on every server start
+    force: true,
+    // All React packages + their heavy consumers in one esbuild pass.
+    // Listing them together guarantees esbuild creates shared chunks,
+    // not separate chunks with diverging internal references.
+    include: [
       "react",
       "react-dom",
       "react/jsx-runtime",
-    ],
-  },
-  optimizeDeps: {
-    // EXCLUDE React from Vite's esbuild pre-bundler entirely.
-    //
-    // Why: Vite's dep optimizer has been creating two separate pre-bundled chunks
-    // for react (chunk-PMKBOVCG) and react-dom (chunk-TKA7E7G6) with different
-    // content hashes, causing "Cannot read properties of null (reading 'useState')".
-    //
-    // When React is EXCLUDED, Vite serves it directly from node_modules without
-    // creating .vite/deps/ chunks. There is no chunk, so there can be no stale
-    // chunk, and no version-hash mismatch. resolve.dedupe above handles the
-    // singleton guarantee at the module-graph level.
-    exclude: ["react", "react-dom", "react/jsx-runtime"],
-    // Pre-bundle all other packages normally
-    include: [
       "@tanstack/react-query",
       "react-router-dom",
       "react-hook-form",
       "@hookform/resolvers/zod",
-      "react-day-picker",
-      "embla-carousel-react",
-      "recharts",
+      "date-fns",
+      "lucide-react",
       "sonner",
       "cmdk",
       "vaul",
       "next-themes",
-      "lucide-react",
+      "recharts",
+      "embla-carousel-react",
       "@supabase/supabase-js",
-      "date-fns",
     ],
   },
   build: {
     rollupOptions: {
       output: {
         manualChunks: {
-          // All React packages in ONE chunk — guarantees single instance in prod
           "vendor-react": [
             "react",
             "react-dom",
