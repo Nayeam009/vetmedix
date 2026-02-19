@@ -216,7 +216,7 @@ const ClinicDashboard = () => {
             <p className="text-muted-foreground mb-6">
               Your clinic profile needs to be set up. Please complete the registration.
             </p>
-            <Button onClick={() => navigate('/select-role')} size="lg">
+            <Button onClick={() => navigate('/clinic/verification')} size="lg">
               Complete Setup
             </Button>
           </CardContent>
