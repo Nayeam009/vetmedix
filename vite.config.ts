@@ -19,10 +19,10 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   optimizeDeps: {
-    // Pre-bundle these together so they share the same module instance in dev
+    force: true, // CRITICAL: busts stale dep cache, forces fresh single-instance bundle
     include: [
       "react",
-      "react-dom",
+      "react-dom",        // renderer must be in same esbuild pass as core
       "react/jsx-runtime",
       "@tanstack/react-query",
       "react-router-dom",
@@ -32,8 +32,8 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: {
-          // Core React libraries — single chunk guarantees one instance
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          // All React packages in ONE chunk — guarantees single instance in prod
+          'vendor-react': ['react', 'react-dom', 'react/jsx-runtime', 'react-router-dom'],
           // React Query for data fetching
           'vendor-query': ['@tanstack/react-query'],
           // Date utilities
