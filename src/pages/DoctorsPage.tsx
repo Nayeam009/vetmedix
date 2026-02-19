@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Search, Loader2, Filter, ChevronDown, X,
-  Stethoscope, Award, Clock, MapPin, Users
+  Search, Filter, X,
+  Stethoscope, Award, Clock, MapPin, Users, UserX, AlertCircle
 } from 'lucide-react';
+
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
@@ -25,6 +26,8 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+
 import { usePublicDoctors } from '@/hooks/usePublicDoctors';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import SEO from '@/components/SEO';
@@ -56,7 +59,7 @@ const DoctorsPage = () => {
   const [showOnlyVerified, setShowOnlyVerified] = useState(false);
   const navigate = useNavigate();
 
-  const { data: doctors, isLoading } = usePublicDoctors();
+  const { data: doctors, isLoading, isError, error } = usePublicDoctors();
 
   const filteredDoctors = useMemo(() => {
     if (!doctors) return [];
@@ -324,7 +327,20 @@ const DoctorsPage = () => {
         </div>
 
         {/* Doctors Grid */}
-        {isLoading ? (
+        {isError ? (
+          <div className="min-h-[50vh] flex flex-col items-center justify-center gap-4">
+            <Alert variant="destructive" className="max-w-lg">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Failed to load doctors.</strong>{' '}
+                {(error as Error)?.message || 'An unexpected error occurred. Please try again.'}
+              </AlertDescription>
+            </Alert>
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+          </div>
+        ) : isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="bg-card rounded-2xl border border-border p-5 space-y-4">
@@ -346,11 +362,11 @@ const DoctorsPage = () => {
             ))}
           </div>
         ) : filteredDoctors.length === 0 ? (
-          <div className="text-center py-16">
+          <div className="min-h-[50vh] flex flex-col items-center justify-center text-center py-16">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-              <Users className="h-8 w-8 text-muted-foreground" />
+              <UserX className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">No doctors found</h3>
+            <h3 className="text-lg font-semibold mb-2">No doctors found at this time.</h3>
             <p className="text-muted-foreground text-sm mb-4">
               Try adjusting your search or filter criteria
             </p>
