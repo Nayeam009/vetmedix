@@ -511,31 +511,31 @@ const AdminProducts = () => {
                           <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
                             <Input type="number" value={quickStockEdit.stock}
                               onChange={(e) => setQuickStockEdit({ ...quickStockEdit, stock: e.target.value })}
-                              className="h-8 rounded-xl text-sm w-20" autoFocus
+                              className="h-8 rounded-lg text-sm w-20" autoFocus
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleQuickStockUpdate(product.id, parseInt(quickStockEdit.stock) || 0);
                                 else if (e.key === 'Escape') setQuickStockEdit(null);
                               }} />
-                            <Button size="sm" className="h-8 rounded-xl text-xs px-3"
+                            <Button size="sm" className="h-8 rounded-lg text-xs px-3"
                               onClick={() => handleQuickStockUpdate(product.id, parseInt(quickStockEdit.stock) || 0)}>Save</Button>
-                            <Button size="sm" variant="ghost" className="h-8 rounded-xl text-xs px-2"
+                            <Button size="sm" variant="ghost" className="h-8 rounded-lg text-xs px-2"
                               onClick={() => setQuickStockEdit(null)}>✕</Button>
                           </div>
                         ) : (
                           <div className="flex gap-1.5 mt-2">
-                            <Button variant="outline" size="sm" className="flex-1 h-8 rounded-xl text-xs"
+                            <Button variant="outline" size="sm" className="flex-1 h-8 rounded-lg text-xs"
                               onClick={(e) => { e.stopPropagation(); openEditDialog(product); }}>
                               <Edit2 className="h-3 w-3 mr-1" />Edit
                             </Button>
-                            <Button variant={pFeatured ? "default" : "outline"} size="sm" className="h-8 rounded-xl text-xs px-2"
+                            <Button variant={pFeatured ? "default" : "outline"} size="sm" className="h-8 rounded-lg text-xs px-2"
                               onClick={(e) => { e.stopPropagation(); handleToggleFeatured(product.id, !pFeatured); }}>
                               <Star className={`h-3 w-3 mr-1 ${pFeatured ? 'fill-current' : ''}`} />{pFeatured ? 'Featured' : 'Feature'}
                             </Button>
-                            <Button variant="outline" size="sm" className="h-8 rounded-xl text-xs px-2"
+                            <Button variant="outline" size="sm" className="h-8 rounded-lg text-xs px-2"
                               onClick={(e) => { e.stopPropagation(); setQuickStockEdit({ id: product.id, stock: stock.toString() }); }}>
                               <PackagePlus className="h-3 w-3 mr-1" />Stock
                             </Button>
-                            <Button variant="outline" size="sm" className="h-8 rounded-xl text-xs text-destructive hover:text-destructive px-2"
+                            <Button variant="outline" size="sm" className="h-8 rounded-lg text-xs text-destructive hover:text-destructive px-2"
                               onClick={(e) => { e.stopPropagation(); setSelectedProduct(product); setIsDeleteOpen(true); }}>
                               <Trash2 className="h-3 w-3" />
                             </Button>

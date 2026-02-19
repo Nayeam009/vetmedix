@@ -2,25 +2,22 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Package, 
-  Truck, 
-  ShoppingBag, 
+  ShoppingCart, 
+  Users, 
   Settings, 
   ArrowLeft,
   BarChart3,
-  BarChart4,
   Building2,
-  MessageCircleHeart,
+  MessageSquare,
   ChevronLeft,
   ChevronRight,
   Sparkles,
   Shield,
-  ShieldCheck,
   Stethoscope,
   Mail,
   Ticket,
   MapPin,
-  FileText,
-  AlertCircle
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { prefetchRoute } from '@/lib/imageUtils';
@@ -57,12 +54,12 @@ const navSections: NavSection[] = [
     icon: Package,
     items: [
       { icon: Package, label: 'Products', path: '/admin/products' },
-      { icon: Truck, label: 'Orders', path: '/admin/orders' },
-      { icon: ShoppingBag, label: 'Customers', path: '/admin/ecommerce-customers' },
+      { icon: ShoppingCart, label: 'Orders', path: '/admin/orders' },
+      { icon: Users, label: 'Customers', path: '/admin/ecommerce-customers' },
       { icon: Ticket, label: 'Coupons', path: '/admin/coupons' },
       { icon: MapPin, label: 'Delivery Zones', path: '/admin/delivery-zones' },
-      { icon: AlertCircle, label: 'Incomplete Orders', path: '/admin/incomplete-orders' },
-      { icon: BarChart4, label: 'Recovery Analytics', path: '/admin/recovery-analytics' },
+      { icon: ShoppingCart, label: 'Incomplete Orders', path: '/admin/incomplete-orders' },
+      { icon: BarChart3, label: 'Recovery Analytics', path: '/admin/recovery-analytics' },
     ]
   },
   {
@@ -71,9 +68,9 @@ const navSections: NavSection[] = [
     items: [
       { icon: Building2, label: 'Clinics', path: '/admin/clinics' },
       { icon: Stethoscope, label: 'Doctors', path: '/admin/doctors' },
-      { icon: MessageCircleHeart, label: 'Social', path: '/admin/social' },
+      { icon: MessageSquare, label: 'Social', path: '/admin/social' },
       { icon: FileText, label: 'Content Hub', path: '/admin/cms' },
-      { icon: ShieldCheck, label: 'User Management', path: '/admin/customers' },
+      { icon: Shield, label: 'User Management', path: '/admin/customers' },
       { icon: Mail, label: 'Messages', path: '/admin/messages' },
     ]
   },

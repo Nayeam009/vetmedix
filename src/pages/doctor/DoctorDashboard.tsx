@@ -25,7 +25,6 @@ import { useDoctorJoinRequests } from '@/hooks/useDoctorJoinRequests';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const DoctorDashboard = () => {
@@ -182,47 +181,29 @@ const DoctorDashboard = () => {
       <Navbar />
       
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl">
-        {/* Welcome Hero Section */}
-        <div className="bg-gradient-to-br from-white via-white to-primary/5 rounded-xl sm:rounded-2xl lg:rounded-3xl p-4 sm:p-5 lg:p-6 xl:p-8 shadow-lg shadow-black/5 border border-border/50 mb-4 sm:mb-6 lg:mb-8 relative overflow-hidden">
-          {/* Decorative accent */}
-          <div className="absolute -top-10 -right-10 w-32 h-32 sm:w-40 sm:h-40 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
-          
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 relative z-10">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <Avatar className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 border-2 border-primary/20">
-                <AvatarImage src={doctorProfile?.avatar_url || ''} />
-                <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">
-                  {doctorProfile?.name?.charAt(0) || 'D'}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
-                    Welcome, Dr. {doctorProfile?.name?.split(' ')[0] || 'Doctor'}
-                  </h1>
-                  {doctorProfile?.is_verified && (
-                    <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-                  )}
-                </div>
-                <p className="text-muted-foreground text-sm mt-0.5 sm:mt-1">
-                  {format(new Date(), 'EEEE, MMMM d, yyyy')}
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/doctor/profile">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Edit Profile
-                </Link>
+        {/* Welcome Section with Quick Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
+              Welcome, Dr. {doctorProfile?.name?.split(' ')[0] || 'Doctor'}
+            </h1>
+            <p className="text-muted-foreground text-sm mt-0.5 sm:mt-1">
+              {format(new Date(), 'EEEE, MMMM d, yyyy')}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/doctor/profile">
+                <Settings className="h-4 w-4 mr-2" />
+                Edit Profile
+              </Link>
+            </Button>
+            {doctorProfile?.id && (
+              <Button variant="outline" size="sm" onClick={() => navigate(`/doctor/${doctorProfile.id}`)}>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View Public Profile
               </Button>
-              {doctorProfile?.id && (
-                <Button variant="outline" size="sm" onClick={() => navigate(`/doctor/${doctorProfile.id}`)}>
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  View Public Profile
-                </Button>
-              )}
-            </div>
+            )}
           </div>
         </div>
 
@@ -238,18 +219,19 @@ const DoctorDashboard = () => {
             return (
               <Card
                 key={stat.label}
-                className={cn(
-                  "cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-border/50 bg-white active:scale-[0.98]",
-                  activeTab === stat.tab && "ring-2 ring-primary shadow-xl"
-                )}
+                className="cursor-pointer transition-all hover:shadow-md active:scale-[0.97] hover:ring-1 hover:ring-primary/20"
                 onClick={() => setActiveTab(stat.tab)}
               >
-                <CardContent className="p-3 sm:p-4 lg:p-6">
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center mb-2 sm:mb-3 ${stat.colorClass.split(' ')[0]}`}>
-                    <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.colorClass.split(' ')[1]}`} />
+                <CardContent className="p-3 sm:p-4 lg:pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">{stat.label}</p>
+                      <p className="text-xl sm:text-2xl font-bold mt-0.5 sm:mt-1">{stat.value}</p>
+                    </div>
+                    <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center flex-shrink-0 ${stat.colorClass.split(' ')[0]}`}>
+                      <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.colorClass.split(' ')[1]}`} />
+                    </div>
                   </div>
-                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold">{stat.value}</p>
-                  <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground mt-0.5">{stat.label}</p>
                 </CardContent>
               </Card>
             );

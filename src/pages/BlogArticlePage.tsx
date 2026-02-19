@@ -80,7 +80,7 @@ const BlogArticlePage = () => {
 
         {/* Featured Image */}
         {article.featured_image && (
-          <div className="mb-6 rounded-xl overflow-hidden">
+          <div className="mb-6 rounded-lg overflow-hidden">
             <img
               src={article.featured_image}
               alt={article.title}

@@ -1,6 +1,6 @@
 import { useState, memo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, User, Menu, X, LogOut, Store, Stethoscope, PawPrint, Compass, MessageCircle, Building2, Users, Shield, MessageCircleHeart, FileText } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, LogOut, Home, Store, Stethoscope, PawPrint, Compass, MessageCircle, Building2, Users, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
@@ -18,12 +18,12 @@ import {
 } from '@/components/ui/sheet';
 
 const navLinks = [
-  { path: '/feed', label: 'Feed', icon: MessageCircleHeart },
+  { path: '/feed', label: 'Feed', icon: Home },
   { path: '/explore', label: 'Explore', icon: Compass },
   { path: '/shop', label: 'Shop', icon: Store },
   { path: '/clinics', label: 'Clinics', icon: Building2 },
   { path: '/doctors', label: 'Doctors', icon: Users },
-  { path: '/blog', label: 'Blog', icon: FileText },
+  { path: '/blog', label: 'Blog', icon: Store },
 ];
 
 const Navbar = memo(() => {
