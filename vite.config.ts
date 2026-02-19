@@ -5,11 +5,6 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // Use a non-default cacheDir to bypass any infrastructure-level pre-warm
-  // of node_modules/.vite. When Vite finds no cache here it re-bundles
-  // from scratch using our optimizeDeps.entries config, guaranteeing
-  // react + react-dom land in ONE esbuild chunk with a shared dispatcher.
-  cacheDir: "node_modules/.vite-vetmedix",
   server: {
     host: "::",
     port: 8080,
@@ -25,15 +20,24 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   optimizeDeps: {
-    // force: true busts the stale pre-bundle cache so the entries array
-    // is actually respected and react + react-dom land in ONE esbuild chunk.
-    force: true,
-    // entries forces esbuild to process react + react-dom in ONE pass,
-    // guaranteeing a single ReactCurrentDispatcher across all chunks.
-    entries: ["src/lib/reactProxy.ts", "src/main.tsx"],
+    // CRITICAL FIX: Exclude react-dom from pre-bundling.
+    //
+    // Root cause of the duplicate-React crash:
+    //   The Lovable Cloud infrastructure pre-warms node_modules/.vite with separate
+    //   esbuild chunks for react (chunk-PMKBOVCG.js) and react-dom (chunk-LPF6KSF2.js).
+    //   Each chunk has its OWN inlined ReactCurrentDispatcher closure variable.
+    //   renderWithHooks (in react-dom's chunk) sets ITS dispatcher.current, but
+    //   useState (in react's chunk) reads FROM A DIFFERENT dispatcher.current → null → CRASH.
+    //
+    // Why this exclude fix works:
+    //   When react-dom is NOT pre-bundled, Vite serves it through its CJS transform
+    //   pipeline. During that transform, react-dom's internal `require('react')` is
+    //   resolved by Vite's module graph to the SAME pre-bundled react chunk (PMKBOVCG)
+    //   that user code uses. This guarantees ONE shared ReactCurrentDispatcher object
+    //   between react-dom's renderWithHooks and react's useState.
+    exclude: ["react-dom", "react-dom/client"],
     include: [
       "react",
-      "react-dom",
       "react/jsx-runtime",
       "@tanstack/react-query",
       "react-router-dom",
