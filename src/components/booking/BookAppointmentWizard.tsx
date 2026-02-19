@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Loader2, User, Calendar, Clock, PawPrint, FileText, Check, ChevronRight, ChevronLeft, Stethoscope } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { appointmentSchema } from '@/lib/validations';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -215,17 +213,6 @@ const BookAppointmentWizard = ({ onSubmit, isPending, doctors, onCancel, clinicN
   };
 
   const handleSubmit = async () => {
-    const validation = appointmentSchema.safeParse({
-      date: formData.date,
-      time: formData.time,
-      petName: formData.petName,
-      petType: formData.petType,
-      reason: formData.reason || undefined,
-    });
-    if (!validation.success) {
-      toast.error(validation.error.errors[0]?.message || 'Please check the form');
-      return;
-    }
     await onSubmit(formData);
   };
 

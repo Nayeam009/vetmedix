@@ -132,7 +132,7 @@ const FeedPage = () => {
       />
       <Navbar />
 
-      <main id="main-content" className="container mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6 max-w-[680px] flex-1" role="main" aria-label="Pet Social Feed">
+      <main className="container mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6 max-w-[680px] flex-1" role="main" aria-label="Pet Social Feed">
         {/* Stories */}
         <StoriesBar />
 

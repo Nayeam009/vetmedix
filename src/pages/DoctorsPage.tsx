@@ -231,7 +231,7 @@ const DoctorsPage = () => {
       </div>
 
       {/* Main Content */}
-      <main id="main-content" className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {/* Filter Bar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 sm:mb-6">
           <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -368,7 +368,7 @@ const DoctorsPage = () => {
             ))}
           </div>
         )}
-      </main>
+      </div>
 
       {/* Trust Section */}
       <div className="container mx-auto px-3 sm:px-4 py-8 sm:py-12">

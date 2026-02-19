@@ -152,7 +152,7 @@ const PetProfilePage = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <main id="main-content" className="container mx-auto px-4 py-20 text-center" role="main">
+        <main className="container mx-auto px-4 py-20 text-center" role="main">
           <div className="text-6xl mb-4" aria-hidden="true">🐾</div>
           <h1 className="text-2xl font-bold mb-2">Pet Not Found</h1>
           <p className="text-muted-foreground mb-4">This pet profile doesn't exist or has been removed.</p>
@@ -171,7 +171,7 @@ const PetProfilePage = () => {
     <div className="min-h-screen bg-muted/30">
       <Navbar />
       
-      <main id="main-content" className="container mx-auto px-0 sm:px-4 py-0 sm:py-6 max-w-3xl" role="main" aria-label={`${pet.name}'s profile`}>
+      <main className="container mx-auto px-0 sm:px-4 py-0 sm:py-6 max-w-3xl" role="main" aria-label={`${pet.name}'s profile`}>
         {/* Profile Card */}
         <PetProfileCard 
           pet={pet} 

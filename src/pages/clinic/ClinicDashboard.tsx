@@ -216,7 +216,7 @@ const ClinicDashboard = () => {
             <p className="text-muted-foreground mb-6">
               Your clinic profile needs to be set up. Please complete the registration.
             </p>
-            <Button onClick={() => navigate('/clinic/verification')} size="lg">
+            <Button onClick={() => navigate('/select-role')} size="lg">
               Complete Setup
             </Button>
           </CardContent>
@@ -242,7 +242,7 @@ const ClinicDashboard = () => {
     <div className="min-h-screen bg-gradient-to-b from-orange-50/30 via-background to-background pb-20 md:pb-0">
       <Navbar />
       
-      <main id="main-content" className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl">
         {/* Enhanced Hero Section */}
         <div className="bg-gradient-to-br from-white via-white to-primary/5 rounded-xl sm:rounded-2xl lg:rounded-3xl p-4 sm:p-5 lg:p-6 xl:p-8 shadow-lg shadow-black/5 border border-border/50 mb-4 sm:mb-6 lg:mb-8 relative overflow-hidden">
           {/* Decorative accent */}

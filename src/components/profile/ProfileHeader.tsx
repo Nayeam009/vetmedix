@@ -9,7 +9,6 @@ import { format } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { compressImage, getCompressionMessage } from '@/lib/mediaCompression';
-import { removeStorageFiles } from '@/lib/storageUtils';
 
 interface ProfileHeaderProps {
   user: {
@@ -51,8 +50,6 @@ const ProfileHeader = ({
   const navigate = useNavigate();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
@@ -77,16 +74,11 @@ const ProfileHeader = ({
       return;
     }
 
-    // Show optimistic preview immediately
-    setAvatarPreview(URL.createObjectURL(file));
     setUploadingAvatar(true);
     try {
-      // Clean up old avatar
-      if (profile?.avatar_url) {
-        await removeStorageFiles([profile.avatar_url], 'avatars');
-      }
-
+      // Compress image before upload
       const compressed = await compressImage(file, 'avatar');
+      
       if (compressed.compressionRatio > 1) {
         toast({ title: "Image optimized", description: getCompressionMessage(compressed.originalSize, compressed.compressedSize) });
       }
@@ -112,10 +104,8 @@ const ProfileHeader = ({
       if (updateError) throw updateError;
 
       onAvatarUpdate(publicUrl);
-      setAvatarPreview(null);
       toast({ title: "Profile picture updated!" });
     } catch (error: unknown) {
-      setAvatarPreview(null);
       toast({ title: "Upload failed", variant: "destructive" });
     } finally {
       setUploadingAvatar(false);
@@ -136,16 +126,11 @@ const ProfileHeader = ({
       return;
     }
 
-    // Show optimistic preview immediately
-    setCoverPreview(URL.createObjectURL(file));
     setUploadingCover(true);
     try {
-      // Clean up old cover
-      if (profile?.cover_photo_url) {
-        await removeStorageFiles([profile.cover_photo_url], 'avatars');
-      }
-
+      // Compress image before upload
       const compressed = await compressImage(file, 'feed');
+      
       if (compressed.compressionRatio > 1) {
         toast({ title: "Image optimized", description: getCompressionMessage(compressed.originalSize, compressed.compressedSize) });
       }
@@ -171,10 +156,8 @@ const ProfileHeader = ({
       if (updateError) throw updateError;
 
       onCoverUpdate?.(publicUrl);
-      setCoverPreview(null);
       toast({ title: "Cover photo updated!" });
     } catch (error: unknown) {
-      setCoverPreview(null);
       toast({ title: "Upload failed", variant: "destructive" });
     } finally {
       setUploadingCover(false);
@@ -195,9 +178,9 @@ const ProfileHeader = ({
     <div className="bg-card shadow-sm rounded-none sm:rounded-2xl overflow-hidden mb-4 sm:mb-6">
       {/* Hero Cover Photo Section */}
       <div className="relative h-[160px] xs:h-[200px] sm:h-[260px] md:h-[320px] lg:h-[360px] overflow-hidden">
-        {(coverPreview || profile?.cover_photo_url) ? (
+        {profile?.cover_photo_url ? (
           <img 
-            src={coverPreview || profile?.cover_photo_url || ''} 
+            src={profile.cover_photo_url} 
             alt="Cover" 
             className="w-full h-full object-cover"
           />
@@ -259,7 +242,7 @@ const ProfileHeader = ({
           <div className="relative -mt-[55px] xs:-mt-[65px] sm:-mt-[75px] md:-mt-[85px] self-center sm:self-start z-10">
             <div className="p-1 bg-card rounded-full shadow-xl ring-4 ring-card">
               <Avatar className="h-[90px] w-[90px] xs:h-[110px] xs:w-[110px] sm:h-[130px] sm:w-[130px] md:h-[150px] md:w-[150px]">
-                <AvatarImage src={avatarPreview || profile?.avatar_url || undefined} alt={profile?.full_name || 'User'} className="object-cover" />
+                <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || 'User'} className="object-cover" />
                 <AvatarFallback className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-br from-primary to-accent text-white">
                   {getInitials(profile?.full_name || null, user.email)}
                 </AvatarFallback>

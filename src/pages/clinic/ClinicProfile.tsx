@@ -25,7 +25,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { compressImage, getCompressionMessage } from '@/lib/mediaCompression';
-import { getSignedUrl } from '@/lib/storageUtils';
 
 const serviceCategories = [
   'General Checkup',
@@ -42,22 +41,10 @@ const serviceCategories = [
   'Spay/Neuter',
 ];
 
-// Document Preview Card Component - handles private bucket signed URLs
+// Document Preview Card Component
 const DocumentPreviewCard = ({ url, label }: { url: string; label: string }) => {
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadUrl = async () => {
-      setLoading(true);
-      const signed = await getSignedUrl(url, 'clinic-documents');
-      setSignedUrl(signed);
-      setLoading(false);
-    };
-    loadUrl();
-  }, [url]);
-
   const isPdf = url?.toLowerCase().endsWith('.pdf');
+  const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url || '');
   
   return (
     <div className="p-4 rounded-xl bg-muted/30 border border-border/50 space-y-3">
@@ -65,13 +52,9 @@ const DocumentPreviewCard = ({ url, label }: { url: string; label: string }) => 
       
       {/* Document Preview */}
       <div className="relative h-24 sm:h-32 rounded-lg overflow-hidden bg-muted/50 border border-border/30">
-        {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : !isPdf && signedUrl ? (
+        {isImage ? (
           <img 
-            src={signedUrl} 
+            src={url} 
             alt={label} 
             className="w-full h-full object-cover"
             loading="lazy"
@@ -91,11 +74,10 @@ const DocumentPreviewCard = ({ url, label }: { url: string; label: string }) => 
         variant="outline"
         size="sm"
         className="w-full rounded-lg gap-2 h-9 active:scale-95 transition-transform"
-        onClick={() => signedUrl && window.open(signedUrl, '_blank')}
-        disabled={!signedUrl}
+        onClick={() => window.open(url, '_blank')}
       >
         <ExternalLink className="h-4 w-4" />
-        {loading ? 'Loading...' : 'View Document'}
+        View Document
       </Button>
     </div>
   );
@@ -271,7 +253,7 @@ const ClinicProfile = () => {
     <div className="min-h-screen bg-gradient-to-b from-orange-50/30 via-background to-background pb-24 md:pb-8">
       <Navbar />
       
-      <main id="main-content" className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-3xl">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-3xl">
         {/* Header */}
         <div className="flex items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="flex items-center gap-3 sm:gap-4">

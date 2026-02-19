@@ -1,6 +1,3 @@
-// MUST be the very first import — patches ReactCurrentDispatcher before any
-// component code runs, preventing the "duplicate React instance" white screen crash.
-import "./lib/reactSingleton";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
@@ -9,13 +6,6 @@ import { initWebVitals } from "./lib/analytics";
 
 // Initialize Web Vitals monitoring
 initWebVitals();
-
-// Register service worker for PWA
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
-  });
-}
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

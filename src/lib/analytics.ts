@@ -4,7 +4,6 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { logger } from '@/lib/logger';
 
 // Web Vitals metrics types
 interface WebVitalsMetric {
@@ -44,7 +43,7 @@ export function reportWebVitals(metric: WebVitalsMetric): void {
   // Log to console in development
   if (import.meta.env.DEV) {
     const color = metric.rating === 'good' ? 'green' : metric.rating === 'poor' ? 'red' : 'orange';
-    logger.info(
+    console.log(
       `%c[Web Vitals] ${metric.name}: ${metric.value.toFixed(2)} (${metric.rating})`,
       `color: ${color}; font-weight: bold;`
     );
@@ -208,7 +207,7 @@ export function trackError(error: Error, context?: Record<string, unknown>): voi
  */
 export function trackPageView(path: string): void {
   if (import.meta.env.DEV) {
-    logger.info('[Analytics] Page view:', path);
+    console.log('[Analytics] Page view:', path);
   }
 
   // Store basic page view count in session

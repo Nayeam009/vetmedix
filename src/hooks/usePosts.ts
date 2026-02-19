@@ -18,19 +18,9 @@ export const usePosts = (petId?: string, feedType: 'all' | 'following' | 'pet' =
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  // Guard against state updates on unmounted components (e.g. user navigates
-  // away while a page fetch or like request is still in-flight).
-  const isMountedRef = useRef(true);
 
   // Track followed pet IDs for the 'following' feed to avoid re-fetching
   const followedIdsRef = useRef<string[] | null>(null);
-
-  // Set isMountedRef to false on unmount so in-flight async callbacks
-  // can skip state updates on a dead component tree.
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => { isMountedRef.current = false; };
-  }, []);
 
   // Reset state when feed type or pet changes
   useEffect(() => {
@@ -59,7 +49,6 @@ export const usePosts = (petId?: string, feedType: 'all' | 'following' | 'pet' =
         }
 
         if (followedIdsRef.current.length === 0) {
-          if (!isMountedRef.current) return;
           setPosts([]);
           setHasMore(false);
           setLoading(false);
@@ -107,9 +96,6 @@ export const usePosts = (petId?: string, feedType: 'all' | 'following' | 'pet' =
         }));
       }
 
-      // Skip state updates if component unmounted during async work
-      if (!isMountedRef.current) return;
-
       // Determine if there are more posts
       setHasMore(newPosts.length === PAGE_SIZE);
 
@@ -128,10 +114,8 @@ export const usePosts = (petId?: string, feedType: 'all' | 'following' | 'pet' =
         console.error('Error fetching posts:', error);
       }
     } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-        setLoadingMore(false);
-      }
+      setLoading(false);
+      setLoadingMore(false);
     }
   }, [petId, feedType, user]);
 

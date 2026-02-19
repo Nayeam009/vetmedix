@@ -67,7 +67,7 @@ const AdminCoupons = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('coupons')
-        .select('id, code, description, discount_type, discount_value, min_order_amount, max_discount_amount, usage_limit, used_count, is_active, starts_at, expires_at, created_at')
+        .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data as Coupon[];

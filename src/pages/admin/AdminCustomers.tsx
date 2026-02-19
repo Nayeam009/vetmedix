@@ -63,9 +63,7 @@ const AdminCustomers = () => {
   const queryClient = useQueryClient();
   const { isAdmin } = useAdmin();
   useAdminRealtimeDashboard(isAdmin);
-  const [adminUserPage, setAdminUserPage] = useState(0);
-  const { data: customersData, isLoading } = useAdminUsers(adminUserPage);
-  const customers = customersData?.users ?? [];
+  const { data: customers, isLoading } = useAdminUsers();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');

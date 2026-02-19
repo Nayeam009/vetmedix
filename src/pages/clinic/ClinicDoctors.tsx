@@ -391,7 +391,7 @@ const ClinicDoctors = () => {
     <div className="min-h-screen bg-gradient-to-b from-orange-50/30 via-background to-background pb-20 md:pb-0">
       <Navbar />
       
-      <main id="main-content" className="container mx-auto px-4 py-6 max-w-5xl">
+      <main className="container mx-auto px-4 py-6 max-w-5xl">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">

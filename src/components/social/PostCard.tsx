@@ -1,5 +1,5 @@
 import { useState, memo, forwardRef } from 'react';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, Globe, Send } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Trash2, Globe, Bookmark, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -33,6 +33,7 @@ const PostCardComponent = forwardRef<HTMLDivElement, PostCardProps>(({ post, onL
   const [deleting, setDeleting] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
   const [showFullContent, setShowFullContent] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
 
   const handleLike = () => {
     if (!user) {
@@ -78,9 +79,7 @@ const PostCardComponent = forwardRef<HTMLDivElement, PostCardProps>(({ post, onL
   };
 
   const handleShare = async () => {
-    // L-1 Fix: point share URL to the pet profile which actually exists,
-    // instead of /post/:id which has no route defined in App.tsx.
-    const shareUrl = `${window.location.origin}/pet/${post.pet_id}`;
+    const shareUrl = `${window.location.origin}/post/${post.id}`;
     try {
       if (navigator.share) {
         await navigator.share({
@@ -249,9 +248,19 @@ const PostCardComponent = forwardRef<HTMLDivElement, PostCardProps>(({ post, onL
             </button>
           </div>
           
-          {/* H-4 Fix: Bookmark button removed — it was local-only state with no
-              database persistence, creating false user expectations. Will be
-              re-added once a saved_posts table is implemented. */}
+          {/* Right action: Bookmark */}
+          <button 
+            onClick={() => {
+              setIsBookmarked(!isBookmarked);
+              toast.success(isBookmarked ? 'Removed from saved' : 'Saved to collection');
+            }}
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center hover:opacity-60 transition-opacity active:scale-90"
+            aria-label={isBookmarked ? 'Remove from saved' : 'Save'}
+          >
+            <Bookmark className={`h-6 w-6 sm:h-7 sm:w-7 transition-all ${
+              isBookmarked ? 'fill-foreground text-foreground' : 'text-foreground'
+            }`} />
+          </button>
         </div>
         
         {/* Likes count - Instagram style */}

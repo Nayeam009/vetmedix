@@ -279,7 +279,6 @@ const ClinicDetailPage = () => {
           image={clinic.image_url || undefined}
           url={`https://vetmedix.lovable.app/clinic/${clinic.id}`}
           schema={clinicSchema}
-          canonicalUrl={`https://vetmedix.lovable.app/clinic/${clinic.id}`}
         />
       )}
       <Navbar />
@@ -405,7 +404,7 @@ const ClinicDetailPage = () => {
         </nav>
       </div>
 
-      <main id="main-content" className="container mx-auto px-4 max-w-7xl">
+      <main className="container mx-auto px-4 max-w-7xl">
         <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">

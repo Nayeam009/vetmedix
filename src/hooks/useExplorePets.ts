@@ -42,7 +42,7 @@ export const useExplorePets = () => {
 
       let query = supabase
         .from('pets')
-        .select('id, user_id, name, species, breed, age, avatar_url, location, created_at')
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
 

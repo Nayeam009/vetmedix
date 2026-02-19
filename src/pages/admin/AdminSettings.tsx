@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
@@ -21,9 +21,7 @@ import {
   Users,
   Eye,
   MessageSquare,
-  Mail,
-  Upload,
-  ImageIcon,
+  Mail
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -174,13 +172,6 @@ const SaveButton = ({ isPending, onClick, label = 'Save Changes' }: { isPending:
   </Button>
 );
 
-interface BrandAssets {
-  logo_url: string;
-  favicon_url: string;
-}
-
-const defaultBrandAssets: BrandAssets = { logo_url: '', favicon_url: '' };
-
 const AdminSettingsContent = () => {
   useDocumentTitle('Settings - Admin');
   const navigate = useNavigate();
@@ -195,16 +186,6 @@ const AdminSettingsContent = () => {
   const [notifications, setNotifications] = useState<NotificationSettings>(defaultNotifications);
   const [platformSettings, setPlatformSettings] = useState<PlatformSettings>(defaultPlatformSettings);
 
-  // Brand assets state
-  const [brandAssets, setBrandAssets] = useState<BrandAssets>(defaultBrandAssets);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [faviconFile, setFaviconFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string>('');
-  const [faviconPreview, setFaviconPreview] = useState<string>('');
-  const [savingBrand, setSavingBrand] = useState(false);
-  const logoInputRef = useRef<HTMLInputElement>(null);
-  const faviconInputRef = useRef<HTMLInputElement>(null);
-
   const { data: settings } = useQuery({
     queryKey: ['admin-settings'],
     queryFn: async () => {
@@ -217,7 +198,6 @@ const AdminSettingsContent = () => {
         orders: get('orders') ? (get('orders') as unknown as OrderSettings) : defaultOrderSettings,
         notifications: get('notifications') ? (get('notifications') as unknown as NotificationSettings) : defaultNotifications,
         platform: get('platform') ? (get('platform') as unknown as PlatformSettings) : defaultPlatformSettings,
-        brand: get('brand_assets') ? (get('brand_assets') as unknown as BrandAssets) : defaultBrandAssets,
       };
     },
     enabled: isAdmin,
@@ -230,10 +210,6 @@ const AdminSettingsContent = () => {
       setOrderSettings({ ...defaultOrderSettings, ...settings.orders });
       setNotifications({ ...defaultNotifications, ...settings.notifications });
       setPlatformSettings({ ...defaultPlatformSettings, ...settings.platform });
-      const brand = { ...defaultBrandAssets, ...settings.brand };
-      setBrandAssets(brand);
-      if (brand.logo_url) setLogoPreview(brand.logo_url);
-      if (brand.favicon_url) setFaviconPreview(brand.favicon_url);
     }
   }, [settings]);
 
@@ -265,59 +241,6 @@ const AdminSettingsContent = () => {
   const saveOrderMutation = createSaveMutation('orders', 'Order settings saved');
   const saveNotificationsMutation = createSaveMutation('notifications', 'Notification preferences saved');
   const savePlatformMutation = createSaveMutation('platform', 'Platform settings saved');
-
-  // Upload a file to site_assets bucket and return the public URL
-  const uploadAsset = async (file: File, name: string): Promise<string> => {
-    const ext = file.name.split('.').pop();
-    const path = `${name}-${Date.now()}.${ext}`;
-    const { error: upErr } = await supabase.storage.from('site_assets').upload(path, file, { upsert: true });
-    if (upErr) throw upErr;
-    const { data: { publicUrl } } = supabase.storage.from('site_assets').getPublicUrl(path);
-    return publicUrl;
-  };
-
-  const handleSaveBrandAssets = async () => {
-    setSavingBrand(true);
-    try {
-      const updated = { ...brandAssets };
-      if (logoFile) updated.logo_url = await uploadAsset(logoFile, 'logo');
-      if (faviconFile) updated.favicon_url = await uploadAsset(faviconFile, 'favicon');
-
-      const { data: existing } = await supabase.from('admin_settings').select('id').eq('key', 'brand_assets').maybeSingle();
-      if (existing) {
-        const { error } = await supabase.from('admin_settings').update({ value: updated as unknown as Json, updated_at: new Date().toISOString() }).eq('key', 'brand_assets');
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('admin_settings').insert({ key: 'brand_assets', value: updated as unknown as Json });
-        if (error) throw error;
-      }
-
-      setBrandAssets(updated);
-      if (updated.logo_url) setLogoPreview(updated.logo_url);
-      if (updated.favicon_url) setFaviconPreview(updated.favicon_url);
-      setLogoFile(null);
-      setFaviconFile(null);
-      queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
-      toast.success('Brand assets saved successfully!');
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to save brand assets. Please try again.');
-    } finally {
-      setSavingBrand(false);
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'favicon') => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (type === 'logo') {
-      setLogoFile(file);
-      setLogoPreview(URL.createObjectURL(file));
-    } else {
-      setFaviconFile(file);
-      setFaviconPreview(URL.createObjectURL(file));
-    }
-  };
 
 
   return (
@@ -417,128 +340,6 @@ const AdminSettingsContent = () => {
                 </div>
 
                 <SaveButton isPending={saveStoreMutation.isPending} onClick={() => saveStoreMutation.mutate(storeSettings)} />
-              </CardContent>
-            </Card>
-
-            {/* ── Brand Assets Card ── */}
-            <Card className="shadow-sm border-border/50">
-              <CardHeader className="p-3 sm:p-4 lg:p-6">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <ImageIcon className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base sm:text-lg">Brand Assets</CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">Upload your site logo and favicon</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-3 sm:p-4 lg:p-6 pt-0 space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {/* Logo Upload */}
-                  <div className="space-y-3">
-                    <Label htmlFor="logo-upload" className="text-xs sm:text-sm font-medium">
-                      Site Logo
-                      <span className="ml-1 text-muted-foreground font-normal">(PNG, JPG, SVG, WebP)</span>
-                    </Label>
-                    <div className="flex flex-col gap-3">
-                      {logoPreview ? (
-                        <div className="w-full h-28 rounded-lg border border-border/60 bg-muted/30 flex items-center justify-center overflow-hidden p-2">
-                          <img
-                            src={logoPreview}
-                            alt="Logo preview"
-                            className="max-h-full max-w-full object-contain"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-full h-28 rounded-lg border-2 border-dashed border-border/60 flex flex-col items-center justify-center gap-1.5 text-muted-foreground bg-muted/20">
-                          <ImageIcon className="h-7 w-7" />
-                          <span className="text-xs">No logo uploaded</span>
-                        </div>
-                      )}
-                      <input
-                        id="logo-upload"
-                        ref={logoInputRef}
-                        type="file"
-                        accept="image/png,image/jpeg,image/svg+xml,image/webp"
-                        className="hidden"
-                        disabled={savingBrand}
-                        onChange={(e) => handleFileChange(e, 'logo')}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={savingBrand}
-                        onClick={() => logoInputRef.current?.click()}
-                        className="w-full gap-2"
-                      >
-                        <Upload className="h-3.5 w-3.5" />
-                        {logoFile ? logoFile.name.slice(0, 20) + (logoFile.name.length > 20 ? '…' : '') : 'Choose Logo'}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Favicon Upload */}
-                  <div className="space-y-3">
-                    <Label htmlFor="favicon-upload" className="text-xs sm:text-sm font-medium">
-                      Favicon
-                      <span className="ml-1 text-muted-foreground font-normal">(PNG, ICO, SVG — 32×32 recommended)</span>
-                    </Label>
-                    <div className="flex flex-col gap-3">
-                      {faviconPreview ? (
-                        <div className="w-full h-28 rounded-lg border border-border/60 bg-muted/30 flex items-center justify-center overflow-hidden p-2">
-                          <img
-                            src={faviconPreview}
-                            alt="Favicon preview"
-                            className="max-h-full max-w-full object-contain"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-full h-28 rounded-lg border-2 border-dashed border-border/60 flex flex-col items-center justify-center gap-1.5 text-muted-foreground bg-muted/20">
-                          <ImageIcon className="h-7 w-7" />
-                          <span className="text-xs">No favicon uploaded</span>
-                        </div>
-                      )}
-                      <input
-                        id="favicon-upload"
-                        ref={faviconInputRef}
-                        type="file"
-                        accept="image/png,image/jpeg,image/svg+xml,image/webp,image/x-icon"
-                        className="hidden"
-                        disabled={savingBrand}
-                        onChange={(e) => handleFileChange(e, 'favicon')}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={savingBrand}
-                        onClick={() => faviconInputRef.current?.click()}
-                        className="w-full gap-2"
-                      >
-                        <Upload className="h-3.5 w-3.5" />
-                        {faviconFile ? faviconFile.name.slice(0, 20) + (faviconFile.name.length > 20 ? '…' : '') : 'Choose Favicon'}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between gap-4">
-                  <p className="text-xs text-muted-foreground">
-                    Max 5 MB per file. Files are stored securely and served publicly.
-                  </p>
-                  <Button
-                    onClick={handleSaveBrandAssets}
-                    disabled={savingBrand || (!logoFile && !faviconFile && !brandAssets.logo_url && !brandAssets.favicon_url)}
-                    className="gap-2 min-h-[44px] sm:min-h-0 flex-shrink-0"
-                  >
-                    {savingBrand ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                    Save Brand Assets
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           </div>

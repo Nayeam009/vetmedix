@@ -94,7 +94,7 @@ const ExplorePage = () => {
         </div>
       </header>
 
-      <main id="main-content" className="container mx-auto px-4 py-4 sm:py-6" role="main" aria-label="Explore pets">
+      <main className="container mx-auto px-4 py-4 sm:py-6" role="main" aria-label="Explore pets">
         <div className="max-w-5xl mx-auto">
 
           {/* Search & Filters - Sticky on Mobile */}

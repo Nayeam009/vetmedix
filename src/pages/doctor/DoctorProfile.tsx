@@ -155,7 +155,7 @@ const DoctorProfile = () => {
     <div className="min-h-screen bg-background pb-16 md:pb-0">
       <Navbar />
       
-      <main id="main-content" className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-2xl">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-2xl">
         {/* Back to Dashboard */}
         <Button variant="ghost" size="sm" className="mb-3 gap-1.5 -ml-1" onClick={() => navigate('/doctor/dashboard')}>
           <ArrowLeft className="h-4 w-4" />

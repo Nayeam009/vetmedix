@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePets } from '@/contexts/PetContext';
@@ -13,7 +13,7 @@ export const useComments = (postId: string) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchComments = useCallback(async () => {
+  const fetchComments = async () => {
     try {
       const { data, error } = await supabase
         .from('comments')
@@ -33,47 +33,11 @@ export const useComments = (postId: string) => {
     } finally {
       setLoading(false);
     }
-  }, [postId]);
+  };
 
   useEffect(() => {
     fetchComments();
-
-    // M-2 Fix: Add real-time subscription for INSERT events on the comments table
-    // filtered by post_id so new comments from other users appear instantly.
-    const channel = supabase
-      .channel(`comments:${postId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'comments',
-          filter: `post_id=eq.${postId}`,
-        },
-        (payload) => {
-          // Fetch full comment with pet join to get the avatar etc.
-          supabase
-            .from('comments')
-            .select('*, pet:pets(*)')
-            .eq('id', payload.new.id)
-            .single()
-            .then(({ data }) => {
-              if (data) {
-                setComments(prev => {
-                  // Avoid duplicates (our own addComment already appended it)
-                  if (prev.some(c => c.id === data.id)) return prev;
-                  return [...prev, data as Comment];
-                });
-              }
-            });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [postId, fetchComments]);
+  }, [postId]);
 
   const addComment = async (content: string, commenterPetId?: string) => {
     if (!user) return { success: false, error: 'Not authenticated' };

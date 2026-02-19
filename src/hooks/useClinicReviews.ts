@@ -27,7 +27,7 @@ export const useClinicReviews = (clinicId: string) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clinic_reviews')
-        .select('id, clinic_id, user_id, rating, comment, helpful_count, created_at, updated_at')
+        .select('*')
         .eq('clinic_id', clinicId)
         .order('created_at', { ascending: false });
 
@@ -60,7 +60,7 @@ export const useClinicReviews = (clinicId: string) => {
       
       const { data, error } = await supabase
         .from('clinic_reviews')
-        .select('id, clinic_id, user_id, rating, comment, helpful_count, created_at')
+        .select('*')
         .eq('clinic_id', clinicId)
         .eq('user_id', user.id)
         .maybeSingle();

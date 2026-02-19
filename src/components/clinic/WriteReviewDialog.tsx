@@ -13,7 +13,6 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { logger } from '@/lib/logger';
 import { cn } from '@/lib/utils';
 
 interface WriteReviewDialogProps {
@@ -94,7 +93,7 @@ const WriteReviewDialog = ({
       setRating(0);
       setComment('');
     } catch (error) {
-      logger.error('Error submitting review:', error);
+      console.error('Error submitting review:', error);
       toast.error('Failed to submit review. Please try again.');
     } finally {
       setIsSubmitting(false);

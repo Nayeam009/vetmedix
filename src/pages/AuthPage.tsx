@@ -314,20 +314,10 @@ const AuthPage = () => {
         }
       }
     } catch (error: unknown) {
-      const rawMessage = error instanceof Error ? error.message : "Something went wrong";
-      const friendlyMessages: Record<string, string> = {
-        'User already registered': 'An account with this email already exists. Please sign in instead.',
-        'Invalid login credentials': 'Incorrect email or password. Please try again.',
-        'Email not confirmed': 'Please verify your email address before signing in.',
-        'Too many requests': 'Too many attempts. Please wait a moment and try again.',
-        'Signup disabled': 'New registrations are currently disabled. Please contact support.',
-      };
-      const friendlyMessage = Object.entries(friendlyMessages).find(
-        ([key]) => rawMessage.toLowerCase().includes(key.toLowerCase())
-      )?.[1] || rawMessage;
+      const errorMessage = error instanceof Error ? error.message : "Something went wrong";
       toast({
         title: "Error",
-        description: friendlyMessage,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -356,7 +346,7 @@ const AuthPage = () => {
   }
 
   return (
-    <main id="main-content" className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
       <div className="w-full max-w-md">
         <div className="bg-card border border-border rounded-2xl shadow-xl p-6 sm:p-8">
           {/* Header */}
@@ -616,7 +606,7 @@ const AuthPage = () => {
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 };
 

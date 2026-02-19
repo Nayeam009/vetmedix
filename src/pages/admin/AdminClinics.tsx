@@ -116,7 +116,7 @@ const AdminClinics = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clinics')
-        .select('id, name, address, phone, email, description, image_url, is_open, is_verified, is_blocked, blocked_at, blocked_reason, verification_status, bvc_certificate_url, trade_license_url, rejection_reason, verification_submitted_at, owner_name, owner_nid, rating, created_at, owner_user_id, services, opening_hours')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;

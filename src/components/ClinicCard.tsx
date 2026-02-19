@@ -23,16 +23,12 @@ const ClinicCard = memo(forwardRef<HTMLDivElement, ClinicCardProps>(({ name, rat
   const isGopalganj = name?.toLowerCase().includes('gopalganj');
   
   return (
-    <article ref={ref} className="group bg-card rounded-xl sm:rounded-2xl overflow-hidden border border-border/60 hover:border-primary/40 transition-all duration-300 hover:shadow-lg sm:hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 active:scale-[0.98]" aria-label={`${name} clinic, rated ${rating.toFixed(1)}`}>
+    <div ref={ref} className="group bg-card rounded-xl sm:rounded-2xl overflow-hidden border border-border/60 hover:border-primary/40 transition-all duration-300 hover:shadow-lg sm:hover:shadow-xl hover:shadow-primary/5">
       <div className="flex">
         {/* Image Section with stable aspect ratio */}
         <div 
           className="relative w-24 sm:w-32 md:w-36 lg:w-44 flex-shrink-0 cursor-pointer overflow-hidden bg-gradient-to-br from-primary/5 to-secondary"
           onClick={onViewDetails}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onViewDetails?.()}
-          aria-label={`View ${name} details`}
         >
           {isGopalganj ? (
             <OptimizedImage 
@@ -162,7 +158,7 @@ const ClinicCard = memo(forwardRef<HTMLDivElement, ClinicCardProps>(({ name, rat
           </div>
         </div>
       </div>
-    </article>
+    </div>
   );
 }));
 

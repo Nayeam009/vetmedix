@@ -177,7 +177,7 @@ const WishlistPage = () => {
     <div className="min-h-screen bg-muted/30 pb-20 md:pb-0">
       <Navbar />
       
-      <main id="main-content" className="container mx-auto px-3 sm:px-4 py-5 sm:py-8">
+      <div className="container mx-auto px-3 sm:px-4 py-5 sm:py-8">
         {/* Header */}
         <div className="flex items-center gap-3 mb-5 sm:mb-6">
           <div className="h-10 w-10 rounded-xl bg-destructive/10 flex items-center justify-center">
@@ -346,7 +346,7 @@ const WishlistPage = () => {
             )}
           </TabsContent>
         </Tabs>
-      </main>
+      </div>
 
       <Footer />
       <MobileNav />

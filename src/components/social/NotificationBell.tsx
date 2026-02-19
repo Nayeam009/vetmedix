@@ -157,10 +157,6 @@ export const NotificationBell = () => {
                     !notification.is_read ? 'bg-primary/5' : ''
                   }`}
                   onClick={() => handleClick(notification)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleClick(notification)}
-                  aria-label={`${notification.title}${notification.message ? `: ${notification.message}` : ''}`}
                 >
                   <div className="relative">
                     {notification.actor_pet?.avatar_url || notification.type === 'like' || notification.type === 'comment' || notification.type === 'follow' ? (

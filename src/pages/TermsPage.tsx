@@ -159,7 +159,7 @@ Our total liability shall not exceed the amount you paid us in the past 12 month
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
       
-      <main id="main-content" className="container mx-auto px-4 py-8 sm:py-12" role="main" aria-label="Terms of Service">
+      <main className="container mx-auto px-4 py-8 sm:py-12" role="main" aria-label="Terms of Service">
         {/* Hero */}
         <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-12">
           <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-primary/10 mb-4">

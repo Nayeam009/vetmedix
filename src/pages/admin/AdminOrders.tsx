@@ -81,9 +81,7 @@ const AdminOrders = () => {
   const queryClient = useQueryClient();
   const { isAdmin } = useAdmin();
   useAdminRealtimeDashboard(isAdmin);
-  const [adminOrderPage, setAdminOrderPage] = useState(0);
-  const { data: ordersData, isLoading } = useAdminOrders(adminOrderPage);
-  const orders = ordersData?.orders ?? [];
+  const { data: orders, isLoading } = useAdminOrders();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -1021,34 +1019,6 @@ const AdminOrders = () => {
           </div>
         </DialogContent>
       </Dialog>
-      {/* Server-side pagination for fetched orders */}
-      {(ordersData?.totalCount ?? 0) > 50 && (
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
-          <p className="text-xs text-muted-foreground">
-            Page {adminOrderPage + 1} · Showing orders {adminOrderPage * 50 + 1}–{Math.min((adminOrderPage + 1) * 50, ordersData?.totalCount ?? 0)} of {ordersData?.totalCount ?? 0}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setAdminOrderPage(p => Math.max(0, p - 1))}
-              disabled={adminOrderPage === 0}
-              className="rounded-lg"
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setAdminOrderPage(p => p + 1)}
-              disabled={(adminOrderPage + 1) * 50 >= (ordersData?.totalCount ?? 0)}
-              className="rounded-lg"
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
     </AdminLayout>
     </RequireAdmin>
   );

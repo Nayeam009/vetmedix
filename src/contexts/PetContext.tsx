@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import type { Pet } from '@/types/social';
@@ -18,13 +18,8 @@ export const PetProvider = ({ children }: { children: ReactNode }) => {
   const [pets, setPets] = useState<Pet[]>([]);
   const [activePet, setActivePet] = useState<Pet | null>(null);
   const [loading, setLoading] = useState(true);
-  // Use a ref to always read the latest activePet value without stale closure
-  const activePetRef = useRef<Pet | null>(null);
-  activePetRef.current = activePet;
 
-  // H-2 Fix: Wrap in useCallback so the function reference is stable and
-  // reads activePet via ref to avoid stale closure bugs.
-  const refreshPets = useCallback(async () => {
+  const refreshPets = async () => {
     if (!user) {
       setPets([]);
       setActivePet(null);
@@ -44,8 +39,8 @@ export const PetProvider = ({ children }: { children: ReactNode }) => {
       const petsData = (data || []) as Pet[];
       setPets(petsData);
       
-      // Use ref to read current activePet — avoids stale closure
-      if (petsData.length > 0 && !activePetRef.current) {
+      // Set first pet as active if no active pet
+      if (petsData.length > 0 && !activePet) {
         setActivePet(petsData[0]);
       }
     } catch (error) {
@@ -55,11 +50,11 @@ export const PetProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, [user]); // Only depends on user — activePet is read via ref
+  };
 
   useEffect(() => {
     refreshPets();
-  }, [refreshPets]);
+  }, [user]);
 
   return (
     <PetContext.Provider value={{ pets, activePet, setActivePet, loading, refreshPets }}>

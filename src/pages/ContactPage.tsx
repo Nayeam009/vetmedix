@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, Phone, MapPin, Send, Loader2, CheckCircle, LogIn } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, Loader2, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,17 +9,11 @@ import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import Footer from '@/components/Footer';
 import { toast } from 'sonner';
-import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
-import { contactSchema } from '@/lib/validations';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 
 const ContactPage = () => {
   useDocumentTitle('Contact Us');
-  const { user } = useAuth();
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -31,10 +25,8 @@ const ContactPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = contactSchema.safeParse(formData);
-    if (!result.success) {
-      const firstError = result.error.errors[0]?.message || 'Please fill in all required fields';
-      toast.error(firstError);
+    if (!formData.name || !formData.email || !formData.message) {
+      toast.error('Please fill in all required fields');
       return;
     }
 
@@ -54,7 +46,7 @@ const ContactPage = () => {
       setSubmitted(true);
       toast.success('Message sent successfully! We\'ll get back to you soon.');
     } catch (error) {
-      logger.error('Error submitting contact form:', error);
+      console.error('Error submitting contact form:', error);
       toast.error('Failed to send message. Please try again.');
     } finally {
       setLoading(false);
@@ -152,19 +144,7 @@ const ContactPage = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {!user ? (
-                    <div className="text-center py-8">
-                      <LogIn className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Sign in Required</h3>
-                      <p className="text-muted-foreground mb-4">
-                        Please sign in to send us a message. This helps us prevent spam and respond to you faster.
-                      </p>
-                      <Button onClick={() => navigate('/auth')}>
-                        <LogIn className="h-4 w-4 mr-2" />
-                        Sign In to Contact Us
-                      </Button>
-                    </div>
-                  ) : submitted ? (
+                  {submitted ? (
                     <div className="text-center py-8">
                       <div className="w-16 h-16 bg-success-light rounded-full flex items-center justify-center mx-auto mb-4">
                         <CheckCircle className="h-8 w-8 text-success" />
@@ -192,7 +172,6 @@ const ContactPage = () => {
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             required
                             aria-required="true"
-                            maxLength={100}
                           />
                         </div>
                         <div className="space-y-2">
@@ -205,7 +184,6 @@ const ContactPage = () => {
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             required
                             aria-required="true"
-                            maxLength={255}
                           />
                         </div>
                       </div>

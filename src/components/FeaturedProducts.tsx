@@ -1,11 +1,10 @@
-import { useEffect, memo } from 'react';
-import { ArrowRight, Sparkles, AlertCircle } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import ProductCard from './ProductCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 
 interface Product {
   id: string;
@@ -21,10 +20,10 @@ interface Product {
   compare_price: number | null;
 }
 
-const FeaturedProducts = memo(() => {
+const FeaturedProducts = () => {
   const queryClient = useQueryClient();
 
-  const { data: products = [], isLoading, isError } = useQuery({
+  const { data: products = [], isLoading } = useQuery({
     queryKey: ['featured-products'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -34,15 +33,10 @@ const FeaturedProducts = memo(() => {
         .eq('is_active', true)
         .limit(8)
         .order('created_at', { ascending: false });
-      if (error) {
-        toast.error('Could not load featured products. Please check your connection.');
-        throw error;
-      }
+      if (error) throw error;
       return (data || []) as Product[];
     },
     staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    retry: 2,
   });
 
   // Realtime subscription
@@ -86,21 +80,7 @@ const FeaturedProducts = memo(() => {
     );
   }
 
-  if (isError) {
-    return (
-      <section className="section-padding bg-secondary/30">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive">
-            <AlertCircle className="h-5 w-5 flex-shrink-0" />
-            <p className="text-sm">Could not load featured products. Please check your connection and refresh.</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   if (products.length === 0) return null;
-
 
   return (
     <section className="section-padding bg-secondary/30">
@@ -143,9 +123,6 @@ const FeaturedProducts = memo(() => {
       </div>
     </section>
   );
-});
-
-FeaturedProducts.displayName = 'FeaturedProducts';
+};
 
 export default FeaturedProducts;
-

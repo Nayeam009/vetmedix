@@ -1,107 +1,83 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Conversation, Message, Pet } from '@/types/social';
 import { compressImage } from '@/lib/mediaCompression';
 
-// H-1 + L-2 Fix: Migrate useConversations to React Query.
-// Benefits: shared cache, staleTime, automatic background refetch,
-// and no manual isMounted tracking needed (React Query handles it).
 export const useConversations = () => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const { data: conversations = [], isLoading: loading } = useQuery({
-    queryKey: ['conversations', user?.id],
-    queryFn: async () => {
-      if (!user) return [] as Conversation[];
+  const fetchConversations = async () => {
+    if (!user) {
+      setConversations([]);
+      setLoading(false);
+      return;
+    }
 
+    try {
       const { data, error } = await supabase
-        .from('conversations')
-        .select('id, participant_1_id, participant_2_id, last_message_at, created_at')
+        .from('conversations' as any)
+        .select('*')
         .or(`participant_1_id.eq.${user.id},participant_2_id.eq.${user.id}`)
         .order('last_message_at', { ascending: false });
 
       if (error) throw error;
 
-      // H-1 Fix: Replaced 3 sequential per-conversation queries with a batched
-      // approach: fetch ALL pets and last messages in 2 queries, then join in memory.
-      // This reduces N*3 round-trips to 3 total, eliminating the N+1 pattern.
-      const convList = data || [];
-      if (convList.length === 0) return [] as Conversation[];
-
-      const allOtherUserIds = convList.map((conv: any) =>
-        conv.participant_1_id === user.id ? conv.participant_2_id : conv.participant_1_id
-      );
-
-      // Batch query 1: get one pet per other user
-      const { data: allPets } = await supabase
-        .from('pets')
-        .select('id, user_id, name, species, breed, age, avatar_url, location')
-        .in('user_id', allOtherUserIds);
-
-      // Build lookup maps
-      const petsByUserId = new Map<string, Pet[]>();
-      for (const pet of allPets || []) {
-        const list = petsByUserId.get(pet.user_id) || [];
-        list.push(pet as Pet);
-        petsByUserId.set(pet.user_id, list);
-      }
-
-      const convIds = convList.map((c: any) => c.id);
-
-      // Batch query 2: get last message per conversation
-      const { data: lastMessages } = await supabase
-        .from('messages')
-        .select('id, conversation_id, sender_id, content, media_url, media_type, is_read, created_at')
-        .in('conversation_id', convIds)
-        .order('created_at', { ascending: false });
-
-      const lastMessageByConv = new Map<string, Message>();
-      for (const msg of (lastMessages || []) as any[]) {
-        if (!lastMessageByConv.has(msg.conversation_id)) {
-          lastMessageByConv.set(msg.conversation_id, msg as Message);
-        }
-      }
-
-      // Batch query 3: get unread counts per conversation
-      const { data: unreadMessages } = await supabase
-        .from('messages')
-        .select('conversation_id')
-        .in('conversation_id', convIds)
-        .eq('is_read', false)
-        .neq('sender_id', user.id);
-
-      const unreadCountByConv = new Map<string, number>();
-      for (const msg of unreadMessages || []) {
-        unreadCountByConv.set(
-          msg.conversation_id,
-          (unreadCountByConv.get(msg.conversation_id) || 0) + 1
-        );
-      }
-
-      // Assemble enriched conversations
-      return convList.map((conv: any) => {
-        const otherUserId = conv.participant_1_id === user.id
-          ? conv.participant_2_id
+      // Enrich with other user's pets and last message
+      const enriched = await Promise.all((data || []).map(async (conv: any) => {
+        const otherUserId = conv.participant_1_id === user.id 
+          ? conv.participant_2_id 
           : conv.participant_1_id;
+
+        // Get other user's pets
+        const { data: pets } = await supabase
+          .from('pets')
+          .select('*')
+          .eq('user_id', otherUserId)
+          .limit(1);
+
+        // Get last message
+        const { data: messages } = await supabase
+          .from('messages' as any)
+          .select('*')
+          .eq('conversation_id', conv.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        // Get unread count
+        const { count } = await supabase
+          .from('messages' as any)
+          .select('*', { count: 'exact', head: true })
+          .eq('conversation_id', conv.id)
+          .eq('is_read', false)
+          .neq('sender_id', user.id);
 
         return {
           ...conv,
           other_user: {
             id: otherUserId,
-            pets: petsByUserId.get(otherUserId) || [],
+            pets: (pets || []) as Pet[],
           },
-          last_message: lastMessageByConv.get(conv.id),
-          unread_count: unreadCountByConv.get(conv.id) || 0,
+          last_message: (messages?.[0] as unknown) as Message | undefined,
+          unread_count: count || 0,
         } as Conversation;
-      });
-    },
-    enabled: !!user?.id,
-    staleTime: 1000 * 60 * 2,
-    gcTime: 1000 * 60 * 10,
-  });
+      }));
+
+      setConversations(enriched);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error fetching conversations:', error);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchConversations();
+  }, [user]);
 
   const startConversation = async (otherUserId: string): Promise<string | null> => {
     if (!user) return null;
@@ -109,16 +85,16 @@ export const useConversations = () => {
     try {
       // Check if conversation exists
       const { data: existing } = await supabase
-        .from('conversations')
+        .from('conversations' as any)
         .select('id')
         .or(`and(participant_1_id.eq.${user.id},participant_2_id.eq.${otherUserId}),and(participant_1_id.eq.${otherUserId},participant_2_id.eq.${user.id})`)
         .maybeSingle();
 
-      if (existing) return existing.id;
+      if (existing) return (existing as any).id;
 
       // Create new conversation
       const { data, error } = await supabase
-        .from('conversations')
+        .from('conversations' as any)
         .insert({
           participant_1_id: user.id,
           participant_2_id: otherUserId,
@@ -128,9 +104,8 @@ export const useConversations = () => {
 
       if (error) throw error;
       
-      // Invalidate cache so the new conversation appears
-      queryClient.invalidateQueries({ queryKey: ['conversations', user.id] });
-      return data.id;
+      await fetchConversations();
+      return (data as any).id;
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error starting conversation:', error);
@@ -139,45 +114,31 @@ export const useConversations = () => {
     }
   };
 
-  const refresh = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['conversations', user?.id] });
-  }, [user?.id, queryClient]);
-
-  return { conversations, loading, startConversation, refresh };
+  return { conversations, loading, startConversation, refresh: fetchConversations };
 };
 
 export const useMessages = (conversationId: string) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
-  // H-1 Fix: isMounted ref prevents state updates after unmount (memory leak)
-  const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => { isMountedRef.current = false; };
-  }, []);
 
   const fetchMessages = useCallback(async () => {
     if (!conversationId) return;
 
     try {
       const { data, error } = await supabase
-        .from('messages')
-        .select('id, conversation_id, sender_id, content, media_url, media_type, is_read, created_at')
+        .from('messages' as any)
+        .select('*')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      // Guard against state update after unmount
-      if (isMountedRef.current) {
-        setMessages((data || []) as unknown as Message[]);
-      }
+      setMessages((data || []) as unknown as Message[]);
 
       // Mark messages as read
       if (user) {
         await supabase
-          .from('messages')
+          .from('messages' as any)
           .update({ is_read: true })
           .eq('conversation_id', conversationId)
           .neq('sender_id', user.id)
@@ -188,9 +149,7 @@ export const useMessages = (conversationId: string) => {
         console.error('Error fetching messages:', error);
       }
     } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }, [conversationId, user]);
 
@@ -209,9 +168,7 @@ export const useMessages = (conversationId: string) => {
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          if (isMountedRef.current) {
-            setMessages(prev => [...prev, payload.new as Message]);
-          }
+          setMessages(prev => [...prev, payload.new as Message]);
         }
       )
       .subscribe();
@@ -255,7 +212,7 @@ export const useMessages = (conversationId: string) => {
       }
 
       const { error } = await supabase
-        .from('messages')
+        .from('messages' as any)
         .insert({
           conversation_id: conversationId,
           sender_id: user.id,

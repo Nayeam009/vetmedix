@@ -100,7 +100,7 @@ const ProfilePage = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('id, full_name, phone, address, division, district, thana, avatar_url, cover_photo_url')
+        .select('*')
         .eq('user_id', user!.id)
         .single();
       return data as Profile | null;
@@ -114,7 +114,7 @@ const ProfilePage = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from('orders')
-        .select('id, items, total_amount, status, created_at, shipping_address, payment_method, tracking_id, rejection_reason')
+        .select('*')
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false });
       return (data || []) as Order[];
@@ -287,7 +287,7 @@ const ProfilePage = () => {
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
       
-      <main id="main-content" className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8" role="main" aria-label="User profile">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-8" role="main" aria-label="User profile">
         {/* Profile Header */}
         {user && (
           <ProfileHeader
