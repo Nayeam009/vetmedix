@@ -5,10 +5,6 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  optimizeDeps: {
-    include: ['react', 'react-dom', 'react/jsx-runtime'],
-    force: false,
-  },
   server: {
     host: "::",
     port: 8080,
@@ -18,24 +14,39 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    dedupe: ['react', 'react-dom'],
+    // Force a single React instance across all chunks
+    dedupe: ['react', 'react-dom', 'react/jsx-runtime'],
+  },
+  optimizeDeps: {
+    // Pre-bundle React so Vite never creates multiple copies
+    include: ['react', 'react-dom', 'react/jsx-runtime'],
   },
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Core React libraries
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          // React Query for data fetching
-          'vendor-query': ['@tanstack/react-query'],
-          // Date utilities
-          'vendor-date': ['date-fns'],
-          // Supabase client
-          'vendor-supabase': ['@supabase/supabase-js'],
+        manualChunks: (id) => {
+          // Keep ALL react-related packages in one single chunk
+          if (
+            id.includes('node_modules/react/') ||
+            id.includes('node_modules/react-dom/') ||
+            id.includes('node_modules/react-router-dom/') ||
+            id.includes('node_modules/scheduler/')
+          ) {
+            return 'vendor-react';
+          }
+          if (id.includes('node_modules/@tanstack/react-query')) {
+            return 'vendor-query';
+          }
+          if (id.includes('node_modules/date-fns')) {
+            return 'vendor-date';
+          }
+          if (id.includes('node_modules/@supabase/')) {
+            return 'vendor-supabase';
+          }
         },
       },
     },
-    // Increase chunk size warning limit
     chunkSizeWarningLimit: 600,
   },
 }));
+
