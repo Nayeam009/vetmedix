@@ -25,8 +25,14 @@ const CART_STORAGE_KEY = 'vetmedix-cart';
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>(() => {
-    const stored = localStorage.getItem(CART_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    try {
+      const stored = localStorage.getItem(CART_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      // Corrupted storage — clear and start fresh to prevent white-screen crash
+      localStorage.removeItem(CART_STORAGE_KEY);
+      return [];
+    }
   });
 
   useEffect(() => {

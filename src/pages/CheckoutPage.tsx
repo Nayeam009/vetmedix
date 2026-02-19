@@ -82,13 +82,13 @@ const CheckoutPage = () => {
   const [loading, setLoading] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
 
-  // M4: Redirect unauthenticated users immediately
+  // Redirect unauthenticated users immediately
   useEffect(() => {
     if (!user && items.length > 0) {
       toast({ title: 'Login Required', description: 'Please login to checkout.', variant: 'destructive' });
       navigate('/auth');
     }
-  }, [user]);
+  }, [user, items.length, navigate, toast]);
 
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
   const [placedItems, setPlacedItems] = useState<typeof items>([]);
