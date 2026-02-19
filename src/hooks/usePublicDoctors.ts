@@ -28,7 +28,7 @@ export const usePublicDoctors = () => {
       // 1. Doctors affiliated with verified clinics (via clinic_doctors)
       // 2. Independently verified doctors (is_verified = true)
 
-      // Fetch clinic-affiliated doctors - use separate queries since view FKs don't work with PostgREST
+      // Fetch clinic-affiliated doctors - public policy allows anon access to active affiliations
       const { data: clinicDoctorsData, error: cdError } = await supabase
         .from('clinic_doctors')
         .select(`
@@ -45,7 +45,11 @@ export const usePublicDoctors = () => {
         `)
         .eq('status', 'active');
 
-      if (cdError) throw cdError;
+      if (cdError) {
+        console.error('[usePublicDoctors] clinic_doctors query failed:', cdError.message, cdError);
+        throw cdError;
+      }
+      console.debug('[usePublicDoctors] clinic_doctors rows:', clinicDoctorsData?.length ?? 0);
 
       // Get doctor IDs from active clinic affiliations with verified clinics
       const verifiedClinicDoctorIds = (clinicDoctorsData || [])
@@ -57,7 +61,11 @@ export const usePublicDoctors = () => {
         .from('doctors_public')
         .select('id, name, specialization, qualifications, avatar_url, bio, experience_years, consultation_fee, is_available, is_verified, created_by_clinic_id, created_at, updated_at');
 
-      if (doctorsError) throw doctorsError;
+      if (doctorsError) {
+        console.error('[usePublicDoctors] doctors_public query failed:', doctorsError.message, doctorsError);
+        throw doctorsError;
+      }
+      console.debug('[usePublicDoctors] doctors_public rows:', allDoctors?.length ?? 0);
 
       // Build a map to deduplicate by doctor ID
       const doctorMap = new Map<string, PublicDoctor>();
