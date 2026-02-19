@@ -1,81 +1,75 @@
 /**
- * React Singleton Guard — Definitive Fix for Duplicate React Instance
+ * React Singleton Guard — Runtime Dispatcher Bridge
  *
- * Root cause (confirmed via stack trace analysis):
- *   chunk-PMKBOVCG.js  = react bundle  → own ReactCurrentDispatcher + useState
- *   chunk-LPF6KSF2.js  = react-dom bundle → own ReactCurrentDispatcher + renderWithHooks
+ * This is the RUNTIME FALLBACK for the duplicate-React-instance crash.
+ * The PRIMARY fix is vite.config.ts → cacheDir: "node_modules/.vite-vetmedix",
+ * which forces a fresh esbuild pre-bundle that co-bundles react + react-dom
+ * into one chunk with a single shared ReactCurrentDispatcher.
  *
- *   renderWithHooks (LPF6KSF2) sets   LPF6KSF2.ReactCurrentDispatcher.current = HooksDispatcher
- *   useState        (PMKBOVCG) reads  PMKBOVCG.ReactCurrentDispatcher.current  → still null → CRASH
+ * If two React chunks somehow still end up loaded (e.g. edge cases with
+ * third-party libs bundling their own react), this guard ensures they share
+ * one dispatcher via Object.defineProperty proxying.
  *
- * Why previous fixes failed:
- *   The old guard swapped `internals.ReactCurrentDispatcher` (the export-object property),
- *   but useState uses a LOCAL CLOSURE VARIABLE inside the chunk — the swap had zero effect.
- *
- * This fix:
- *   react-dom exports __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED which contains
- *   its own bundled ReactCurrentDispatcher (the one renderWithHooks writes to).
- *   We use Object.defineProperty to proxy PMKBOVCG's ReactCurrentDispatcher.current
- *   getter/setter to always read/write through LPF6KSF2's dispatcher.
- *   Now both chunks share one dispatcher value regardless of esbuild chunk splitting.
+ * MUST be the very first import in main.tsx so it runs before any hooks.
  */
 
 import React from "react";
-// Import react-dom (not /client) to access its __SECRET_INTERNALS which contains
-// the ReactCurrentDispatcher that renderWithHooks actually writes to.
-import * as ReactDOMNamespace from "react-dom";
 
-type SharedInternals = {
+type ReactInternals = {
   ReactCurrentDispatcher: { current: unknown };
   ReactCurrentBatchConfig: { transition: unknown };
   ReactCurrentOwner: { current: unknown };
 };
 
-const reactInternals = (React as any)
-  .__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED as SharedInternals;
+declare global {
+  interface Window {
+    __REACT_SINGLETON__?: ReactInternals;
+  }
+}
 
-const rdInternals = (ReactDOMNamespace as any)
-  .__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED as SharedInternals | undefined;
+const internals = (React as any)
+  .__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED as ReactInternals;
 
 if (typeof window !== "undefined") {
-  if (rdInternals) {
-    const reactDispatcher = reactInternals?.ReactCurrentDispatcher;
-    const rdDispatcher    = rdInternals?.ReactCurrentDispatcher;
+  if (!window.__REACT_SINGLETON__) {
+    // First (and ideally only) React chunk — register as canonical.
+    window.__REACT_SINGLETON__ = internals;
+  } else {
+    // A second React chunk loaded. Proxy its dispatcher .current to the
+    // canonical one so reads/writes always go through the same object.
+    const canonical = window.__REACT_SINGLETON__;
+    const localDisp  = internals.ReactCurrentDispatcher;
+    const canonDisp  = canonical.ReactCurrentDispatcher;
 
-    if (reactDispatcher && rdDispatcher && reactDispatcher !== rdDispatcher) {
-      // Two separate ReactCurrentDispatcher objects detected.
-      // Proxy react's .current so it always mirrors react-dom's .current.
-      // renderWithHooks writes to rdDispatcher.current → useState reads it ✓
-      Object.defineProperty(reactDispatcher, "current", {
-        get()  { return rdDispatcher.current; },
-        set(v) { rdDispatcher.current = v;    },
+    if (localDisp && canonDisp && localDisp !== canonDisp) {
+      Object.defineProperty(localDisp, "current", {
+        get()  { return canonDisp.current; },
+        set(v) { canonDisp.current = v;    },
         configurable: true,
         enumerable:   true,
       });
+    }
 
-      // Also bridge ReactCurrentOwner (used by JSX createElement)
-      const reactOwner = reactInternals?.ReactCurrentOwner;
-      const rdOwner    = rdInternals?.ReactCurrentOwner;
-      if (reactOwner && rdOwner && reactOwner !== rdOwner) {
-        Object.defineProperty(reactOwner, "current", {
-          get()  { return rdOwner.current; },
-          set(v) { rdOwner.current = v;    },
-          configurable: true,
-          enumerable:   true,
-        });
-      }
+    const localBatch = internals.ReactCurrentBatchConfig;
+    const canonBatch = canonical.ReactCurrentBatchConfig;
+    if (localBatch && canonBatch && localBatch !== canonBatch) {
+      Object.defineProperty(localBatch, "transition", {
+        get()  { return canonBatch.transition; },
+        set(v) { canonBatch.transition = v;    },
+        configurable: true,
+        enumerable:   true,
+      });
+    }
 
-      // Bridge ReactCurrentBatchConfig.transition (used by useTransition)
-      const reactBatch = reactInternals?.ReactCurrentBatchConfig;
-      const rdBatch    = rdInternals?.ReactCurrentBatchConfig;
-      if (reactBatch && rdBatch && reactBatch !== rdBatch) {
-        Object.defineProperty(reactBatch, "transition", {
-          get()  { return rdBatch.transition; },
-          set(v) { rdBatch.transition = v;    },
-          configurable: true,
-          enumerable:   true,
-        });
-      }
+    const localOwner = internals.ReactCurrentOwner;
+    const canonOwner = canonical.ReactCurrentOwner;
+    if (localOwner && canonOwner && localOwner !== canonOwner) {
+      Object.defineProperty(localOwner, "current", {
+        get()  { return canonOwner.current; },
+        set(v) { canonOwner.current = v;    },
+        configurable: true,
+        enumerable:   true,
+      });
     }
   }
 }
