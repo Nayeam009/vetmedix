@@ -20,6 +20,9 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   optimizeDeps: {
+    // force: true busts the stale pre-bundle cache so the entries array
+    // is actually respected and react + react-dom land in ONE esbuild chunk.
+    force: true,
     // entries forces esbuild to process react + react-dom in ONE pass,
     // guaranteeing a single ReactCurrentDispatcher across all chunks.
     entries: ["src/lib/reactProxy.ts", "src/main.tsx"],
