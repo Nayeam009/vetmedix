@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCMSArticleBySlug, useCMSArticles } from '@/hooks/useCMS';
 import { ArticleCard } from '@/components/blog/ArticleCard';
 import { format } from 'date-fns';
+import DOMPurify from 'dompurify';
 
 const BlogArticlePage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -93,7 +94,7 @@ const BlogArticlePage = () => {
 
         {/* Content */}
         <article className="prose prose-sm sm:prose dark:prose-invert max-w-none mb-8">
-          <div dangerouslySetInnerHTML={{ __html: article.content || '' }} />
+          <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(article.content || '') }} />
         </article>
 
         {/* Tags */}

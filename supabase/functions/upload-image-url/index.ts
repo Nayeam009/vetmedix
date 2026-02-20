@@ -11,6 +11,49 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // --- Authentication & Authorization ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    // Verify the user's JWT
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = claimsData.claims.sub as string;
+
+    // Check admin role
+    const { data: userRoles } = await userClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+
+    const isAdmin = userRoles?.some((r: { role: string }) => r.role === "admin") ?? false;
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ error: "Admin access required" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // --- Process request (admin verified) ---
     const { urls } = await req.json();
 
     if (!Array.isArray(urls) || urls.length === 0) {
@@ -20,7 +63,6 @@ serve(async (req) => {
       );
     }
 
-    // Limit batch size
     if (urls.length > 50) {
       return new Response(
         JSON.stringify({ error: "Maximum 50 URLs per request" }),
@@ -28,7 +70,7 @@ serve(async (req) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    // Use service role for storage uploads
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
@@ -41,7 +83,6 @@ serve(async (req) => {
       }
 
       try {
-        // Fetch the external image
         const response = await fetch(url, {
           headers: { "User-Agent": "VetMedix-Import/1.0" },
           signal: AbortSignal.timeout(15000),
@@ -64,7 +105,6 @@ serve(async (req) => {
           continue;
         }
 
-        // Determine extension
         const extMap: Record<string, string> = {
           "image/jpeg": "jpg",
           "image/png": "png",
@@ -102,7 +142,7 @@ serve(async (req) => {
   } catch (e) {
     console.error("upload-image-url error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -17,6 +17,7 @@ import { useCMSArticle, useCreateArticle, useUpdateArticle, useCMSCategories } f
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import DOMPurify from 'dompurify';
 
 const schema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
@@ -222,7 +223,7 @@ const AdminCMSEditor = () => {
                         {previewMode ? (
                           <Card className="min-h-[300px]">
                             <CardContent className="p-4 prose prose-sm dark:prose-invert max-w-none">
-                              <div dangerouslySetInnerHTML={{ __html: field.value ? markdownToHtml(field.value) : '<p class="text-muted-foreground">Nothing to preview</p>' }} />
+                              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(field.value ? markdownToHtml(field.value) : '<p class="text-muted-foreground">Nothing to preview</p>') }} />
                             </CardContent>
                           </Card>
                         ) : (
