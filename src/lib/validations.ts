@@ -193,6 +193,8 @@ export const doctorFormSchema = z.object({
       'Fee must be between 0 and 100,000'
     ),
   bio: z.string().max(2000, 'Bio must be less than 2000 characters').optional().or(z.literal('')),
+  qualifications: z.array(z.string()).optional(),
+  avatar_url: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
 });
 
 export type DoctorFormSchemaData = z.infer<typeof doctorFormSchema>;

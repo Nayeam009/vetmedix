@@ -1,6 +1,3 @@
-// MUST be the very first import — patches ReactCurrentDispatcher before any
-// component code runs, preventing the "duplicate React instance" white screen crash.
-import "./lib/reactSingleton";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
