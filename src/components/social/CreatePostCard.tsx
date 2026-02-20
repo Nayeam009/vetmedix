@@ -53,6 +53,14 @@ export const CreatePostCard = forwardRef<HTMLDivElement, CreatePostCardProps>(({
   const [compressionProgress, setCompressionProgress] = useState(0);
   const [compressionStats, setCompressionStats] = useState<CompressedMedia[]>([]);
   
+  // Revoke all object URLs on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      mediaPreviews.forEach(url => URL.revokeObjectURL(url));
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Track selected pet for this post (defaults to activePet or defaultPetId)
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
 
@@ -192,6 +200,8 @@ export const CreatePostCard = forwardRef<HTMLDivElement, CreatePostCardProps>(({
       const newFiles = [...mediaFiles, ...compressedFiles].slice(0, 4);
       setMediaFiles(newFiles);
       setIsExpanded(true);
+      // Revoke old previews before creating new ones
+      mediaPreviews.forEach(url => URL.revokeObjectURL(url));
       const previews = newFiles.map(file => URL.createObjectURL(file));
       setMediaPreviews(previews);
     } else {
@@ -199,6 +209,8 @@ export const CreatePostCard = forwardRef<HTMLDivElement, CreatePostCardProps>(({
       const newFiles = validatedFiles.slice(0, 1);
       setMediaFiles(newFiles);
       setIsExpanded(true);
+      // Revoke old previews before creating new ones
+      mediaPreviews.forEach(url => URL.revokeObjectURL(url));
       const previews = newFiles.map(file => URL.createObjectURL(file));
       setMediaPreviews(previews);
       
@@ -208,6 +220,8 @@ export const CreatePostCard = forwardRef<HTMLDivElement, CreatePostCardProps>(({
   };
 
   const removeMedia = (index: number) => {
+    // Revoke the blob URL before removing to prevent memory leak
+    URL.revokeObjectURL(mediaPreviews[index]);
     const newFiles = mediaFiles.filter((_, i) => i !== index);
     const newPreviews = mediaPreviews.filter((_, i) => i !== index);
     setMediaFiles(newFiles);

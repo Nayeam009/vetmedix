@@ -309,9 +309,12 @@ const AdminSettingsContent = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (type === 'logo') {
+      // Revoke previous blob URL if it was a local preview
+      if (logoPreview && logoPreview.startsWith('blob:')) URL.revokeObjectURL(logoPreview);
       setLogoFile(file);
       setLogoPreview(URL.createObjectURL(file));
     } else {
+      if (faviconPreview && faviconPreview.startsWith('blob:')) URL.revokeObjectURL(faviconPreview);
       setFaviconFile(file);
       setFaviconPreview(URL.createObjectURL(file));
     }

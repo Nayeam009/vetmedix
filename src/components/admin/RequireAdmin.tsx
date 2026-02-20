@@ -4,6 +4,7 @@ import { Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 interface RequireAdminProps {
   children: React.ReactNode;
@@ -43,5 +44,5 @@ export const RequireAdmin = ({ children }: RequireAdminProps) => {
     );
   }
 
-  return <>{children}</>;
+  return <ErrorBoundary>{children}</ErrorBoundary>;
 };
