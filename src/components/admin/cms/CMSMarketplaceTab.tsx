@@ -70,13 +70,9 @@ const CMSMarketplaceTab = () => {
   const handleStockUpdate = async (productId: string, newStock: number) => {
     if (newStock < 0) return;
     try {
-      const updateData: Record<string, unknown> = { stock: newStock };
+      const updateData: { stock: number; badge?: string | null } = { stock: newStock };
       if (newStock === 0) updateData.badge = 'Stock Out';
-      else {
-        const product = products?.find(p => p.id === productId);
-        if ((product as any)?.badge?.toLowerCase() === 'stock out') updateData.badge = null;
-      }
-      const { error } = await supabase.from('products').update(updateData as any).eq('id', productId);
+      const { error } = await supabase.from('products').update(updateData).eq('id', productId);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['cms-products-quick'] });
       queryClient.invalidateQueries({ queryKey: ['cms-marketplace-stats'] });
@@ -89,7 +85,7 @@ const CMSMarketplaceTab = () => {
 
   const handleToggleActive = async (productId: string, isActive: boolean) => {
     try {
-      const { error } = await supabase.from('products').update({ is_active: isActive } as any).eq('id', productId);
+      const { error } = await supabase.from('products').update({ is_active: isActive }).eq('id', productId);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['cms-products-quick'] });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });

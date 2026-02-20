@@ -19,7 +19,8 @@ export const useAdminRealtimeDashboard = (isAdmin: boolean) => {
     const ordersChannel = supabase
       .channel('admin-rt-orders')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
-        if ((payload.new as any).status === 'pending') {
+        const newOrder = payload.new as Record<string, unknown>;
+        if (newOrder.status === 'pending') {
           queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
           queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] });
           queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
@@ -52,7 +53,8 @@ export const useAdminRealtimeDashboard = (isAdmin: boolean) => {
         queryClient.invalidateQueries({ queryKey: ['admin-clinic-stats'] });
         queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] });
         queryClient.invalidateQueries({ queryKey: ['cms-clinics-status'] });
-        if (payload.eventType === 'UPDATE' && (payload.new as any).verification_status === 'pending') {
+        const newClinic = payload.new as Record<string, unknown>;
+        if (payload.eventType === 'UPDATE' && newClinic.verification_status === 'pending') {
           toast.info('🏥 New clinic verification request!', {
             action: { label: 'Review', onClick: () => navigate('/admin/clinics') },
           });
@@ -63,7 +65,8 @@ export const useAdminRealtimeDashboard = (isAdmin: boolean) => {
         queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] });
         queryClient.invalidateQueries({ queryKey: ['cms-clinical-stats'] });
         queryClient.invalidateQueries({ queryKey: ['cms-pending-doctors'] });
-        if (payload.eventType === 'UPDATE' && (payload.new as any).verification_status === 'pending') {
+        const newDoctor = payload.new as Record<string, unknown>;
+        if (payload.eventType === 'UPDATE' && newDoctor.verification_status === 'pending') {
           toast.info('👨‍⚕️ New doctor verification request!', {
             action: { label: 'Review', onClick: () => navigate('/admin/doctors') },
           });

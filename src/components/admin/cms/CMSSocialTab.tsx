@@ -87,13 +87,13 @@ const CMSSocialTab = () => {
             recentPosts.map((post) => (
               <div key={post.id} className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors">
                 <Avatar className="h-9 w-9 shrink-0">
-                  <AvatarImage src={(post.pet as any)?.avatar_url || ''} />
-                  <AvatarFallback className="text-xs">{(post.pet as any)?.name?.[0] || '?'}</AvatarFallback>
+                  <AvatarImage src={post.pet?.avatar_url || ''} />
+                  <AvatarFallback className="text-xs">{post.pet?.name?.[0] || '?'}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium">{(post.pet as any)?.name || 'Unknown'}</span>
-                    <Badge variant="outline" className="text-[10px]">{(post.pet as any)?.species || 'Pet'}</Badge>
+                    <span className="text-sm font-medium">{post.pet?.name || 'Unknown'}</span>
+                    <Badge variant="outline" className="text-[10px]">{post.pet?.species || 'Pet'}</Badge>
                     <span className="text-[10px] text-muted-foreground">{format(new Date(post.created_at), 'MMM d, h:mm a')}</span>
                   </div>
                   <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{post.content || 'Media post'}</p>

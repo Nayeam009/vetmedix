@@ -152,7 +152,7 @@ const ClinicServices = () => {
         price: editingService.price?.toString() || '',
         duration_minutes: editingService.duration_minutes?.toString() || '',
         is_active: editingService.is_active,
-        category: '',
+        
       } : undefined}
     />
   );

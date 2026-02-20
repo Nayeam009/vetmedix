@@ -14,12 +14,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { serviceFormSchema, type ServiceFormData } from '@/lib/validations';
 import { toast } from 'sonner';
 
-const SERVICE_CATEGORIES = [
-  'General Checkup', 'Vaccination', 'Surgery', 'Dental Care', 'Grooming',
-  'Emergency Care', 'X-Ray & Imaging', 'Laboratory Tests', 'Pet Boarding',
-  'Deworming', 'Microchipping', 'Spay/Neuter', 'Consultation', 'Follow-up',
-];
-
 const DURATION_PRESETS = [
   { value: '15', label: '15 min' },
   { value: '30', label: '30 min' },
@@ -45,14 +39,13 @@ interface AddServiceWizardProps {
     price: string;
     duration_minutes: string;
     is_active: boolean;
-    category: string;
+    
   };
   isEditing?: boolean;
 }
 
 const AddServiceWizard = ({ onSubmit, isPending, onCancel, initialData, isEditing = false }: AddServiceWizardProps) => {
   const [step, setStep] = useState(0);
-  const [selectedCategory, setSelectedCategory] = useState(initialData?.category || '');
 
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceFormSchema),
@@ -91,7 +84,6 @@ const AddServiceWizard = ({ onSubmit, isPending, onCancel, initialData, isEditin
       });
       form.reset();
       setStep(0);
-      setSelectedCategory('');
     } catch (error: any) {
       toast.error(error?.message || 'Failed to save service. Please try again.');
     }
@@ -167,27 +159,6 @@ const AddServiceWizard = ({ onSubmit, isPending, onCancel, initialData, isEditin
                 )}
               />
 
-              <div className="space-y-2 pt-2">
-                <Label className="text-base">Category</Label>
-                <p className="text-sm text-muted-foreground mb-3">Select a category that best describes this service</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[200px] overflow-y-auto pr-1">
-                  {SERVICE_CATEGORIES.map((category) => (
-                    <button
-                      key={category}
-                      type="button"
-                      onClick={() => setSelectedCategory(selectedCategory === category ? '' : category)}
-                      className={cn(
-                        "px-3 py-3 rounded-lg border text-sm text-left transition-all active:scale-95 min-h-[44px]",
-                        selectedCategory === category
-                          ? "border-primary bg-primary/10 text-primary font-medium"
-                          : "border-border hover:border-primary/50 hover:bg-muted"
-                      )}
-                    >
-                      {category}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           )}
 
@@ -306,9 +277,6 @@ const AddServiceWizard = ({ onSubmit, isPending, onCancel, initialData, isEditin
                 <h4 className="font-medium text-sm text-muted-foreground">Summary</h4>
                 <div className="space-y-1">
                   <p className="font-semibold text-lg">{watchName || 'Service Name'}</p>
-                  {selectedCategory && (
-                    <Badge variant="secondary" className="text-xs">{selectedCategory}</Badge>
-                  )}
                   <div className="flex items-center gap-4 mt-2">
                     {watchPrice && (
                       <p className="text-primary font-bold">৳{parseFloat(watchPrice).toLocaleString()}</p>
