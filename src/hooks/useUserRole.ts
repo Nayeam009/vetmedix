@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-export type UserRoleType = 'user' | 'doctor' | 'clinic_owner' | 'admin' | 'moderator';
+export type UserRoleType = 'user' | 'doctor' | 'clinic_owner' | 'admin';
 
 interface UserRoleData {
   roles: UserRoleType[];
@@ -14,12 +14,11 @@ interface UserRoleData {
   isDoctor: boolean;
   isClinicOwner: boolean;
   isAdmin: boolean;
-  isModerator: boolean;
   refetch: () => void;
 }
 
 // Priority order for determining primary role
-const ROLE_PRIORITY: UserRoleType[] = ['admin', 'clinic_owner', 'doctor', 'moderator', 'user'];
+const ROLE_PRIORITY: UserRoleType[] = ['admin', 'clinic_owner', 'doctor', 'user'];
 
 export const useUserRole = (): UserRoleData => {
   const { user, loading: authLoading } = useAuth();
@@ -61,7 +60,6 @@ export const useUserRole = (): UserRoleData => {
     isDoctor: currentRoles.includes('doctor'),
     isClinicOwner: currentRoles.includes('clinic_owner'),
     isAdmin: currentRoles.includes('admin'),
-    isModerator: currentRoles.includes('moderator') || currentRoles.includes('admin'),
     refetch,
   };
 };

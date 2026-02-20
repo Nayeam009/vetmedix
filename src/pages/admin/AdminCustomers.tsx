@@ -6,7 +6,6 @@ import {
   Loader2,
   AlertCircle,
   Users,
-  Shield,
   ShieldCheck,
   User,
   Download,
@@ -55,7 +54,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { downloadCSV } from '@/lib/csvParser';
 import { usePagination } from '@/hooks/usePagination';
 
-type RoleFilter = 'all' | 'user' | 'admin' | 'moderator' | 'doctor' | 'clinic_owner';
+type RoleFilter = 'all' | 'user' | 'admin' | 'doctor' | 'clinic_owner';
 
 const AdminCustomers = () => {
   useDocumentTitle('User Management - Admin');
@@ -74,12 +73,11 @@ const AdminCustomers = () => {
 
   // Stats computed from data
   const stats = useMemo(() => {
-    if (!customers) return { total: 0, admins: 0, moderators: 0, doctors: 0, clinicOwners: 0, users: 0 };
+    if (!customers) return { total: 0, admins: 0, doctors: 0, clinicOwners: 0, users: 0 };
     const admins = customers.filter(c => c.user_roles?.some((r: any) => r.role === 'admin')).length;
-    const moderators = customers.filter(c => c.user_roles?.some((r: any) => r.role === 'moderator')).length;
     const doctors = customers.filter(c => c.user_roles?.some((r: any) => r.role === 'doctor')).length;
     const clinicOwners = customers.filter(c => c.user_roles?.some((r: any) => r.role === 'clinic_owner')).length;
-    return { total: customers.length, admins, moderators, doctors, clinicOwners, users: customers.length - admins - moderators - doctors - clinicOwners };
+    return { total: customers.length, admins, doctors, clinicOwners, users: customers.length - admins - doctors - clinicOwners };
   }, [customers]);
 
   // Filter customers
@@ -121,7 +119,7 @@ const AdminCustomers = () => {
     setRoleFilter(prev => prev === role ? 'all' : role);
   }, []);
 
-  const updateUserRole = useCallback(async (userId: string, role: 'admin' | 'moderator' | 'user' | 'doctor' | 'clinic_owner') => {
+  const updateUserRole = useCallback(async (userId: string, role: 'admin' | 'user' | 'doctor' | 'clinic_owner') => {
     try {
       const { data: existingRole } = await supabase
         .from('user_roles')
@@ -155,8 +153,6 @@ const AdminCustomers = () => {
     switch (role) {
       case 'admin':
         return <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"><ShieldCheck className="h-3 w-3 mr-1" />Admin</Badge>;
-      case 'moderator':
-        return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"><Shield className="h-3 w-3 mr-1" />Moderator</Badge>;
       case 'doctor':
         return <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300"><Stethoscope className="h-3 w-3 mr-1" />Doctor</Badge>;
       case 'clinic_owner':
@@ -192,7 +188,6 @@ const AdminCustomers = () => {
         {[
           { key: 'all' as RoleFilter, label: 'Total Users', value: stats.total, icon: Users, iconColor: 'text-primary', iconBg: 'bg-primary/10', bgClass: 'bg-gradient-to-br from-primary/5 to-accent/5 border-primary/10 dark:from-primary/10 dark:to-accent/10 dark:border-primary/20' },
           { key: 'admin' as RoleFilter, label: 'Admins', value: stats.admins, icon: ShieldCheck, iconColor: 'text-purple-600 dark:text-purple-400', iconBg: 'bg-purple-500/10', bgClass: 'bg-gradient-to-br from-purple-50 to-violet-50/50 border-purple-100 dark:from-purple-950/30 dark:to-violet-950/20 dark:border-purple-900/50' },
-          { key: 'moderator' as RoleFilter, label: 'Moderators', value: stats.moderators, icon: Shield, iconColor: 'text-blue-600 dark:text-blue-400', iconBg: 'bg-blue-500/10', bgClass: 'bg-gradient-to-br from-blue-50 to-cyan-50/50 border-blue-100 dark:from-blue-950/30 dark:to-cyan-950/20 dark:border-blue-900/50' },
           { key: 'doctor' as RoleFilter, label: 'Doctors', value: stats.doctors, icon: Stethoscope, iconColor: 'text-teal-600 dark:text-teal-400', iconBg: 'bg-teal-500/10', bgClass: 'bg-gradient-to-br from-teal-50 to-cyan-50/50 border-teal-100 dark:from-teal-950/30 dark:to-cyan-950/20 dark:border-teal-900/50' },
           { key: 'clinic_owner' as RoleFilter, label: 'Clinic Owners', value: stats.clinicOwners, icon: Building2, iconColor: 'text-amber-600 dark:text-amber-400', iconBg: 'bg-amber-500/10', bgClass: 'bg-gradient-to-br from-amber-50 to-orange-50/50 border-amber-100 dark:from-amber-950/30 dark:to-orange-950/20 dark:border-amber-900/50' },
         ].map(({ key, label, value, icon: Icon, iconColor, iconBg, bgClass }) => {
@@ -246,7 +241,6 @@ const AdminCustomers = () => {
               <SelectItem value="all">All Roles</SelectItem>
               <SelectItem value="user">User</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="moderator">Moderator</SelectItem>
               <SelectItem value="doctor">Doctor</SelectItem>
               <SelectItem value="clinic_owner">Clinic Owner</SelectItem>
             </SelectContent>
@@ -311,9 +305,6 @@ const AdminCustomers = () => {
                       <DropdownMenuItem onClick={() => updateUserRole(customer.user_id, 'user')}>
                         <User className="h-4 w-4 mr-2" />Set as User
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => updateUserRole(customer.user_id, 'moderator')}>
-                        <Shield className="h-4 w-4 mr-2" />Set as Moderator
-                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => updateUserRole(customer.user_id, 'doctor')}>
                         <Stethoscope className="h-4 w-4 mr-2" />Set as Doctor
                       </DropdownMenuItem>
@@ -376,9 +367,6 @@ const AdminCustomers = () => {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => updateUserRole(customer.user_id, 'user')}>
                               <User className="h-4 w-4 mr-2" />Set as User
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateUserRole(customer.user_id, 'moderator')}>
-                              <Shield className="h-4 w-4 mr-2" />Set as Moderator
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => updateUserRole(customer.user_id, 'doctor')}>
                               <Stethoscope className="h-4 w-4 mr-2" />Set as Doctor
