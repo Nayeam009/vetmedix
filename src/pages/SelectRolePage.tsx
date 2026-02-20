@@ -54,7 +54,7 @@ const SelectRolePage = () => {
   const [clinicPhone, setClinicPhone] = useState('');
 
   // Priority order for role-based redirects
-  const ROLE_PRIORITY = ['admin', 'clinic_owner', 'doctor', 'moderator', 'user'];
+  const ROLE_PRIORITY = ['admin', 'clinic_owner', 'doctor', 'user'];
 
   const redirectBasedOnRoles = (roles: string[], isNewClinicOwner = false) => {
     const primaryRole = ROLE_PRIORITY.find(r => roles.includes(r)) || 'user';

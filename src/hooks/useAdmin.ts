@@ -3,16 +3,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 
-export type AppRole = 'admin' | 'moderator' | 'user' | 'doctor' | 'clinic_owner';
+export type AppRole = 'admin' | 'user' | 'doctor' | 'clinic_owner';
 
 export const useAdmin = () => {
-  const { roles, isLoading: roleLoading, isAdmin, isModerator, isClinicOwner, isDoctor } = useUserRole();
+  const { roles, isLoading: roleLoading, isAdmin, isClinicOwner, isDoctor } = useUserRole();
 
   return {
     userRoles: roles.map(r => ({ role: r })),
     roleLoading,
     isAdmin,
-    isModerator,
     isClinicOwner,
     isDoctor,
     roles,

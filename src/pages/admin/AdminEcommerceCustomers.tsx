@@ -96,11 +96,6 @@ const RoleBadge = ({ role }: { role: string }) => {
       className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
       icon: <Building2 className="h-2.5 w-2.5" />,
     },
-    moderator: {
-      label: 'Moderator',
-      className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800',
-      icon: <User className="h-2.5 w-2.5" />,
-    },
     user: {
       label: 'Pet Parent',
       className: 'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-300 border-orange-200 dark:border-orange-800',

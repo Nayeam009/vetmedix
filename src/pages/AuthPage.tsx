@@ -39,7 +39,7 @@ const AuthPage = () => {
   const navigate = useNavigate();
 
   // Priority order for role-based redirects
-  const ROLE_PRIORITY = ['admin', 'clinic_owner', 'doctor', 'moderator', 'user'];
+  const ROLE_PRIORITY = ['admin', 'clinic_owner', 'doctor', 'user'];
 
   const redirectBasedOnRoles = (roles: string[]) => {
     const primaryRole = ROLE_PRIORITY.find(r => roles.includes(r)) || 'user';
