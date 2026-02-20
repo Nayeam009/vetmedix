@@ -2,165 +2,143 @@
 
 # Comprehensive Codebase Regression Audit Report
 
----
+## Executive Summary
 
-## CRITICAL (Priority 0): White Screen Crash Still Active
-
-The runtime errors show `Cannot read properties of null (reading 'useEffect')` originating from `QueryClientProvider`. This is the **same duplicate React instance crash** that has persisted through multiple fix attempts. The `reactSingleton.ts` file was deleted, and `vite.config.ts` was reverted, but the Vite dependency cache (`.vite/deps/`) still holds stale chunks with mismatched version hashes (`v=4112562a` vs `v=033f75de`).
-
-**Root cause**: The `manualChunks` configuration in `vite.config.ts` splits `react` and `react-dom` into a `vendor-react` chunk, but `@tanstack/react-query` is in a separate `vendor-query` chunk. When Vite pre-bundles these independently, they can resolve to different internal React dispatcher instances.
-
-**Fix (Step 1):**
-- Add `resolve.dedupe: ['react', 'react-dom']` to `vite.config.ts`
-- Move `@tanstack/react-query` into the `vendor-react` manual chunk so React and its consumers share a single bundle boundary
-- Add `optimizeDeps.include: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', '@tanstack/react-query']` to force co-bundling during dev
+The codebase is architecturally sound with good patterns already in place (lazy loading, React Query caching, centralized realtime subscriptions, ErrorBoundary, and Zod validation on key forms). The previous audit (documented in `.lovable/plan.md`) addressed many critical issues. This follow-up audit identifies remaining vulnerabilities across performance, memory, type safety, and edge cases.
 
 ---
 
 ## HIGH RISK Findings
 
-### H1: React Hook Rules Violation in AdminSettings.tsx
+### H1: Memory Leak -- Object URLs Never Revoked in Multiple Components
 
-`createSaveMutation()` (line 240) calls `useMutation()` inside a regular function, not at the top level of the component. React hooks must only be called at the top level. This currently works by accident because the function is called unconditionally during render, but any conditional wrapping or refactor will cause a crash.
+**Meaning:** `URL.createObjectURL()` allocates browser memory that persists until explicitly released with `URL.revokeObjectURL()`. Several components create object URLs but never clean them up, causing progressive memory leaks during a session.
 
-**Fix**: Replace the factory pattern with individual `useMutation` calls at the top level, or extract each into a custom hook.
+**Affected Files:**
+- `CreatePostCard.tsx` (lines 195, 202) -- creates previews for up to 4 media files without revoking on unmount or when files change
+- `AdminSettings.tsx` (lines 313, 316) -- logo/favicon previews never revoked
+- `EditPetPage.tsx` (lines 122, 135) -- avatar/cover previews never revoked
+- `CreatePetPage.tsx` (line 58) -- avatar preview never revoked
+- `ProfileHeader.tsx` (lines 81, 140) -- avatar/cover previews never revoked
 
----
-
-### H2: AddServiceWizard -- No Validation, No Error Handling
-
-Unlike the refactored `AddDoctorWizard`, the `AddServiceWizard` component:
-- Uses raw `useState` instead of `react-hook-form` + Zod
-- Has **no `try/catch`** around the `handleSubmit` call (line 112-119) -- if the parent's `onSubmit` rejects, the error is unhandled and the UI freezes with a spinner
-- Has **no input validation** beyond a minimum name length check
-- Missing XSS prevention on name/description fields
-- No character limits on description field
-
-**Fix**: Refactor to use `react-hook-form` + `zodResolver`, wrap submit in `try/catch` with `toast.error`, add Zod schema with character limits and XSS regex.
+**Solution:** Add `useEffect` cleanup functions that call `URL.revokeObjectURL()` on the previous preview URL whenever a new file is selected, and on component unmount. For `CreatePostCard`, revoke all previews in the `removeMedia` function and on unmount.
 
 ---
 
-### H3: ClinicVerificationPage -- No Schema Validation
+### H2: Widespread `as any` Type Casts -- 300+ Instances Across 18 Files
 
-- Uses raw `useState` with manual field-by-field validation (lines 168-192)
-- No character limits on any field (owner name, NID, address, description)
-- No input sanitization or XSS prevention
-- NID number accepts any string with no format validation
-- The `uploading` state is set inside the mutation but the submit button only checks `submitVerification.isPending`, not `uploading` -- a user can double-click before upload completes
+**Meaning:** Using `as any` bypasses TypeScript's type checking, hiding potential runtime errors. The most dangerous patterns are in data-fetching hooks and admin components where database response shapes are assumed rather than validated.
 
-**Fix**: Add Zod schema validation, disable submit during `uploading || isPending`, add character limits.
+**Worst Offenders:**
+- `ClinicDoctors.tsx` -- 6+ casts on `cd.doctor as any` for accessing nested join fields (qualifications, consultation_fee)
+- `CMSSocialTab.tsx` -- casts on `post.pet as any` for avatar/name access
+- `CMSMarketplaceTab.tsx` -- casts on product badge and update payloads
+- `useAdminRealtimeDashboard.ts` -- casts on realtime payload.new
+- `ProfilePage.tsx` -- casts appointment data
 
----
-
-### H4: DoctorVerificationPage -- No Schema Validation
-
-- Same pattern as ClinicVerificationPage: raw `useState`, manual checks
-- NID number and license number accept arbitrary strings
-- No character limits on bio field
-- Uses `(doctorProfile as any)` casts in 8+ places, indicating type mismatches with the database schema type
-- `window.location.reload()` on line 175 is a brute-force approach that loses all client state
-
-**Fix**: Add Zod schema, replace `any` casts with proper typing, replace `reload()` with query invalidation.
+**Solution:** Define proper TypeScript interfaces for joined query results (e.g., `ClinicDoctorWithDetails`, `PostWithPet`). For realtime payloads, create typed helper functions that validate the shape before use.
 
 ---
 
-### H5: Double Submission Vulnerability on Multiple Forms
+### H3: Realtime Channel Over-subscription in Admin Panel
 
-Forms that lack dual-state protection (both `disabled` on button AND mutation `isPending` check):
+**Meaning:** `useAdminRealtimeDashboard` subscribes to 13 tables on a single channel. Each admin page also has `AdminLayout` which fetches `admin-pending-counts` every 30 seconds via polling. When combined, every single database change across any of 13 tables triggers `invalidateAll()` which invalidates 3 query keys (`admin-stats`, `admin-pending-counts`, `admin-analytics`), potentially causing cascade re-fetches on unrelated pages.
 
-| Form | Has Loading State | Prevents Double Submit |
-|---|---|---|
-| AddServiceWizard | Yes (isPending prop) | Partial -- no try/catch means spinner sticks on error |
-| ClinicVerificationPage | Partial (isPending but not uploading) | No -- can click during upload |
-| DoctorVerificationPage | Yes (submitting state) | Yes |
-| AdminSettings (each tab) | Yes (mutation.isPending) | Yes |
-| AcceptOrderDialog | Yes (isSubmitting) | Yes |
+**Solution:**
+- Split the monolithic channel into logical groups (orders, clinical, social, content) so invalidations are scoped
+- Remove the 30-second polling in `AdminLayout` since realtime already handles pending count updates
+- Use more targeted invalidations -- e.g., a product change should not invalidate `admin-pending-counts`
 
 ---
 
 ## MEDIUM RISK Findings
 
-### M1: Missing `React.memo` on High-Frequency Components
+### M1: CartProvider Context Value Recreated Every Render
 
-Search confirms **zero** usage of `React.memo()` export pattern in the codebase. Only `PostCard` uses `memo()` internally. Components that would benefit from memoization:
+**Meaning:** The `CartProvider` passes an object literal `{ items, addItem, removeItem, ... }` as the context value. Since `addItem`, `removeItem`, `updateQuantity`, and `clearCart` are regular functions (not wrapped in `useCallback`), a new reference is created on every render, causing all cart consumers to re-render even when nothing changed.
 
-- `DoctorCard` -- rendered in lists, receives stable props
-- `ClinicCard` -- rendered in lists
-- `ProductCard` -- rendered in shop grid, re-renders on parent filter changes
-- `AdminStatCard` / `StatCard` -- re-render on any dashboard state change
-- `OrderCard` / `AppointmentCard` in profile page
-
-**Fix**: Wrap list-item components in `memo()`.
+**Solution:** Wrap `addItem`, `removeItem`, `updateQuantity`, and `clearCart` in `useCallback`. Then wrap the entire context value object in `useMemo` depending on `items`, `totalItems`, `totalAmount`, and the memoized callbacks.
 
 ---
 
-### M2: Missing Debounce on Search/Filter Inputs
+### M2: DoctorCard and ClinicCard Missing `memo` (Contradicts Previous Audit)
 
-Only `GlobalSearch` and `CMSArticlesTab` use `useDebounce`. Other pages with search/filter that fire queries on every keystroke:
+**Meaning:** The previous audit claimed these were wrapped in `React.memo`, but a search for `React.memo` returns zero results. A search for the bare `memo` import confirms `ProductCard`, `Navbar`, `FeaturedProducts`, `ExplorePetCard`, `AppointmentCard`, and various admin components use `memo()`, but `DoctorCard.tsx` and `ClinicCard.tsx` are NOT in the list.
 
-- `AdminOrders` (order search)
-- `AdminProducts` (product search)
-- `AdminCustomers` (customer search)
-- `DoctorsPage` (doctor search)
-- `ShopPage` (product search)
-
-**Fix**: Apply `useDebounce(query, 300)` to all search inputs that trigger database queries.
+**Solution:** Wrap `DoctorCard` and `ClinicCard` exports in `memo()` since they are rendered in filterable lists on `/doctors` and `/clinics` pages.
 
 ---
 
-### M3: No `useMemo` on Expensive Computed Values
+### M3: WishlistContext Likely Has Same Callback Issue as CartContext
 
-The `AdminSettings` page rebuilds all 5 mutation objects on every render via `createSaveMutation`. The `AnalyticsExport` component rebuilds CSV data on every render. Dashboard stats components recompute derived values without memoization.
+**Meaning:** Based on the pattern observed in `CartContext`, `WishlistContext` likely has the same issue of unstable function references causing unnecessary re-renders in consumers.
 
-**Fix**: Wrap expensive computations in `useMemo` and callback-heavy handlers in `useCallback`.
+**Solution:** Audit `WishlistContext.tsx` and apply `useCallback` to all action functions, then `useMemo` on the provider value.
 
 ---
 
-### M4: Inconsistent Error Handling Patterns
+### M4: Missing Error Boundary Isolation for Admin Routes
 
-The codebase uses two different toast systems simultaneously:
-- `sonner` (via `import { toast } from 'sonner'`)
-- `shadcn/ui toast` (via `import { useToast } from '@/hooks/use-toast'`)
+**Meaning:** There is only ONE `ErrorBoundary` wrapping ALL routes. If an admin page crashes (e.g., due to a bad data shape from a realtime payload), the entire app shows the error UI, including for non-admin users on public routes.
 
-`AcceptOrderDialog` uses the shadcn `useToast` hook, while most other components use `sonner`. This creates visual inconsistency (different toast positions, styles, durations).
+**Solution:** Add a secondary `ErrorBoundary` inside the admin route group (`RequireAdmin` wrapper) so admin crashes are isolated from the rest of the app.
 
-**Fix**: Standardize on `sonner` across all components (it's already the dominant pattern).
+---
+
+### M5: `queryClient` Defined Outside Component -- Survives Hot Module Reload
+
+**Meaning:** `const queryClient = new QueryClient(...)` on line 86 of `App.tsx` is defined at module scope. During Vite HMR, the module re-executes, creating a new `QueryClient` instance and losing all cached data. This causes a flash of loading states after every code change in development.
+
+**Solution:** This is a dev-only concern and acceptable for production. No action needed unless dev experience is a priority, in which case wrap in a `useRef` or use a module-level singleton guard.
 
 ---
 
 ## LOW RISK Findings
 
-### L1: Dead/Redundant Code
+### L1: `selectedCategory` in AddServiceWizard Is Collected but Never Submitted
 
-- `src/components/ui/use-toast.ts` is a re-export wrapper that adds no value
-- The `category` field in `AddServiceWizard`'s `ServiceFormData` is collected but **never sent** to the database (it's excluded from the `handleSubmit` call on line 113)
+**Meaning:** The user selects a service category (line 55), it's displayed in the summary preview (line 310), but the `handleFormSubmit` function (line 83-98) never includes `selectedCategory` in the data passed to `onSubmit`. This is a dead feature -- the category selection UI exists but has no effect.
 
-### L2: Missing Loading Skeletons
-
-Several pages show only a spinner (`Loader2`) instead of content-aware skeleton loaders:
-- ClinicVerificationPage
-- DoctorVerificationPage
-- AdminSettings (shows nothing while settings load)
-
-### L3: Mobile Touch Target Compliance
-
-Most refactored components already use `min-h-[44px]`, but the following still have undersized targets:
-- `AddServiceWizard` category buttons (only `py-2.5`, approx 38px)
-- `AdminSettings` tab triggers on mobile (fixed with `min-h-[44px]` already)
-- Duration preset badges in AddServiceWizard (no min-height set)
+**Solution:** Either add `category` to the submit payload and database schema, or remove the category selection UI to avoid confusing users.
 
 ---
 
-## Recommended Fix Order (Atomic Steps)
+### L2: `CreatePostCard` Does Not Revoke Old Previews When New Files Are Selected
 
-1. **Fix white screen crash** -- Add `resolve.dedupe` and merge `@tanstack/react-query` into the React manual chunk in `vite.config.ts`
-2. **Fix AdminSettings hook violation** -- Replace `createSaveMutation` factory with top-level `useMutation` calls
-3. **Refactor AddServiceWizard** -- Add `react-hook-form` + Zod, `try/catch`, character limits, XSS prevention
-4. **Add Zod schema to ClinicVerificationPage** -- Input validation, double-submit protection
-5. **Add Zod schema to DoctorVerificationPage** -- Input validation, remove `any` casts
-6. **Standardize toast system** -- Replace all `useToast` usages with `sonner`
-7. **Add debounce to admin search inputs** -- AdminOrders, AdminProducts, AdminCustomers
-8. **Add `React.memo` to list-item components** -- DoctorCard, ClinicCard, ProductCard
-9. **Clean up dead code** -- Remove unused `category` field from AddServiceWizard, remove `use-toast.ts` wrapper
-10. **Add skeleton loaders** -- Replace spinners with content-aware skeletons on verification pages
+**Meaning:** When a user selects new media files, `removeMedia` (line 210-216) filters out the old preview URLs but never calls `URL.revokeObjectURL()` on them. Over multiple file selections, this accumulates leaked blob URLs in memory.
+
+**Solution:** Call `URL.revokeObjectURL(mediaPreviews[index])` in `removeMedia` before filtering.
+
+---
+
+### L3: No Rate Limiting on Client-Side Form Submissions
+
+**Meaning:** While some edge functions have rate limiting (e.g., steadfast), client-side forms like contact, appointment booking, and review submission have no throttling. A malicious user could spam submissions rapidly.
+
+**Solution:** Add a simple cooldown mechanism (e.g., disable the submit button for 3 seconds after submission) or implement server-side rate limiting via RLS or edge functions.
+
+---
+
+### L4: `ScrollToTop` Fires `useFocusManagement` Hook on Every Route Change
+
+**Meaning:** The `ScrollToTop` component uses `useFocusManagement()` which likely adds/removes event listeners on every pathname change. This is low risk but could cause unnecessary work.
+
+**Solution:** Verify `useFocusManagement` is using stable effect dependencies.
+
+---
+
+## Recommended Fix Order
+
+| Step | Finding | Risk | Effort |
+|------|---------|------|--------|
+| 1 | H1: Revoke object URLs in all affected components | High | Low |
+| 2 | H3: Split admin realtime channel, remove redundant polling | High | Medium |
+| 3 | M1: Memoize CartProvider callbacks and context value | Medium | Low |
+| 4 | M2: Wrap DoctorCard and ClinicCard in memo() | Medium | Low |
+| 5 | H2: Replace top 5 worst `as any` files with proper types | High | Medium |
+| 6 | M3: Memoize WishlistContext callbacks | Medium | Low |
+| 7 | L1: Remove dead category UI from AddServiceWizard | Low | Low |
+| 8 | L2: Revoke blob URLs in CreatePostCard removeMedia | Low | Low |
+| 9 | M4: Add isolated ErrorBoundary for admin routes | Medium | Low |
+| 10 | L3: Add client-side submission cooldowns | Low | Low |
 
