@@ -267,3 +267,115 @@ export const productFormSchema = z.object({
 });
 
 export type ProductFormData = z.infer<typeof productFormSchema>;
+
+// ========== Clinic Service Validation Schema ==========
+
+export const serviceFormSchema = z.object({
+  name: z
+    .string()
+    .min(2, 'Service name must be at least 2 characters')
+    .max(150, 'Service name must be less than 150 characters')
+    .regex(noXSSRegex, 'Name cannot contain < or > characters'),
+  description: z
+    .string()
+    .max(1000, 'Description must be less than 1000 characters')
+    .regex(noXSSRegex, 'Description cannot contain < or > characters')
+    .optional()
+    .or(z.literal('')),
+  price: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine(
+      (val) => !val || (Number(val) >= 0 && Number(val) <= 1000000),
+      'Price must be between 0 and 1,000,000'
+    ),
+  duration_minutes: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine(
+      (val) => !val || (Number(val) >= 1 && Number(val) <= 480),
+      'Duration must be between 1 and 480 minutes'
+    ),
+  is_active: z.boolean().default(true),
+});
+
+export type ServiceFormData = z.infer<typeof serviceFormSchema>;
+
+// ========== Clinic Verification Validation Schema ==========
+
+export const clinicVerificationSchema = z.object({
+  ownerName: z
+    .string()
+    .min(1, 'Owner name is required')
+    .max(100, 'Owner name must be less than 100 characters')
+    .regex(noXSSRegex, 'Name cannot contain < or > characters'),
+  ownerNid: z
+    .string()
+    .max(20, 'NID must be less than 20 characters')
+    .regex(/^[0-9]*$/, 'NID must contain only digits')
+    .optional()
+    .or(z.literal('')),
+  clinicName: z
+    .string()
+    .min(1, 'Clinic name is required')
+    .max(200, 'Clinic name must be less than 200 characters')
+    .regex(noXSSRegex, 'Clinic name cannot contain < or > characters'),
+  clinicAddress: z
+    .string()
+    .min(1, 'Clinic address is required')
+    .max(500, 'Address must be less than 500 characters')
+    .regex(noXSSRegex, 'Address cannot contain < or > characters'),
+  clinicPhone: z
+    .string()
+    .max(20, 'Phone must be less than 20 characters')
+    .optional()
+    .or(z.literal('')),
+  clinicEmail: z
+    .string()
+    .email('Please enter a valid email')
+    .max(255)
+    .optional()
+    .or(z.literal('')),
+  clinicDescription: z
+    .string()
+    .max(2000, 'Description must be less than 2000 characters')
+    .regex(noXSSRegex, 'Description cannot contain < or > characters')
+    .optional()
+    .or(z.literal('')),
+});
+
+export type ClinicVerificationFormData = z.infer<typeof clinicVerificationSchema>;
+
+// ========== Doctor Verification Validation Schema ==========
+
+export const doctorVerificationSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Full name is required')
+    .max(100, 'Name must be less than 100 characters')
+    .regex(noXSSRegex, 'Name cannot contain < or > characters'),
+  nid_number: z
+    .string()
+    .min(1, 'NID number is required')
+    .max(20, 'NID must be less than 20 characters')
+    .regex(/^[0-9]+$/, 'NID must contain only digits'),
+  license_number: z
+    .string()
+    .min(1, 'License number is required')
+    .max(50, 'License number must be less than 50 characters')
+    .regex(noXSSRegex, 'License number cannot contain < or > characters'),
+  specialization: z.string().max(100).optional().or(z.literal('')),
+  experience_years: z
+    .string()
+    .optional()
+    .or(z.literal(''))
+    .refine(
+      (val) => !val || (Number(val) >= 0 && Number(val) <= 60),
+      'Experience must be between 0 and 60 years'
+    ),
+  bio: z.string().max(2000, 'Bio must be less than 2000 characters').optional().or(z.literal('')),
+});
+
+export type DoctorVerificationFormData = z.infer<typeof doctorVerificationSchema>;

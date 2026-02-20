@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { 
   ArrowLeft, Upload, FileCheck, AlertCircle, Clock, 
   CheckCircle, XCircle, Loader2, Shield, FileText, Stethoscope
@@ -21,12 +22,14 @@ import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 import { createAdminNotification } from '@/lib/notifications';
 import { validateDocumentFile, removeStorageFiles } from '@/lib/storageUtils';
+import { doctorVerificationSchema } from '@/lib/validations';
 
 const DoctorVerificationPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isDoctor, isLoading: roleLoading } = useUserRole();
   const { doctorProfile, profileLoading, updateProfile } = useDoctor();
+  const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -46,7 +49,7 @@ const DoctorVerificationPage = () => {
     if (doctorProfile) {
       setFormData({
         name: doctorProfile.name || '',
-        nid_number: (doctorProfile as any).nid_number || '',
+        nid_number: (doctorProfile as Record<string, any>).nid_number || '',
         license_number: doctorProfile.license_number || '',
         specialization: doctorProfile.specialization || '',
         experience_years: doctorProfile.experience_years?.toString() || '',
@@ -72,12 +75,14 @@ const DoctorVerificationPage = () => {
     e.preventDefault();
     if (!user || !doctorProfile) return;
 
-    if (!formData.name || !formData.nid_number || !formData.license_number) {
-      toast.error('Please fill in all required fields');
+    // Validate with Zod schema
+    const result = doctorVerificationSchema.safeParse(formData);
+    if (!result.success) {
+      toast.error(result.error.errors[0]?.message || 'Please fix form errors');
       return;
     }
 
-    if (!bvcCertificate && !(doctorProfile as any).bvc_certificate_url) {
+    if (!bvcCertificate && !(doctorProfile as Record<string, any>).bvc_certificate_url) {
       toast.error('Please upload your BVC certificate');
       return;
     }
@@ -85,7 +90,7 @@ const DoctorVerificationPage = () => {
     setSubmitting(true);
 
     try {
-      let bvcCertificateUrl = (doctorProfile as any).bvc_certificate_url;
+      let bvcCertificateUrl = (doctorProfile as Record<string, any>).bvc_certificate_url;
 
       // Upload BVC certificate if new file selected
       if (bvcCertificate) {
@@ -172,7 +177,8 @@ const DoctorVerificationPage = () => {
       if (error && error.code !== '23505') throw error;
       
       toast.success('Doctor profile created! You can now submit your verification.');
-      window.location.reload();
+      // Re-fetch doctor profile without full page reload
+      queryClient.invalidateQueries({ queryKey: ['doctor-profile'] });
     } catch (error: any) {
       logger.error('Failed to create doctor profile:', error);
       toast.error('Failed to create doctor profile. Please try again.');
@@ -229,7 +235,7 @@ const DoctorVerificationPage = () => {
     );
   }
 
-  const verificationStatus = (doctorProfile as any)?.verification_status || 'not_submitted';
+  const verificationStatus = (doctorProfile as Record<string, any>)?.verification_status || 'not_submitted';
 
   const getStatusBadge = () => {
     switch (verificationStatus) {
@@ -272,7 +278,7 @@ const DoctorVerificationPage = () => {
     if (formData.specialization) progress += 10;
     if (formData.experience_years) progress += 10;
     if (formData.bio) progress += 10;
-    if (bvcCertificate || (doctorProfile as any)?.bvc_certificate_url) progress += 15;
+    if (bvcCertificate || (doctorProfile as Record<string, any>)?.bvc_certificate_url) progress += 15;
     return progress;
   };
 
@@ -327,7 +333,7 @@ const DoctorVerificationPage = () => {
                 <div>
                   <p className="font-medium text-red-700">Verification Rejected</p>
                   <p className="text-sm text-red-600/80">
-                    {(doctorProfile as any)?.rejection_reason || 'Please resubmit with valid documents.'}
+                    {(doctorProfile as Record<string, any>)?.rejection_reason || 'Please resubmit with valid documents.'}
                   </p>
                 </div>
               </div>
@@ -474,7 +480,7 @@ const DoctorVerificationPage = () => {
             <CardContent>
               <div className="space-y-4">
                 <div className="border-2 border-dashed border-border rounded-xl p-6 text-center">
-                  {(doctorProfile as any)?.bvc_certificate_url || bvcCertificate ? (
+                  {(doctorProfile as Record<string, any>)?.bvc_certificate_url || bvcCertificate ? (
                     <div className="flex items-center justify-center gap-3">
                       <FileCheck className="h-8 w-8 text-green-500" />
                       <div className="text-left">

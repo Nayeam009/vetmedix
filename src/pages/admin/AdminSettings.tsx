@@ -237,34 +237,32 @@ const AdminSettingsContent = () => {
     }
   }, [settings]);
 
-  const createSaveMutation = (key: string, successMsg: string) =>
-    useMutation({
-      mutationFn: async (data: unknown) => {
-        // Try update first, then upsert if no rows affected
-        const { data: existing } = await supabase.from('admin_settings').select('id').eq('key', key).maybeSingle();
-        if (existing) {
-          const { error } = await supabase.from('admin_settings')
-            .update({ value: data as unknown as Json, updated_at: new Date().toISOString() })
-            .eq('key', key);
-          if (error) throw error;
-        } else {
-          const { error } = await supabase.from('admin_settings')
-            .insert({ key, value: data as unknown as Json });
-          if (error) throw error;
-        }
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
-        toast.success(successMsg);
-      },
-      onError: () => toast.error(`Failed to save ${key} settings`),
-    });
+  const buildSaveMutationConfig = (key: string, successMsg: string) => ({
+    mutationFn: async (data: unknown) => {
+      const { data: existing } = await supabase.from('admin_settings').select('id').eq('key', key).maybeSingle();
+      if (existing) {
+        const { error } = await supabase.from('admin_settings')
+          .update({ value: data as unknown as Json, updated_at: new Date().toISOString() })
+          .eq('key', key);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('admin_settings')
+          .insert({ key, value: data as unknown as Json });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
+      toast.success(successMsg);
+    },
+    onError: () => toast.error(`Failed to save ${key} settings`),
+  });
 
-  const saveStoreMutation = createSaveMutation('store', 'Store settings saved');
-  const saveShippingMutation = createSaveMutation('shipping', 'Shipping settings saved');
-  const saveOrderMutation = createSaveMutation('orders', 'Order settings saved');
-  const saveNotificationsMutation = createSaveMutation('notifications', 'Notification preferences saved');
-  const savePlatformMutation = createSaveMutation('platform', 'Platform settings saved');
+  const saveStoreMutation = useMutation(buildSaveMutationConfig('store', 'Store settings saved'));
+  const saveShippingMutation = useMutation(buildSaveMutationConfig('shipping', 'Shipping settings saved'));
+  const saveOrderMutation = useMutation(buildSaveMutationConfig('orders', 'Order settings saved'));
+  const saveNotificationsMutation = useMutation(buildSaveMutationConfig('notifications', 'Notification preferences saved'));
+  const savePlatformMutation = useMutation(buildSaveMutationConfig('platform', 'Platform settings saved'));
 
   // Upload a file to site_assets bucket and return the public URL
   const uploadAsset = async (file: File, name: string): Promise<string> => {

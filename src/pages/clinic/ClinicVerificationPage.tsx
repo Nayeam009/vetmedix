@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 import logo from '@/assets/logo.jpeg';
 import { notifyAdminsOfNewVerification } from '@/lib/notifications';
 import { removeStorageFiles } from '@/lib/storageUtils';
+import { clinicVerificationSchema } from '@/lib/validations';
 
 const ClinicVerificationPage = () => {
   const navigate = useNavigate();
@@ -168,18 +169,14 @@ const ClinicVerificationPage = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.ownerName.trim()) {
-      toast.error('Owner name is required');
+    // Validate with Zod schema
+    const result = clinicVerificationSchema.safeParse(formData);
+    if (!result.success) {
+      const firstError = result.error.errors[0]?.message || 'Please fix form errors';
+      toast.error(firstError);
       return;
     }
-    if (!formData.clinicName.trim()) {
-      toast.error('Clinic name is required');
-      return;
-    }
-    if (!formData.clinicAddress.trim()) {
-      toast.error('Clinic address is required');
-      return;
-    }
+
     if (!bvcFile && !clinic?.bvc_certificate_url) {
       toast.error('BVC Certificate is required');
       return;

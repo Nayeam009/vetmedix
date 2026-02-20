@@ -14,6 +14,16 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    dedupe: ["react", "react-dom"],
+  },
+  optimizeDeps: {
+    include: [
+      "react",
+      "react-dom",
+      "react-dom/client",
+      "react/jsx-runtime",
+      "@tanstack/react-query",
+    ],
   },
   build: {
     rollupOptions: {
@@ -24,8 +34,8 @@ export default defineConfig(({ mode }) => ({
             "react-dom",
             "react/jsx-runtime",
             "react-router-dom",
+            "@tanstack/react-query",
           ],
-          "vendor-query": ["@tanstack/react-query"],
           "vendor-date": ["date-fns"],
           "vendor-supabase": ["@supabase/supabase-js"],
         },
