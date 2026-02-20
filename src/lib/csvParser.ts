@@ -45,6 +45,11 @@ export const productSchema = z.object({
     .max(100, 'Discount cannot exceed 100%')
     .optional()
     .nullable(),
+  image_url: z
+    .string()
+    .url('Image URL must be a valid URL')
+    .optional()
+    .nullable(),
 });
 
 export type ProductCSVRow = z.infer<typeof productSchema>;
@@ -122,6 +127,7 @@ export function parseCSV(csvText: string): ParseResult {
       stock: row.stock?.trim() ? parseInt(row.stock) : undefined,
       badge: row.badge?.trim() ? sanitizeString(row.badge) : undefined,
       discount: row.discount?.trim() ? parseFloat(row.discount) : undefined,
+      image_url: row.image_url?.trim() || undefined,
     };
 
     // Validate with Zod schema
@@ -170,8 +176,8 @@ function parseCSVLine(line: string): string[] {
 }
 
 export function generateCSVTemplate(): string {
-  const headers = ['name', 'description', 'price', 'category', 'product_type', 'stock', 'badge', 'discount'];
-  const exampleRow = ['Dog Food Premium', 'High quality dog food', '500', 'Pet', 'Food', '100', 'New', '10'];
+  const headers = ['name', 'description', 'price', 'category', 'product_type', 'stock', 'badge', 'discount', 'image_url'];
+  const exampleRow = ['Dog Food Premium', 'High quality dog food', '500', 'Pet', 'Food', '100', 'New', '10', 'https://example.com/image.jpg'];
   
   return [headers.join(','), exampleRow.join(',')].join('\n');
 }

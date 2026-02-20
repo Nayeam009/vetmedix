@@ -88,6 +88,29 @@ export function CSVImportDialog({ open, onOpenChange }: CSVImportDialogProps) {
 
     setImporting(true);
     try {
+      // Collect external image URLs that need re-hosting
+      const imageUrls = parseResult.data
+        .map((row) => row.image_url)
+        .filter((url): url is string => !!url && url.startsWith('http'));
+
+      let imageMap: Record<string, string> = {};
+
+      // Re-host external images via edge function
+      if (imageUrls.length > 0) {
+        const uniqueUrls = [...new Set(imageUrls)];
+        const { data: uploadData, error: uploadError } = await supabase.functions.invoke('upload-image-url', {
+          body: { urls: uniqueUrls },
+        });
+
+        if (!uploadError && uploadData?.results) {
+          for (const r of uploadData.results) {
+            if (r.storedUrl) {
+              imageMap[r.originalUrl] = r.storedUrl;
+            }
+          }
+        }
+      }
+
       const products = parseResult.data.map((row: ProductCSVRow) => ({
         name: row.name,
         description: row.description || null,
@@ -97,6 +120,7 @@ export function CSVImportDialog({ open, onOpenChange }: CSVImportDialogProps) {
         stock: row.stock ?? 100,
         badge: row.badge || null,
         discount: row.discount || null,
+        image_url: row.image_url ? (imageMap[row.image_url] || row.image_url) : null,
       }));
 
       const { error } = await supabase.from('products').insert(products);

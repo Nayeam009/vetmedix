@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.parse-product-pdf]
 verify_jwt = false
+
+[functions.upload-image-url]
+verify_jwt = false
