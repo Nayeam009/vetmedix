@@ -1,8 +1,8 @@
 import { forwardRef } from 'react';
-import { Home, Search, MessageCircle, Bell, User, Shield, Stethoscope, Building2 } from 'lucide-react';
+import { Home, Store, ShoppingCart, Stethoscope, User, Shield, Building2, LogIn, UserCheck } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useCart } from '@/contexts/CartContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useUserRole } from '@/hooks/useUserRole';
 import { prefetchRoute } from '@/lib/imageUtils';
@@ -10,39 +10,32 @@ import { prefetchRoute } from '@/lib/imageUtils';
 const MobileNav = forwardRef<HTMLElement, object>((_, ref) => {
   const location = useLocation();
   const { user } = useAuth();
-  const { unreadCount } = useNotifications();
+  const { totalItems } = useCart();
   const { isAdmin } = useAdmin();
   const { isDoctor, isClinicOwner } = useUserRole();
 
-  // Build nav items based on user role
-  const getNavItems = () => {
-    const baseItems = [
-      { icon: Home, label: 'Home', path: '/', badge: 0 },
-      { icon: Search, label: 'Explore', path: '/explore', badge: 0 },
-      { icon: MessageCircle, label: 'Messages', path: '/messages', badge: 0 },
-      { icon: Bell, label: 'Alerts', path: '/notifications', badge: unreadCount },
-    ];
-
-    // Add role-specific dashboard as 5th item
-    if (isAdmin) {
-      return [...baseItems, { icon: Shield, label: 'Dashboard', path: '/admin', badge: 0 }];
-    }
-    if (isDoctor) {
-      return [...baseItems, { icon: Stethoscope, label: 'Dashboard', path: '/doctor/dashboard', badge: 0 }];
-    }
-    if (isClinicOwner) {
-      return [...baseItems, { icon: Building2, label: 'Dashboard', path: '/clinic/dashboard', badge: 0 }];
-    }
-    
-    // Default: Dashboard/Login for regular users
-    return [...baseItems, { icon: User, label: user ? 'Dashboard' : 'Login', path: user ? '/profile' : '/auth', badge: 0 }];
+  // Determine role-specific profile item
+  const getProfileItem = () => {
+    if (isAdmin) return { icon: Shield, label: 'Admin', path: '/admin' };
+    if (isDoctor) return { icon: UserCheck, label: 'Dashboard', path: '/doctor/dashboard' };
+    if (isClinicOwner) return { icon: Building2, label: 'Dashboard', path: '/clinic/dashboard' };
+    if (user) return { icon: User, label: 'Profile', path: '/profile' };
+    return { icon: LogIn, label: 'Login', path: '/auth' };
   };
 
-  const navItems = getNavItems();
+  const profileItem = getProfileItem();
+
+  const navItems = [
+    { icon: Home, label: 'Home', path: '/', badge: 0 },
+    { icon: Store, label: 'Shop', path: '/shop', badge: 0 },
+    { icon: ShoppingCart, label: 'Cart', path: '/cart', badge: totalItems },
+    { icon: Stethoscope, label: 'Doctors', path: '/doctors', badge: 0 },
+    { icon: profileItem.icon, label: profileItem.label, path: profileItem.path, badge: 0 },
+  ];
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
-    return location.pathname === path || location.pathname.startsWith(path + '/') || 
+    return location.pathname === path || location.pathname.startsWith(path + '/') ||
            (path === '/doctor/dashboard' && location.pathname.startsWith('/doctor')) ||
            (path === '/clinic/dashboard' && location.pathname.startsWith('/clinic'));
   };
@@ -57,6 +50,7 @@ const MobileNav = forwardRef<HTMLElement, object>((_, ref) => {
               key={index}
               to={item.path}
               onTouchStart={() => prefetchRoute(item.path)}
+              aria-label={item.badge > 0 ? `${item.label}, ${item.badge} unread` : item.label}
               className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors active:scale-95 active:bg-primary/10 rounded-lg ${
                 active ? 'text-primary' : 'text-muted-foreground'
               }`}

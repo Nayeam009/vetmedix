@@ -18,7 +18,9 @@ import { useDoctor } from '@/hooks/useDoctor';
 import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 import { createAdminNotification } from '@/lib/notifications';
+import { validateDocumentFile, removeStorageFiles } from '@/lib/storageUtils';
 
 const DoctorVerificationPage = () => {
   const navigate = useNavigate();
@@ -56,8 +58,10 @@ const DoctorVerificationPage = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('File size must be less than 5MB');
+      const error = validateDocumentFile(file);
+      if (error) {
+        toast.error(error);
+        e.target.value = '';
         return;
       }
       setBvcCertificate(file);
@@ -86,20 +90,23 @@ const DoctorVerificationPage = () => {
       // Upload BVC certificate if new file selected
       if (bvcCertificate) {
         setUploading(true);
+
+        // Clean up old file if exists (handle extension change orphans)
+        if (bvcCertificateUrl) {
+          await removeStorageFiles([bvcCertificateUrl], 'doctor-documents');
+        }
+
         const fileExt = bvcCertificate.name.split('.').pop();
-        const fileName = `${user.id}/bvc_certificate.${fileExt}`;
+        const fileName = `${user.id}/bvc_certificate_${Date.now()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from('doctor-documents')
-          .upload(fileName, bvcCertificate, { upsert: true });
+          .upload(fileName, bvcCertificate);
 
         if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage
-          .from('doctor-documents')
-          .getPublicUrl(fileName);
-
-        bvcCertificateUrl = urlData.publicUrl;
+        // Store the storage path for private bucket (not public URL)
+        bvcCertificateUrl = fileName;
         setUploading(false);
       }
 
@@ -131,7 +138,7 @@ const DoctorVerificationPage = () => {
       toast.success('Verification submitted successfully! We will review your documents shortly.');
       navigate('/doctor/dashboard');
     } catch (error: any) {
-      console.error('Verification error:', error);
+      logger.error('Verification error:', error);
       toast.error('Failed to submit verification. Please try again.');
     } finally {
       setSubmitting(false);
@@ -167,7 +174,7 @@ const DoctorVerificationPage = () => {
       toast.success('Doctor profile created! You can now submit your verification.');
       window.location.reload();
     } catch (error: any) {
-      console.error('Failed to create doctor profile:', error);
+      logger.error('Failed to create doctor profile:', error);
       toast.error('Failed to create doctor profile. Please try again.');
     } finally {
       setCreatingProfile(false);
@@ -273,7 +280,7 @@ const DoctorVerificationPage = () => {
     <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background to-background pb-20 md:pb-0">
       <Navbar />
 
-      <main className="container mx-auto px-4 py-6 max-w-2xl">
+      <main id="main-content" className="container mx-auto px-4 py-6 max-w-2xl">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <Button
@@ -491,7 +498,7 @@ const DoctorVerificationPage = () => {
                   {verificationStatus !== 'approved' && (
                     <Input
                       type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
+                      accept=".pdf,.jpg,.jpeg,.png,.webp"
                       onChange={handleFileChange}
                       className="max-w-xs mx-auto"
                     />

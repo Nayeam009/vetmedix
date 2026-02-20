@@ -34,7 +34,7 @@ import { toast } from 'sonner';
 import type { Pet } from '@/types/social';
 import { compressImage, getCompressionMessage } from '@/lib/mediaCompression';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { removeStorageFiles } from '@/lib/storageUtils';
+import { removeStorageFiles, validateImageFile } from '@/lib/storageUtils';
 import { logger } from '@/lib/logger';
 
 const speciesOptions = [
@@ -111,18 +111,28 @@ const EditPetPage = () => {
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(file));
+    if (!file) return;
+    const error = validateImageFile(file);
+    if (error) {
+      toast.error(error);
+      e.target.value = '';
+      return;
     }
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
   };
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setCoverFile(file);
-      setCoverPreview(URL.createObjectURL(file));
+    if (!file) return;
+    const error = validateImageFile(file);
+    if (error) {
+      toast.error(error);
+      e.target.value = '';
+      return;
     }
+    setCoverFile(file);
+    setCoverPreview(URL.createObjectURL(file));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -141,9 +151,12 @@ const EditPetPage = () => {
 
       // Upload new avatar if provided
       if (avatarFile) {
-        // Compress image before upload
+        // Clean up old avatar
+        if (pet.avatar_url) {
+          await removeStorageFiles([pet.avatar_url], 'pet-media');
+        }
+
         const compressed = await compressImage(avatarFile, 'avatar');
-        
         if (compressed.compressionRatio > 1) {
           toast.success(getCompressionMessage(compressed.originalSize, compressed.compressedSize));
         }
@@ -166,9 +179,12 @@ const EditPetPage = () => {
 
       // Upload new cover if provided
       if (coverFile) {
-        // Compress image before upload
+        // Clean up old cover
+        if (pet.cover_photo_url) {
+          await removeStorageFiles([pet.cover_photo_url], 'pet-media');
+        }
+
         const compressed = await compressImage(coverFile, 'feed');
-        
         if (compressed.compressionRatio > 1) {
           toast.success(getCompressionMessage(compressed.originalSize, compressed.compressedSize));
         }
@@ -285,7 +301,7 @@ const EditPetPage = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-6 max-w-lg">
+      <main id="main-content" className="container mx-auto px-4 py-6 max-w-lg">
         <Button 
           variant="ghost" 
           className="mb-4"

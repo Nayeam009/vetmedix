@@ -139,7 +139,7 @@ const NotificationsPage = () => {
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
 
-      <main className="container mx-auto px-4 py-6 max-w-2xl">
+      <main id="main-content" className="container mx-auto px-4 py-6 max-w-2xl">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <CardTitle className="text-xl flex items-center gap-2">

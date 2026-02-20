@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Users, Building2, MessageSquare, CalendarDays, Stethoscope, FileText } from 'lucide-react';
+import { ShieldCheck, Building2, MessageCircleHeart, CalendarClock, Stethoscope, FileText } from 'lucide-react';
 import { StatCard } from '@/components/admin/StatCard';
 
 interface PlatformOverviewProps {
@@ -44,7 +44,7 @@ export const PlatformOverview = memo(({ stats }: PlatformOverviewProps) => (
       <StatCard
         title="Appointments"
         value={stats?.totalAppointments || 0}
-        icon={<CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-rose-600" />}
+        icon={<CalendarClock className="h-4 w-4 sm:h-5 sm:w-5 text-rose-600" />}
         description={`${stats?.appointmentsToday || 0} today`}
         href="/admin/clinics"
         className="bg-gradient-to-br from-rose-50 to-pink-50/50 border-rose-100 dark:from-rose-950/30 dark:to-pink-950/20 dark:border-rose-900/50"
@@ -52,7 +52,7 @@ export const PlatformOverview = memo(({ stats }: PlatformOverviewProps) => (
       <StatCard
         title="Posts"
         value={stats?.totalPosts || 0}
-        icon={<MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />}
+        icon={<MessageCircleHeart className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />}
         description={`${stats?.postsToday || 0} today`}
         href="/admin/social"
         className="bg-gradient-to-br from-indigo-50 to-purple-50/50 border-indigo-100 dark:from-indigo-950/30 dark:to-purple-950/20 dark:border-indigo-900/50"
@@ -68,7 +68,7 @@ export const PlatformOverview = memo(({ stats }: PlatformOverviewProps) => (
       <StatCard
         title="Users"
         value={stats?.totalUsers || 0}
-        icon={<Users className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />}
+        icon={<ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />}
         description={`${stats?.totalUsers || 0} registered`}
         href="/admin/customers"
         className="bg-gradient-to-br from-orange-50 to-amber-50/50 border-orange-100 dark:from-orange-950/30 dark:to-amber-950/20 dark:border-orange-900/50"

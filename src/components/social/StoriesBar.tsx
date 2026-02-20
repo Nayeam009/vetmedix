@@ -8,6 +8,7 @@ import { StoryViewer } from './StoryViewer';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import type { StoryGroup } from '@/types/social';
+import { compressImage, getCompressionMessage } from '@/lib/mediaCompression';
 
 export const StoriesBar = () => {
   const { user } = useAuth();
@@ -51,7 +52,22 @@ export const StoriesBar = () => {
     }
 
     setUploading(true);
-    const result = await createStory(activePet.id, file);
+
+    // Compress images before upload
+    let fileToUpload = file;
+    if (isImage) {
+      try {
+        const compressed = await compressImage(file, 'feed');
+        fileToUpload = compressed.file;
+        if (compressed.compressionRatio > 1) {
+          toast.success(getCompressionMessage(compressed.originalSize, compressed.compressedSize));
+        }
+      } catch {
+        // If compression fails, upload raw
+      }
+    }
+
+    const result = await createStory(activePet.id, fileToUpload);
     setUploading(false);
 
     if (result) {

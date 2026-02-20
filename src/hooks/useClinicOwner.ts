@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 import { Clinic } from '@/types/database';
 import { createAppointmentNotification } from '@/lib/notifications';
 import { format } from 'date-fns';
@@ -64,7 +65,7 @@ export const useClinicOwner = () => {
       // Use order + limit to handle users with multiple clinics (get newest)
       const { data, error } = await supabase
         .from('clinics')
-        .select('*')
+        .select('id, name, address, phone, email, description, rating, image_url, cover_photo_url, is_open, opening_hours, is_verified, verification_status, services, owner_user_id, created_at, bvc_certificate_url, trade_license_url, owner_name, owner_nid, rejection_reason, is_blocked, blocked_reason')
         .eq('owner_user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -85,7 +86,7 @@ export const useClinicOwner = () => {
 
       const { data, error } = await supabase
         .from('clinic_services')
-        .select('*')
+        .select('id, clinic_id, name, description, price, duration_minutes, is_active, created_at')
         .eq('clinic_id', ownedClinic.id)
         .order('created_at', { ascending: false });
 
@@ -160,7 +161,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to update clinic');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -201,7 +202,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to add doctor');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -223,7 +224,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to update doctor');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -253,7 +254,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to remove doctor');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -276,7 +277,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to add service');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -298,7 +299,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to update service');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -317,7 +318,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to delete service');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -339,7 +340,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to update doctor status');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -384,7 +385,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to update appointment');
-      console.error(error);
+      logger.error(error);
     },
   });
 
@@ -434,7 +435,7 @@ export const useClinicOwner = () => {
     },
     onError: (error) => {
       toast.error('Failed to create appointment');
-      console.error(error);
+      logger.error(error);
     },
   });
 

@@ -82,13 +82,13 @@ const CheckoutPage = () => {
   const [loading, setLoading] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
 
-  // M4: Redirect unauthenticated users immediately
+  // Redirect unauthenticated users immediately
   useEffect(() => {
     if (!user && items.length > 0) {
       toast({ title: 'Login Required', description: 'Please login to checkout.', variant: 'destructive' });
       navigate('/auth');
     }
-  }, [user]);
+  }, [user, items.length, navigate, toast]);
 
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
   const [placedItems, setPlacedItems] = useState<typeof items>([]);
@@ -441,7 +441,7 @@ const CheckoutPage = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-4 sm:py-6 lg:py-8">
+      <main id="main-content" className="container mx-auto px-4 py-4 sm:py-6 lg:py-8">
         <div className="grid lg:grid-cols-12 gap-6 lg:gap-8">
           {/* Form Section */}
           <div className="lg:col-span-7 xl:col-span-8 space-y-4 sm:space-y-6">
@@ -485,6 +485,7 @@ const CheckoutPage = () => {
                       </Label>
                       <Input
                         id="phone"
+                        type="tel"
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value.slice(0, 20) })}
                         placeholder="+880 1XXX-XXXXXX"
@@ -824,7 +825,7 @@ const CheckoutPage = () => {
             </div>
           </div>
         </div>
-      </div>
+      </main>
 
       {/* Mobile Fixed Bottom Bar */}
       <div className="fixed bottom-14 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border p-3 sm:p-4 md:hidden z-40" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>

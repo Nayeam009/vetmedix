@@ -14,23 +14,39 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    dedupe: ["react", "react-dom", "react/jsx-runtime"],
+  },
+  optimizeDeps: {
+    // Force a complete rebuild of the pre-bundled dependency cache.
+    // This eliminates stale chunks where react and react-dom were
+    // pre-bundled at different times with different version hashes,
+    // causing duplicate ReactCurrentDispatcher instances.
+    force: true,
+    // Ensure react ecosystem is pre-bundled together in one pass
+    include: [
+      "react",
+      "react-dom",
+      "react-dom/client",
+      "react/jsx-runtime",
+      "@tanstack/react-query",
+    ],
   },
   build: {
     rollupOptions: {
       output: {
         manualChunks: {
-          // Core React libraries
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          // React Query for data fetching
-          'vendor-query': ['@tanstack/react-query'],
-          // Date utilities
-          'vendor-date': ['date-fns'],
-          // Supabase client
-          'vendor-supabase': ['@supabase/supabase-js'],
+          "vendor-react": [
+            "react",
+            "react-dom",
+            "react/jsx-runtime",
+            "react-router-dom",
+          ],
+          "vendor-query": ["@tanstack/react-query"],
+          "vendor-date": ["date-fns"],
+          "vendor-supabase": ["@supabase/supabase-js"],
         },
       },
     },
-    // Increase chunk size warning limit
     chunkSizeWarningLimit: 600,
   },
 }));

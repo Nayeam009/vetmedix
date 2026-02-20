@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { reviewSchema } from '@/lib/validations';
 
 interface ProductReviewFormProps {
   productId: string;
@@ -27,8 +28,9 @@ const ProductReviewForm = ({ productId, onReviewSubmitted }: ProductReviewFormPr
   }
 
   const handleSubmit = async () => {
-    if (rating === 0) {
-      toast.error('Please select a rating');
+    const validation = reviewSchema.safeParse({ rating, comment: comment.trim() || undefined });
+    if (!validation.success) {
+      toast.error(validation.error.errors[0]?.message || 'Please check your review');
       return;
     }
     setSubmitting(true);

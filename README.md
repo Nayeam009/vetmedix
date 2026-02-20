@@ -1,74 +1,66 @@
-# Welcome to your Lovable project
+![Build Status](https://img.shields.io/badge/Build-Production%20Ready-brightgreen)
+![Version](https://img.shields.io/badge/Version-1.0.0-blue)
 
-## Project info
+> **Deployment Status:** Production Ready | Last Updated: 2026-02-17
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+# VET-MEDIX — Pet Care & Veterinary Platform
 
-## How can I edit this code?
+A full-stack pet care platform for Bangladesh featuring veterinary clinic discovery,
+appointment booking, e-commerce, and a social network for pet owners.
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend:** React 18, TypeScript, Vite
+- **Styling:** Tailwind CSS, shadcn/ui
+- **State Management:** TanStack React Query, React Context
+- **Backend:** Lovable Cloud (authentication, database, storage, edge functions)
+- **Routing:** React Router v7
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Project Structure
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+src/
+  assets/          — Static images and logos
+  components/      — Reusable UI components
+    admin/         — Admin dashboard components
+    clinic/        — Clinic owner dashboard components
+    doctor/        — Doctor dashboard components
+    social/        — Social feed components (posts, stories, comments)
+    ui/            — shadcn/ui primitives
+  contexts/        — React Context providers (Auth, Cart, Wishlist, Pet)
+  hooks/           — Custom React hooks (data fetching, business logic)
+  integrations/    — Backend client configuration
+  lib/             — Utility functions (validation, compression, notifications)
+  pages/           — Route-level page components
+    admin/         — Admin panel pages
+    clinic/        — Clinic owner pages
+    doctor/        — Doctor pages
+  types/           — TypeScript type definitions
+supabase/
+  functions/       — Backend functions (geocode, PDF parsing, sitemap, courier)
+  migrations/      — Database schema migrations
 ```
 
-**Edit a file directly in GitHub**
+## Environment Variables
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+| Variable | Description |
+|---|---|
+| `VITE_SUPABASE_URL` | Backend API URL (auto-configured) |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Backend public key (auto-configured) |
+| `VITE_SUPABASE_PROJECT_ID` | Backend project ID (auto-configured) |
 
-**Use GitHub Codespaces**
+## Development
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```sh
+npm install    # Install dependencies
+npm run dev    # Start dev server on port 8080
+npm run build  # Production build
+npm run preview # Preview production build
+```
 
-## What technologies are used for this project?
+## User Roles
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
-# Update trigger Fri Jan 16 07:06:40 UTC 2026
+1. **Pet Parent** — Browse clinics, book appointments, shop products, social feed
+2. **Doctor** — Manage profile, schedules, join clinics
+3. **Clinic Owner** — Manage clinic, doctors, services, appointments
+4. **Admin** — Full platform management, analytics, CMS

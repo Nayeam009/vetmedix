@@ -140,7 +140,7 @@ const BookAppointmentPage = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
-        <main className="container mx-auto px-4 py-6 flex-1 flex items-center justify-center">
+        <main id="main-content" className="container mx-auto px-4 py-6 flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </main>
         <Footer />
@@ -154,7 +154,7 @@ const BookAppointmentPage = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col pb-20 md:pb-0">
         <Navbar />
-        <main className="container mx-auto px-4 py-6 sm:py-8 max-w-xl flex-1">
+        <main id="main-content" className="container mx-auto px-4 py-6 sm:py-8 max-w-xl flex-1">
           <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4 sm:mb-6 -ml-2">
             <ArrowLeft className="h-4 w-4 mr-2" /> Back
           </Button>
@@ -182,7 +182,7 @@ const BookAppointmentPage = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col pb-20 md:pb-0">
       <Navbar />
-      <main className="container mx-auto px-4 py-4 sm:py-6 max-w-2xl flex-1">
+      <main id="main-content" className="container mx-auto px-4 py-4 sm:py-6 max-w-2xl flex-1">
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4 -ml-2">
           <ArrowLeft className="h-4 w-4 mr-2" /> Back
         </Button>

@@ -130,6 +130,7 @@ const DoctorDetailPage = () => {
           image={doctor.avatar_url || undefined}
           url={`https://vetmedix.lovable.app/doctor/${doctor.id}`}
           schema={doctorSchema}
+          canonicalUrl={`https://vetmedix.lovable.app/doctor/${doctor.id}`}
         />
       )}
       <Navbar />
@@ -225,7 +226,7 @@ const DoctorDetailPage = () => {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-3 sm:px-4 py-6">
+      <main id="main-content" className="container mx-auto px-3 sm:px-4 py-6">
         <div className="max-w-4xl mx-auto">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="w-full sm:w-auto h-10 sm:h-11 mb-6">
@@ -395,7 +396,7 @@ const DoctorDetailPage = () => {
             </TabsContent>
           </Tabs>
         </div>
-      </div>
+      </main>
 
       <MobileNav />
     </div>

@@ -55,7 +55,7 @@ const BlogArticlePage = () => {
 
   return (
     <>
-      <SEO title={`${article.title} - VET-MEDIX Blog`} description={article.excerpt || article.title} />
+      <SEO title={article.title} description={article.excerpt || article.title} canonicalUrl={`https://vetmedix.lovable.app/blog/${slug}`} />
       <Navbar />
       <main id="main-content" className="container mx-auto px-4 py-6 sm:py-8 max-w-3xl">
         {/* Back */}
@@ -80,7 +80,7 @@ const BlogArticlePage = () => {
 
         {/* Featured Image */}
         {article.featured_image && (
-          <div className="mb-6 rounded-lg overflow-hidden">
+          <div className="mb-6 rounded-xl overflow-hidden">
             <img
               src={article.featured_image}
               alt={article.title}

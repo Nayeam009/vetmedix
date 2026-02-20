@@ -19,7 +19,7 @@ export const useDoctorSchedules = (clinicId?: string, doctorId?: string) => {
     queryFn: async () => {
       let query = supabase
         .from('doctor_schedules')
-        .select('*')
+        .select('id, doctor_id, clinic_id, day_of_week, start_time, end_time, slot_duration_minutes, is_available, max_appointments')
         .eq('is_available', true);
 
       if (clinicId) {
@@ -83,7 +83,7 @@ export const useClinicDoctorsWithSchedules = (clinicId: string) => {
 
       const { data: schedules, error: sError } = await supabase
         .from('doctor_schedules')
-        .select('*')
+        .select('id, doctor_id, clinic_id, day_of_week, start_time, end_time, slot_duration_minutes, is_available, max_appointments')
         .eq('clinic_id', clinicId)
         .in('doctor_id', doctorIds)
         .eq('is_available', true);

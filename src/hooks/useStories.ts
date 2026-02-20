@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { compressImage, getCompressionMessage } from '@/lib/mediaCompression';
@@ -10,10 +10,13 @@ export const useStories = () => {
   const [storyGroups, setStoryGroups] = useState<StoryGroup[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchStories = async () => {
+  // L-3 Fix: Wrap fetchStories in useCallback so it has a stable reference.
+  // This prevents unnecessary re-renders in consumers that depend on `refresh`.
+  const fetchStories = useCallback(async () => {
     try {
+      // H-3 Fix: removed 'as any' — stories is properly typed in the schema.
       const { data, error } = await supabase
-        .from('stories' as any)
+        .from('stories')
         .select(`
           *,
           pet:pets(*)
@@ -26,12 +29,18 @@ export const useStories = () => {
       // Get viewed story IDs for current user
       let viewedStoryIds: Set<string> = new Set();
       if (user) {
-        const { data: views } = await supabase
-          .from('story_views' as any)
+        // H-3 Fix: removed 'as any' — story_views is properly typed in the schema.
+        const { data: views, error: viewsError } = await supabase
+          .from('story_views')
           .select('story_id')
           .eq('viewer_user_id', user.id);
         
-        viewedStoryIds = new Set((views as any[])?.map(v => v.story_id) || []);
+        // Only log genuine errors, not missing data
+        if (viewsError && import.meta.env.DEV) {
+          console.error('Error fetching story views:', viewsError);
+        }
+        
+        viewedStoryIds = new Set((views || []).map(v => v.story_id));
       }
 
       // Group stories by pet
@@ -73,21 +82,27 @@ export const useStories = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]); // Stable: only recreated when user changes
 
   useEffect(() => {
     fetchStories();
-  }, [user]);
+  }, [fetchStories]);
 
   const markAsViewed = async (storyId: string) => {
     if (!user) return;
 
     try {
-      await supabase
-        .from('story_views' as any)
+      // H-3 Fix: removed 'as any' cast
+      const { error } = await supabase
+        .from('story_views')
         .insert({ story_id: storyId, viewer_user_id: user.id });
+      
+      // H-3 Fix: Distinguish duplicate (23505) from genuine errors
+      if (error && error.code !== '23505' && import.meta.env.DEV) {
+        console.error('Error marking story as viewed:', error);
+      }
     } catch (error) {
-      // Ignore duplicate errors
+      // Silently ignore — non-critical action
     }
   };
 
@@ -122,9 +137,9 @@ export const useStories = () => {
         .from('pet-media')
         .getPublicUrl(fileName);
 
-      // Create story
+      // Create story — removed 'as any' cast
       const { data, error } = await supabase
-        .from('stories' as any)
+        .from('stories')
         .insert({
           pet_id: petId,
           user_id: user.id,
@@ -152,6 +167,6 @@ export const useStories = () => {
     loading, 
     markAsViewed, 
     createStory,
-    refresh: fetchStories 
+    refresh: fetchStories  // L-3 Fix: now stable reference via useCallback
   };
 };

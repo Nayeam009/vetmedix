@@ -20,6 +20,7 @@ import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import Footer from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
@@ -109,7 +110,7 @@ const TrackOrderPage = () => {
         await fetchTrackingStatus(data.tracking_id);
       }
     } catch (error) {
-      console.error('Error fetching order:', error);
+      logger.error('Error fetching order:', error);
       toast({
         title: 'Error',
         description: 'Could not fetch order details',
@@ -160,7 +161,7 @@ const TrackOrderPage = () => {
       }
       setTrackingStatus(data);
     } catch (error) {
-      console.error('Error tracking order:', error);
+      logger.error('Error tracking order:', error);
     } finally {
       setIsTracking(false);
     }
@@ -234,7 +235,7 @@ const TrackOrderPage = () => {
     return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
         <Navbar />
-        <main className="container mx-auto px-4 py-6 sm:py-8">
+        <main id="main-content" className="container mx-auto px-4 py-6 sm:py-8">
           <div className="max-w-md mx-auto">
             <Card>
               <CardHeader className="text-center">
@@ -265,7 +266,7 @@ const TrackOrderPage = () => {
     <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-6 sm:py-8">
+      <main id="main-content" className="container mx-auto px-4 py-6 sm:py-8">
         <Button
           variant="ghost"
           className="mb-6"
