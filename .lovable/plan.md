@@ -1,143 +1,81 @@
 
-## Root Cause — Definitive Analysis
 
-All previous fix attempts shared the same fatal flaw: they tried to control the Vite dep cache, but the Lovable Cloud infrastructure pre-warms `node_modules/.vite` independently before the app starts. Every `optimizeDeps` change we made was either ignored (because the cache already existed) or created a **second, parallel cache** (`node_modules/.vite-vetmedix`).
+# Diagnostic Audit: Admin Panel Forms
 
-The current error trace proves there are now **three React instances**:
+## Finding 1: The "Add Doctor" Form Issue
 
-```
-chunk-PMKBOVCG.js    → from node_modules/.vite/        ← React (useState lives here)
-chunk-LPF6KSF2.js    → from node_modules/.vite-vetmedix ← react-dom (renderWithHooks lives here)
-@tanstack_react-query → from node_modules/.vite/        ← also has its own react internals
-```
+The "Add Doctor" form itself is technically correct in its data flow and submission logic. The reason it appears to "not submit" is the **white screen crash** caused by the duplicate React instance problem (`Cannot read properties of null (reading 'useState')`). When the app crashes with a white screen, no form on any page can function — the entire React tree is destroyed.
 
-`renderWithHooks` sets `ReactCurrentDispatcher.current` inside `.vite-vetmedix`, but `useState` reads it from `.vite`. They are different objects. The read returns `null`. Crash.
+In simple terms: The form code is fine, but the app itself crashes before or during rendering due to a low-level infrastructure bug where two copies of React fight over internal state. This is the same `useState` null error visible in the error logs.
 
-### Why `reactSingleton.ts` failed
+### Secondary Issue: Zod Schema Mismatch
 
-`reactSingleton.ts` correctly proxies the `ReactCurrentDispatcher` from the first React copy to the second — but it runs **after** `react` and `react-dom` are already loaded and after `@tanstack/react-query` has been pre-bundled with its own internal React copy. By the time the proxy runs, a third copy (`@tanstack/react-query`'s embedded React) has already captured a stale dispatcher reference.
+The `doctorFormSchema` in `src/lib/validations.ts` is missing the `qualifications` and `avatar_url` fields that the `AddDoctorWizard` component sends. While Zod's `safeParse` silently ignores unknown keys (so it won't block submission), this means:
+- No validation is applied to `qualifications` or `avatar_url`
+- If the schema were changed to `strict()` mode in the future, the form would break silently
 
-### The Correct, Definitive Strategy
+## Finding 2: Data Flow Analysis
 
-**Stop fighting the infrastructure cache. Accept the multi-chunk reality. Fix at the application level.**
+The submission chain works as follows:
 
-The correct fix has two parts:
+1. `AddDoctorWizard.handleSubmit()` validates via `doctorFormSchema.safeParse(formData)`
+2. On success, calls `onSubmit()` prop which maps to `addDoctor.mutateAsync()` in `useClinicOwner`
+3. The hook inserts into `doctors` table with `created_by_clinic_id` set
+4. RLS policy allows this for authenticated clinic owners
+5. A trigger (`auto_link_clinic_doctor`) auto-links the doctor to the clinic
 
-**Part 1: Clean up `vite.config.ts` completely.** Remove ALL the accumulated, contradictory optimizeDeps changes. Go back to the simplest possible config. The key insight: `resolve.dedupe` is the ONLY Vite-level tool that works regardless of cache state. It forces all packages to resolve `react` to the SAME file on disk, even across chunks. This is the only config change that survives infrastructure pre-warming.
+This chain is correct. Error handling exists (`onError` shows toast). RLS policies are properly configured for clinic owners inserting doctors.
 
-**Part 2: Rewrite `reactSingleton.ts` to be truly exhaustive.** The previous version only proxied the internals from `react` itself. It needs to be smarter — it must run through ALL loaded React instances and cross-wire ALL their dispatchers to a single canonical one. Crucially, it must also handle `@tanstack/react-query` which bundles react internally.
+## Finding 3: Two Different "Add Doctor" Forms Exist
 
-**Part 3: Delete `reactProxy.ts`.** This file does nothing (its `entries` wiring was removed) and importing it confuses esbuild.
+There are actually **two completely separate** Add Doctor form implementations:
 
-**Part 4: Use `React.createElement` patching as a nuclear fallback.** If the dispatcher proxy still fails for any instance, we patch `React.createElement` itself to always set the correct dispatcher before creating elements.
+| Location | Component | Used By |
+|---|---|---|
+| `src/components/clinic/AddDoctorWizard.tsx` | Multi-step wizard with photo upload, Zod validation | Clinic Owner Dashboard |
+| `src/components/clinic/DoctorFormWizard.tsx` | Simpler 3-step wizard, no photo upload | Potentially unused or used elsewhere |
 
-### Files to Change
+The `DoctorFormWizard.tsx` has a different interface (`qualifications` as comma-separated string vs array) which could cause confusion if used in the wrong context.
 
-**`vite.config.ts`** — Strip all accumulated `optimizeDeps` complexity back to just `resolve.dedupe`. Keep `build.rollupOptions.manualChunks` for production (it works fine there). Remove `entries`, `force`, custom `cacheDir`, `exclude` lists.
+## Finding 4: Admin Panel Does NOT Have "Add Doctor"
 
-**`src/lib/reactSingleton.ts`** — Complete rewrite using a different, more reliable strategy: instead of proxying the dispatcher object (which fails if the proxy runs after internals are captured by closure), we patch the dispatcher resolution timing. The new approach:
-1. Registers the canonical React internals to `window.__REACT_INTERNALS__`
-2. Uses a `MutationObserver`-free, synchronous approach that patches ALL known React internal keys
-3. Adds `Object.defineProperty` getters on EVERY hook (`useState`, `useEffect`, `useCallback`, etc.) that always resolve through the canonical dispatcher — this is the nuclear fallback that guarantees correctness even when the closure-based approach fails
+The `AdminDoctors.tsx` page is purely for **reviewing and managing** existing doctors (approve, reject, block). It has no "Add Doctor" functionality. Only clinic owners can add doctors via the Clinic Dashboard.
 
-**`src/lib/reactProxy.ts`** — Delete this file entirely (it's dead code that adds confusion).
+## Plan to Fix
 
-**`src/main.tsx`** — Remove the import of `reactSingleton.ts` since we will redesign the approach to not require a separate singleton file. Instead, the fix will live inline in `main.tsx` before any imports.
+### Step 1: Fix the White Screen Crash (Priority 1 - Critical)
+Revert the `vite.config.ts` and `src/lib/reactSingleton.ts` to the last known working version before any React deduplication changes were introduced. This is the root cause preventing ALL forms from working.
 
-### Detailed Implementation
+### Step 2: Update Zod Schema (Priority 2 - Medium)
+Add `qualifications` and `avatar_url` fields to `doctorFormSchema` in `src/lib/validations.ts`:
 
-#### `vite.config.ts` — Minimal clean config
-```typescript
-export default defineConfig(({ mode }) => ({
-  server: { host: "::", port: 8080 },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
-  resolve: {
-    alias: { "@": path.resolve(__dirname, "./src") },
-    // The ONLY Vite-level fix that survives infrastructure cache pre-warming.
-    // Forces all packages resolving react/* to the same file on disk.
-    dedupe: ["react", "react-dom", "react/jsx-runtime"],
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          "vendor-react": ["react", "react-dom", "react/jsx-runtime", "react-router-dom"],
-          "vendor-query": ["@tanstack/react-query"],
-          "vendor-date": ["date-fns"],
-          "vendor-supabase": ["@supabase/supabase-js"],
-        },
-      },
-    },
-    chunkSizeWarningLimit: 600,
-  },
-}));
+```text
+qualifications: z.array(z.string()).optional()  // or string for comma-separated
+avatar_url: z.string().url().optional().or(z.literal(''))
 ```
 
-#### `src/lib/reactSingleton.ts` — Nuclear rewrite
-New strategy: Instead of only proxying `ReactCurrentDispatcher`, we patch **the actual hook functions** (`useState`, `useEffect`, etc.) on all secondary React instances to always delegate through the primary dispatcher. This works even when the internal `ReactCurrentDispatcher` closure variable has already been captured.
+### Step 3: Consolidate Duplicate Doctor Forms (Priority 3 - Low)
+Remove `DoctorFormWizard.tsx` if unused, or consolidate both wizard components into one shared component to prevent drift.
 
-```typescript
-import React from "react";
+## Global Form Inventory (Other Forms Needing Audit)
 
-// 1. Register the first-loaded React internals as canonical
-const internals = (React as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+| Form | Location | Validation | Status |
+|---|---|---|---|
+| Add/Edit Product | `AdminProducts.tsx` | `productFormSchema` (Zod) | Has validation |
+| Contact Form | `ContactPage.tsx` | `contactSchema` (Zod) | Has validation |
+| Checkout | `CheckoutPage.tsx` | `checkoutSchema` (Zod) | Has validation |
+| Login/Signup | `AuthPage.tsx` | `loginSchema`/`signupSchema` (Zod) | Has validation |
+| Add Service (Clinic) | `AddServiceWizard.tsx` | Needs audit | Unknown |
+| Clinic Verification | `ClinicVerificationPage.tsx` | Needs audit | Unknown |
+| Doctor Verification | `DoctorVerificationPage.tsx` | Needs audit | Unknown |
+| Write Review | `WriteReviewDialog.tsx` | `reviewSchema` (Zod) | Has validation |
+| Admin Settings | `AdminSettings.tsx` | Needs audit | Unknown |
+| Book Appointment | `BookAppointmentWizard.tsx` | `appointmentSchema` (Zod) | Has validation |
+| Edit Profile | `ProfilePage.tsx` | `profileSchema` (Zod) | Has validation |
 
-if (typeof window !== "undefined") {
-  const WIN = window as any;
-  
-  if (!WIN.__REACT_CANONICAL__) {
-    // This is the primary React instance. Store it.
-    WIN.__REACT_CANONICAL__ = { React, internals };
-  } else {
-    // A SECONDARY React instance was loaded. We must bridge them.
-    const canonical = WIN.__REACT_CANONICAL__;
-    const canonInternals = canonical.internals;
-    const canonDispatcher = canonInternals.ReactCurrentDispatcher;
-    const localDispatcher = internals.ReactCurrentDispatcher;
-    
-    // Strategy A: Proxy the dispatcher object's .current property
-    if (localDispatcher && canonDispatcher && localDispatcher !== canonDispatcher) {
-      Object.defineProperty(localDispatcher, "current", {
-        get() { return canonDispatcher.current; },
-        set(v) { canonDispatcher.current = v; },
-        configurable: true, enumerable: true,
-      });
-    }
-    
-    // Strategy B: Patch every exported hook on this secondary React instance
-    // to call through the canonical React. This is the nuclear fallback.
-    const hooksToProxy = [
-      "useState", "useEffect", "useLayoutEffect", "useCallback",
-      "useMemo", "useRef", "useContext", "useReducer", "useImperativeHandle",
-      "useDebugValue", "useDeferredValue", "useTransition", "useId",
-      "useSyncExternalStore", "useInsertionEffect",
-    ] as const;
-    
-    const canonReact = canonical.React;
-    hooksToProxy.forEach((hook) => {
-      if (typeof canonReact[hook] === "function" && React[hook] !== canonReact[hook]) {
-        (React as any)[hook] = canonReact[hook];
-      }
-    });
-    
-    // Also proxy batch config and owner
-    ["ReactCurrentBatchConfig", "ReactCurrentOwner"].forEach((key) => {
-      const local = internals[key];
-      const canon = canonInternals[key];
-      if (local && canon && local !== canon) {
-        Object.keys(canon).forEach((prop) => {
-          Object.defineProperty(local, prop, {
-            get() { return canon[prop]; },
-            set(v) { canon[prop] = v; },
-            configurable: true, enumerable: true,
-          });
-        });
-      }
-    });
-  }
-}
-```
+### Standardization Plan for Remaining Forms
+1. Ensure every form uses Zod validation with the schemas in `src/lib/validations.ts`
+2. Ensure all forms use responsive Tailwind classes (no hardcoded widths)
+3. Add consistent error toast feedback on all mutation failures
+4. Ensure mobile-first layouts with `grid-cols-1 sm:grid-cols-2` patterns
 
-This two-strategy approach (dispatcher proxy + hook function replacement) is bulletproof because:
-- **Strategy A** handles the common case where the dispatcher closure hasn't been captured yet
-- **Strategy B** handles the edge case where a third-party library (like `@tanstack/react-query`) has already captured the old dispatcher reference in a closure — by replacing the actual function reference, we bypass the closure entirely
