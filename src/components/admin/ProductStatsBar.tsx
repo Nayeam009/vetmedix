@@ -62,7 +62,7 @@ function getStatValue(key: string, stats: ProductStats): number {
 
 export const ProductStatsBar = memo(function ProductStatsBar({ stats, activeFilter, onFilterChange }: ProductStatsBarProps) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mb-4 sm:mb-6">
+    <div className="grid grid-cols-3 xs:grid-cols-3 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mb-4 sm:mb-6">
       {statCards.map(({ key, label, icon: Icon, iconColor, iconBg, bgClass }) => {
         const value = getStatValue(key, stats);
         const isActive = activeFilter === key;

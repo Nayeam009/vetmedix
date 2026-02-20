@@ -392,38 +392,38 @@ const AdminProducts = () => {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search products, type, category..." value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-10 sm:h-11 rounded-xl text-sm" />
+            onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-11 rounded-xl text-base sm:text-sm" />
           {searchQuery && (
             <button onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground">✕</button>
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center">✕</button>
           )}
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" className="h-10 sm:h-11 rounded-xl text-sm" onClick={() => setIsCategoryOpen(true)}>
-            <Tag className="h-4 w-4 sm:mr-1.5" />
-            <span className="hidden sm:inline">Categories</span>
+        <div className="flex gap-2">
+          <Button variant="outline" className="h-11 min-h-[44px] rounded-xl text-sm flex-shrink-0" onClick={() => setIsCategoryOpen(true)}>
+            <Tag className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1.5">Categories</span>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-10 sm:h-11 rounded-xl text-sm">
-                <Download className="h-4 w-4 sm:mr-1.5" />
-                <span className="hidden sm:inline">Import/Export</span>
+              <Button variant="outline" className="h-11 min-h-[44px] rounded-xl text-sm flex-shrink-0">
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline ml-1.5">Import/Export</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-popover z-50">
-              <DropdownMenuItem onClick={handleExportCSV} disabled={!filteredProducts.length}>
+              <DropdownMenuItem onClick={handleExportCSV} disabled={!filteredProducts.length} className="min-h-[44px]">
                 <Download className="h-4 w-4 mr-2" />Export CSV
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsImportOpen(true)}>
+              <DropdownMenuItem onClick={() => setIsImportOpen(true)} className="min-h-[44px]">
                 <FileSpreadsheet className="h-4 w-4 mr-2" />Import CSV
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsPDFImportOpen(true)}>
+              <DropdownMenuItem onClick={() => setIsPDFImportOpen(true)} className="min-h-[44px]">
                 <FileText className="h-4 w-4 mr-2" />Import PDF
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button onClick={() => { resetForm(); setIsAddOpen(true); }} className="h-10 sm:h-11 rounded-xl text-sm flex-1 sm:flex-none">
-            <Plus className="h-4 w-4 mr-1 sm:mr-2" /><span>Add Product</span>
+          <Button onClick={() => { resetForm(); setIsAddOpen(true); }} className="h-11 min-h-[44px] rounded-xl text-sm flex-1 sm:flex-none">
+            <Plus className="h-4 w-4 mr-1" /><span>Add Product</span>
           </Button>
         </div>
       </div>
@@ -444,7 +444,7 @@ const AdminProducts = () => {
           ) : (
             <>
               {/* Mobile Card View */}
-              <div className="sm:hidden divide-y divide-border">
+               <div className="sm:hidden divide-y divide-border">
                 {filteredProducts.map((product) => {
                   const stock = product.stock ?? 0;
                   const isLow = stock > 0 && stock <= LOW_STOCK_THRESHOLD;
@@ -456,88 +456,83 @@ const AdminProducts = () => {
 
                   return (
                     <div key={product.id}
-                      className={cn('p-3 flex gap-3 active:bg-muted/50 transition-colors',
+                      className={cn('p-3 transition-colors',
                         isOut && 'bg-destructive/5', isLow && 'bg-warning/5', !pActive && 'opacity-60'
-                      )}
-                      onClick={() => !isQuickEditing && openEditDialog(product)}>
-                      <div className="h-[72px] w-[72px] rounded-xl bg-secondary overflow-hidden flex-shrink-0 relative">
-                        {product.image_url ? (
-                          <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" loading="lazy" />
-                        ) : (
-                          <div className="h-full w-full flex items-center justify-center"><Package className="h-6 w-6 text-muted-foreground" /></div>
-                        )}
-                        {isOut && (
-                          <div className="absolute inset-0 bg-destructive/30 backdrop-blur-[1px] flex items-center justify-center">
-                            <span className="text-[9px] font-bold text-destructive-foreground bg-destructive/80 px-1.5 py-0.5 rounded">OUT</span>
-                          </div>
-                        )}
-                        {product.badge && !isOut && (
-                          <div className="absolute top-0.5 left-0.5">
-                            <Badge variant="secondary" className="text-[8px] px-1 py-0 h-4 rounded-md">{product.badge}</Badge>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <p className="font-medium text-sm truncate leading-tight">{product.name}</p>
-                              {pFeatured && <Star className="h-3 w-3 text-warning fill-warning flex-shrink-0" />}
+                      )}>
+                      {/* Top row: Image + Info */}
+                      <div className="flex gap-3" onClick={() => !isQuickEditing && openEditDialog(product)}>
+                        <div className="h-16 w-16 rounded-xl bg-secondary overflow-hidden flex-shrink-0 relative">
+                          {product.image_url ? (
+                            <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" loading="lazy" />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center"><Package className="h-5 w-5 text-muted-foreground" /></div>
+                          )}
+                          {isOut && (
+                            <div className="absolute inset-0 bg-destructive/30 backdrop-blur-[1px] flex items-center justify-center">
+                              <span className="text-[9px] font-bold text-destructive-foreground bg-destructive/80 px-1.5 py-0.5 rounded">OUT</span>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-0.5">{product.product_type || product.category}</p>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-1.5">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-sm truncate leading-tight">{product.name}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5 truncate">{product.product_type || product.category}</p>
+                            </div>
+                            <Badge variant="outline" className="text-[10px] flex-shrink-0 h-5 px-1.5">{product.category}</Badge>
                           </div>
-                          <div className="flex items-center gap-1">
-                            {!pActive && <Badge variant="outline" className="text-[9px] h-4 px-1 border-destructive/30 text-destructive">Inactive</Badge>}
-                            <Badge variant="outline" className="text-[10px] flex-shrink-0 h-5">{product.category}</Badge>
+                          <div className="flex items-center justify-between mt-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-primary text-sm">৳{product.price}</span>
+                              {comparePrice && comparePrice > product.price && (
+                                <span className="text-xs text-muted-foreground line-through">৳{comparePrice}</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              {pFeatured && <Star className="h-3 w-3 text-warning fill-warning flex-shrink-0" />}
+                              {!pActive && <Badge variant="outline" className="text-[9px] h-4 px-1 border-destructive/30 text-destructive">Off</Badge>}
+                              {getStockBadge(stock)}
+                            </div>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between mt-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-primary text-sm">৳{product.price}</span>
-                            {comparePrice && comparePrice > product.price && (
-                              <span className="text-xs text-muted-foreground line-through">৳{comparePrice}</span>
-                            )}
-                            {product.discount && product.discount > 0 && (
-                              <Badge variant="secondary" className="text-[10px] h-4 px-1">-{product.discount}%</Badge>
-                            )}
-                          </div>
-                          {getStockBadge(stock)}
-                        </div>
-                        {isQuickEditing ? (
-                          <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
-                            <Input type="number" value={quickStockEdit.stock}
-                              onChange={(e) => setQuickStockEdit({ ...quickStockEdit, stock: e.target.value })}
-                              className="h-8 rounded-xl text-sm w-20" autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleQuickStockUpdate(product.id, parseInt(quickStockEdit.stock) || 0);
-                                else if (e.key === 'Escape') setQuickStockEdit(null);
-                              }} />
-                            <Button size="sm" className="h-8 rounded-xl text-xs px-3"
-                              onClick={() => handleQuickStockUpdate(product.id, parseInt(quickStockEdit.stock) || 0)}>Save</Button>
-                            <Button size="sm" variant="ghost" className="h-8 rounded-xl text-xs px-2"
-                              onClick={() => setQuickStockEdit(null)}>✕</Button>
-                          </div>
-                        ) : (
-                          <div className="flex gap-1.5 mt-2">
-                            <Button variant="outline" size="sm" className="flex-1 h-8 rounded-xl text-xs"
-                              onClick={(e) => { e.stopPropagation(); openEditDialog(product); }}>
-                              <Edit2 className="h-3 w-3 mr-1" />Edit
-                            </Button>
-                            <Button variant={pFeatured ? "default" : "outline"} size="sm" className="h-8 rounded-xl text-xs px-2"
-                              onClick={(e) => { e.stopPropagation(); handleToggleFeatured(product.id, !pFeatured); }}>
-                              <Star className={`h-3 w-3 mr-1 ${pFeatured ? 'fill-current' : ''}`} />{pFeatured ? 'Featured' : 'Feature'}
-                            </Button>
-                            <Button variant="outline" size="sm" className="h-8 rounded-xl text-xs px-2"
-                              onClick={(e) => { e.stopPropagation(); setQuickStockEdit({ id: product.id, stock: stock.toString() }); }}>
-                              <PackagePlus className="h-3 w-3 mr-1" />Stock
-                            </Button>
-                            <Button variant="outline" size="sm" className="h-8 rounded-xl text-xs text-destructive hover:text-destructive px-2"
-                              onClick={(e) => { e.stopPropagation(); setSelectedProduct(product); setIsDeleteOpen(true); }}>
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        )}
                       </div>
+
+                      {/* Action buttons row */}
+                      {isQuickEditing ? (
+                        <div className="flex items-center gap-2 mt-2.5 pl-[76px]" onClick={(e) => e.stopPropagation()}>
+                          <Input type="number" value={quickStockEdit.stock}
+                            onChange={(e) => setQuickStockEdit({ ...quickStockEdit, stock: e.target.value })}
+                            className="h-9 rounded-xl text-base w-20" autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleQuickStockUpdate(product.id, parseInt(quickStockEdit.stock) || 0);
+                              else if (e.key === 'Escape') setQuickStockEdit(null);
+                            }} />
+                          <Button size="sm" className="h-9 rounded-xl text-xs px-3 min-h-[44px]"
+                            onClick={() => handleQuickStockUpdate(product.id, parseInt(quickStockEdit.stock) || 0)}>Save</Button>
+                          <Button size="sm" variant="ghost" className="h-9 rounded-xl text-xs px-2 min-h-[44px]"
+                            onClick={() => setQuickStockEdit(null)}>✕</Button>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-4 gap-1.5 mt-2.5">
+                          <Button variant="outline" size="sm" className="h-9 min-h-[44px] rounded-xl text-xs"
+                            onClick={(e) => { e.stopPropagation(); openEditDialog(product); }}>
+                            <Edit2 className="h-3.5 w-3.5 mr-1" />Edit
+                          </Button>
+                          <Button variant={pFeatured ? "default" : "outline"} size="sm" className="h-9 min-h-[44px] rounded-xl text-xs"
+                            onClick={(e) => { e.stopPropagation(); handleToggleFeatured(product.id, !pFeatured); }}>
+                            <Star className={`h-3.5 w-3.5 mr-1 ${pFeatured ? 'fill-current' : ''}`} />
+                            <span className="truncate">{pFeatured ? 'Yes' : 'Star'}</span>
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-9 min-h-[44px] rounded-xl text-xs"
+                            onClick={(e) => { e.stopPropagation(); setQuickStockEdit({ id: product.id, stock: stock.toString() }); }}>
+                            <PackagePlus className="h-3.5 w-3.5 mr-1" />Stock
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-9 min-h-[44px] rounded-xl text-xs text-destructive hover:text-destructive"
+                            onClick={(e) => { e.stopPropagation(); setSelectedProduct(product); setIsDeleteOpen(true); }}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
