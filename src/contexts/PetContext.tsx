@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import type { Pet } from '@/types/social';
@@ -61,8 +61,12 @@ export const PetProvider = ({ children }: { children: ReactNode }) => {
     refreshPets();
   }, [refreshPets]);
 
+  const value = useMemo(() => ({
+    pets, activePet, setActivePet, loading, refreshPets,
+  }), [pets, activePet, loading, refreshPets]);
+
   return (
-    <PetContext.Provider value={{ pets, activePet, setActivePet, loading, refreshPets }}>
+    <PetContext.Provider value={value}>
       {children}
     </PetContext.Provider>
   );

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +11,48 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // --- JWT Authentication (admin-only) ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+
+    // Check admin role
+    const { data: roleData } = await supabaseClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (!roleData) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden: admin access required" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    // --- End Authentication ---
+
     const { pdfBase64, pdfText } = await req.json();
 
     // Support both base64 PDF (preferred) and pre-extracted text (fallback)
@@ -53,7 +96,6 @@ Example output:
     const userParts: any[] = [];
 
     if (pdfBase64) {
-      // Send PDF directly to Gemini as inline data (native PDF understanding)
       userParts.push({
         type: "image_url",
         image_url: {
@@ -65,7 +107,6 @@ Example output:
         text: "Extract all products from this PDF document. Return only a JSON array.",
       });
     } else {
-      // Fallback: send extracted text
       const truncatedText = pdfText!.substring(0, 30000);
       userParts.push({
         type: "text",
@@ -113,11 +154,9 @@ Example output:
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "[]";
 
-    // Parse the AI response - handle potential markdown wrapping
     let products;
     try {
       let jsonStr = content.trim();
-      // Remove markdown code blocks if present
       if (jsonStr.startsWith("```")) {
         jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
       }
@@ -127,7 +166,6 @@ Example output:
         throw new Error("Expected an array of products");
       }
 
-      // Validate and clean each product
       products = products
         .filter((p: any) => p && typeof p === "object" && p.name)
         .map((p: any) => ({

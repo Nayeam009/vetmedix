@@ -14,6 +14,7 @@ import OfflineIndicator from "@/components/OfflineIndicator";
 import { RequireClinicOwner } from "@/components/clinic/RequireClinicOwner";
 import { RequireDoctor } from "@/components/doctor/RequireDoctor";
 import { RequireAdmin } from "@/components/admin/RequireAdmin";
+import { RequireAuth } from "@/components/auth/RequireAuth";
 
 // ALL page routes lazy-loaded for minimal initial bundle
 const Index = lazy(() => import("./pages/Index"));
@@ -163,21 +164,21 @@ const App = () => (
                     <Route path="/doctors" element={<DoctorsPage />} />
                     <Route path="/doctor/:id" element={<DoctorDetailPage />} />
                     
-                    {/* Public routes - lazy loaded */}
-                    <Route path="/feed" element={<FeedPage />} />
+                    {/* Auth-guarded social routes */}
+                    <Route path="/feed" element={<RequireAuth><FeedPage /></RequireAuth>} />
                     <Route path="/explore" element={<ExplorePage />} />
-                    <Route path="/messages" element={<MessagesPage />} />
-                    <Route path="/notifications" element={<NotificationsPage />} />
-                    <Route path="/chat/:conversationId" element={<ChatPage />} />
+                    <Route path="/messages" element={<RequireAuth><MessagesPage /></RequireAuth>} />
+                    <Route path="/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
+                    <Route path="/chat/:conversationId" element={<RequireAuth><ChatPage /></RequireAuth>} />
                     <Route path="/pet/:id" element={<PetProfilePage />} />
-                    <Route path="/pets/new" element={<CreatePetPage />} />
-                    <Route path="/pets/:id/edit" element={<EditPetPage />} />
+                    <Route path="/pets/new" element={<RequireAuth><CreatePetPage /></RequireAuth>} />
+                    <Route path="/pets/:id/edit" element={<RequireAuth><EditPetPage /></RequireAuth>} />
                     <Route path="/cart" element={<CartPage />} />
                     <Route path="/checkout" element={<CheckoutPage />} />
                     <Route path="/product/:id" element={<ProductDetailPage />} />
                      <Route path="/clinic/:id" element={<ClinicDetailPage />} />
-                    <Route path="/book-appointment/:clinicId" element={<BookAppointmentPage />} />
-                    <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/book-appointment/:clinicId" element={<RequireAuth><BookAppointmentPage /></RequireAuth>} />
+                    <Route path="/profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
                     <Route path="/wishlist" element={<WishlistPage />} />
                     <Route path="/track-order" element={<TrackOrderPage />} />
                     

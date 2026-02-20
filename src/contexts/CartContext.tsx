@@ -34,8 +34,6 @@ function readStoredCart(): CartItem[] {
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  console.log('CartProvider naturally mounted');
-
   const [items, setItems] = useState<CartItem[]>(readStoredCart);
 
   useEffect(() => {
