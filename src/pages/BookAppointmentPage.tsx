@@ -9,7 +9,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useClinicDoctorsWithSchedules } from '@/hooks/useDoctorSchedules';
 import { useQuery } from '@tanstack/react-query';
@@ -29,7 +29,7 @@ const BookAppointmentPage = () => {
   const preSelectedDoctorId = searchParams.get('doctor');
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { toast } = useToast();
+  
   const [isPending, setIsPending] = useState(false);
 
   // Fetch clinic details - use clinics_public view for security
@@ -73,11 +73,7 @@ const BookAppointmentPage = () => {
       if (error) {
         // The DB function raises a friendly message on slot conflict
         if (error.message.includes('already booked')) {
-          toast({
-            title: 'Slot Unavailable',
-            description: 'This time slot is already booked. Please choose a different time.',
-            variant: 'destructive'
-          });
+          toast.error('This time slot is already booked. Please choose a different time.');
           setIsPending(false);
           return;
         }
@@ -119,17 +115,10 @@ const BookAppointmentPage = () => {
         }
       }
       
-      toast({ 
-        title: 'Appointment Booked!', 
-        description: 'You will receive a confirmation soon.' 
-      });
+      toast.success('Appointment Booked! You will receive a confirmation soon.');
       navigate('/profile');
     } catch (error: unknown) {
-      toast({ 
-        title: 'Error', 
-        description: 'Failed to book appointment. Please try again.', 
-        variant: 'destructive' 
-      });
+      toast.error('Failed to book appointment. Please try again.');
     } finally {
       setIsPending(false);
     }

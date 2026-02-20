@@ -23,6 +23,7 @@ import { logger } from '@/lib/logger';
 import { createAdminNotification } from '@/lib/notifications';
 import { validateDocumentFile, removeStorageFiles } from '@/lib/storageUtils';
 import { doctorVerificationSchema } from '@/lib/validations';
+import { DoctorVerificationSkeleton } from '@/components/doctor/DoctorVerificationSkeleton';
 
 const DoctorVerificationPage = () => {
   const navigate = useNavigate();
@@ -152,11 +153,7 @@ const DoctorVerificationPage = () => {
   };
 
   if (roleLoading || profileLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <DoctorVerificationSkeleton />;
   }
 
   // Handle case where doctor profile doesn't exist yet

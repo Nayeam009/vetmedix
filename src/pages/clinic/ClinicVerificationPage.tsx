@@ -30,6 +30,7 @@ import logo from '@/assets/logo.jpeg';
 import { notifyAdminsOfNewVerification } from '@/lib/notifications';
 import { removeStorageFiles } from '@/lib/storageUtils';
 import { clinicVerificationSchema } from '@/lib/validations';
+import { ClinicVerificationSkeleton } from '@/components/clinic/ClinicVerificationSkeleton';
 
 const ClinicVerificationPage = () => {
   const navigate = useNavigate();
@@ -210,11 +211,7 @@ const ClinicVerificationPage = () => {
 
   // Loading states
   if (authLoading || roleLoading || clinicLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <ClinicVerificationSkeleton />;
   }
 
   // Not authenticated or not a clinic owner
