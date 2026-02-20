@@ -13,8 +13,13 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Force every import of react / react-dom to resolve to the SAME physical file.
+      // This eliminates duplicate-React crashes caused by pre-bundled deps
+      // loading a separate copy of React.
+      "react": path.resolve(__dirname, "node_modules/react"),
+      "react-dom": path.resolve(__dirname, "node_modules/react-dom"),
     },
-    dedupe: ["react", "react-dom"],
+    dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   optimizeDeps: {
     include: [
