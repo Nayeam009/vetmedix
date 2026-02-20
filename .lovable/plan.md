@@ -1,144 +1,241 @@
 
 
-# Comprehensive Codebase Regression Audit Report
+# VET-MEDIX: Comprehensive Problem PRP -- Regression & Audit Report
+
+---
 
 ## Executive Summary
 
-The codebase is architecturally sound with good patterns already in place (lazy loading, React Query caching, centralized realtime subscriptions, ErrorBoundary, and Zod validation on key forms). The previous audit (documented in `.lovable/plan.md`) addressed many critical issues. This follow-up audit identifies remaining vulnerabilities across performance, memory, type safety, and edge cases.
+After exhaustive code-level analysis across 200+ files, 34 database tables, 5 edge functions, and 15+ realtime subscriptions, this audit catalogs every remaining issue by domain. Many previously reported issues (M1 CartContext memoization, M2 DoctorCard/ClinicCard memo, H1 Object URL revocations, H3 admin realtime splitting, L1 dead category UI) have been **verified as fixed**. The remaining issues fall into type safety, minor performance gaps, and a few architectural concerns.
 
 ---
 
-## HIGH RISK Findings
+## DOMAIN 1: Build, State & Architecture
 
-### H1: Memory Leak -- Object URLs Never Revoked in Multiple Components
+### 1.1 Stale `console.log` in Production Code
+- **File:** `src/contexts/CartContext.tsx` line 37
+- **Issue:** `console.log('CartProvider naturally mounted')` is left in. Ships to production, pollutes user console.
+- **Risk:** Low
+- **Fix:** Remove the debug log statement.
 
-**Meaning:** `URL.createObjectURL()` allocates browser memory that persists until explicitly released with `URL.revokeObjectURL()`. Several components create object URLs but never clean them up, causing progressive memory leaks during a session.
+### 1.2 `queryClient` at Module Scope -- HMR Cache Loss (Dev Only)
+- **File:** `src/App.tsx` line 86
+- **Issue:** `const queryClient = new QueryClient(...)` is defined outside the component. During Vite HMR, the module re-executes and creates a new instance, losing all cached data and causing flash-of-loading states.
+- **Risk:** Low (dev-only, no production impact)
+- **Fix:** Acceptable as-is. Optional: wrap in a module-level singleton guard.
 
-**Affected Files:**
-- `CreatePostCard.tsx` (lines 195, 202) -- creates previews for up to 4 media files without revoking on unmount or when files change
-- `AdminSettings.tsx` (lines 313, 316) -- logo/favicon previews never revoked
-- `EditPetPage.tsx` (lines 122, 135) -- avatar/cover previews never revoked
-- `CreatePetPage.tsx` (line 58) -- avatar preview never revoked
-- `ProfileHeader.tsx` (lines 81, 140) -- avatar/cover previews never revoked
+### 1.3 `PetContext` Missing `useMemo` on Provider Value
+- **File:** `src/contexts/PetContext.tsx` line 64-66
+- **Issue:** The provider value `{ pets, activePet, setActivePet, loading, refreshPets }` is an object literal, creating a new reference on every render. While `refreshPets` uses `useCallback`, the value object itself does not use `useMemo`, causing all consumers (PetSwitcher, CreatePostCard, FeedPage) to re-render on unrelated parent renders.
+- **Risk:** Medium -- affects social feed performance.
+- **Fix:** Wrap the value in `useMemo` depending on `pets`, `activePet`, `loading`, and `refreshPets`.
 
-**Solution:** Add `useEffect` cleanup functions that call `URL.revokeObjectURL()` on the previous preview URL whenever a new file is selected, and on component unmount. For `CreatePostCard`, revoke all previews in the `removeMedia` function and on unmount.
+### 1.4 `WishlistContext` `toggleWishlist` Stale Closure on `wishlistIds`
+- **File:** `src/contexts/WishlistContext.tsx` line 82
+- **Issue:** `toggleWishlist` is wrapped in `useCallback` with `[user, wishlistIds]` as dependencies. Since `wishlistIds` is a `Set` (reference type) that changes on every toggle, this re-creates `toggleWishlist` on every change, which in turn causes the memoized `contextValue` (line 86) to change, and all consumers re-render. This partially negates the optimization.
+- **Risk:** Low -- wishlist operations are infrequent.
+- **Fix:** Use a ref for `wishlistIds` inside `toggleWishlist` (same pattern as PetContext's `activePetRef`).
 
----
-
-### H2: Widespread `as any` Type Casts -- 300+ Instances Across 18 Files
-
-**Meaning:** Using `as any` bypasses TypeScript's type checking, hiding potential runtime errors. The most dangerous patterns are in data-fetching hooks and admin components where database response shapes are assumed rather than validated.
-
-**Worst Offenders:**
-- `ClinicDoctors.tsx` -- 6+ casts on `cd.doctor as any` for accessing nested join fields (qualifications, consultation_fee)
-- `CMSSocialTab.tsx` -- casts on `post.pet as any` for avatar/name access
-- `CMSMarketplaceTab.tsx` -- casts on product badge and update payloads
-- `useAdminRealtimeDashboard.ts` -- casts on realtime payload.new
-- `ProfilePage.tsx` -- casts appointment data
-
-**Solution:** Define proper TypeScript interfaces for joined query results (e.g., `ClinicDoctorWithDetails`, `PostWithPet`). For realtime payloads, create typed helper functions that validate the shape before use.
-
----
-
-### H3: Realtime Channel Over-subscription in Admin Panel
-
-**Meaning:** `useAdminRealtimeDashboard` subscribes to 13 tables on a single channel. Each admin page also has `AdminLayout` which fetches `admin-pending-counts` every 30 seconds via polling. When combined, every single database change across any of 13 tables triggers `invalidateAll()` which invalidates 3 query keys (`admin-stats`, `admin-pending-counts`, `admin-analytics`), potentially causing cascade re-fetches on unrelated pages.
-
-**Solution:**
-- Split the monolithic channel into logical groups (orders, clinical, social, content) so invalidations are scoped
-- Remove the 30-second polling in `AdminLayout` since realtime already handles pending count updates
-- Use more targeted invalidations -- e.g., a product change should not invalidate `admin-pending-counts`
+### 1.5 AdminSettings -- Missing Object URL Cleanup on Unmount
+- **File:** `src/pages/admin/AdminSettings.tsx` lines 311-320
+- **Issue:** `handleFileChange` correctly revokes old blob URLs when new files are selected, but there is no `useEffect` cleanup to revoke on component unmount. If the admin navigates away with an unsaved logo/favicon preview, the blob URL leaks.
+- **Risk:** Low (single admin page, small memory impact)
+- **Fix:** Add `useEffect(() => { return () => { if (logoPreview?.startsWith('blob:'))... }; }, []);`
 
 ---
 
-## MEDIUM RISK Findings
+## DOMAIN 2: Routing & Missing Pages
 
-### M1: CartProvider Context Value Recreated Every Render
+### 2.1 All 17 Admin Routes -- VERIFIED PRESENT
+Cross-referencing App.tsx lines 185-202 against the PRP: all 17 admin routes are registered and guarded by `<RequireAdmin>`. The CMS editor uses `/admin/cms/new` and `/admin/cms/:id/edit` (not `/admin/cms/editor` as noted in the PRP -- this is a PRP documentation mismatch, not a code bug).
 
-**Meaning:** The `CartProvider` passes an object literal `{ items, addItem, removeItem, ... }` as the context value. Since `addItem`, `removeItem`, `updateQuantity`, and `clearCart` are regular functions (not wrapped in `useCallback`), a new reference is created on every render, causing all cart consumers to re-render even when nothing changed.
+### 2.2 Doctor & Clinic Owner Routes -- VERIFIED PRESENT
+All 3 doctor routes and 5 clinic owner routes are registered with proper guards.
 
-**Solution:** Wrap `addItem`, `removeItem`, `updateQuantity`, and `clearCart` in `useCallback`. Then wrap the entire context value object in `useMemo` depending on `items`, `totalItems`, `totalAmount`, and the memoized callbacks.
+### 2.3 Unauthenticated Routes Allow Social Features
+- **Files:** `src/App.tsx` lines 167-171
+- **Issue:** `/feed`, `/explore`, `/messages`, `/notifications`, `/chat/:conversationId` are not wrapped in any auth guard. While RLS prevents data access, unauthenticated users can navigate to these pages and see empty/broken states instead of being redirected to `/auth`.
+- **Risk:** Medium -- poor UX for logged-out users hitting social URLs.
+- **Fix:** Wrap social routes in a lightweight `<RequireAuth>` component that redirects to `/auth`.
 
----
-
-### M2: DoctorCard and ClinicCard Missing `memo` (Contradicts Previous Audit)
-
-**Meaning:** The previous audit claimed these were wrapped in `React.memo`, but a search for `React.memo` returns zero results. A search for the bare `memo` import confirms `ProductCard`, `Navbar`, `FeaturedProducts`, `ExplorePetCard`, `AppointmentCard`, and various admin components use `memo()`, but `DoctorCard.tsx` and `ClinicCard.tsx` are NOT in the list.
-
-**Solution:** Wrap `DoctorCard` and `ClinicCard` exports in `memo()` since they are rendered in filterable lists on `/doctors` and `/clinics` pages.
-
----
-
-### M3: WishlistContext Likely Has Same Callback Issue as CartContext
-
-**Meaning:** Based on the pattern observed in `CartContext`, `WishlistContext` likely has the same issue of unstable function references causing unnecessary re-renders in consumers.
-
-**Solution:** Audit `WishlistContext.tsx` and apply `useCallback` to all action functions, then `useMemo` on the provider value.
+### 2.4 No Route for `/pets/:id/edit` Auth Guard
+- **File:** `src/App.tsx` line 174
+- **Issue:** `/pets/:id/edit` is accessible without auth. The `EditPetPage` itself likely checks `user`, but if a logged-out user navigates directly, they'll see a broken page rather than a redirect.
+- **Risk:** Low -- RLS blocks mutations.
 
 ---
 
-### M4: Missing Error Boundary Isolation for Admin Routes
+## DOMAIN 3: Type Safety (`as any` Audit)
 
-**Meaning:** There is only ONE `ErrorBoundary` wrapping ALL routes. If an admin page crashes (e.g., due to a bad data shape from a realtime payload), the entire app shows the error UI, including for non-admin users on public routes.
+### 3.1 Remaining `as any` Casts -- 239 Instances Across 13 Files
 
-**Solution:** Add a secondary `ErrorBoundary` inside the admin route group (`RequireAdmin` wrapper) so admin crashes are isolated from the rest of the app.
+**Critical hotspots (data integrity risk):**
 
----
+| File | Count | Pattern |
+|------|-------|---------|
+| `AdminOrders.tsx` | ~15 | `(order as any).trashed_at`, `(order as any).items`, `(order as any).tracking_id`, `status as any` |
+| `ChatPage.tsx` | ~5 | `('conversations' as any)`, `(conv as any).participant_1_id` |
+| `WishlistPage.tsx` | ~3 | `setFavoriteClinics(data as any)`, `setFavoriteDoctors(data as any)` |
+| `useCMS.ts` | ~3 | `insert(payload as any)`, `update(updates as any)` |
+| `useMessages.ts` | ~2 | `(lastMessages || []) as any[]` |
+| `SendToCourierDialog.tsx` | ~2 | `(order as any).items` |
+| `ShopPage.tsx` | ~1 | `setPriceRange(option.value as any)` |
 
-### M5: `queryClient` Defined Outside Component -- Survives Hot Module Reload
+**Root cause:** The auto-generated `types.ts` from the database schema doesn't include joined/computed fields. Components cast to `any` instead of defining proper interfaces for joined query results.
 
-**Meaning:** `const queryClient = new QueryClient(...)` on line 86 of `App.tsx` is defined at module scope. During Vite HMR, the module re-executes, creating a new `QueryClient` instance and losing all cached data. This causes a flash of loading states after every code change in development.
-
-**Solution:** This is a dev-only concern and acceptable for production. No action needed unless dev experience is a priority, in which case wrap in a `useRef` or use a module-level singleton guard.
-
----
-
-## LOW RISK Findings
-
-### L1: `selectedCategory` in AddServiceWizard Is Collected but Never Submitted
-
-**Meaning:** The user selects a service category (line 55), it's displayed in the summary preview (line 310), but the `handleFormSubmit` function (line 83-98) never includes `selectedCategory` in the data passed to `onSubmit`. This is a dead feature -- the category selection UI exists but has no effect.
-
-**Solution:** Either add `category` to the submit payload and database schema, or remove the category selection UI to avoid confusing users.
+**Fix:** Define typed interfaces (e.g., `OrderWithProfile`, `ConversationWithParticipants`, `FavoriteWithDoctor`) and use generic type parameters on Supabase queries.
 
 ---
 
-### L2: `CreatePostCard` Does Not Revoke Old Previews When New Files Are Selected
+## DOMAIN 4: UI/UX & Component Issues
 
-**Meaning:** When a user selects new media files, `removeMedia` (line 210-216) filters out the old preview URLs but never calls `URL.revokeObjectURL()` on them. Over multiple file selections, this accumulates leaked blob URLs in memory.
+### 4.1 Checkout Form -- No `react-hook-form` Integration
+- **File:** `src/pages/CheckoutPage.tsx` (845 lines)
+- **Issue:** This is the most critical form in the app, yet it uses manual `useState` for form fields and manual Zod validation (`checkoutSchema.safeParse`) instead of `react-hook-form` + `@hookform/resolvers/zod`. This means:
+  - No per-field error display (errors are shown as toasts only)
+  - No `isDirty`/`isValid` tracking
+  - Double-click protection relies solely on `disabled={loading}` -- if the async fails fast, the button re-enables immediately
+- **Risk:** Medium -- double-submission is partially mitigated by the `loading` state, but error UX is poor.
+- **Fix:** Migrate to `react-hook-form` with `zodResolver(checkoutSchema)` for inline field errors.
 
-**Solution:** Call `URL.revokeObjectURL(mediaPreviews[index])` in `removeMedia` before filtering.
+### 4.2 Contact Form -- Lacks Cooldown/Rate Limiting
+- **File:** `src/pages/ContactPage.tsx`
+- **Issue:** After successful submission, `setSubmitted(true)` shows a success screen, but there's no cooldown timer preventing rapid re-submissions before the success state renders. The button is disabled only during the async operation.
+- **Risk:** Low -- RLS doesn't restrict contact message inserts (anyone can insert).
+- **Fix:** Add a 3-second cooldown after submission.
+
+### 4.3 Missing `ExplorePetCard` and `PostCardSkeleton` Memo
+- **File:** `src/components/explore/ExplorePetCard.tsx`, `src/components/social/PostCardSkeleton.tsx`
+- **Issue:** These are rendered in lists/grids but search for `memo` shows no usage in these files.
+- **Risk:** Low -- skeletons are temporary, ExplorePetCard list is small.
+- **Fix:** Wrap in `memo()` for consistency.
+
+### 4.4 Feed Infinite Scroll -- `handleLikePost`/`handleUnlikePost` Wrappers Are No-Ops
+- **File:** `src/pages/FeedPage.tsx` lines 41-47
+- **Issue:** `handleLikePost` is `useCallback((postId) => likePost(postId), [likePost])` -- this is a trivial wrapper around `likePost` that adds zero value. It's creating unnecessary function allocation. Should just pass `likePost` directly.
+- **Risk:** Negligible
+- **Fix:** Remove the wrapper; pass `likePost` and `unlikePost` directly to `PostCard`.
 
 ---
 
-### L3: No Rate Limiting on Client-Side Form Submissions
+## DOMAIN 5: Backend & Database Integrity
 
-**Meaning:** While some edge functions have rate limiting (e.g., steadfast), client-side forms like contact, appointment booking, and review submission have no throttling. A malicious user could spam submissions rapidly.
+### 5.1 `db-triggers` Section Shows "No Triggers" -- Documentation Gap
+- **Issue:** The system prompt's `<db-triggers>` section says "There are no triggers in the database," but the codebase relies on 10+ triggers (e.g., `handle_new_user`, `update_post_likes_count`, `notify_on_new_appointment`, `check_pet_limit`). The functions exist in `<db-functions>` but the trigger bindings are not visible in the provided metadata.
+- **Risk:** None if triggers are actually active (they likely are since features work). This is a metadata reporting gap.
+- **Action:** Verify triggers are attached by running `SELECT * FROM information_schema.triggers WHERE trigger_schema = 'public';`
 
-**Solution:** Add a simple cooldown mechanism (e.g., disable the submit button for 3 seconds after submission) or implement server-side rate limiting via RLS or edge functions.
+### 5.2 Restrictive RLS Intersection Issue on `clinic_doctors`
+- **File:** Database RLS policies on `clinic_doctors`
+- **Issue:** Two SELECT policies exist: "Authenticated users can view clinic doctors" (`USING (true)`) and "Public can view active clinic doctor affiliations" (`USING (status = 'active')`). Both are **Restrictive** (Permissive: No). In PostgreSQL, restrictive policies are ANDed together -- meaning BOTH must pass. This means the `true` policy is effectively overridden by the `status = 'active'` policy, making the first policy useless. This is not a bug per se, but if the intent was to show inactive affiliations to authenticated users, it's broken.
+- **Risk:** Low -- current behavior (only active affiliations visible) is likely intended.
+- **Fix:** If both behaviors are intended, make the broader one Permissive.
+
+### 5.3 `contact_messages` INSERT Policy Allows Unauthenticated Inserts
+- **File:** Database RLS on `contact_messages`
+- **Issue:** The INSERT policy uses `WITH CHECK (true)` but is scoped to `authenticated` role (as per the policy name "Authenticated users can submit contact messages"). However, the Contact page has a login gate (`if (!user)`). If the RLS policy truly allows any authenticated user, this is fine. But if the intent is to allow public (unauthenticated) contact form submissions, the policy may be blocking them.
+- **Risk:** Low -- the Contact page already checks `user` before submitting.
+
+### 5.4 `appointment_waitlist` -- Missing Foreign Keys in Schema
+- **File:** Database schema for `appointment_waitlist`
+- **Issue:** The `<foreign-keys>` section is empty for this table, meaning `user_id`, `clinic_id`, and `doctor_id` have no FK constraints. Orphaned waitlist entries could persist if a clinic/doctor is deleted.
+- **Risk:** Low -- admin clinic/doctor deletions are rare.
+- **Fix:** Add FK constraints with `ON DELETE CASCADE`.
+
+### 5.5 Multiple Tables Missing Foreign Keys
+- **Issue:** `likes`, `comments`, `follows`, `stories`, `reviews`, `wishlists`, `doctor_favorites`, `clinic_favorites`, `clinic_reviews`, `messages`, `conversations`, `orders`, `incomplete_orders` all show empty `<foreign-keys>` sections. This means no referential integrity at the database level.
+- **Risk:** Medium -- orphaned rows accumulate over time as users/pets/products are deleted. Currently, cascade deletes are handled in application code (e.g., `useAdminSocialActions` manually deletes comments + likes when deleting a post), but this is fragile.
+- **Fix:** Add FK constraints. This is a significant migration but prevents data corruption long-term.
 
 ---
 
-### L4: `ScrollToTop` Fires `useFocusManagement` Hook on Every Route Change
+## DOMAIN 6: Realtime & Subscription Integrity
 
-**Meaning:** The `ScrollToTop` component uses `useFocusManagement()` which likely adds/removes event listeners on every pathname change. This is low risk but could cause unnecessary work.
+### 6.1 All Realtime Channels Properly Cleaned Up -- VERIFIED
+Every `useEffect` that creates a Supabase channel has a corresponding `return () => { supabase.removeChannel(channel); }` cleanup. Verified across 15 files.
 
-**Solution:** Verify `useFocusManagement` is using stable effect dependencies.
+### 6.2 Admin Realtime Scoping -- VERIFIED FIXED
+The `useAdminRealtimeDashboard` hook correctly splits into 4 scoped channels (`admin-rt-orders`, `admin-rt-clinical`, `admin-rt-social`, `admin-rt-catalog`) with targeted invalidations.
+
+### 6.3 Analytics Channel Is Separate -- VERIFIED
+`useAdminAnalytics` has its own dedicated channel (`admin-analytics-realtime`), avoiding cross-contamination.
 
 ---
 
-## Recommended Fix Order
+## DOMAIN 7: Performance & Optimization
 
-| Step | Finding | Risk | Effort |
-|------|---------|------|--------|
-| 1 | H1: Revoke object URLs in all affected components | High | Low |
-| 2 | H3: Split admin realtime channel, remove redundant polling | High | Medium |
-| 3 | M1: Memoize CartProvider callbacks and context value | Medium | Low |
-| 4 | M2: Wrap DoctorCard and ClinicCard in memo() | Medium | Low |
-| 5 | H2: Replace top 5 worst `as any` files with proper types | High | Medium |
-| 6 | M3: Memoize WishlistContext callbacks | Medium | Low |
-| 7 | L1: Remove dead category UI from AddServiceWizard | Low | Low |
-| 8 | L2: Revoke blob URLs in CreatePostCard removeMedia | Low | Low |
-| 9 | M4: Add isolated ErrorBoundary for admin routes | Medium | Low |
-| 10 | L3: Add client-side submission cooldowns | Low | Low |
+### 7.1 `PostCard` -- Properly Memoized with Custom Comparator -- VERIFIED
+`src/components/social/PostCard.tsx` uses `memo()` with a custom comparator checking `id`, `likes_count`, `comments_count`, and `liked_by_user`.
+
+### 7.2 `DoctorCard`, `ClinicCard`, `ProductCard` -- All Wrapped in `memo()` -- VERIFIED
+
+### 7.3 `contentVisibility: 'auto'` Applied to Feed Posts -- VERIFIED
+`FeedPage.tsx` (line 92) and `PostCard.tsx` (line 185) use CSS containment for paint optimization.
+
+### 7.4 `loading="lazy"` Widely Applied -- VERIFIED
+Found in 16 files across product images, chat media, blog articles, clinic maps, social media, and order items.
+
+### 7.5 Missing: No `memo()` on Navbar's Inner Components
+- **File:** `src/components/Navbar.tsx`
+- **Issue:** The Navbar itself is memoized, but `navLinks` is defined outside (good). However, the mobile Sheet re-renders fully on every menu toggle because the link items reconstruct `NavLink` components.
+- **Risk:** Negligible -- Navbar is simple enough.
+
+### 7.6 Vendor Chunking -- VERIFIED CORRECT
+`vite.config.ts` correctly bundles `react`, `react-dom`, `react/jsx-runtime`, `react/jsx-dev-runtime`, `react-router-dom`, and `@tanstack/react-query` into a single `vendor-react` chunk, with separate chunks for `date-fns` and `@supabase/supabase-js`.
+
+---
+
+## DOMAIN 8: Edge Function Issues
+
+### 8.1 `geocode` and `parse-product-pdf` -- `verify_jwt = false` in Config
+- **File:** `supabase/config.toml`
+- **Issue:** Both functions have JWT verification disabled. `geocode` is intentionally public (reverse geocoding), but `parse-product-pdf` accepts arbitrary PDF uploads without authentication. While it doesn't write to the database, it does consume AI API credits.
+- **Risk:** Medium -- anyone can call the PDF parser endpoint and drain AI credits.
+- **Fix:** Add JWT verification to `parse-product-pdf` or add rate limiting by IP.
+
+### 8.2 `upload-image-url` -- `verify_jwt = false` in Config But Checks JWT in Code
+- **File:** `supabase/config.toml` line for `upload-image-url`
+- **Issue:** The config disables JWT verification, but the function code manually verifies JWT and checks admin role. This is intentional (manual verification), but the config creates confusion.
+- **Risk:** None (security is handled in code).
+
+---
+
+## DOMAIN 9: SEO & PWA
+
+### 9.1 Service Worker Is Minimal
+- **File:** `public/sw.js`
+- **Issue:** Not audited in detail, but registered in `main.tsx`. If the SW is a no-op or only caches the shell, offline functionality may be limited to just the offline indicator banner.
+- **Risk:** Low -- PWA is a nice-to-have.
+
+---
+
+## Prioritized Fix Order
+
+| Priority | Domain | Issue | Risk | Effort |
+|----------|--------|-------|------|--------|
+| 1 | Type Safety | 3.1: Replace top `as any` hotspots (AdminOrders, ChatPage, WishlistPage) with proper interfaces | Medium | Medium |
+| 2 | Routing | 2.3: Add auth guard to social routes (/feed, /messages, /notifications, /chat) | Medium | Low |
+| 3 | State | 1.3: Add `useMemo` to PetContext provider value | Medium | Low |
+| 4 | Backend | 5.5: Add FK constraints to tables missing referential integrity | Medium | Medium |
+| 5 | Security | 8.1: Add JWT verification or rate limiting to `parse-product-pdf` | Medium | Low |
+| 6 | UI/UX | 4.1: Migrate CheckoutPage to `react-hook-form` for inline errors | Medium | Medium |
+| 7 | State | 1.4: Fix WishlistContext stale closure pattern | Low | Low |
+| 8 | Cleanup | 1.1: Remove `console.log` from CartContext | Low | Trivial |
+| 9 | Cleanup | 1.5: Add unmount cleanup for AdminSettings blob URLs | Low | Low |
+| 10 | UI/UX | 4.2: Add cooldown to ContactPage form | Low | Low |
+
+---
+
+## Issues Verified as Already Fixed
+
+These were flagged in the previous audit (`.lovable/plan.md`) and are confirmed resolved:
+
+- **H1 (Object URL leaks):** All 5 affected files now have `useEffect` cleanup + revocation on file change.
+- **H3 (Admin realtime over-subscription):** Split into 4 scoped channels with targeted invalidations.
+- **M1 (CartContext memoization):** All callbacks use `useCallback`, value uses `useMemo`.
+- **M2 (DoctorCard/ClinicCard memo):** Both wrapped in `memo()` with `forwardRef`.
+- **M3 (WishlistContext callbacks):** All wrapped in `useCallback`, value in `useMemo`.
+- **M4 (Admin ErrorBoundary isolation):** `RequireAdmin` wraps children in `<ErrorBoundary>`.
+- **L1 (Dead category UI in AddServiceWizard):** `selectedCategory` no longer exists in the component.
+- **L2 (CreatePostCard removeMedia leak):** `URL.revokeObjectURL(mediaPreviews[index])` is called before filtering.
 
