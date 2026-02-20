@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Mail, Phone, MapPin, Send, Loader2, CheckCircle, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,8 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
+const COOLDOWN_SECONDS = 3;
+
 const ContactPage = () => {
   useDocumentTitle('Contact Us');
   const { user } = useAuth();
@@ -28,9 +30,20 @@ const ContactPage = () => {
   });
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  // Cooldown timer after successful submission
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown(c => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (cooldown > 0) return;
+
     const result = contactSchema.safeParse(formData);
     if (!result.success) {
       const firstError = result.error.errors[0]?.message || 'Please fill in all required fields';
@@ -52,6 +65,7 @@ const ContactPage = () => {
       if (error) throw error;
       
       setSubmitted(true);
+      setCooldown(COOLDOWN_SECONDS);
       toast.success('Message sent successfully! We\'ll get back to you soon.');
     } catch (error) {
       logger.error('Error submitting contact form:', error);
@@ -60,6 +74,12 @@ const ContactPage = () => {
       setLoading(false);
     }
   };
+
+  const handleSendAnother = useCallback(() => {
+    if (cooldown > 0) return;
+    setSubmitted(false);
+    setFormData({ name: '', email: '', subject: '', message: '' });
+  }, [cooldown]);
 
   const contactInfo = [
     {
@@ -173,11 +193,12 @@ const ContactPage = () => {
                       <p className="text-muted-foreground mb-4">
                         Thank you for contacting us. We'll respond to your inquiry shortly.
                       </p>
-                      <Button variant="outline" onClick={() => {
-                        setSubmitted(false);
-                        setFormData({ name: '', email: '', subject: '', message: '' });
-                      }}>
-                        Send Another Message
+                      <Button 
+                        variant="outline" 
+                        onClick={handleSendAnother}
+                        disabled={cooldown > 0}
+                      >
+                        {cooldown > 0 ? `Wait ${cooldown}s...` : 'Send Another Message'}
                       </Button>
                     </div>
                   ) : (
@@ -233,7 +254,7 @@ const ContactPage = () => {
                         />
                       </div>
                       
-                      <Button type="submit" className="w-full sm:w-auto min-h-[44px]" disabled={loading}>
+                      <Button type="submit" className="w-full sm:w-auto min-h-[44px]" disabled={loading || cooldown > 0}>
                         {loading ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />

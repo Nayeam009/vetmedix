@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
@@ -34,7 +36,7 @@ import {
   X,
   Tag
 } from 'lucide-react';
-import { checkoutSchema } from '@/lib/validations';
+import { checkoutSchema, type CheckoutFormData } from '@/lib/validations';
 import { notifyAdminsOfNewOrder } from '@/lib/notifications';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useCheckoutTracking } from '@/hooks/useCheckoutTracking';
@@ -70,16 +72,12 @@ const paymentMethods = [
   },
 ];
 
-// Removed hardcoded getDeliveryCharge - now uses dynamic zones
-
 const CheckoutPage = () => {
   useDocumentTitle('Checkout');
   const { items, totalAmount, clearCart, totalItems } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  
-  const [loading, setLoading] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
 
   // Redirect unauthenticated users immediately
@@ -93,7 +91,6 @@ const CheckoutPage = () => {
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
   const [placedItems, setPlacedItems] = useState<typeof items>([]);
   const [placedTotal, setPlacedTotal] = useState(0);
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [couponCode, setCouponCode] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
@@ -104,18 +101,39 @@ const CheckoutPage = () => {
     max_discount_amount: number | null;
     id: string;
   } | null>(null);
-  const [formData, setFormData] = useState({
-    fullName: '',
-    phone: '',
-    address: '',
-    division: '',
-    district: '',
-    thana: '',
-    notes: '',
+
+  // react-hook-form with Zod resolver
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<CheckoutFormData>({
+    resolver: zodResolver(checkoutSchema),
+    defaultValues: {
+      fullName: '',
+      phone: '',
+      address: '',
+      division: '',
+      district: '',
+      thana: '',
+      notes: '',
+    },
   });
 
-  // Track incomplete checkout
-  const { markRecovered } = useCheckoutTracking(formData, items, totalAmount, paymentMethod);
+  // Watch all form values for checkout tracking & delivery zone matching
+  const watchedValues = watch();
+
+  // Track incomplete checkout — cast watched values since react-hook-form returns DeepPartial
+  const trackingData = {
+    fullName: watchedValues.fullName || '',
+    phone: watchedValues.phone || '',
+    address: watchedValues.address || '',
+    division: watchedValues.division || '',
+    district: watchedValues.district || '',
+    thana: watchedValues.thana || '',
+  };
+  const { markRecovered } = useCheckoutTracking(trackingData, items, totalAmount, paymentMethod);
 
   // Fetch delivery zones
   const { data: deliveryZones = [] } = useQuery({
@@ -131,15 +149,17 @@ const CheckoutPage = () => {
     staleTime: 1000 * 60 * 5,
   });
 
+  const watchedDivision = watchedValues.division;
+
   const matchedZone = useMemo(() => {
-    if (!formData.division) return null;
-    const normalizedDiv = formData.division.trim();
+    if (!watchedDivision) return null;
+    const normalizedDiv = watchedDivision.trim();
     return deliveryZones.find(z => 
       (z.divisions as string[])?.some(d => d.toLowerCase() === normalizedDiv.toLowerCase())
     ) || null;
-  }, [formData.division, deliveryZones]);
+  }, [watchedDivision, deliveryZones]);
 
-  const deliveryCharge = matchedZone ? Number(matchedZone.charge) : (formData.division ? 120 : 60);
+  const deliveryCharge = matchedZone ? Number(matchedZone.charge) : (watchedDivision ? 120 : 60);
   
   // Calculate coupon discount
   const couponDiscount = (() => {
@@ -204,40 +224,14 @@ const CheckoutPage = () => {
     setCouponCode('');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const onSubmit = async (validatedData: CheckoutFormData) => {
     if (!user) {
       toast.error('Please login to place an order.');
       navigate('/auth');
       return;
     }
 
-    const validationResult = checkoutSchema.safeParse(formData);
-    if (!validationResult.success) {
-      const fieldErrors: Record<string, string> = {};
-      validationResult.error.errors.forEach((err) => {
-        if (err.path[0]) {
-          fieldErrors[err.path[0] as string] = err.message;
-        }
-      });
-      setErrors(fieldErrors);
-      toast.error('Please check the form for errors.');
-      // Scroll to first error field
-      const firstErrorField = validationResult.error.errors[0]?.path[0] as string;
-      if (firstErrorField) {
-        const el = document.getElementById(firstErrorField);
-        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el?.focus();
-      }
-      return;
-    }
-
-    setErrors({});
-    setLoading(true);
-
     try {
-      const validatedData = validationResult.data;
       const shippingAddress = `${validatedData.fullName}, ${validatedData.phone}, ${validatedData.address}, ${validatedData.thana}, ${validatedData.district}, ${validatedData.division}`;
       
       // Atomic order creation + stock decrement via DB function
@@ -254,7 +248,6 @@ const CheckoutPage = () => {
         // Surface stock-related errors clearly
         if (error.message.includes('Insufficient stock')) {
           toast.error(error.message);
-          setLoading(false);
           return;
         }
         throw error;
@@ -286,8 +279,6 @@ const CheckoutPage = () => {
       toast.success('Your order has been placed successfully!');
     } catch (error: unknown) {
       toast.error('Failed to place order. Please try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -433,7 +424,7 @@ const CheckoutPage = () => {
         <div className="grid lg:grid-cols-12 gap-6 lg:gap-8">
           {/* Form Section */}
           <div className="lg:col-span-7 xl:col-span-8 space-y-4 sm:space-y-6">
-            <form id="checkout-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+            <form id="checkout-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
               {/* Shipping Information */}
               <div className="bg-background rounded-xl sm:rounded-2xl border border-border shadow-sm overflow-hidden">
                 <div className="p-4 sm:p-5 border-b border-border bg-muted/30">
@@ -457,14 +448,12 @@ const CheckoutPage = () => {
                       </Label>
                       <Input
                         id="fullName"
-                        value={formData.fullName}
-                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value.slice(0, 100) })}
+                        {...register('fullName')}
                         placeholder="Your full name"
                         className="h-11 rounded-lg"
                         maxLength={100}
-                        required
                       />
-                      {errors.fullName && <p className="text-xs text-destructive">{errors.fullName}</p>}
+                      {errors.fullName && <p className="text-xs text-destructive">{errors.fullName.message}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phone" className="flex items-center gap-2 text-sm">
@@ -474,14 +463,12 @@ const CheckoutPage = () => {
                       <Input
                         id="phone"
                         type="tel"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value.slice(0, 20) })}
+                        {...register('phone')}
                         placeholder="+880 1XXX-XXXXXX"
                         className="h-11 rounded-lg"
                         maxLength={20}
-                        required
                       />
-                      {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+                      {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
                     </div>
                   </div>
 
@@ -492,14 +479,12 @@ const CheckoutPage = () => {
                     </Label>
                     <Textarea
                       id="address"
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value.slice(0, 500) })}
+                      {...register('address')}
                       placeholder="House #, Road #, Area"
                       className="min-h-[80px] rounded-lg resize-none"
                       maxLength={500}
-                      required
                     />
-                    {errors.address && <p className="text-xs text-destructive">{errors.address}</p>}
+                    {errors.address && <p className="text-xs text-destructive">{errors.address.message}</p>}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
@@ -507,40 +492,34 @@ const CheckoutPage = () => {
                       <Label htmlFor="division" className="text-sm">Division</Label>
                       <Input
                         id="division"
-                        value={formData.division}
-                        onChange={(e) => setFormData({ ...formData, division: e.target.value.slice(0, 50) })}
+                        {...register('division')}
                         placeholder="Dhaka"
                         className="h-11 rounded-lg"
                         maxLength={50}
-                        required
                       />
-                      {errors.division && <p className="text-xs text-destructive">{errors.division}</p>}
+                      {errors.division && <p className="text-xs text-destructive">{errors.division.message}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="district" className="text-sm">District</Label>
                       <Input
                         id="district"
-                        value={formData.district}
-                        onChange={(e) => setFormData({ ...formData, district: e.target.value.slice(0, 50) })}
+                        {...register('district')}
                         placeholder="Dhaka"
                         className="h-11 rounded-lg"
                         maxLength={50}
-                        required
                       />
-                      {errors.district && <p className="text-xs text-destructive">{errors.district}</p>}
+                      {errors.district && <p className="text-xs text-destructive">{errors.district.message}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="thana" className="text-sm">Thana</Label>
                       <Input
                         id="thana"
-                        value={formData.thana}
-                        onChange={(e) => setFormData({ ...formData, thana: e.target.value.slice(0, 50) })}
+                        {...register('thana')}
                         placeholder="Dhanmondi"
                         className="h-11 rounded-lg"
                         maxLength={50}
-                        required
                       />
-                      {errors.thana && <p className="text-xs text-destructive">{errors.thana}</p>}
+                      {errors.thana && <p className="text-xs text-destructive">{errors.thana.message}</p>}
                     </div>
                   </div>
 
@@ -551,8 +530,7 @@ const CheckoutPage = () => {
                     </Label>
                     <Textarea
                       id="notes"
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value.slice(0, 1000) })}
+                      {...register('notes')}
                       placeholder="Any special instructions for delivery..."
                       className="min-h-[60px] rounded-lg resize-none"
                       maxLength={1000}
@@ -637,10 +615,10 @@ const CheckoutPage = () => {
                 type="submit" 
                 size="lg" 
                 className="w-full h-12 sm:h-14 text-base sm:text-lg font-semibold rounded-xl hidden md:flex" 
-                disabled={loading}
+                disabled={isSubmitting}
               >
                 <Lock className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                {loading ? 'Placing Order...' : `Place Order - ৳${grandTotal.toLocaleString()}`}
+                {isSubmitting ? 'Placing Order...' : `Place Order - ৳${grandTotal.toLocaleString()}`}
               </Button>
             </form>
           </div>
@@ -764,7 +742,7 @@ const CheckoutPage = () => {
                 <div className="flex items-center gap-2 text-xs p-2 sm:p-3 rounded-lg bg-muted/50">
                   <MapPin className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                   <span className="text-muted-foreground">
-                    {formData.division ? (
+                    {watchedDivision ? (
                       matchedZone ? (
                         <span className="text-green-600 dark:text-green-400 font-medium">
                           {matchedZone.zone_name} — ৳{Number(matchedZone.charge)} • {matchedZone.estimated_days}
@@ -831,9 +809,9 @@ const CheckoutPage = () => {
           type="submit"
           form="checkout-form"
           className="w-full h-11 text-sm font-semibold rounded-xl"
-          disabled={loading}
+          disabled={isSubmitting}
         >
-          {loading ? 'Placing Order...' : 'Place Order'}
+          {isSubmitting ? 'Placing Order...' : 'Place Order'}
         </Button>
       </div>
       
