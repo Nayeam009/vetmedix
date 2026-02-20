@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Camera, Loader2, ArrowLeft, Trash2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
@@ -109,6 +109,15 @@ const EditPetPage = () => {
     fetchPet();
   }, [id, user, navigate]);
 
+  // Revoke blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (avatarPreview.startsWith('blob:')) URL.revokeObjectURL(avatarPreview);
+      if (coverPreview.startsWith('blob:')) URL.revokeObjectURL(coverPreview);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -118,6 +127,7 @@ const EditPetPage = () => {
       e.target.value = '';
       return;
     }
+    if (avatarPreview.startsWith('blob:')) URL.revokeObjectURL(avatarPreview);
     setAvatarFile(file);
     setAvatarPreview(URL.createObjectURL(file));
   };
@@ -131,6 +141,7 @@ const EditPetPage = () => {
       e.target.value = '';
       return;
     }
+    if (coverPreview.startsWith('blob:')) URL.revokeObjectURL(coverPreview);
     setCoverFile(file);
     setCoverPreview(URL.createObjectURL(file));
   };

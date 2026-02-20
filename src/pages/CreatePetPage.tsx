@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Loader2, ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/Navbar';
@@ -47,6 +47,14 @@ const CreatePetPage = () => {
   const [avatarPreview, setAvatarPreview] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Revoke blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (avatarPreview.startsWith('blob:')) URL.revokeObjectURL(avatarPreview);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -54,6 +62,7 @@ const CreatePetPage = () => {
         toast.error('Image must be less than 5MB');
         return;
       }
+      if (avatarPreview.startsWith('blob:')) URL.revokeObjectURL(avatarPreview);
       setAvatarFile(file);
       setAvatarPreview(URL.createObjectURL(file));
     }

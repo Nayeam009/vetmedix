@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 
 /**
  * Centralized realtime subscription for ALL admin pages.
- * Subscribes to all admin-relevant tables and invalidates caches + shows toasts.
+ * Split into scoped channels to avoid over-invalidation.
  */
 export const useAdminRealtimeDashboard = (isAdmin: boolean) => {
   const queryClient = useQueryClient();
@@ -15,18 +15,13 @@ export const useAdminRealtimeDashboard = (isAdmin: boolean) => {
   useEffect(() => {
     if (!isAdmin) return;
 
-    const invalidateAll = () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
-    };
-
-    const channel = supabase
-      .channel('admin-realtime-dashboard')
-      // Orders
+    // ── Orders & E-commerce Channel ──
+    const ordersChannel = supabase
+      .channel('admin-rt-orders')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
         if ((payload.new as any).status === 'pending') {
-          invalidateAll();
+          queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+          queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] });
           queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
           toast.info('🛒 New order received!', {
             action: { label: 'View', onClick: () => navigate('/admin/orders') },
@@ -34,15 +29,28 @@ export const useAdminRealtimeDashboard = (isAdmin: boolean) => {
         }
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => {
-        invalidateAll();
+        queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
         queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
         queryClient.invalidateQueries({ queryKey: ['admin-ecommerce-customers'] });
       })
-      // Clinics
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'incomplete_orders' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-incomplete-orders'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'coupons' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-coupons'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_zones' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-delivery-zones'] });
+      })
+      .subscribe();
+
+    // ── Clinical Channel (clinics, doctors, appointments) ──
+    const clinicalChannel = supabase
+      .channel('admin-rt-clinical')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clinics' }, (payload) => {
-        invalidateAll();
         queryClient.invalidateQueries({ queryKey: ['admin-clinics'] });
         queryClient.invalidateQueries({ queryKey: ['admin-clinic-stats'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] });
         queryClient.invalidateQueries({ queryKey: ['cms-clinics-status'] });
         if (payload.eventType === 'UPDATE' && (payload.new as any).verification_status === 'pending') {
           toast.info('🏥 New clinic verification request!', {
@@ -50,10 +58,9 @@ export const useAdminRealtimeDashboard = (isAdmin: boolean) => {
           });
         }
       })
-      // Doctors
       .on('postgres_changes', { event: '*', schema: 'public', table: 'doctors' }, (payload) => {
-        invalidateAll();
         queryClient.invalidateQueries({ queryKey: ['admin-doctors'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] });
         queryClient.invalidateQueries({ queryKey: ['cms-clinical-stats'] });
         queryClient.invalidateQueries({ queryKey: ['cms-pending-doctors'] });
         if (payload.eventType === 'UPDATE' && (payload.new as any).verification_status === 'pending') {
@@ -62,72 +69,56 @@ export const useAdminRealtimeDashboard = (isAdmin: boolean) => {
           });
         }
       })
-      // Products
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
-        invalidateAll();
-        queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-        queryClient.invalidateQueries({ queryKey: ['cms-marketplace-stats'] });
-        queryClient.invalidateQueries({ queryKey: ['cms-products-quick'] });
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-appointments'] });
       })
-      // Profiles (customers)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-        invalidateAll();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clinic_reviews' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['clinic-reviews'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-clinics'] });
       })
-      // Posts (social)
+      .subscribe();
+
+    // ── Social & Content Channel ──
+    const socialChannel = supabase
+      .channel('admin-rt-social')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
         queryClient.invalidateQueries({ queryKey: ['admin-posts'] });
         queryClient.invalidateQueries({ queryKey: ['admin-social-stats'] });
         queryClient.invalidateQueries({ queryKey: ['cms-social-stats'] });
         queryClient.invalidateQueries({ queryKey: ['cms-recent-posts'] });
-        invalidateAll();
       })
-      // Contact messages
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cms_articles' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['cms-articles'] });
+        queryClient.invalidateQueries({ queryKey: ['cms-stats'] });
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'contact_messages' }, (payload) => {
         queryClient.invalidateQueries({ queryKey: ['admin-contact-messages'] });
-        invalidateAll();
         if (payload.eventType === 'INSERT') {
           toast.info('📩 New contact message!', {
             action: { label: 'View', onClick: () => navigate('/admin/messages') },
           });
         }
       })
-      // Coupons
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'coupons' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['admin-coupons'] });
-        invalidateAll();
+      .subscribe();
+
+    // ── Products & Profiles Channel ──
+    const catalogChannel = supabase
+      .channel('admin-rt-catalog')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+        queryClient.invalidateQueries({ queryKey: ['cms-marketplace-stats'] });
+        queryClient.invalidateQueries({ queryKey: ['cms-products-quick'] });
       })
-      // Incomplete orders
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'incomplete_orders' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['admin-incomplete-orders'] });
-        invalidateAll();
-      })
-      // Appointments
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['admin-appointments'] });
-        invalidateAll();
-      })
-      // Delivery zones
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'delivery_zones' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['admin-delivery-zones'] });
-        invalidateAll();
-      })
-      // Clinic reviews
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'clinic_reviews' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['clinic-reviews'] });
-        queryClient.invalidateQueries({ queryKey: ['admin-clinics'] });
-        invalidateAll();
-      })
-      // CMS articles
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'cms_articles' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['cms-articles'] });
-        queryClient.invalidateQueries({ queryKey: ['cms-stats'] });
-        invalidateAll();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(ordersChannel);
+      supabase.removeChannel(clinicalChannel);
+      supabase.removeChannel(socialChannel);
+      supabase.removeChannel(catalogChannel);
     };
   }, [isAdmin, queryClient, navigate]);
 };

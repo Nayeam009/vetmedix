@@ -25,7 +25,7 @@ export const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => 
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
   }, [collapsed]);
 
-  // Fetch pending counts for badges
+  // Fetch pending counts for badges (no polling — realtime handles updates)
   const { data: pendingCounts } = useQuery({
     queryKey: ['admin-pending-counts'],
     queryFn: async () => {
@@ -46,7 +46,6 @@ export const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => 
       };
     },
     enabled: isAdmin,
-    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   const toggleSidebar = () => setCollapsed(prev => !prev);
