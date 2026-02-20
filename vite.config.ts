@@ -13,15 +13,20 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // Force every import of react / react-dom to resolve to the SAME physical file.
-      // This eliminates duplicate-React crashes caused by pre-bundled deps
-      // loading a separate copy of React.
-      "react": path.resolve(__dirname, "node_modules/react"),
-      "react-dom": path.resolve(__dirname, "node_modules/react-dom"),
     },
-    dedupe: ["react", "react-dom", "react/jsx-runtime"],
+    // Force ALL imports of react/react-dom to resolve to a single copy.
+    // This prevents duplicate-React crashes from pre-bundled deps.
+    dedupe: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+    ],
   },
   optimizeDeps: {
+    // Force Vite to re-optimize deps — busts stale prebundle cache that may
+    // contain a separate React copy with a null internal dispatcher.
+    force: true,
     include: [
       "react",
       "react-dom",
@@ -29,7 +34,13 @@ export default defineConfig(({ mode }) => ({
       "react/jsx-runtime",
       "@tanstack/react-query",
       "@supabase/supabase-js",
+      "@lovable.dev/cloud-auth-js",
     ],
+    // Ensure these are treated as having React as an external peer dep
+    esbuildOptions: {
+      // Dedupe nested React copies inside dependencies
+      resolveExtensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],
+    },
   },
   build: {
     rollupOptions: {
