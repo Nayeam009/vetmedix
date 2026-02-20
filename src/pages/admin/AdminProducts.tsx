@@ -779,7 +779,7 @@ const AdminProducts = () => {
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
                       onClick={() => {
                         if (cat.product_count > 0) {
-                          toast({ title: 'Cannot delete', description: `${cat.product_count} products use this category. Reassign them first.`, variant: 'destructive' });
+                          toast.error(`Cannot delete: ${cat.product_count} products use this category. Reassign them first.`);
                         } else {
                           deleteCategory.mutate(cat.id);
                         }
