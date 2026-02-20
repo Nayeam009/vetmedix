@@ -34,6 +34,7 @@ Return a JSON array of products. Each product object must have these fields:
 - "stock": number (quantity if mentioned, otherwise default to 100)
 - "badge": string or null (like "New", "Sale", "Popular" if applicable, otherwise null)
 - "discount": number or null (discount percentage if mentioned, otherwise null)
+- "image_url": string or null (if the PDF contains image URLs or links to product images, extract them. Otherwise null)
 
 Rules:
 1. Extract ALL products found in the document
@@ -43,9 +44,10 @@ Rules:
 5. Ignore non-product text like headers, footers, company info
 6. Return ONLY the JSON array, no markdown, no explanation
 7. Maximum 200 products per extraction
+8. If you can see image URLs (http/https links to images) associated with products, include them in image_url
 
 Example output:
-[{"name":"Premium Dog Food 5kg","description":"High quality nutrition for adult dogs","price":1200,"category":"Pet","product_type":"Food","stock":100,"badge":null,"discount":null}]`;
+[{"name":"Premium Dog Food 5kg","description":"High quality nutrition for adult dogs","price":1200,"category":"Pet","product_type":"Food","stock":100,"badge":null,"discount":null,"image_url":null}]`;
 
     // Build the message parts
     const userParts: any[] = [];
@@ -137,6 +139,7 @@ Example output:
           stock: Math.max(0, Math.round(Number(p.stock) || 100)),
           badge: p.badge ? String(p.badge).trim().substring(0, 50) : null,
           discount: p.discount ? Math.min(100, Math.max(0, Number(p.discount))) : null,
+          image_url: p.image_url && typeof p.image_url === "string" && p.image_url.startsWith("http") ? p.image_url.trim() : null,
         }))
         .slice(0, 200);
     } catch (parseError) {

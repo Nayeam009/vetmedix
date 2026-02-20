@@ -34,6 +34,7 @@ interface ExtractedProduct {
   stock: number;
   badge: string | null;
   discount: number | null;
+  image_url: string | null;
 }
 
 interface PDFImportDialogProps {
@@ -125,6 +126,26 @@ export function PDFImportDialog({ open, onOpenChange }: PDFImportDialogProps) {
     setProgress(0);
 
     try {
+      // Re-host any external image URLs
+      const imageUrls = activeProducts
+        .map((p) => p.image_url)
+        .filter((url): url is string => !!url && url.startsWith('http'));
+
+      let imageMap: Record<string, string> = {};
+
+      if (imageUrls.length > 0) {
+        const uniqueUrls = [...new Set(imageUrls)];
+        const { data: uploadData } = await supabase.functions.invoke('upload-image-url', {
+          body: { urls: uniqueUrls },
+        });
+        if (uploadData?.results) {
+          for (const r of uploadData.results) {
+            if (r.storedUrl) imageMap[r.originalUrl] = r.storedUrl;
+          }
+        }
+        setProgress(20);
+      }
+
       const productsToInsert = activeProducts.map(p => ({
         name: p.name,
         description: p.description || null,
@@ -134,6 +155,7 @@ export function PDFImportDialog({ open, onOpenChange }: PDFImportDialogProps) {
         stock: p.stock,
         badge: p.badge || null,
         discount: p.discount,
+        image_url: p.image_url ? (imageMap[p.image_url] || p.image_url) : null,
       }));
 
       // Insert in batches of 50
@@ -142,7 +164,7 @@ export function PDFImportDialog({ open, onOpenChange }: PDFImportDialogProps) {
         const batch = productsToInsert.slice(i, i + batchSize);
         const { error } = await supabase.from('products').insert(batch);
         if (error) throw error;
-        setProgress(Math.round(((i + batch.length) / productsToInsert.length) * 100));
+        setProgress(20 + Math.round(((i + batch.length) / productsToInsert.length) * 80));
       }
 
       toast.success(`Successfully imported ${productsToInsert.length} products from PDF`);
