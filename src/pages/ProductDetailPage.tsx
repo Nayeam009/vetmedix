@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import ProductCard from '@/components/ProductCard';
@@ -35,7 +35,7 @@ const ProductDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addItem } = useCart();
-  const { toast } = useToast();
+  
   
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
@@ -125,7 +125,7 @@ const ProductDetailPage = () => {
       });
     }
     
-    toast({ title: 'Added to cart!', description: `${quantity} item(s) added successfully.` });
+    toast.success(`${quantity} item(s) added to cart!`);
   };
 
   if (loading) {

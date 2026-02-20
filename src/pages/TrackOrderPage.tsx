@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import Footer from '@/components/Footer';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -47,7 +47,7 @@ const TrackOrderPage = () => {
   useDocumentTitle('Track Order');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  
   const { user, loading: authLoading } = useAuth();
   
   const orderId = searchParams.get('id');
@@ -111,11 +111,7 @@ const TrackOrderPage = () => {
       }
     } catch (error) {
       logger.error('Error fetching order:', error);
-      toast({
-        title: 'Error',
-        description: 'Could not fetch order details',
-        variant: 'destructive',
-      });
+      toast.error('Could not fetch order details');
     } finally {
       setIsLoading(false);
     }
@@ -125,11 +121,7 @@ const TrackOrderPage = () => {
     if (!code) return;
     
     if (!user) {
-      toast({
-        title: 'Authentication Required',
-        description: 'Please log in to track your order',
-        variant: 'destructive',
-      });
+      toast.error('Please log in to track your order');
       return;
     }
     
@@ -145,17 +137,9 @@ const TrackOrderPage = () => {
       if (error) {
         // Handle specific error messages from the edge function
         if (error.message?.includes('Unauthorized') || error.message?.includes('403')) {
-          toast({
-            title: 'Access Denied',
-            description: 'You can only track your own orders',
-            variant: 'destructive',
-          });
+          toast.error('You can only track your own orders');
         } else if (error.message?.includes('not found') || error.message?.includes('404')) {
-          toast({
-            title: 'Order Not Found',
-            description: 'No order found with this tracking code',
-            variant: 'destructive',
-          });
+          toast.error('No order found with this tracking code');
         }
         throw error;
       }
@@ -169,11 +153,7 @@ const TrackOrderPage = () => {
 
   const handleTrackByCode = async () => {
     if (!trackingCode.trim()) {
-      toast({
-        title: 'Error',
-        description: 'Please enter a tracking code',
-        variant: 'destructive',
-      });
+      toast.error('Please enter a tracking code');
       return;
     }
     await fetchTrackingStatus(trackingCode.trim());

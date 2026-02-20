@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable/index';
 import { RoleSelector, SignupRole } from '@/components/auth/RoleSelector';
@@ -35,7 +35,7 @@ const AuthPage = () => {
   const [appleLoading, setAppleLoading] = useState(false);
 
   const { user, signIn, signUp, loading: authLoading } = useAuth();
-  const { toast } = useToast();
+  
   const navigate = useNavigate();
 
   // Priority order for role-based redirects
@@ -109,11 +109,7 @@ const AuthPage = () => {
       if (error) throw error;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to sign in with Google";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast.error(errorMessage);
       setGoogleLoading(false);
     }
   };
@@ -127,11 +123,7 @@ const AuthPage = () => {
       if (error) throw error;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to sign in with Apple";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast.error(errorMessage);
       setAppleLoading(false);
     }
   };
@@ -194,10 +186,7 @@ const AuthPage = () => {
           
           const roles = roleData?.map(r => r.role) || [];
           
-          toast({
-            title: "Welcome back!",
-            description: "You have successfully signed in.",
-          });
+          toast.success("Welcome back!");
           
           redirectBasedOnRoles(roles);
         }
@@ -225,11 +214,7 @@ const AuthPage = () => {
             // Role already exists, continue silently
           } else {
             console.error('Failed to assign role:', roleError);
-            toast({
-              title: "Account created",
-              description: "However, there was an issue setting up your profile. Please try logging in again.",
-              variant: "destructive",
-            });
+            toast.error("Issue setting up your profile. Please try logging in again.");
             navigate('/auth');
             return;
           }
@@ -250,10 +235,7 @@ const AuthPage = () => {
 
           if (clinicError) {
             console.error('Failed to create clinic:', clinicError);
-            toast({
-              title: "Account created",
-              description: "However, there was an issue creating your clinic. Please set it up in your dashboard.",
-            });
+            toast.warning("Account created, but there was an issue creating your clinic. Please set it up in your dashboard.");
           }
         }
 
@@ -290,19 +272,12 @@ const AuthPage = () => {
 
           if (!doctorCreated) {
             console.error('Failed to create doctor profile after retries');
-            toast({
-              title: "Account created",
-              description: "Your account was created, but we couldn't set up your doctor profile automatically. You can complete this on the verification page.",
-              variant: "destructive",
-            });
+            toast.warning("Account created, but we couldn't set up your doctor profile. Complete this on the verification page.");
             // Still navigate to verification page - they can create profile there
           }
         }
 
-        toast({
-          title: "Account created!",
-          description: "Welcome to VET-MEDIX. Let's get you started.",
-        });
+        toast.success("Account created! Welcome to VET-MEDIX.");
 
         // Redirect based on role
         if (selectedRole === 'clinic_owner') {
@@ -325,11 +300,7 @@ const AuthPage = () => {
       const friendlyMessage = Object.entries(friendlyMessages).find(
         ([key]) => rawMessage.toLowerCase().includes(key.toLowerCase())
       )?.[1] || rawMessage;
-      toast({
-        title: "Error",
-        description: friendlyMessage,
-        variant: "destructive",
-      });
+      toast.error(friendlyMessage);
     } finally {
       setLoading(false);
     }

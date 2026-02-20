@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -46,7 +46,7 @@ const ProfileHeader = ({
   onAvatarUpdate,
   onCoverUpdate 
 }: ProfileHeaderProps) => {
-  const { toast } = useToast();
+  
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -68,12 +68,12 @@ const ProfileHeader = ({
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast({ title: "Invalid file type", description: "Please upload an image file", variant: "destructive" });
+      toast.error("Please upload an image file");
       return;
     }
 
     if (file.size > 20 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Max 20MB allowed", variant: "destructive" });
+      toast.error("File too large. Max 20MB allowed");
       return;
     }
 
@@ -88,7 +88,7 @@ const ProfileHeader = ({
 
       const compressed = await compressImage(file, 'avatar');
       if (compressed.compressionRatio > 1) {
-        toast({ title: "Image optimized", description: getCompressionMessage(compressed.originalSize, compressed.compressedSize) });
+        toast.success(getCompressionMessage(compressed.originalSize, compressed.compressedSize));
       }
 
       const fileExt = compressed.file.name.split('.').pop();
@@ -113,10 +113,10 @@ const ProfileHeader = ({
 
       onAvatarUpdate(publicUrl);
       setAvatarPreview(null);
-      toast({ title: "Profile picture updated!" });
+      toast.success("Profile picture updated!");
     } catch (error: unknown) {
       setAvatarPreview(null);
-      toast({ title: "Upload failed", variant: "destructive" });
+      toast.error("Upload failed");
     } finally {
       setUploadingAvatar(false);
     }
@@ -127,12 +127,12 @@ const ProfileHeader = ({
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast({ title: "Invalid file type", variant: "destructive" });
+      toast.error("Invalid file type");
       return;
     }
 
     if (file.size > 20 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Max 20MB allowed", variant: "destructive" });
+      toast.error("File too large. Max 20MB allowed");
       return;
     }
 
@@ -147,7 +147,7 @@ const ProfileHeader = ({
 
       const compressed = await compressImage(file, 'feed');
       if (compressed.compressionRatio > 1) {
-        toast({ title: "Image optimized", description: getCompressionMessage(compressed.originalSize, compressed.compressedSize) });
+        toast.success(getCompressionMessage(compressed.originalSize, compressed.compressedSize));
       }
 
       const fileExt = compressed.file.name.split('.').pop();
@@ -172,10 +172,10 @@ const ProfileHeader = ({
 
       onCoverUpdate?.(publicUrl);
       setCoverPreview(null);
-      toast({ title: "Cover photo updated!" });
+      toast.success("Cover photo updated!");
     } catch (error: unknown) {
       setCoverPreview(null);
-      toast({ title: "Upload failed", variant: "destructive" });
+      toast.error("Upload failed");
     } finally {
       setUploadingCover(false);
     }
@@ -188,7 +188,7 @@ const ProfileHeader = ({
 
   const handleShareProfile = () => {
     navigator.clipboard.writeText(window.location.href);
-    toast({ title: "Profile link copied!" });
+    toast.success("Profile link copied!");
   };
 
   return (

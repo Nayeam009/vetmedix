@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import { Separator } from '@/components/ui/separator';
@@ -77,7 +77,7 @@ const CheckoutPage = () => {
   const { items, totalAmount, clearCart, totalItems } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  
   
   const [loading, setLoading] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -85,10 +85,10 @@ const CheckoutPage = () => {
   // Redirect unauthenticated users immediately
   useEffect(() => {
     if (!user && items.length > 0) {
-      toast({ title: 'Login Required', description: 'Please login to checkout.', variant: 'destructive' });
+      toast.error('Please login to checkout.');
       navigate('/auth');
     }
-  }, [user, items.length, navigate, toast]);
+  }, [user, items.length, navigate]);
 
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
   const [placedItems, setPlacedItems] = useState<typeof items>([]);
@@ -168,19 +168,19 @@ const CheckoutPage = () => {
       
       if (error) throw error;
       if (!data) {
-        toast({ title: 'Invalid Coupon', description: 'This coupon code is not valid.', variant: 'destructive' });
+        toast.error('This coupon code is not valid.');
         return;
       }
       if (data.expires_at && new Date(data.expires_at) < new Date()) {
-        toast({ title: 'Expired', description: 'This coupon has expired.', variant: 'destructive' });
+        toast.error('This coupon has expired.');
         return;
       }
       if (data.usage_limit && data.used_count >= data.usage_limit) {
-        toast({ title: 'Used Up', description: 'This coupon has reached its usage limit.', variant: 'destructive' });
+        toast.error('This coupon has reached its usage limit.');
         return;
       }
       if (data.min_order_amount && totalAmount < data.min_order_amount) {
-        toast({ title: 'Minimum Not Met', description: `Minimum order amount is ৳${data.min_order_amount}`, variant: 'destructive' });
+        toast.error(`Minimum order amount is ৳${data.min_order_amount}`);
         return;
       }
       
@@ -191,9 +191,9 @@ const CheckoutPage = () => {
         max_discount_amount: data.max_discount_amount,
         id: data.id,
       });
-      toast({ title: 'Coupon Applied!', description: `${data.code} applied successfully.` });
+      toast.success(`${data.code} applied successfully.`);
     } catch {
-      toast({ title: 'Error', description: 'Failed to validate coupon.', variant: 'destructive' });
+      toast.error('Failed to validate coupon.');
     } finally {
       setCouponLoading(false);
     }
@@ -208,11 +208,7 @@ const CheckoutPage = () => {
     e.preventDefault();
     
     if (!user) {
-      toast({ 
-        title: 'Login Required', 
-        description: 'Please login to place an order.',
-        variant: 'destructive'
-      });
+      toast.error('Please login to place an order.');
       navigate('/auth');
       return;
     }
@@ -226,7 +222,7 @@ const CheckoutPage = () => {
         }
       });
       setErrors(fieldErrors);
-      toast({ title: 'Validation Error', description: 'Please check the form for errors.', variant: 'destructive' });
+      toast.error('Please check the form for errors.');
       // Scroll to first error field
       const firstErrorField = validationResult.error.errors[0]?.path[0] as string;
       if (firstErrorField) {
@@ -257,11 +253,7 @@ const CheckoutPage = () => {
       if (error) {
         // Surface stock-related errors clearly
         if (error.message.includes('Insufficient stock')) {
-          toast({
-            title: 'Stock Unavailable',
-            description: error.message,
-            variant: 'destructive',
-          });
+          toast.error(error.message);
           setLoading(false);
           return;
         }
@@ -291,13 +283,9 @@ const CheckoutPage = () => {
       
       clearCart();
       setOrderPlaced(true);
-      toast({ title: 'Order Placed!', description: 'Your order has been placed successfully.' });
+      toast.success('Your order has been placed successfully!');
     } catch (error: unknown) {
-      toast({ 
-        title: 'Error', 
-        description: 'Failed to place order. Please try again.',
-        variant: 'destructive'
-      });
+      toast.error('Failed to place order. Please try again.');
     } finally {
       setLoading(false);
     }
