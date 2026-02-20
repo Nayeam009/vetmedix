@@ -523,98 +523,83 @@ const ClinicDoctors = () => {
         ) : clinicDoctors && clinicDoctors.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2">
             {clinicDoctors.map((cd) => (
-              <Card key={cd.id} className="bg-white border-border/50 shadow-sm hover:shadow-lg transition-all">
-                <CardContent className="p-5">
-                  <div className="flex gap-4">
-                    <Avatar className="h-16 w-16 border-2 border-primary/10 shadow-md flex-shrink-0">
+              <Card key={cd.id} className="bg-white border-border/50 shadow-sm hover:shadow-lg transition-all rounded-2xl">
+                <CardContent className="p-4 sm:p-5">
+                  {/* Top: Avatar + Info + Badge */}
+                  <div className="flex gap-3 sm:gap-4">
+                    <Avatar className="h-14 w-14 sm:h-16 sm:w-16 border-2 border-primary/10 shadow-md flex-shrink-0">
                       <AvatarImage src={cd.doctor?.avatar_url || ''} />
                       <AvatarFallback className="bg-gradient-to-br from-primary/20 to-orange-100 text-primary">
-                        <Stethoscope className="h-7 w-7" />
+                        <Stethoscope className="h-6 w-6 sm:h-7 sm:w-7" />
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className="font-bold text-foreground text-lg">{cd.doctor?.name}</h3>
+                        <div className="min-w-0">
+                          <h3 className="font-bold text-foreground text-base sm:text-lg truncate">{cd.doctor?.name}</h3>
                           <p className="text-primary font-medium text-sm">
                             {cd.doctor?.specialization || 'General Veterinarian'}
                           </p>
                         </div>
                         <Badge 
                           variant={cd.doctor?.is_available ? 'default' : 'secondary'}
-                          className={cd.doctor?.is_available ? 'bg-emerald-500 hover:bg-emerald-500' : ''}
+                          className={cn(
+                            "flex-shrink-0 text-xs",
+                            cd.doctor?.is_available ? 'bg-emerald-500 hover:bg-emerald-500' : ''
+                          )}
                         >
                           {cd.doctor?.is_available ? 'Available' : 'Unavailable'}
                         </Badge>
                       </div>
                       
-                      <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-muted-foreground">
-                        {cd.doctor?.email && (
-                          <span className="flex items-center gap-1">
-                            <Mail className="h-3.5 w-3.5" />
-                            <span className="truncate max-w-[120px]">{cd.doctor.email}</span>
-                          </span>
-                        )}
-                        {cd.doctor?.phone && (
-                          <span className="flex items-center gap-1">
-                            <Phone className="h-3.5 w-3.5" />
-                            {cd.doctor.phone}
-                          </span>
-                        )}
-                      </div>
-                      
-                      {cd.doctor?.qualifications && cd.doctor.qualifications.length > 0 && (
-                        <div className="flex items-center gap-1.5 mt-2">
-                          <GraduationCap className="h-3.5 w-3.5 text-primary" />
-                          <span className="text-sm text-muted-foreground truncate">
+                      {/* Qualifications & Fee inline */}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
+                        {cd.doctor?.qualifications && cd.doctor.qualifications.length > 0 && (
+                          <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <GraduationCap className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                             {cd.doctor.qualifications.slice(0, 2).join(', ')}
-                            {cd.doctor.qualifications.length > 2 && '...'}
                           </span>
-                        </div>
-                      )}
-                      
-                      {cd.doctor?.consultation_fee && (
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <BadgeDollarSign className="h-3.5 w-3.5 text-emerald-600" />
-                          <span className="text-sm font-medium text-emerald-600">
+                        )}
+                        {cd.doctor?.consultation_fee && (
+                          <span className="flex items-center gap-1 text-sm font-medium text-emerald-600">
+                            <BadgeDollarSign className="h-3.5 w-3.5 flex-shrink-0" />
                             ৳{cd.doctor.consultation_fee}
                           </span>
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/50 flex-wrap">
-                        <Select
-                          value={cd.status}
-                          onValueChange={(value) => handleStatusChange(cd.id, value)}
-                        >
-                          <SelectTrigger className="w-28 h-10 sm:h-8 min-h-[44px] sm:min-h-0 rounded-lg text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="active">Active</SelectItem>
-                            <SelectItem value="inactive">Inactive</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="h-10 sm:h-8 min-h-[44px] sm:min-h-0 rounded-lg active:scale-95 transition-transform"
-                          onClick={() => openEditDialog(cd.doctor)}
-                        >
-                          <Edit className="h-3.5 w-3.5 mr-1.5" />
-                          Edit
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="icon"
-                          className="h-10 w-10 sm:h-8 sm:w-8 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 rounded-lg text-destructive hover:bg-destructive/10 active:scale-95 transition-transform"
-                          onClick={() => setDeleteConfirm(cd.doctor_id)}
-                          aria-label="Remove doctor"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        )}
                       </div>
                     </div>
+                  </div>
+
+                  {/* Bottom: Actions row — full width, evenly spaced */}
+                  <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-border/50">
+                    <Select
+                      value={cd.status}
+                      onValueChange={(value) => handleStatusChange(cd.id, value)}
+                    >
+                      <SelectTrigger className="h-11 min-h-[44px] rounded-xl text-sm font-medium">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      variant="outline" 
+                      className="h-11 min-h-[44px] rounded-xl text-sm font-medium active:scale-95 transition-transform"
+                      onClick={() => openEditDialog(cd.doctor)}
+                    >
+                      <Edit className="h-4 w-4 mr-1.5" />
+                      Edit
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      className="h-11 min-h-[44px] rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 active:scale-95 transition-transform"
+                      onClick={() => setDeleteConfirm(cd.doctor_id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1.5" />
+                      Delete
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
