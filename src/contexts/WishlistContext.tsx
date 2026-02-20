@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -47,10 +47,14 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
     fetchWishlist();
   }, [user, fetchWishlist]);
 
+  // Use ref to avoid stale closure — prevents re-creating toggleWishlist on every wishlistIds change
+  const wishlistIdsRef = useRef(wishlistIds);
+  wishlistIdsRef.current = wishlistIds;
+
   const toggleWishlist = useCallback(async (productId: string) => {
     if (!user) return false;
     
-    const isCurrently = wishlistIds.has(productId);
+    const isCurrently = wishlistIdsRef.current.has(productId);
     
     // Optimistic update
     setWishlistIds(prev => {
@@ -79,7 +83,7 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
       toast.error('Failed to update wishlist');
       return false;
     }
-  }, [user, wishlistIds]);
+  }, [user]);
 
   const isWishlisted = useCallback((productId: string) => wishlistIds.has(productId), [wishlistIds]);
 
