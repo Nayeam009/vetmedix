@@ -68,6 +68,7 @@ const AdminCustomers = () => {
   const customers = customersData?.users ?? [];
   
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
 
 
@@ -85,8 +86,8 @@ const AdminCustomers = () => {
   const filteredCustomers = useMemo(() => {
     let result = customers || [];
     
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
       result = result.filter(c =>
         c.full_name?.toLowerCase().includes(q) ||
         c.phone?.toLowerCase().includes(q)
@@ -102,7 +103,7 @@ const AdminCustomers = () => {
     }
     
     return result;
-  }, [customers, searchQuery, roleFilter]);
+  }, [customers, debouncedSearch, roleFilter]);
 
   // Pagination
   const {

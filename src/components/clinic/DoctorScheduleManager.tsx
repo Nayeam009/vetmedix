@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -46,7 +46,7 @@ const TIME_SLOTS = [
 ];
 
 const DoctorScheduleManager = ({ clinicId, doctors }: DoctorScheduleManagerProps) => {
-  const { toast } = useToast();
+  
   const queryClient = useQueryClient();
   const [selectedDoctor, setSelectedDoctor] = useState<string>('');
   const [expandedDays, setExpandedDays] = useState<number[]>([6, 0, 1, 2, 3, 4, 5]); // All expanded by default
@@ -77,14 +77,14 @@ const DoctorScheduleManager = ({ clinicId, doctors }: DoctorScheduleManagerProps
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      toast({ title: 'Time slot added successfully' });
+      toast.success('Time slot added successfully');
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : 'Failed to add slot';
       if (message.includes('duplicate') || message.includes('unique')) {
-        toast({ title: 'Slot already exists', description: 'This time slot is already configured.', variant: 'destructive' });
+        toast.error('This time slot is already configured.');
       } else {
-        toast({ title: 'Error', description: message, variant: 'destructive' });
+        toast.error(message);
       }
     },
   });
@@ -96,11 +96,11 @@ const DoctorScheduleManager = ({ clinicId, doctors }: DoctorScheduleManagerProps
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      toast({ title: 'Time slot removed' });
+      toast.success('Time slot removed');
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : 'Failed to remove slot';
-      toast({ title: 'Error', description: message, variant: 'destructive' });
+      toast.error(message);
     },
   });
 
@@ -117,7 +117,7 @@ const DoctorScheduleManager = ({ clinicId, doctors }: DoctorScheduleManagerProps
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : 'Failed to toggle availability';
-      toast({ title: 'Error', description: message, variant: 'destructive' });
+      toast.error(message);
     },
   });
 
@@ -151,11 +151,11 @@ const DoctorScheduleManager = ({ clinicId, doctors }: DoctorScheduleManagerProps
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['doctor-schedules', clinicId] });
-      toast({ title: 'Schedule copied successfully' });
+      toast.success('Schedule copied successfully');
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : 'Failed to copy schedule';
-      toast({ title: 'Error', description: message, variant: 'destructive' });
+      toast.error(message);
     },
   });
 

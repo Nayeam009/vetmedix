@@ -41,7 +41,7 @@ import {
 } from '@/components/ui/select';
 import { useAdmin } from '@/hooks/useAdmin';
 import { RequireAdmin } from '@/components/admin/RequireAdmin';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -68,7 +68,7 @@ const statusConfig: Record<string, { label: string; icon: React.ElementType; col
 const AdminContactMessages = () => {
   useDocumentTitle('Contact Messages - Admin');
   const navigate = useNavigate();
-  const { toast } = useToast();
+  
   const queryClient = useQueryClient();
   const { isAdmin } = useAdmin();
   useAdminRealtimeDashboard(isAdmin);
@@ -99,13 +99,13 @@ const AdminContactMessages = () => {
         .update({ status })
         .eq('id', id);
       if (error) throw error;
-      toast({ title: 'Status updated' });
+      toast.success('Status updated');
       queryClient.invalidateQueries({ queryKey: ['admin-contact-messages'] });
       if (selectedMessage?.id === id) {
         setSelectedMessage(prev => prev ? { ...prev, status } : null);
       }
     } catch {
-      toast({ title: 'Error', description: 'Failed to update status', variant: 'destructive' });
+      toast.error('Failed to update status');
     }
   };
 
@@ -116,12 +116,12 @@ const AdminContactMessages = () => {
         .delete()
         .eq('id', id);
       if (error) throw error;
-      toast({ title: 'Message deleted' });
+      toast.success('Message deleted');
       queryClient.invalidateQueries({ queryKey: ['admin-contact-messages'] });
       setDeleteId(null);
       if (selectedMessage?.id === id) setSelectedMessage(null);
     } catch {
-      toast({ title: 'Error', description: 'Failed to delete message', variant: 'destructive' });
+      toast.error('Failed to delete message');
     }
   };
 

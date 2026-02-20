@@ -86,6 +86,7 @@ const AdminOrders = () => {
   const orders = ordersData?.orders ?? [];
   
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [statusFilter, setStatusFilter] = useState('all');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [isViewOpen, setIsViewOpen] = useState(false);
@@ -342,14 +343,14 @@ const AdminOrders = () => {
   const filteredOrders = useMemo(() => {
     return timeFilteredOrders.filter(order => {
       const customerName = getCustomerName(order).toLowerCase();
-      const lowerQuery = searchQuery.toLowerCase();
-      const matchesSearch = !searchQuery || 
+      const lowerQuery = debouncedSearch.toLowerCase();
+      const matchesSearch = !debouncedSearch || 
         order.id.toLowerCase().includes(lowerQuery) ||
         order.shipping_address?.toLowerCase().includes(lowerQuery) ||
         customerName.includes(lowerQuery) ||
         (order as any).tracking_id?.toLowerCase().includes(lowerQuery);
       
-      if (statusFilter === 'trashed') return matchesSearch; // already filtered to trashed in timeFilteredOrders
+      if (statusFilter === 'trashed') return matchesSearch;
       if (statusFilter === 'flagged') {
         const analysis = fraudAnalysisMap.get(order.id);
         return matchesSearch && analysis && (analysis.level === 'medium' || analysis.level === 'high');
@@ -358,7 +359,7 @@ const AdminOrders = () => {
       const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [timeFilteredOrders, searchQuery, statusFilter, fraudAnalysisMap]);
+  }, [timeFilteredOrders, debouncedSearch, statusFilter, fraudAnalysisMap]);
 
   // Bulk selection helpers (depend on filteredOrders)
   const pendingFilteredIds = useMemo(() => 

@@ -50,7 +50,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAdmin } from '@/hooks/useAdmin';
 import { RequireAdmin } from '@/components/admin/RequireAdmin';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, isAfter } from 'date-fns';
@@ -207,7 +207,7 @@ const BulkActionBar = ({
 const AdminEcommerceCustomers = () => {
   useDocumentTitle('E-Commerce Customers - Admin');
   const navigate = useNavigate();
-  const { toast } = useToast();
+  
   const queryClient = useQueryClient();
   const { isAdmin } = useAdmin();
   useAdminRealtimeDashboard(isAdmin);
@@ -381,13 +381,13 @@ const AdminEcommerceCustomers = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-ecommerce-customers'] });
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
-      toast({ title: 'Updated', description: `Payment status set to ${newStatus}` });
+      toast.success(`Payment status set to ${newStatus}`);
     } catch {
-      toast({ title: 'Error', description: 'Failed to update payment status', variant: 'destructive' });
+      toast.error('Failed to update payment status');
     } finally {
       setUpdatingPayment(null);
     }
-  }, [queryClient, toast]);
+  }, [queryClient]);
 
   // Bulk update
   const bulkUpdatePayment = useCallback(async (newStatus: string) => {
@@ -406,14 +406,14 @@ const AdminEcommerceCustomers = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-ecommerce-customers'] });
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
-      toast({ title: 'Bulk Update', description: `${ids.length} customers updated to ${newStatus}` });
+      toast.success(`${ids.length} customers updated to ${newStatus}`);
       clearSelection();
     } catch {
-      toast({ title: 'Error', description: 'Bulk update failed', variant: 'destructive' });
+      toast.error('Bulk update failed');
     } finally {
       setBulkLoading(false);
     }
-  }, [selectedIds, queryClient, toast, clearSelection]);
+  }, [selectedIds, queryClient, clearSelection]);
 
   // Export
   const exportCustomers = useCallback((data: EcomCustomer[]) => {
@@ -431,8 +431,8 @@ const AdminEcommerceCustomers = () => {
     ]);
     const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
     downloadCSV(csvContent, `ecommerce-customers-${format(new Date(), 'yyyy-MM-dd')}.csv`);
-    toast({ title: 'Success', description: 'Customers exported to CSV' });
-  }, [toast]);
+    toast.success('Customers exported to CSV');
+  }, []);
 
   const handleExportCSV = useCallback(() => exportCustomers(filteredCustomers), [exportCustomers, filteredCustomers]);
 

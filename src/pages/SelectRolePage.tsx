@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import logo from '@/assets/logo.jpeg';
 import { cn } from '@/lib/utils';
@@ -40,7 +40,7 @@ const SelectRolePage = () => {
   useDocumentTitle('Complete Your Profile');
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { toast } = useToast();
+  
   
   const [selectedRole, setSelectedRole] = useState<SelectableRole>('user');
   const [loading, setLoading] = useState(false);
@@ -148,10 +148,7 @@ const SelectRolePage = () => {
 
       if (currentRoles.length > 0) {
         // User already has role(s), just redirect
-        toast({
-          title: 'Already set up!',
-          description: 'Your account is ready. Redirecting...',
-        });
+        toast.success('Your account is ready. Redirecting...');
         redirectBasedOnRoles(currentRoles);
         return;
       }
@@ -177,10 +174,7 @@ const SelectRolePage = () => {
           
           const roles = updatedRoles?.map(r => r.role) || [];
           if (roles.length > 0) {
-            toast({
-              title: 'Already set up!',
-              description: 'Your account is ready. Redirecting...',
-            });
+            toast.success('Your account is ready. Redirecting...');
             redirectBasedOnRoles(roles);
             return;
           }
@@ -208,10 +202,7 @@ const SelectRolePage = () => {
 
         if (clinicError) {
           logger.error('Failed to create clinic:', clinicError);
-          toast({
-            title: 'Account created',
-            description: 'However, there was an issue creating your clinic. Please set it up in your dashboard.',
-          });
+          toast.warning('Account created, but there was an issue creating your clinic. Please set it up in your dashboard.');
         }
       }
 
@@ -230,21 +221,15 @@ const SelectRolePage = () => {
 
         if (doctorError && doctorError.code !== '23505') {
           logger.error('Failed to create doctor profile:', doctorError);
-          toast({
-            title: 'Account created',
-            description: 'However, there was an issue creating your doctor profile. You can complete this on the verification page.',
-          });
+          toast.warning('Account created, but there was an issue creating your doctor profile. Complete this on the verification page.');
         }
       }
 
-      toast({
-        title: 'Welcome to VET-MEDIX!',
-        description: selectedRole === 'clinic_owner' 
-          ? 'Please complete verification to access your clinic dashboard.' 
+      toast.success(selectedRole === 'clinic_owner' 
+          ? 'Welcome to VET-MEDIX! Please complete verification.' 
           : selectedRole === 'doctor'
-          ? 'Please complete verification to start practicing.'
-          : 'Your account is ready. Start exploring!',
-      });
+          ? 'Welcome to VET-MEDIX! Please complete verification.'
+          : 'Welcome to VET-MEDIX! Your account is ready.');
 
       if (selectedRole === 'doctor') {
         navigate('/doctor/verification');
@@ -255,11 +240,7 @@ const SelectRolePage = () => {
       logger.error('Setup error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to complete setup';
       setError(errorMessage);
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

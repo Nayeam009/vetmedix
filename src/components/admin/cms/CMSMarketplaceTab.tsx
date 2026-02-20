@@ -10,13 +10,13 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const CMSMarketplaceTab = () => {
-  const { toast } = useToast();
+  
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
 
@@ -81,9 +81,9 @@ const CMSMarketplaceTab = () => {
       queryClient.invalidateQueries({ queryKey: ['cms-products-quick'] });
       queryClient.invalidateQueries({ queryKey: ['cms-marketplace-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-      toast({ title: 'Stock updated', description: `Stock set to ${newStock}` });
+      toast.success(`Stock set to ${newStock}`);
     } catch {
-      toast({ title: 'Error', description: 'Failed to update stock', variant: 'destructive' });
+      toast.error('Failed to update stock');
     }
   };
 
@@ -94,7 +94,7 @@ const CMSMarketplaceTab = () => {
       queryClient.invalidateQueries({ queryKey: ['cms-products-quick'] });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
     } catch {
-      toast({ title: 'Error', description: 'Failed to update product', variant: 'destructive' });
+      toast.error('Failed to update product');
     }
   };
 

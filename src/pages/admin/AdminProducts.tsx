@@ -93,6 +93,7 @@ const AdminProducts = () => {
   const { categories, addCategory, updateCategory, deleteCategory } = useProductCategories();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [stockFilter, setStockFilter] = useState('all');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -120,31 +121,26 @@ const AdminProducts = () => {
 
   const filteredProducts = useMemo(() => {
     let list = products || [];
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase();
       list = list.filter(p =>
         p.name.toLowerCase().includes(q) ||
-        (p.product_type || '').toLowerCase().includes(q) ||
-        (p.description || '').toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q)
+        p.category?.toLowerCase().includes(q) ||
+        p.sku?.toLowerCase().includes(q) ||
+        p.product_type?.toLowerCase().includes(q)
       );
     }
-    switch (stockFilter) {
-      case 'in-stock':
-        list = list.filter(p => (p.stock ?? 0) > 0);
-        break;
-      case 'out-of-stock':
-        list = list.filter(p => (p.stock ?? 0) === 0);
-        break;
-      case 'low-stock':
-        list = list.filter(p => (p.stock ?? 0) > 0 && (p.stock ?? 0) <= LOW_STOCK_THRESHOLD);
-        break;
-      case 'featured':
-        list = list.filter(p => (p as any).is_featured);
-        break;
+    if (stockFilter === 'low') {
+      list = list.filter(p => (p.stock ?? 0) > 0 && (p.stock ?? 0) <= 5);
+    } else if (stockFilter === 'out') {
+      list = list.filter(p => (p.stock ?? 0) === 0);
+    } else if (stockFilter === 'featured') {
+      list = list.filter(p => p.is_featured);
+    } else if (stockFilter === 'inactive') {
+      list = list.filter(p => !p.is_active);
     }
     return list;
-  }, [products, searchQuery, stockFilter]);
+  }, [products, debouncedSearch, stockFilter]);
 
   const resetForm = useCallback(() => setFormData(emptyFormData), []);
 

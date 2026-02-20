@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 interface WishlistProduct {
   id: string;
@@ -61,7 +61,7 @@ const WishlistPage = () => {
   useDocumentTitle('My Wishlist');
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  
   const { wishlistIds, loading: wishlistLoading } = useWishlist();
   const [products, setProducts] = useState<WishlistProduct[]>([]);
   const [favoriteClinics, setFavoriteClinics] = useState<FavoriteClinic[]>([]);
@@ -147,9 +147,9 @@ const WishlistPage = () => {
     try {
       await supabase.from('clinic_favorites').delete().eq('id', favoriteId);
       setFavoriteClinics(prev => prev.filter(f => f.id !== favoriteId));
-      toast({ title: 'Removed', description: 'Clinic removed from favorites.' });
+      toast.success('Clinic removed from favorites.');
     } catch {
-      toast({ title: 'Error', description: 'Failed to remove clinic.', variant: 'destructive' });
+      toast.error('Failed to remove clinic.');
     }
   };
 
@@ -157,9 +157,9 @@ const WishlistPage = () => {
     try {
       await supabase.from('doctor_favorites').delete().eq('id', favoriteId);
       setFavoriteDoctors(prev => prev.filter(f => f.id !== favoriteId));
-      toast({ title: 'Removed', description: 'Doctor removed from favorites.' });
+      toast.success('Doctor removed from favorites.');
     } catch {
-      toast({ title: 'Error', description: 'Failed to remove doctor.', variant: 'destructive' });
+      toast.error('Failed to remove doctor.');
     }
   };
 

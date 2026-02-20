@@ -15,7 +15,7 @@ import { usePets } from '@/contexts/PetContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { profileSchema } from '@/lib/validations';
 import { getDivisions, getDistricts, getThanas } from '@/lib/bangladeshRegions';
 import ProfileHeader from '@/components/profile/ProfileHeader';
@@ -72,7 +72,7 @@ const ProfilePage = () => {
   const { isClinicOwner, isDoctor } = useUserRole();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { toast } = useToast();
+  
   const { cancelAppointment } = useAppointmentActions();
   const queryClient = useQueryClient();
   
@@ -212,11 +212,7 @@ const ProfilePage = () => {
     const validationResult = profileSchema.safeParse(formData);
     if (!validationResult.success) {
       const errorMessages = validationResult.error.errors.map(err => err.message).join(', ');
-      toast({
-        title: "Validation Error",
-        description: errorMessages,
-        variant: "destructive",
-      });
+      toast.error(errorMessages);
       return;
     }
     
@@ -235,16 +231,9 @@ const ProfilePage = () => {
         (old) => old ? { ...old, ...validatedData } : null
       );
       setEditing(false);
-      toast({
-        title: "Profile Updated",
-        description: "Your profile has been saved successfully.",
-      });
+      toast.success("Profile updated successfully.");
     } catch (error: unknown) {
-      toast({
-        title: "Error",
-        description: "Failed to update profile. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to update profile. Please try again.");
     } finally {
       setSaving(false);
     }
