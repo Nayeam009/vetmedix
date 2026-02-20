@@ -52,7 +52,7 @@ import {
 import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import { useUserRole } from '@/hooks/useUserRole';
-import { useClinicOwner } from '@/hooks/useClinicOwner';
+import { useClinicOwner, type ClinicDoctor } from '@/hooks/useClinicOwner';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AddDoctorWizard from '@/components/clinic/AddDoctorWizard';
@@ -202,7 +202,8 @@ const ClinicDoctors = () => {
     setEditingDoctorId(null);
   };
 
-  const openEditDialog = (doctor: any) => {
+  const openEditDialog = (doctor: ClinicDoctor['doctor']) => {
+    if (!doctor) return;
     setEditingDoctorId(doctor.id);
     setFormData({
       name: doctor.name || '',
@@ -562,21 +563,21 @@ const ClinicDoctors = () => {
                         )}
                       </div>
                       
-                      {(cd.doctor as any)?.qualifications?.length > 0 && (
+                      {cd.doctor?.qualifications && cd.doctor.qualifications.length > 0 && (
                         <div className="flex items-center gap-1.5 mt-2">
                           <GraduationCap className="h-3.5 w-3.5 text-primary" />
                           <span className="text-sm text-muted-foreground truncate">
-                            {(cd.doctor as any).qualifications.slice(0, 2).join(', ')}
-                            {(cd.doctor as any).qualifications.length > 2 && '...'}
+                            {cd.doctor.qualifications.slice(0, 2).join(', ')}
+                            {cd.doctor.qualifications.length > 2 && '...'}
                           </span>
                         </div>
                       )}
                       
-                      {(cd.doctor as any)?.consultation_fee && (
+                      {cd.doctor?.consultation_fee && (
                         <div className="flex items-center gap-1.5 mt-1">
                           <BadgeDollarSign className="h-3.5 w-3.5 text-emerald-600" />
                           <span className="text-sm font-medium text-emerald-600">
-                            ৳{(cd.doctor as any).consultation_fee}
+                            ৳{cd.doctor.consultation_fee}
                           </span>
                         </div>
                       )}

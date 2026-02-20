@@ -134,7 +134,7 @@ const ProfilePage = () => {
         `)
         .eq('user_id', user!.id)
         .order('appointment_date', { ascending: true });
-      return (data as any || []) as Appointment[];
+      return (data || []) as Appointment[];
     },
     enabled: !!user?.id,
     staleTime: 1000 * 60 * 2,
