@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useEffect } from 'react';
 
 export interface ProductCategory {
@@ -14,7 +14,6 @@ export interface ProductCategory {
 }
 
 export function useProductCategories() {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: categories = [], isLoading } = useQuery({
@@ -29,7 +28,6 @@ export function useProductCategories() {
     },
   });
 
-  // Realtime subscription
   useEffect(() => {
     const channel = supabase
       .channel('product-categories-realtime')
@@ -47,10 +45,10 @@ export function useProductCategories() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product-categories'] });
-      toast({ title: 'Category added' });
+      toast.success('Category added');
     },
     onError: (err: Error) => {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      toast.error(err.message);
     },
   });
 
@@ -63,7 +61,7 @@ export function useProductCategories() {
       queryClient.invalidateQueries({ queryKey: ['product-categories'] });
     },
     onError: (err: Error) => {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      toast.error(err.message);
     },
   });
 
@@ -74,10 +72,10 @@ export function useProductCategories() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product-categories'] });
-      toast({ title: 'Category deleted' });
+      toast.success('Category deleted');
     },
     onError: (err: Error) => {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      toast.error(err.message);
     },
   });
 

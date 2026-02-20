@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface TrackingStep {
@@ -39,7 +39,6 @@ const STEADFAST_STATUS_MAP: Record<string, string> = {
 export function OrderTrackingTimeline({ orderId, trackingId, consignmentId, orderStatus, compact = false }: OrderTrackingTimelineProps) {
   const [isTracking, setIsTracking] = useState(false);
   const [trackingData, setTrackingData] = useState<any>(null);
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const fetchTracking = async () => {
@@ -61,19 +60,18 @@ export function OrderTrackingTimeline({ orderId, trackingId, consignmentId, orde
       const result = response.data;
       setTrackingData(result);
 
-      // Auto-update order status if courier reports delivered
       const deliveryStatus = result?.delivery_status;
       if (deliveryStatus && STEADFAST_STATUS_MAP[deliveryStatus]) {
         const mappedStatus = STEADFAST_STATUS_MAP[deliveryStatus];
         if (mappedStatus !== orderStatus && mappedStatus === 'delivered') {
           await supabase.from('orders').update({ status: 'delivered' }).eq('id', orderId);
           queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
-          toast({ title: 'Order Updated', description: 'Order auto-marked as delivered based on courier status' });
+          toast.success('Order auto-marked as delivered based on courier status');
         }
       }
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Failed to fetch tracking';
-      toast({ title: 'Tracking Error', description: msg, variant: 'destructive' });
+      toast.error(msg);
     } finally {
       setIsTracking(false);
     }
@@ -135,7 +133,6 @@ export function OrderTrackingTimeline({ orderId, trackingId, consignmentId, orde
         )}
       </div>
 
-      {/* Timeline */}
       <div className="flex items-center gap-0">
         {steps.map((step, i) => {
           const Icon = step.icon;
@@ -168,7 +165,6 @@ export function OrderTrackingTimeline({ orderId, trackingId, consignmentId, orde
         })}
       </div>
 
-      {/* Courier status from Steadfast */}
       {trackingData && (
         <div className="p-2.5 bg-muted/50 rounded-lg text-xs space-y-1">
           <div className="flex items-center justify-between">

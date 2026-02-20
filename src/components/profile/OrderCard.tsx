@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { MapPin, Package, Truck, CheckCircle, XCircle, Clock, RotateCcw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,7 @@ interface OrderCardProps {
   };
 }
 
-const OrderCard = ({ order }: OrderCardProps) => {
+const OrderCard = memo(({ order }: OrderCardProps) => {
   const navigate = useNavigate();
   const items = Array.isArray(order.items) ? order.items as OrderItem[] : [];
 
@@ -219,6 +220,8 @@ const OrderCard = ({ order }: OrderCardProps) => {
       </div>
     </div>
   );
-};
+});
+
+OrderCard.displayName = 'OrderCard';
 
 export default OrderCard;

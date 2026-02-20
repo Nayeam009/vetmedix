@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 
@@ -61,17 +61,16 @@ export function PDFImportDialog({ open, onOpenChange }: PDFImportDialogProps) {
   const [fileName, setFileName] = useState('');
   const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const handleFile = async (file: File) => {
     if (!file.name.toLowerCase().endsWith('.pdf')) {
-      toast({ title: 'Error', description: 'Please select a PDF file', variant: 'destructive' });
+      toast.error('Please select a PDF file');
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      toast({ title: 'Error', description: 'PDF file must be less than 10MB', variant: 'destructive' });
+      toast.error('PDF file must be less than 10MB');
       return;
     }
 
@@ -114,7 +113,7 @@ export function PDFImportDialog({ open, onOpenChange }: PDFImportDialogProps) {
       const msg = err instanceof Error ? err.message : 'Failed to process PDF';
       setError(msg);
       setStep('upload');
-      toast({ title: 'Extraction Failed', description: msg, variant: 'destructive' });
+      toast.error(msg);
     }
   };
 
@@ -146,16 +145,13 @@ export function PDFImportDialog({ open, onOpenChange }: PDFImportDialogProps) {
         setProgress(Math.round(((i + batch.length) / productsToInsert.length) * 100));
       }
 
-      toast({
-        title: 'Import Complete',
-        description: `Successfully imported ${productsToInsert.length} products from PDF`,
-      });
+      toast.success(`Successfully imported ${productsToInsert.length} products from PDF`);
 
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       handleClose();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to import products';
-      toast({ title: 'Import Failed', description: msg, variant: 'destructive' });
+      toast.error(msg);
       setStep('preview');
     }
   };

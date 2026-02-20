@@ -3,7 +3,7 @@ import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { compressImage, getCompressionMessage } from '@/lib/mediaCompression';
 
@@ -27,17 +27,15 @@ export function ImageUpload({
   const [progress, setProgress] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
 
   const uploadImage = async (file: File) => {
     if (!file.type.startsWith('image/')) {
-      toast({ title: 'Error', description: 'Please select an image file', variant: 'destructive' });
+      toast.error('Please select an image file');
       return;
     }
 
-    // Allow larger files since we compress them
     if (file.size > 20 * 1024 * 1024) {
-      toast({ title: 'Error', description: 'Image size must be less than 20MB', variant: 'destructive' });
+      toast.error('Image size must be less than 20MB');
       return;
     }
 
@@ -46,18 +44,13 @@ export function ImageUpload({
     setProgress(0);
 
     try {
-      // Compress image first
       setProgress(20);
       const compressed = await compressImage(file, 'product');
       setProgress(60);
       setCompressing(false);
 
-      // Show compression results
       if (compressed.compressionRatio > 1) {
-        toast({ 
-          title: 'Image optimized', 
-          description: getCompressionMessage(compressed.originalSize, compressed.compressedSize)
-        });
+        toast.info(getCompressionMessage(compressed.originalSize, compressed.compressedSize));
       }
 
       const fileExt = compressed.file.name.split('.').pop();
@@ -77,15 +70,11 @@ export function ImageUpload({
 
       setProgress(100);
       onChange(publicUrl);
-      toast({ title: 'Success', description: 'Image uploaded successfully' });
+      toast.success('Image uploaded successfully');
     } catch (error: unknown) {
       console.error('Upload error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to upload image';
-      toast({ 
-        title: 'Upload failed', 
-        description: errorMessage, 
-        variant: 'destructive' 
-      });
+      toast.error(errorMessage);
     } finally {
       setUploading(false);
       setCompressing(false);

@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { createOrderNotification } from '@/lib/notifications';
@@ -36,7 +36,6 @@ export const SendToCourierDialog = ({ isOpen, onClose, order }: SendToCourierDia
   const [trackingId, setTrackingId] = useState('');
   const [consignmentId, setConsignmentId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const parsed = order?.shipping_address ? parseShippingAddress(order.shipping_address) : null;
@@ -48,7 +47,7 @@ export const SendToCourierDialog = ({ isOpen, onClose, order }: SendToCourierDia
   const handleQuickShip = async () => {
     if (!order) return;
     if (!customerPhone) {
-      toast({ title: 'Error', description: 'Customer phone number is missing. Use manual mode.', variant: 'destructive' });
+      toast.error('Customer phone number is missing. Use manual mode.');
       return;
     }
 
@@ -71,7 +70,6 @@ export const SendToCourierDialog = ({ isOpen, onClose, order }: SendToCourierDia
       const result = response.data;
       
       if (result?.consignment?.tracking_code || result?.consignment?.consignment_id) {
-        // Save tracking info to order
         const { error: updateError } = await supabase
           .from('orders')
           .update({
@@ -90,7 +88,7 @@ export const SendToCourierDialog = ({ isOpen, onClose, order }: SendToCourierDia
           orderTotal: order.total_amount,
         });
 
-        toast({ title: '🚀 Shipped!', description: `Order sent to Steadfast. Tracking: ${result.consignment.tracking_code}` });
+        toast.success(`Order sent to Steadfast. Tracking: ${result.consignment.tracking_code}`);
         queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
         handleClose();
       } else if (result?.error || result?.errors) {
@@ -101,7 +99,7 @@ export const SendToCourierDialog = ({ isOpen, onClose, order }: SendToCourierDia
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to send to courier';
-      toast({ title: 'Courier Error', description: errorMessage, variant: 'destructive' });
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -110,7 +108,7 @@ export const SendToCourierDialog = ({ isOpen, onClose, order }: SendToCourierDia
   const handleManualAccept = async () => {
     if (!order) return;
     if (!trackingId.trim()) {
-      toast({ title: 'Error', description: 'Please enter the tracking ID', variant: 'destructive' });
+      toast.error('Please enter the tracking ID');
       return;
     }
 
@@ -134,12 +132,12 @@ export const SendToCourierDialog = ({ isOpen, onClose, order }: SendToCourierDia
         orderTotal: order.total_amount,
       });
 
-      toast({ title: 'Order Accepted', description: 'Tracking ID added successfully' });
+      toast.success('Tracking ID added successfully');
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
       handleClose();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to accept order';
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -178,7 +176,6 @@ export const SendToCourierDialog = ({ isOpen, onClose, order }: SendToCourierDia
           </TabsList>
 
           <TabsContent value="quick" className="space-y-3 mt-3">
-            {/* Auto-filled preview */}
             <div className="p-3 bg-muted/50 rounded-xl space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Recipient:</span>

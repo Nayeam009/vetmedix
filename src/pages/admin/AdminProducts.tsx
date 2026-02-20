@@ -49,7 +49,8 @@ import {
 } from '@/components/ui/dialog';
 import { useAdmin, useAdminProducts } from '@/hooks/useAdmin';
 import { RequireAdmin } from '@/components/admin/RequireAdmin';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -85,7 +86,6 @@ const emptyFormData: ProductFormData = {
 const AdminProducts = () => {
   useDocumentTitle('Products - Admin');
   const navigate = useNavigate();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin } = useAdmin();
   useAdminRealtimeDashboard(isAdmin);
@@ -169,7 +169,7 @@ const AdminProducts = () => {
   const handleAdd = async () => {
     const result = validateAndParse();
     if (!result.success) {
-      toast({ title: 'Validation Error', description: result.error.errors.map(e => e.message).join(', '), variant: 'destructive' });
+      toast.error(result.error.errors.map(e => e.message).join(', '));
       return;
     }
     setSaving(true);
@@ -194,12 +194,12 @@ const AdminProducts = () => {
         sku: result.data.sku || null,
       } as any);
       if (error) throw error;
-      toast({ title: 'Success', description: 'Product added successfully' });
+      toast.success('Product added successfully');
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setIsAddOpen(false);
       resetForm();
     } catch (error: unknown) {
-      toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed to add product', variant: 'destructive' });
+      toast.error(error instanceof Error ? error.message : 'Failed to add product');
     } finally {
       setSaving(false);
     }
@@ -209,7 +209,7 @@ const AdminProducts = () => {
     if (!selectedProduct) return;
     const result = validateAndParse();
     if (!result.success) {
-      toast({ title: 'Validation Error', description: result.error.errors.map(e => e.message).join(', '), variant: 'destructive' });
+      toast.error(result.error.errors.map(e => e.message).join(', '));
       return;
     }
     setSaving(true);
@@ -234,13 +234,13 @@ const AdminProducts = () => {
         sku: result.data.sku || null,
       } as any).eq('id', selectedProduct.id);
       if (error) throw error;
-      toast({ title: 'Success', description: 'Product updated successfully' });
+      toast.success('Product updated successfully');
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setIsEditOpen(false);
       setSelectedProduct(null);
       resetForm();
     } catch (error: unknown) {
-      toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed to update product', variant: 'destructive' });
+      toast.error(error instanceof Error ? error.message : 'Failed to update product');
     } finally {
       setSaving(false);
     }
@@ -252,12 +252,12 @@ const AdminProducts = () => {
     try {
       const { error } = await supabase.from('products').delete().eq('id', selectedProduct.id);
       if (error) throw error;
-      toast({ title: 'Success', description: 'Product deleted successfully' });
+      toast.success('Product deleted successfully');
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setIsDeleteOpen(false);
       setSelectedProduct(null);
     } catch (error: unknown) {
-      toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed to delete product', variant: 'destructive' });
+      toast.error(error instanceof Error ? error.message : 'Failed to delete product');
     } finally {
       setSaving(false);
     }
@@ -276,11 +276,11 @@ const AdminProducts = () => {
       }
       const { error } = await supabase.from('products').update(updateData).eq('id', productId);
       if (error) throw error;
-      toast({ title: 'Stock updated', description: `Stock set to ${newStock}` });
+      toast.success(`Stock set to ${newStock}`);
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       setQuickStockEdit(null);
     } catch (error: unknown) {
-      toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed to update stock', variant: 'destructive' });
+      toast.error(error instanceof Error ? error.message : 'Failed to update stock');
     }
   };
 
@@ -289,9 +289,9 @@ const AdminProducts = () => {
       const { error } = await supabase.from('products').update({ is_active: isActive } as any).eq('id', productId);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-      toast({ title: isActive ? 'Product activated' : 'Product deactivated' });
+      toast.success(isActive ? 'Product activated' : 'Product deactivated');
     } catch (error: unknown) {
-      toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed', variant: 'destructive' });
+      toast.error(error instanceof Error ? error.message : 'Failed');
     }
   };
 
@@ -300,9 +300,9 @@ const AdminProducts = () => {
       const { error } = await supabase.from('products').update({ is_featured: isFeatured } as any).eq('id', productId);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-      toast({ title: isFeatured ? 'Marked as featured' : 'Removed from featured' });
+      toast.success(isFeatured ? 'Marked as featured' : 'Removed from featured');
     } catch (error: unknown) {
-      toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed', variant: 'destructive' });
+      toast.error(error instanceof Error ? error.message : 'Failed');
     }
   };
 
@@ -346,7 +346,7 @@ const AdminProducts = () => {
     ]);
     const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
     downloadCSV(csvContent, `products-${new Date().toISOString().split('T')[0]}.csv`);
-    toast({ title: 'Success', description: 'Products exported to CSV' });
+    toast.success('Products exported to CSV');
   };
 
   const handleAddCategory = async () => {
