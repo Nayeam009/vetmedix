@@ -169,7 +169,8 @@ export const useClinicOwner = () => {
     mutationFn: async (doctor: DoctorInput) => {
       if (!ownedClinic?.id) throw new Error('No clinic');
 
-      // First create the doctor
+      // Create the doctor — the auto_link_clinic_doctor trigger
+      // automatically inserts into clinic_doctors when created_by_clinic_id is set
       const { data: newDoctor, error: doctorError } = await supabase
         .from('doctors')
         .insert({
@@ -182,17 +183,6 @@ export const useClinicOwner = () => {
         .single();
 
       if (doctorError) throw doctorError;
-
-      // Then link doctor to clinic
-      const { error: linkError } = await supabase
-        .from('clinic_doctors')
-        .insert({
-          clinic_id: ownedClinic.id,
-          doctor_id: newDoctor.id,
-          status: 'active',
-        });
-
-      if (linkError) throw linkError;
 
       return newDoctor;
     },
