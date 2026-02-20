@@ -1,11 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { getClinicOwnerUserId, createNotification } from '@/lib/notifications';
 
 export const useAppointmentActions = () => {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   const cancelAppointment = useMutation({
     mutationFn: async ({ 
@@ -24,7 +23,6 @@ export const useAppointmentActions = () => {
 
       if (error) throw error;
 
-      // Notify clinic owner about cancellation
       const clinicOwnerId = await getClinicOwnerUserId(clinicId);
       if (clinicOwnerId) {
         await createNotification({
@@ -43,18 +41,11 @@ export const useAppointmentActions = () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['userAppointments'] });
       queryClient.invalidateQueries({ queryKey: ['user-appointments'] });
-      toast({
-        title: 'Appointment Cancelled',
-        description: 'Your appointment has been cancelled successfully.',
-      });
+      toast.success('Your appointment has been cancelled successfully.');
     },
     onError: (error) => {
       console.error('Failed to cancel appointment:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to cancel appointment. Please try again.',
-        variant: 'destructive',
-      });
+      toast.error('Failed to cancel appointment. Please try again.');
     },
   });
 

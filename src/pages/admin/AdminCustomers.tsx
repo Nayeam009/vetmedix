@@ -46,7 +46,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAdmin, useAdminUsers } from '@/hooks/useAdmin';
 import { RequireAdmin } from '@/components/admin/RequireAdmin';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
+import { useDebounce } from '@/hooks/useDebounce';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -59,7 +60,6 @@ type RoleFilter = 'all' | 'user' | 'admin' | 'moderator' | 'doctor' | 'clinic_ow
 const AdminCustomers = () => {
   useDocumentTitle('User Management - Admin');
   const navigate = useNavigate();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin } = useAdmin();
   useAdminRealtimeDashboard(isAdmin);
@@ -141,13 +141,13 @@ const AdminCustomers = () => {
         if (error) throw error;
       }
 
-      toast({ title: 'Success', description: `User role updated to ${role.replace('_', ' ')}` });
+      toast.success(`User role updated to ${role.replace('_', ' ')}`);
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update role';
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
+      toast.error(errorMessage);
     }
-  }, [toast, queryClient]);
+  }, [queryClient]);
 
   const getRoleBadge = (userRoles: any[] | null) => {
     const role = userRoles?.[0]?.role;
@@ -180,8 +180,8 @@ const AdminCustomers = () => {
     ]);
     const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
     downloadCSV(csvContent, `customers-${format(new Date(), 'yyyy-MM-dd')}.csv`);
-    toast({ title: 'Success', description: 'Customers exported to CSV' });
-  }, [filteredCustomers, toast]);
+    toast.success('Customers exported to CSV');
+  }, [filteredCustomers]);
 
   return (
     <RequireAdmin>

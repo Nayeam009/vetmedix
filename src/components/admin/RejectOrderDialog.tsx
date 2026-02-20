@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { createOrderNotification } from '@/lib/notifications';
@@ -29,18 +29,13 @@ interface RejectOrderDialogProps {
 export const RejectOrderDialog = ({ isOpen, onClose, order }: RejectOrderDialogProps) => {
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const handleReject = async () => {
     if (!order) return;
 
     if (!reason.trim()) {
-      toast({
-        title: 'Error',
-        description: 'Please provide a reason for rejection',
-        variant: 'destructive',
-      });
+      toast.error('Please provide a reason for rejection');
       return;
     }
 
@@ -57,7 +52,6 @@ export const RejectOrderDialog = ({ isOpen, onClose, order }: RejectOrderDialogP
 
       if (error) throw error;
 
-      // Send notification to user
       await createOrderNotification({
         userId: order.user_id,
         orderId: order.id,
@@ -65,20 +59,13 @@ export const RejectOrderDialog = ({ isOpen, onClose, order }: RejectOrderDialogP
         orderTotal: order.total_amount,
       });
 
-      toast({
-        title: 'Order Rejected',
-        description: 'Order has been rejected and user has been notified',
-      });
+      toast.success('Order rejected and user notified');
 
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
       handleClose();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to reject order';
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

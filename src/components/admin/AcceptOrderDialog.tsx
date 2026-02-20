@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { createOrderNotification } from '@/lib/notifications';
@@ -30,18 +30,13 @@ export const AcceptOrderDialog = ({ isOpen, onClose, order }: AcceptOrderDialogP
   const [trackingId, setTrackingId] = useState('');
   const [consignmentId, setConsignmentId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const handleAccept = async () => {
     if (!order) return;
 
     if (!trackingId.trim()) {
-      toast({
-        title: 'Error',
-        description: 'Please enter the Steadfast tracking ID',
-        variant: 'destructive',
-      });
+      toast.error('Please enter the Steadfast tracking ID');
       return;
     }
 
@@ -59,7 +54,6 @@ export const AcceptOrderDialog = ({ isOpen, onClose, order }: AcceptOrderDialogP
 
       if (error) throw error;
 
-      // Send notification to user
       await createOrderNotification({
         userId: order.user_id,
         orderId: order.id,
@@ -67,20 +61,13 @@ export const AcceptOrderDialog = ({ isOpen, onClose, order }: AcceptOrderDialogP
         orderTotal: order.total_amount,
       });
 
-      toast({
-        title: 'Order Accepted',
-        description: 'Order has been accepted and tracking ID added',
-      });
+      toast.success('Order accepted and tracking ID added');
 
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
       handleClose();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to accept order';
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

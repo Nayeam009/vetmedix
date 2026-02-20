@@ -54,7 +54,8 @@ import {
 } from '@/components/ui/dialog';
 import { useAdmin, useAdminOrders } from '@/hooks/useAdmin';
 import { RequireAdmin } from '@/components/admin/RequireAdmin';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
+import { useDebounce } from '@/hooks/useDebounce';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
@@ -77,7 +78,6 @@ import { TimeFilterBar, getTimeCutoff, type TimeFilter } from '@/components/admi
 const AdminOrders = () => {
   useDocumentTitle('Orders Management - Admin');
   const navigate = useNavigate();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin } = useAdmin();
   useAdminRealtimeDashboard(isAdmin);
@@ -225,11 +225,11 @@ const AdminOrders = () => {
     setIsBulkShipping(false);
     setSelectedIds(new Set());
     queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
-    toast({
-      title: `Bulk Ship Complete`,
-      description: `${successCount} shipped successfully${failCount > 0 ? `, ${failCount} failed` : ''}`,
-      variant: failCount > 0 ? 'destructive' : 'default',
-    });
+    if (failCount > 0) {
+      toast.error(`${successCount} shipped, ${failCount} failed`);
+    } else {
+      toast.success(`${successCount} shipped successfully`);
+    }
   };
 
   const updateOrderStatus = async (orderId: string, status: string) => {
@@ -241,11 +241,11 @@ const AdminOrders = () => {
       if (order && ['processing', 'shipped', 'delivered', 'cancelled'].includes(status)) {
         await createOrderNotification({ userId: order.user_id, orderId, status: status as any, orderTotal: order.total_amount });
       }
-      toast({ title: 'Success', description: `Order status updated to ${status}` });
+      toast.success(`Order status updated to ${status}`);
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update order';
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
+      toast.error(errorMessage);
     }
   };
 
@@ -253,13 +253,13 @@ const AdminOrders = () => {
     try {
       const { error } = await supabase.from('orders').update({ trashed_at: new Date().toISOString() } as any).eq('id', orderId);
       if (error) throw error;
-      toast({ title: 'Moved to trash' });
+      toast.success('Moved to trash');
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] });
       setTrashDialog(null);
     } catch {
-      toast({ title: 'Error', description: 'Failed to move to trash', variant: 'destructive' });
+      toast.error('Failed to move to trash');
     }
   };
 
@@ -267,12 +267,12 @@ const AdminOrders = () => {
     try {
       const { error } = await supabase.from('orders').update({ trashed_at: null } as any).eq('id', orderId);
       if (error) throw error;
-      toast({ title: 'Restored from trash' });
+      toast.success('Restored from trash');
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] });
     } catch {
-      toast({ title: 'Error', description: 'Failed to restore', variant: 'destructive' });
+      toast.error('Failed to restore');
     }
   };
 
@@ -280,13 +280,13 @@ const AdminOrders = () => {
     try {
       const { error } = await supabase.from('orders').delete().eq('id', orderId);
       if (error) throw error;
-      toast({ title: 'Permanently deleted' });
+      toast.success('Permanently deleted');
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-pending-counts'] });
       setPermanentDeleteDialog(null);
     } catch {
-      toast({ title: 'Error', description: 'Failed to delete', variant: 'destructive' });
+      toast.error('Failed to delete');
     }
   };
 
@@ -336,7 +336,7 @@ const AdminOrders = () => {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: 'Copied', description: 'Copied to clipboard' });
+    toast.success('Copied to clipboard');
   };
 
   const filteredOrders = useMemo(() => {
@@ -402,7 +402,7 @@ const AdminOrders = () => {
     });
     const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
     downloadCSV(csvContent, `orders-${format(new Date(), 'yyyy-MM-dd')}.csv`);
-    toast({ title: 'Success', description: 'Orders exported to CSV' });
+    toast.success('Orders exported to CSV');
   };
 
   return (

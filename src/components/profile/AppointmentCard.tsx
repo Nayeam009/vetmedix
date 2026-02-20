@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Calendar, Clock, MapPin, Phone, CheckCircle, XCircle, AlertCircle, PawPrint, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -36,7 +36,7 @@ interface AppointmentCardProps {
   isCancelling?: boolean;
 }
 
-const AppointmentCard = ({ appointment, onCancel, isCancelling }: AppointmentCardProps) => {
+const AppointmentCard = memo(({ appointment, onCancel, isCancelling }: AppointmentCardProps) => {
   const navigate = useNavigate();
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const appointmentDate = new Date(appointment.appointment_date);
@@ -45,30 +45,15 @@ const AppointmentCard = ({ appointment, onCancel, isCancelling }: AppointmentCar
   const getStatusConfig = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'confirmed':
-        return {
-          color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-          icon: CheckCircle,
-        };
+        return { color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400', icon: CheckCircle };
       case 'completed':
-        return {
-          color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-          icon: CheckCircle,
-        };
+        return { color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400', icon: CheckCircle };
       case 'pending':
-        return {
-          color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-          icon: AlertCircle,
-        };
+        return { color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400', icon: AlertCircle };
       case 'cancelled':
-        return {
-          color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-          icon: XCircle,
-        };
+        return { color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400', icon: XCircle };
       default:
-        return {
-          color: 'bg-muted text-muted-foreground',
-          icon: AlertCircle,
-        };
+        return { color: 'bg-muted text-muted-foreground', icon: AlertCircle };
     }
   };
 
@@ -96,45 +81,30 @@ const AppointmentCard = ({ appointment, onCancel, isCancelling }: AppointmentCar
     <div className={`border rounded-2xl p-5 transition-all duration-300 bg-card ${
       isAppointmentPast ? 'opacity-60' : 'hover:border-primary/30 hover:shadow-md'
     }`}>
-      {/* Date & Status Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
         <div className="flex items-center gap-3">
-          {/* Date Box */}
           <div className={`flex flex-col items-center justify-center h-16 w-16 rounded-xl ${
-            isToday(appointmentDate) 
-              ? 'bg-primary text-primary-foreground' 
-              : 'bg-muted'
+            isToday(appointmentDate) ? 'bg-primary text-primary-foreground' : 'bg-muted'
           }`}>
-            <span className="text-2xl font-bold leading-none">
-              {format(appointmentDate, 'd')}
-            </span>
-            <span className="text-xs uppercase">
-              {format(appointmentDate, 'MMM')}
-            </span>
+            <span className="text-2xl font-bold leading-none">{format(appointmentDate, 'd')}</span>
+            <span className="text-xs uppercase">{format(appointmentDate, 'MMM')}</span>
           </div>
-          
           <div>
-            <p className="font-semibold text-foreground">
-              {getDateLabel()}
-            </p>
+            <p className="font-semibold text-foreground">{getDateLabel()}</p>
             <p className="text-sm text-muted-foreground flex items-center gap-1">
               <Clock className="h-3 w-3" />
               {appointment.appointment_time}
             </p>
           </div>
         </div>
-
         <Badge className={`${statusConfig.color} gap-1`}>
           <StatusIcon className="h-3 w-3" />
           {appointment.status || 'Pending'}
         </Badge>
       </div>
 
-      {/* Clinic Info */}
       <div className="mb-4 p-3 bg-muted/50 rounded-xl">
-        <h4 className="font-semibold text-foreground mb-2">
-          {appointment.clinic?.name || 'Unknown Clinic'}
-        </h4>
+        <h4 className="font-semibold text-foreground mb-2">{appointment.clinic?.name || 'Unknown Clinic'}</h4>
         {appointment.clinic?.address && (
           <p className="text-sm text-muted-foreground flex items-start gap-2 mb-1">
             <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -149,7 +119,6 @@ const AppointmentCard = ({ appointment, onCancel, isCancelling }: AppointmentCar
         )}
       </div>
 
-      {/* Pet & Reason Info */}
       <div className="mb-4 space-y-2">
         {appointment.pet_name && (
           <div className="flex items-center gap-2">
@@ -168,29 +137,15 @@ const AppointmentCard = ({ appointment, onCancel, isCancelling }: AppointmentCar
         )}
       </div>
 
-      {/* Action Buttons */}
       {!isAppointmentPast && appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
         <div className="flex flex-wrap gap-2">
-          <Button 
-            size="sm" 
-            variant="outline"
-            onClick={() => navigate(`/book-appointment/${appointment.clinic_id}`)}
-            aria-label="Reschedule this appointment"
-          >
+          <Button size="sm" variant="outline" onClick={() => navigate(`/book-appointment/${appointment.clinic_id}`)} aria-label="Reschedule this appointment">
             Reschedule
           </Button>
           <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
             <AlertDialogTrigger asChild>
-              <Button 
-                size="sm" 
-                variant="ghost"
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                disabled={isCancelling}
-                aria-label="Cancel this appointment"
-              >
-                {isCancelling ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-1" aria-hidden="true" />
-                ) : null}
+              <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10" disabled={isCancelling} aria-label="Cancel this appointment">
+                {isCancelling ? <Loader2 className="h-4 w-4 animate-spin mr-1" aria-hidden="true" /> : null}
                 Cancel
               </Button>
             </AlertDialogTrigger>
@@ -223,18 +178,15 @@ const AppointmentCard = ({ appointment, onCancel, isCancelling }: AppointmentCar
         </div>
       )}
 
-      {/* Book Again for Past Appointments */}
       {(isAppointmentPast || appointment.status === 'completed') && (
-        <Button 
-          size="sm" 
-          variant="outline"
-          onClick={() => navigate(`/book-appointment/${appointment.clinic_id}`)}
-        >
+        <Button size="sm" variant="outline" onClick={() => navigate(`/book-appointment/${appointment.clinic_id}`)}>
           Book Again
         </Button>
       )}
     </div>
   );
-};
+});
+
+AppointmentCard.displayName = 'AppointmentCard';
 
 export default AppointmentCard;

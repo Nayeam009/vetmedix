@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { parseCSV, generateCSVTemplate, downloadCSV, ProductCSVRow, ParseResult } from '@/lib/csvParser';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 
@@ -35,12 +35,11 @@ export function CSVImportDialog({ open, onOpenChange }: CSVImportDialogProps) {
   const [importing, setImporting] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const handleFile = (file: File) => {
     if (!file.name.endsWith('.csv')) {
-      toast({ title: 'Error', description: 'Please select a CSV file', variant: 'destructive' });
+      toast.error('Please select a CSV file');
       return;
     }
 
@@ -104,21 +103,14 @@ export function CSVImportDialog({ open, onOpenChange }: CSVImportDialogProps) {
 
       if (error) throw error;
 
-      toast({ 
-        title: 'Success', 
-        description: `Successfully imported ${products.length} products` 
-      });
+      toast.success(`Successfully imported ${products.length} products`);
       
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       onOpenChange(false);
       setParseResult(null);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to import products';
-      toast({ 
-        title: 'Import failed', 
-        description: errorMessage, 
-        variant: 'destructive' 
-      });
+      toast.error(errorMessage);
     } finally {
       setImporting(false);
     }
