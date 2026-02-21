@@ -313,10 +313,9 @@ export const clinicVerificationSchema = z.object({
     .regex(noXSSRegex, 'Name cannot contain < or > characters'),
   ownerNid: z
     .string()
+    .min(1, 'NID number is required')
     .max(20, 'NID must be less than 20 characters')
-    .regex(/^[0-9]*$/, 'NID must contain only digits')
-    .optional()
-    .or(z.literal('')),
+    .regex(/^[0-9]+$/, 'NID must contain only digits'),
   clinicName: z
     .string()
     .min(1, 'Clinic name is required')
