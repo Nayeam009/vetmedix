@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useCallback, memo } from 'react';
+import { useCallback, memo, useMemo } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { 
@@ -68,13 +68,13 @@ const CartItem = memo(({
             {item.category}
           </span>
         </div>
-        <button
-          onClick={() => onRemove(item.id)}
-          className="text-muted-foreground hover:text-destructive transition-colors p-1 h-fit"
-          aria-label={`Remove ${item.name} from cart`}
-        >
-          <Trash2 className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
-        </button>
+          <button
+            onClick={() => onRemove(item.id)}
+            className="text-muted-foreground hover:text-destructive transition-colors p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-label={`Remove ${item.name} from cart`}
+          >
+            <Trash2 className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
+          </button>
       </div>
       
       <div className="flex items-center justify-between mt-auto pt-3">
@@ -82,7 +82,7 @@ const CartItem = memo(({
         <div className="flex items-center border border-border rounded-lg overflow-hidden" role="group" aria-label={`Quantity controls for ${item.name}`}>
           <button
             onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-            className="h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center hover:bg-muted transition-colors"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-muted transition-colors"
             disabled={item.quantity <= 1}
             aria-label={`Decrease quantity of ${item.name}`}
           >
@@ -91,7 +91,7 @@ const CartItem = memo(({
           <span className="font-medium w-8 sm:w-10 text-center text-sm sm:text-base" aria-label={`Quantity: ${item.quantity}`}>{item.quantity}</span>
           <button
             onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-            className="h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center hover:bg-muted transition-colors"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-muted transition-colors"
             aria-label={`Increase quantity of ${item.name}`}
           >
             <Plus className="h-3 w-3 sm:h-4 sm:w-4" aria-hidden="true" />
@@ -140,6 +140,16 @@ const CartPage = () => {
     clearCart();
   }, [clearCart]);
 
+  const cartItemList = useMemo(() => items.map((item) => (
+    <CartItem
+      key={item.id}
+      item={item}
+      onUpdateQuantity={handleUpdateQuantity}
+      onRemove={handleRemoveItem}
+      onNavigate={handleNavigate}
+    />
+  )), [items, handleUpdateQuantity, handleRemoveItem, handleNavigate]);
+
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-muted/30 pb-20 md:pb-0">
@@ -153,7 +163,7 @@ const CartPage = () => {
             <p className="text-muted-foreground mb-8 text-sm sm:text-base">
               Looks like you haven't added anything to your cart yet. Start shopping to fill it up!
             </p>
-            <Button onClick={() => handleNavigate('/shop')} size="lg" className="rounded-xl">
+            <Button onClick={() => handleNavigate('/shop')} size="lg" className="rounded-xl bg-primary text-primary-foreground">
               <ShoppingCart className="h-5 w-5 mr-2" aria-hidden="true" />
               Continue Shopping
             </Button>
@@ -203,15 +213,7 @@ const CartPage = () => {
         <div className="grid lg:grid-cols-12 gap-6 lg:gap-8">
           {/* Cart Items */}
           <section className="lg:col-span-8 space-y-3 sm:space-y-4" aria-labelledby="cart-heading" role="list">
-            {items.map((item) => (
-              <CartItem
-                key={item.id}
-                item={item}
-                onUpdateQuantity={handleUpdateQuantity}
-                onRemove={handleRemoveItem}
-                onNavigate={handleNavigate}
-              />
-            ))}
+            {cartItemList}
 
             {/* Continue Shopping */}
             <button 
@@ -226,7 +228,7 @@ const CartPage = () => {
 
           {/* Order Summary */}
           <aside className="lg:col-span-4" aria-label="Order summary">
-            <div className="bg-background rounded-xl sm:rounded-2xl border border-border shadow-sm sticky top-24">
+            <div className="bg-background rounded-xl sm:rounded-2xl border border-border shadow-card sticky top-24">
               <div className="p-4 sm:p-5 lg:p-6">
                 <h2 className="text-lg sm:text-xl font-bold text-foreground mb-4">Order Summary</h2>
                 
