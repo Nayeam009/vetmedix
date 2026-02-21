@@ -20,6 +20,7 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
   },
   optimizeDeps: {
+    force: true,
     include: [
       "react",
       "react-dom",
