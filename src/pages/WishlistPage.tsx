@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, Loader2, ShoppingBag, Building2, Stethoscope, Trash2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
@@ -14,6 +14,7 @@ import { useWishlist } from '@/contexts/WishlistContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { toast } from 'sonner';
+import { ProductGridSkeleton } from '@/components/shop/ProductCardSkeleton';
 import type { FavoriteClinicRow, FavoriteDoctorRow } from '@/types/database';
 
 interface WishlistProduct {
@@ -32,7 +33,7 @@ const WishlistPage = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   
-  const { wishlistIds, loading: wishlistLoading } = useWishlist();
+  const { wishlistIds, loading: wishlistLoading, toggleWishlist } = useWishlist();
   const [products, setProducts] = useState<WishlistProduct[]>([]);
   const [favoriteClinics, setFavoriteClinics] = useState<FavoriteClinicRow[]>([]);
   const [favoriteDoctors, setFavoriteDoctors] = useState<FavoriteDoctorRow[]>([]);
@@ -46,7 +47,7 @@ const WishlistPage = () => {
     }
   }, [user, authLoading, navigate]);
 
-  // Fetch wishlist products
+  // Fetch wishlist products via join: wishlists -> products (RLS: auth.uid() = user_id)
   useEffect(() => {
     if (!user || wishlistLoading) return;
     const ids = Array.from(wishlistIds);
@@ -59,10 +60,15 @@ const WishlistPage = () => {
       setLoading(true);
       try {
         const { data } = await supabase
-          .from('products')
-          .select('id, name, price, category, image_url, badge, discount, stock')
-          .in('id', ids);
-        if (data) setProducts(data);
+          .from('wishlists')
+          .select('product_id, product:products(id, name, price, category, image_url, badge, discount, stock)')
+          .eq('user_id', user.id);
+        if (data) {
+          const mapped = data
+            .map((row: any) => row.product)
+            .filter(Boolean) as WishlistProduct[];
+          setProducts(mapped);
+        }
       } catch {
         // silently fail
       } finally {
@@ -71,6 +77,12 @@ const WishlistPage = () => {
     };
     fetchProducts();
   }, [user, wishlistIds, wishlistLoading]);
+
+  // Optimistic: filter out products no longer in wishlistIds
+  const visibleProducts = useMemo(
+    () => products.filter(p => wishlistIds.has(p.id)),
+    [products, wishlistIds]
+  );
 
   // Fetch favorite clinics
   const fetchFavoriteClinics = useCallback(async () => {
@@ -141,7 +153,7 @@ const WishlistPage = () => {
     );
   }
 
-  const totalSaved = products.length + favoriteClinics.length + favoriteDoctors.length;
+  const totalSaved = visibleProducts.length + favoriteClinics.length + favoriteDoctors.length;
 
   return (
     <div className="min-h-screen bg-muted/30 pb-20 md:pb-0">
@@ -168,8 +180,8 @@ const WishlistPage = () => {
             >
               <ShoppingBag className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span>Products</span>
-              {products.length > 0 && (
-                <span className="ml-0.5 text-[10px] bg-background/20 px-1.5 py-0.5 rounded-full">{products.length}</span>
+              {visibleProducts.length > 0 && (
+                <span className="ml-0.5 text-[10px] bg-background/20 px-1.5 py-0.5 rounded-full">{visibleProducts.length}</span>
               )}
             </TabsTrigger>
             <TabsTrigger
@@ -197,10 +209,8 @@ const WishlistPage = () => {
           {/* Products Tab */}
           <TabsContent value="products">
             {loading || wishlistLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <Loader2 className="h-7 w-7 animate-spin text-primary" />
-              </div>
-            ) : products.length === 0 ? (
+              <ProductGridSkeleton count={8} />
+            ) : visibleProducts.length === 0 ? (
               <EmptyState
                 icon={<ShoppingBag className="h-10 w-10 text-muted-foreground/40" />}
                 title="No saved products"
@@ -210,7 +220,7 @@ const WishlistPage = () => {
               />
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
-                {products.map((product) => (
+                {visibleProducts.map((product) => (
                   <ProductCard
                     key={product.id}
                     id={product.id}
