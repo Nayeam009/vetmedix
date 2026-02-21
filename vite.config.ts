@@ -14,10 +14,14 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    // This is the ONLY thing needed to prevent dual-React.
-    // It tells Vite to always resolve these to a single copy
-    // regardless of how deeply nested the import source is.
-    dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
+    dedupe: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+      "react-router-dom",
+      "@tanstack/react-query",
+    ],
   },
   optimizeDeps: {
     force: true,
@@ -29,14 +33,13 @@ export default defineConfig(({ mode }) => ({
       "react/jsx-dev-runtime",
       "@tanstack/react-query",
       "@supabase/supabase-js",
+      "react-router-dom",
     ],
   },
   build: {
     rollupOptions: {
       output: {
         manualChunks: {
-          // Keep ALL React-related code in a single chunk to guarantee
-          // one ReactCurrentDispatcher instance at runtime.
           "vendor-react": [
             "react",
             "react-dom",

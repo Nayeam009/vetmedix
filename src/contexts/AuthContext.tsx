@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import React from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
@@ -16,21 +16,16 @@ interface AuthContextType {
   clearError: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children, queryClient }: { children: ReactNode; queryClient?: QueryClient }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<AuthError | null>(null);
+export const AuthProvider = ({ children, queryClient }: { children: React.ReactNode; queryClient?: QueryClient }) => {
+  const [user, setUser] = React.useState<User | null>(null);
+  const [session, setSession] = React.useState<Session | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<AuthError | null>(null);
 
-  useEffect(() => {
-    // M-1 Fix: Use ONLY onAuthStateChange — it fires INITIAL_SESSION immediately
-    // with the current session, making the redundant getSession() call unnecessary.
-    // Removing getSession() eliminates the double state-update that caused every
-    // context consumer to re-render twice on every page load.
+  React.useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // Handle sign out - clear query cache
       if (event === 'SIGNED_OUT' && queryClient) {
         queryClient.clear();
       }
@@ -56,7 +51,6 @@ export const AuthProvider = ({ children, queryClient }: { children: ReactNode; q
       });
       
       if (error) {
-        // Handle specific error cases
         if (error.message.includes('already registered')) {
           return { 
             error: new Error('This email is already registered. Please sign in instead.'), 
@@ -80,7 +74,6 @@ export const AuthProvider = ({ children, queryClient }: { children: ReactNode; q
       });
       
       if (error) {
-        // Handle specific error cases
         if (error.message.includes('Invalid login credentials')) {
           return { error: new Error('Invalid email or password. Please try again.') };
         }
@@ -101,7 +94,7 @@ export const AuthProvider = ({ children, queryClient }: { children: ReactNode; q
     }
   };
 
-  const refreshSession = useCallback(async () => {
+  const refreshSession = React.useCallback(async () => {
     try {
       const { data, error } = await supabase.auth.refreshSession();
       if (error) {
@@ -116,29 +109,31 @@ export const AuthProvider = ({ children, queryClient }: { children: ReactNode; q
     }
   }, []);
 
-  const clearError = useCallback(() => {
+  const clearError = React.useCallback(() => {
     setError(null);
   }, []);
 
+  const value = React.useMemo<AuthContextType>(() => ({
+    user,
+    session,
+    loading,
+    error,
+    signUp,
+    signIn,
+    signOut,
+    refreshSession,
+    clearError,
+  }), [user, session, loading, error, refreshSession, clearError]);
+
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      session, 
-      loading, 
-      error,
-      signUp, 
-      signIn, 
-      signOut,
-      refreshSession,
-      clearError 
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
+  const context = React.useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }

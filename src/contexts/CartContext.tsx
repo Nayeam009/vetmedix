@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
+import React from 'react';
 
 export interface CartItem {
   id: string;
@@ -19,7 +19,7 @@ interface CartContextType {
   totalAmount: number;
 }
 
-const CartContext = createContext<CartContextType | undefined>(undefined);
+const CartContext = React.createContext<CartContextType | undefined>(undefined);
 
 const CART_STORAGE_KEY = 'vetmedix-cart';
 
@@ -33,14 +33,14 @@ function readStoredCart(): CartItem[] {
   }
 }
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(readStoredCart);
+export function CartProvider({ children }: { children: React.ReactNode }) {
+  const [items, setItems] = React.useState<CartItem[]>(readStoredCart);
 
-  useEffect(() => {
+  React.useEffect(() => {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
   }, [items]);
 
-  const addItem = useCallback((item: Omit<CartItem, 'quantity'>) => {
+  const addItem = React.useCallback((item: Omit<CartItem, 'quantity'>) => {
     setItems(prev => {
       const existing = prev.find(i => i.id === item.id);
       if (existing) {
@@ -52,11 +52,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const removeItem = useCallback((id: string) => {
+  const removeItem = React.useCallback((id: string) => {
     setItems(prev => prev.filter(item => item.id !== id));
   }, []);
 
-  const updateQuantity = useCallback((id: string, quantity: number) => {
+  const updateQuantity = React.useCallback((id: string, quantity: number) => {
     if (quantity <= 0) {
       setItems(prev => prev.filter(item => item.id !== id));
       return;
@@ -66,21 +66,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
     ));
   }, []);
 
-  const clearCart = useCallback(() => {
+  const clearCart = React.useCallback(() => {
     setItems([]);
   }, []);
 
-  const totalItems = useMemo(
+  const totalItems = React.useMemo(
     () => items.reduce((sum, item) => sum + item.quantity, 0),
     [items]
   );
 
-  const totalAmount = useMemo(
+  const totalAmount = React.useMemo(
     () => items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
     [items]
   );
 
-  const value = useMemo<CartContextType>(() => ({
+  const value = React.useMemo<CartContextType>(() => ({
     items,
     addItem,
     removeItem,
@@ -98,7 +98,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 }
 
 export function useCart(): CartContextType {
-  const context = useContext(CartContext);
+  const context = React.useContext(CartContext);
   if (context === undefined) {
     throw new Error('useCart must be used within a <CartProvider>');
   }
