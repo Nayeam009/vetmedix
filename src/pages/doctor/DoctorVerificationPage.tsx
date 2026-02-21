@@ -12,6 +12,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { getStatusColor } from '@/lib/statusColors';
 import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import { useAuth } from '@/contexts/AuthContext';
@@ -305,15 +307,52 @@ const DoctorVerificationPage = () => {
           {getStatusBadge()}
         </div>
 
-        {/* Status Card */}
+        {/* Status Pipeline Tracker */}
+        <Card className="mb-6">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between gap-1 sm:gap-2">
+              {(['not_submitted', 'pending', 'approved'] as const).map((step, idx) => {
+                const isActive = verificationStatus === step || (step === 'approved' && verificationStatus === 'rejected');
+                const isPast =
+                  (step === 'not_submitted' && verificationStatus !== 'not_submitted') ||
+                  (step === 'pending' && (verificationStatus === 'approved' || verificationStatus === 'rejected'));
+                const displayLabel = step === 'approved' && verificationStatus === 'rejected' ? 'Rejected' : step.replace('_', ' ');
+                const statusForColor = step === 'approved' && verificationStatus === 'rejected' ? 'rejected' : step === 'not_submitted' ? 'pending' : step === 'approved' ? 'completed' : step;
+
+                return (
+                  <div key={step} className="flex-1 flex flex-col items-center gap-1.5">
+                    <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                      isPast ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                      isActive ? getStatusColor(statusForColor) :
+                      'bg-muted text-muted-foreground'
+                    }`}>
+                      {isPast ? <CheckCircle className="h-4 w-4" /> : idx + 1}
+                    </div>
+                    <span className="text-[10px] sm:text-xs font-medium capitalize text-center leading-tight">{displayLabel}</span>
+                    {idx < 2 && (
+                      <div className={`absolute hidden`} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {/* Connector lines */}
+            <div className="flex items-center mt-[-2.25rem] mb-6 px-[16.67%]">
+              <div className={`flex-1 h-0.5 ${verificationStatus !== 'not_submitted' ? 'bg-green-500' : 'bg-border'}`} />
+              <div className={`flex-1 h-0.5 ${verificationStatus === 'approved' ? 'bg-green-500' : verificationStatus === 'rejected' ? 'bg-destructive' : 'bg-border'}`} />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Status Messages */}
         {verificationStatus === 'pending' && (
           <Card className="mb-6 border-yellow-500/30 bg-yellow-500/5">
             <CardContent className="py-4">
               <div className="flex items-start gap-3">
                 <Clock className="h-5 w-5 text-yellow-600 mt-0.5" />
                 <div>
-                  <p className="font-medium text-yellow-700">Verification in Progress</p>
-                  <p className="text-sm text-yellow-600/80">
+                  <p className="font-medium text-yellow-700 dark:text-yellow-400">Verification in Progress</p>
+                  <p className="text-sm text-yellow-600/80 dark:text-yellow-300/70">
                     Your documents are being reviewed. This usually takes 1-2 business days.
                   </p>
                 </div>
@@ -323,19 +362,13 @@ const DoctorVerificationPage = () => {
         )}
 
         {verificationStatus === 'rejected' && (
-          <Card className="mb-6 border-red-500/30 bg-red-500/5">
-            <CardContent className="py-4">
-              <div className="flex items-start gap-3">
-                <XCircle className="h-5 w-5 text-red-600 mt-0.5" />
-                <div>
-                  <p className="font-medium text-red-700">Verification Rejected</p>
-                  <p className="text-sm text-red-600/80">
-                    {(doctorProfile as Record<string, any>)?.rejection_reason || 'Please resubmit with valid documents.'}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <Alert variant="destructive" className="mb-6">
+            <XCircle className="h-4 w-4" />
+            <AlertTitle>Verification Rejected</AlertTitle>
+            <AlertDescription>
+              {(doctorProfile as Record<string, any>)?.rejection_reason || 'Your verification was rejected. Please resubmit with valid documents.'}
+            </AlertDescription>
+          </Alert>
         )}
 
         {verificationStatus === 'approved' && (
@@ -344,8 +377,8 @@ const DoctorVerificationPage = () => {
               <div className="flex items-start gap-3">
                 <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
                 <div>
-                  <p className="font-medium text-green-700">Verified Doctor</p>
-                  <p className="text-sm text-green-600/80">
+                  <p className="font-medium text-green-700 dark:text-green-400">Verified Doctor</p>
+                  <p className="text-sm text-green-600/80 dark:text-green-300/70">
                     Your profile is verified and visible on the doctors listing page.
                   </p>
                 </div>
