@@ -21,10 +21,9 @@ import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { getDivisions } from '@/lib/bangladeshRegions';
 
-const BANGLADESH_DIVISIONS = [
-  'Dhaka', 'Chittagong', 'Rajshahi', 'Khulna', 'Barisal', 'Sylhet', 'Rangpur', 'Mymensingh'
-];
+const BANGLADESH_DIVISIONS = getDivisions();
 
 interface DeliveryZone {
   id: string;
@@ -163,7 +162,7 @@ const AdminDeliveryZones = () => {
   const handleSubmit = () => {
     if (!formData.zone_name.trim()) { toast.error('Zone name is required'); return; }
     if (formData.divisions.length === 0) { toast.error('Select at least one division'); return; }
-    if (formData.charge < 0) { toast.error('Charge cannot be negative'); return; }
+    if (formData.charge < 0 || formData.delivery_fee < 0) { toast.error('Charge and delivery fee must be positive'); return; }
     saveMutation.mutate(formData);
   };
 
