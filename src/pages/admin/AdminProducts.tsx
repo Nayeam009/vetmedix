@@ -65,6 +65,9 @@ import { downloadCSV } from '@/lib/csvParser';
 import { useProductCategories } from '@/hooks/useProductCategories';
 import { cn } from '@/lib/utils';
 
+
+type AdminProduct = NonNullable<ReturnType<typeof useAdminProducts>['data']>[number];
+
 const LOW_STOCK_THRESHOLD = 10;
 
 const emptyFormData: ProductFormData = {
@@ -102,7 +105,7 @@ const AdminProducts = () => {
   const [isPDFImportOpen, setIsPDFImportOpen] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [selectedProduct, setSelectedProduct] = useState<AdminProduct | null>(null);
   const [saving, setSaving] = useState(false);
   const [quickStockEdit, setQuickStockEdit] = useState<{ id: string; stock: string } | null>(null);
   const [formData, setFormData] = useState<ProductFormData>(emptyFormData);
@@ -115,7 +118,7 @@ const AdminProducts = () => {
       inStock: products.filter(p => (p.stock ?? 0) > 0).length,
       outOfStock: products.filter(p => (p.stock ?? 0) === 0).length,
       lowStock: products.filter(p => (p.stock ?? 0) > 0 && (p.stock ?? 0) <= LOW_STOCK_THRESHOLD).length,
-      featured: products.filter(p => (p as any).is_featured).length,
+      featured: products.filter(p => p.is_featured).length,
     };
   }, [products]);
 
@@ -188,7 +191,7 @@ const AdminProducts = () => {
         is_featured: result.data.is_featured,
         compare_price: result.data.compare_price,
         sku: result.data.sku || null,
-      } as any);
+      });
       if (error) throw error;
       toast.success('Product added successfully');
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
@@ -228,7 +231,7 @@ const AdminProducts = () => {
         is_featured: result.data.is_featured,
         compare_price: result.data.compare_price,
         sku: result.data.sku || null,
-      } as any).eq('id', selectedProduct.id);
+      }).eq('id', selectedProduct.id);
       if (error) throw error;
       toast.success('Product updated successfully');
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
@@ -282,7 +285,7 @@ const AdminProducts = () => {
 
   const handleToggleActive = async (productId: string, isActive: boolean) => {
     try {
-      const { error } = await supabase.from('products').update({ is_active: isActive } as any).eq('id', productId);
+      const { error } = await supabase.from('products').update({ is_active: isActive }).eq('id', productId);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       toast.success(isActive ? 'Product activated' : 'Product deactivated');
@@ -293,7 +296,7 @@ const AdminProducts = () => {
 
   const handleToggleFeatured = async (productId: string, isFeatured: boolean) => {
     try {
-      const { error } = await supabase.from('products').update({ is_featured: isFeatured } as any).eq('id', productId);
+      const { error } = await supabase.from('products').update({ is_featured: isFeatured }).eq('id', productId);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       toast.success(isFeatured ? 'Marked as featured' : 'Removed from featured');
@@ -302,7 +305,7 @@ const AdminProducts = () => {
     }
   };
 
-  const openEditDialog = (product: any) => {
+  const openEditDialog = (product: typeof filteredProducts[number]) => {
     setSelectedProduct(product);
     setFormData({
       name: product.name,
@@ -329,15 +332,15 @@ const AdminProducts = () => {
       product.name,
       product.description || '',
       product.price,
-      (product as any).compare_price || '',
+      product.compare_price || '',
       product.category,
       product.product_type || '',
       product.stock,
-      (product as any).sku || '',
+      product.sku || '',
       product.badge || '',
       product.discount || '',
-      (product as any).is_active ?? true,
-      (product as any).is_featured ?? false,
+      product.is_active ?? true,
+      product.is_featured ?? false,
       product.created_at ? new Date(product.created_at).toISOString().split('T')[0] : ''
     ]);
     const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
@@ -449,9 +452,9 @@ const AdminProducts = () => {
                   const stock = product.stock ?? 0;
                   const isLow = stock > 0 && stock <= LOW_STOCK_THRESHOLD;
                   const isOut = stock === 0;
-                  const pActive = (product as any).is_active ?? true;
-                  const pFeatured = (product as any).is_featured ?? false;
-                  const comparePrice = (product as any).compare_price;
+                  const pActive = product.is_active ?? true;
+                  const pFeatured = product.is_featured ?? false;
+                  const comparePrice = product.compare_price;
                   const isQuickEditing = quickStockEdit?.id === product.id;
 
                   return (
@@ -559,9 +562,9 @@ const AdminProducts = () => {
                       const stock = product.stock ?? 0;
                       const isOut = stock === 0;
                       const isLow = stock > 0 && stock <= LOW_STOCK_THRESHOLD;
-                      const pActive = (product as any).is_active ?? true;
-                      const pFeatured = (product as any).is_featured ?? false;
-                      const comparePrice = (product as any).compare_price;
+                      const pActive = product.is_active ?? true;
+                      const pFeatured = product.is_featured ?? false;
+                      const comparePrice = product.compare_price;
 
                       return (
                         <TableRow key={product.id}

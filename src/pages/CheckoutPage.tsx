@@ -237,7 +237,7 @@ const CheckoutPage = () => {
       // Atomic order creation + stock decrement via DB function
       const { data: orderId, error } = await supabase.rpc('create_order_with_stock', {
         p_user_id: user.id,
-        p_items: items as any,
+        p_items: JSON.parse(JSON.stringify(items)),
         p_total_amount: grandTotal,
         p_shipping_address: shippingAddress,
         p_payment_method: paymentMethod,
