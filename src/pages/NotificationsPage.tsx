@@ -172,8 +172,8 @@ const NotificationsPage = () => {
                   <div
                     key={notification.id}
                     onClick={() => handleNotificationClick(notification)}
-                    className={`flex items-start gap-3 p-3 rounded-lg transition-colors hover:bg-muted cursor-pointer ${
-                      !notification.is_read ? 'bg-primary/5' : ''
+                    className={`flex items-start gap-3 p-3 rounded-lg transition-all hover:bg-muted cursor-pointer active:scale-[0.98] ${
+                      !notification.is_read ? 'bg-primary/5' : 'opacity-75'
                     }`}
                   >
                     <div className="relative">
@@ -207,7 +207,7 @@ const NotificationsPage = () => {
                       </p>
                     </div>
                     {!notification.is_read && (
-                      <div className="h-2 w-2 bg-primary rounded-full mt-2" />
+                      <div className="h-2 w-2 bg-primary rounded-full mt-2 flex-shrink-0" />
                     )}
                   </div>
                 ))}
