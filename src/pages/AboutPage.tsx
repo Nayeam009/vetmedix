@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, Shield, Users, Stethoscope, PawPrint, Building2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -5,46 +6,49 @@ import { Card, CardContent } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import Footer from '@/components/Footer';
-import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import SEO from '@/components/SEO';
 
-const AboutPage = () => {
-  useDocumentTitle('About Us');
+const features = [
+  {
+    icon: <Building2 className="h-8 w-8" />,
+    title: 'Verified Clinics',
+    description: 'All veterinary clinics are thoroughly verified to ensure quality care for your pets.',
+  },
+  {
+    icon: <Stethoscope className="h-8 w-8" />,
+    title: 'Expert Doctors',
+    description: 'Our platform connects you with certified veterinary professionals across specializations.',
+  },
+  {
+    icon: <Shield className="h-8 w-8" />,
+    title: 'Trusted Platform',
+    description: 'Secure booking system with transparent reviews and ratings from real pet owners.',
+  },
+  {
+    icon: <Heart className="h-8 w-8" />,
+    title: 'Pet Community',
+    description: 'Join thousands of pet lovers sharing experiences and supporting each other.',
+  },
+];
 
-  const features = [
-    {
-      icon: <Building2 className="h-8 w-8" />,
-      title: 'Verified Clinics',
-      description: 'All veterinary clinics are thoroughly verified to ensure quality care for your pets.',
-    },
-    {
-      icon: <Stethoscope className="h-8 w-8" />,
-      title: 'Expert Doctors',
-      description: 'Our platform connects you with certified veterinary professionals across specializations.',
-    },
-    {
-      icon: <Shield className="h-8 w-8" />,
-      title: 'Trusted Platform',
-      description: 'Secure booking system with transparent reviews and ratings from real pet owners.',
-    },
-    {
-      icon: <Heart className="h-8 w-8" />,
-      title: 'Pet Community',
-      description: 'Join thousands of pet lovers sharing experiences and supporting each other.',
-    },
-  ];
+const stats = [
+  { value: '1000+', label: 'Happy Pet Parents' },
+  { value: '50+', label: 'Verified Clinics' },
+  { value: '100+', label: 'Expert Doctors' },
+  { value: '5000+', label: 'Appointments Booked' },
+];
 
-  const stats = [
-    { value: '1000+', label: 'Happy Pet Parents' },
-    { value: '50+', label: 'Verified Clinics' },
-    { value: '100+', label: 'Expert Doctors' },
-    { value: '5000+', label: 'Appointments Booked' },
-  ];
-
+const AboutPage = memo(() => {
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
+      <SEO
+        title="About Us"
+        description="VetMedix is Bangladesh's trusted pet healthcare platform connecting pet owners with verified veterinary clinics and expert doctors."
+        canonicalUrl="https://vetmedix.lovable.app/about"
+      />
       <Navbar />
       
-      <main id="main-content">
+      <main id="main-content" className="animate-page-enter">
         {/* Hero Section */}
         <section className="relative py-16 sm:py-24 bg-gradient-to-br from-primary/5 via-background to-background overflow-hidden">
           <div className="container mx-auto px-4">
@@ -145,6 +149,8 @@ const AboutPage = () => {
       <MobileNav />
     </div>
   );
-};
+});
+
+AboutPage.displayName = 'AboutPage';
 
 export default AboutPage;
