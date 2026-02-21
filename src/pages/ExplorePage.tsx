@@ -1,4 +1,6 @@
-import { useCallback, memo } from 'react';
+import { useCallback, useMemo, memo } from 'react';
+import type { PetFollowData } from '@/hooks/useExplorePets';
+import type { Pet } from '@/types/social';
 import { Search, X, MapPin, Sparkles, PawPrint } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { Input } from '@/components/ui/input';
@@ -22,8 +24,9 @@ import {
 } from '@/components/ui/sheet';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useExplorePets } from '@/hooks/useExplorePets';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import ExplorePetCard from '@/components/explore/ExplorePetCard';
-import { PetGridSkeleton } from '@/components/explore/PetCardSkeleton';
+import { PetGridSkeleton, PetCardSkeleton } from '@/components/explore/PetCardSkeleton';
 
 const speciesOptions = ['All', 'Dog', 'Cat', 'Bird', 'Fish', 'Rabbit', 'Hamster', 'Other'];
 
@@ -37,6 +40,35 @@ const speciesEmojis: Record<string, string> = {
   Other: '🐾',
 };
 
+const PetCards = memo(({ pets, followDataMap, onFollow, onUnfollow }: {
+  pets: Pet[];
+  followDataMap: Record<string, PetFollowData>;
+  onFollow: (petId: string) => void;
+  onUnfollow: (petId: string) => void;
+}) => {
+  const cards = useMemo(() => pets.map((pet, index) => (
+    <div
+      key={pet.id}
+      className="animate-fade-in"
+      style={{ animationDelay: `${Math.min(index, 8) * 50}ms` }}
+    >
+      <ExplorePetCard
+        pet={pet}
+        followData={followDataMap[pet.id] || { followersCount: 0, isFollowing: false }}
+        onFollow={onFollow}
+        onUnfollow={onUnfollow}
+      />
+    </div>
+  )), [pets, followDataMap, onFollow, onUnfollow]);
+
+  return (
+    <div className="grid gap-3 sm:gap-4 lg:gap-5 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      {cards}
+    </div>
+  );
+});
+PetCards.displayName = 'PetCards';
+
 const ExplorePage = () => {
   useDocumentTitle('Explore Pets');
 
@@ -44,6 +76,8 @@ const ExplorePage = () => {
     pets,
     followDataMap,
     loading,
+    loadingMore,
+    hasMore,
     searchQuery,
     setSearchQuery,
     species,
@@ -55,7 +89,14 @@ const ExplorePage = () => {
     hasActiveFilters,
     optimisticFollow,
     optimisticUnfollow,
+    loadMore,
   } = useExplorePets();
+
+  const { sentinelRef } = useInfiniteScroll(loadMore, {
+    isLoading: loading || loadingMore,
+    hasMore,
+    threshold: 300,
+  });
 
   const handleSearchInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -296,22 +337,28 @@ const ExplorePage = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-3 sm:gap-4 lg:gap-5 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3">
-              {pets.map((pet, index) => (
-                <div
-                  key={pet.id}
-                  className="animate-fade-in"
-                  style={{ animationDelay: `${Math.min(index, 8) * 50}ms` }}
-                >
-                  <ExplorePetCard
-                    pet={pet}
-                    followData={followDataMap[pet.id] || { followersCount: 0, isFollowing: false }}
-                    onFollow={optimisticFollow}
-                    onUnfollow={optimisticUnfollow}
-                  />
+            <>
+              <PetCards
+                pets={pets}
+                followDataMap={followDataMap}
+                onFollow={optimisticFollow}
+                onUnfollow={optimisticUnfollow}
+              />
+
+              {loadingMore && (
+                <div className="grid gap-3 sm:gap-4 lg:gap-5 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mt-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <PetCardSkeleton key={i} />
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+
+              <div ref={sentinelRef} className="h-1" aria-hidden="true" />
+
+              {!hasMore && pets.length > 0 && (
+                <p className="text-center text-muted-foreground text-xs py-6">You've seen all pets 🐾</p>
+              )}
+            </>
           )}
         </div>
       </main>

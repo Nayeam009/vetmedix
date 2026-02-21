@@ -43,7 +43,7 @@ export function PetCardSkeleton() {
 
 export function PetGridSkeleton({ count = 6 }: { count?: number }) {
   return (
-    <div className="grid gap-3 sm:gap-4 lg:gap-5 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-3 sm:gap-4 lg:gap-5 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
       {Array.from({ length: count }).map((_, i) => (
         <PetCardSkeleton key={i} />
       ))}
