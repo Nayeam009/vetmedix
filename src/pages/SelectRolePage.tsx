@@ -39,7 +39,7 @@ const roles = [
 const SelectRolePage = () => {
   useDocumentTitle('Complete Your Profile');
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, refreshSession } = useAuth();
   
   
   const [selectedRole, setSelectedRole] = useState<SelectableRole>('user');
@@ -53,6 +53,15 @@ const SelectRolePage = () => {
   const [clinicAddress, setClinicAddress] = useState('');
   const [clinicPhone, setClinicPhone] = useState('');
 
+  // Disable browser back button to prevent bypassing role selection
+  useEffect(() => {
+    const handlePopState = () => {
+      window.history.pushState(null, '', window.location.href);
+    };
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   // Priority order for role-based redirects
   const ROLE_PRIORITY = ['admin', 'clinic_owner', 'doctor', 'user'];
 
@@ -225,16 +234,25 @@ const SelectRolePage = () => {
         }
       }
 
+      // Refresh session so AuthContext picks up new role immediately
+      await refreshSession();
+
       toast.success(selectedRole === 'clinic_owner' 
           ? 'Welcome to VET-MEDIX! Please complete verification.' 
           : selectedRole === 'doctor'
           ? 'Welcome to VET-MEDIX! Please complete verification.'
           : 'Welcome to VET-MEDIX! Your account is ready.');
 
-      if (selectedRole === 'doctor') {
-        navigate('/doctor/verification');
-      } else {
-        redirectBasedOnRoles([selectedRole], selectedRole === 'clinic_owner');
+      // CRITICAL: Priority redirection after role selection
+      switch (selectedRole) {
+        case 'doctor':
+          navigate('/doctor/verification', { replace: true });
+          break;
+        case 'clinic_owner':
+          navigate('/clinic/verification', { replace: true });
+          break;
+        default:
+          navigate('/', { replace: true });
       }
     } catch (err: unknown) {
       logger.error('Setup error:', err);
@@ -318,8 +336,8 @@ const SelectRolePage = () => {
                     type="button"
                     onClick={() => setSelectedRole(role.id)}
                     className={cn(
-                      'w-full flex items-start gap-3 p-4 rounded-xl border-2 transition-all text-left',
-                      'hover:border-primary/50 hover:bg-primary/5',
+                      'w-full flex items-start gap-3 p-4 rounded-xl border-2 transition-all text-left min-h-[60px]',
+                      'hover:border-primary/50 hover:bg-primary/5 hover:shadow-hover active:scale-[0.98]',
                       isSelected 
                         ? 'border-primary bg-primary/10' 
                         : 'border-border bg-card'
