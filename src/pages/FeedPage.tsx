@@ -38,17 +38,6 @@ const FeedPage = () => {
     threshold: 300,
   });
 
-  const handleLikePost = useCallback((postId: string) => {
-    likePost(postId);
-  }, [likePost]);
-
-  const handleUnlikePost = useCallback((postId: string) => {
-    unlikePost(postId);
-  }, [unlikePost]);
-
-  const handleRefreshPosts = useCallback(() => {
-    refreshPosts();
-  }, [refreshPosts]);
 
   const handleFeedTypeChange = useCallback((value: string) => {
     setFeedType(value as 'all' | 'following');
@@ -93,9 +82,9 @@ const FeedPage = () => {
             >
               <PostCard
                 post={post}
-                onLike={handleLikePost}
-                onUnlike={handleUnlikePost}
-                onDelete={handleRefreshPosts}
+                onLike={likePost}
+                onUnlike={unlikePost}
+                onDelete={refreshPosts}
                 onCommentCountChange={updatePostCommentCount}
               />
             </div>
@@ -157,7 +146,7 @@ const FeedPage = () => {
             </TabsTrigger>
           </TabsList>
 
-          <CreatePostCard onPostCreated={handleRefreshPosts} />
+          <CreatePostCard onPostCreated={refreshPosts} />
 
           <TabsContent value="all" className="mt-0">
             {renderPosts()}
