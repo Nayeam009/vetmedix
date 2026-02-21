@@ -1,4 +1,4 @@
-import { useState, useMemo, forwardRef } from 'react';
+import { useState, useMemo, useCallback, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
@@ -21,6 +21,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { AnalyticsStatCard } from '@/components/admin/AnalyticsStatCard';
 import { AnalyticsChartCard } from '@/components/admin/AnalyticsChartCard';
 import { AnalyticsDateFilter } from '@/components/admin/AnalyticsDateFilter';
@@ -92,9 +93,13 @@ const AdminAnalytics = () => {
     ].filter(item => item.value > 0);
   }, [analytics]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['admin-analytics'] });
-  };
+  }, [queryClient]);
+
+  const navigateToOrders = useCallback(() => navigate('/admin/orders'), [navigate]);
+  const navigateToProducts = useCallback(() => navigate('/admin/products'), [navigate]);
+  const navigateToClinics = useCallback(() => navigate('/admin/clinics'), [navigate]);
 
   const lastUpdatedText = dataUpdatedAt
     ? `Updated ${format(new Date(dataUpdatedAt), 'h:mm a')}`
@@ -102,6 +107,7 @@ const AdminAnalytics = () => {
 
   return (
     <RequireAdmin>
+    <ErrorBoundary>
     <AdminLayout title="Analytics" subtitle="Track your business performance">
       {/* Header Controls: Date Filter + Export + Refresh */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 sm:mb-6">
@@ -280,7 +286,7 @@ const AdminAnalytics = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => navigate('/admin/orders')}
+                  onClick={navigateToOrders}
                   className="h-7 sm:h-8 text-[10px] sm:text-xs gap-1"
                 >
                   View All
@@ -347,7 +353,7 @@ const AdminAnalytics = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => navigate('/admin/products')}
+                  onClick={navigateToProducts}
                   className="h-7 sm:h-8 text-[10px] sm:text-xs gap-1"
                 >
                   Products
@@ -533,7 +539,7 @@ const AdminAnalytics = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => navigate('/admin/clinics')}
+                  onClick={navigateToClinics}
                   className="h-7 sm:h-8 text-[10px] sm:text-xs gap-1"
                 >
                   Clinics
@@ -646,6 +652,7 @@ const AdminAnalytics = () => {
         </>
       )}
     </AdminLayout>
+    </ErrorBoundary>
     </RequireAdmin>
   );
 };
