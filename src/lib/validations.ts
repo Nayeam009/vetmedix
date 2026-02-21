@@ -174,8 +174,8 @@ export const doctorFormSchema = z.object({
     .max(20, 'Phone must be less than 20 characters')
     .optional()
     .or(z.literal('')),
-  specialization: z.string().max(100).optional().or(z.literal('')),
-  license_number: z.string().max(50).optional().or(z.literal('')),
+  specialization: z.string().max(100, 'Specialization must be less than 100 characters').regex(noXSSRegex, 'Specialization cannot contain < or > characters').optional().or(z.literal('')),
+  license_number: z.string().max(50).regex(noXSSRegex, 'License number cannot contain < or > characters').optional().or(z.literal('')),
   experience_years: z
     .string()
     .optional()
@@ -192,7 +192,7 @@ export const doctorFormSchema = z.object({
       (val) => !val || (Number(val) >= 0 && Number(val) <= 100000),
       'Fee must be between 0 and 100,000'
     ),
-  bio: z.string().max(2000, 'Bio must be less than 2000 characters').optional().or(z.literal('')),
+  bio: z.string().max(2000, 'Bio must be less than 2000 characters').regex(noXSSRegex, 'Bio cannot contain < or > characters').optional().or(z.literal('')),
   qualifications: z.array(z.string()).optional(),
   avatar_url: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
 });
