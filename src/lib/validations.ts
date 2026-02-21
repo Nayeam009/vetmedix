@@ -87,12 +87,12 @@ export type CheckoutFormData = z.infer<typeof checkoutSchema>;
 
 // Profile validation schema
 export const profileSchema = z.object({
-  full_name: z.string().max(100, 'Full name must be less than 100 characters').optional(),
-  phone: z.string().max(20, 'Phone number must be less than 20 characters').optional(),
-  address: z.string().max(500, 'Address must be less than 500 characters').optional(),
-  division: z.string().max(50, 'Division must be less than 50 characters').optional(),
-  district: z.string().max(50, 'District must be less than 50 characters').optional(),
-  thana: z.string().max(50, 'Thana must be less than 50 characters').optional(),
+  full_name: z.string().max(100, 'Full name must be less than 100 characters').regex(noXSSRegex, 'Name cannot contain < or > characters').optional().or(z.literal('')),
+  phone: z.string().max(20, 'Phone number must be less than 20 characters').optional().or(z.literal('')),
+  address: z.string().max(500, 'Address must be less than 500 characters').regex(noXSSRegex, 'Address cannot contain < or > characters').optional().or(z.literal('')),
+  division: z.string().max(50, 'Division must be less than 50 characters').optional().or(z.literal('')),
+  district: z.string().max(50, 'District must be less than 50 characters').optional().or(z.literal('')),
+  thana: z.string().max(50, 'Thana must be less than 50 characters').optional().or(z.literal('')),
 });
 
 export type ProfileFormData = z.infer<typeof profileSchema>;
