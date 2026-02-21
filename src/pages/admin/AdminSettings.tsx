@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAdminRealtimeDashboard } from '@/hooks/useAdminRealtimeDashboard';
@@ -24,6 +24,7 @@ import {
   Mail,
   Upload,
   ImageIcon,
+  Trash2,
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -297,8 +298,7 @@ const AdminSettingsContent = () => {
       setFaviconFile(null);
       queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
       toast.success('Brand assets saved successfully!');
-    } catch (err) {
-      console.error(err);
+    } catch {
       toast.error('Failed to save brand assets. Please try again.');
     } finally {
       setSavingBrand(false);
@@ -314,11 +314,19 @@ const AdminSettingsContent = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'favicon') => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(`File too large. Maximum size is 5 MB (got ${(file.size / 1024 / 1024).toFixed(1)} MB).`);
+      e.target.value = '';
+      return;
+    }
+
     if (type === 'logo') {
-      // Revoke previous blob URL if it was a local preview
       if (logoPreview && logoPreview.startsWith('blob:')) URL.revokeObjectURL(logoPreview);
       setLogoFile(file);
       setLogoPreview(URL.createObjectURL(file));
@@ -328,6 +336,22 @@ const AdminSettingsContent = () => {
       setFaviconPreview(URL.createObjectURL(file));
     }
   };
+
+  const handleRemoveAsset = useCallback((type: 'logo' | 'favicon') => {
+    if (type === 'logo') {
+      if (logoPreview && logoPreview.startsWith('blob:')) URL.revokeObjectURL(logoPreview);
+      setLogoFile(null);
+      setLogoPreview('');
+      setBrandAssets(prev => ({ ...prev, logo_url: '' }));
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    } else {
+      if (faviconPreview && faviconPreview.startsWith('blob:')) URL.revokeObjectURL(faviconPreview);
+      setFaviconFile(null);
+      setFaviconPreview('');
+      setBrandAssets(prev => ({ ...prev, favicon_url: '' }));
+      if (faviconInputRef.current) faviconInputRef.current.value = '';
+    }
+  }, [logoPreview, faviconPreview]);
 
 
   return (
@@ -453,12 +477,22 @@ const AdminSettingsContent = () => {
                     </Label>
                     <div className="flex flex-col gap-3">
                       {logoPreview ? (
-                        <div className="w-full h-28 rounded-lg border border-border/60 bg-muted/30 flex items-center justify-center overflow-hidden p-2">
+                        <div className="relative w-full h-28 rounded-lg border border-border/60 bg-muted/30 flex items-center justify-center overflow-hidden p-2">
                           <img
                             src={logoPreview}
                             alt="Logo preview"
                             className="max-h-full max-w-full object-contain"
                           />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full"
+                            onClick={() => handleRemoveAsset('logo')}
+                            disabled={savingBrand}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
                         </div>
                       ) : (
                         <div className="w-full h-28 rounded-lg border-2 border-dashed border-border/60 flex flex-col items-center justify-center gap-1.5 text-muted-foreground bg-muted/20">
@@ -497,12 +531,22 @@ const AdminSettingsContent = () => {
                     </Label>
                     <div className="flex flex-col gap-3">
                       {faviconPreview ? (
-                        <div className="w-full h-28 rounded-lg border border-border/60 bg-muted/30 flex items-center justify-center overflow-hidden p-2">
+                        <div className="relative w-full h-28 rounded-lg border border-border/60 bg-muted/30 flex items-center justify-center overflow-hidden p-2">
                           <img
                             src={faviconPreview}
                             alt="Favicon preview"
                             className="max-h-full max-w-full object-contain"
                           />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full"
+                            onClick={() => handleRemoveAsset('favicon')}
+                            disabled={savingBrand}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
                         </div>
                       ) : (
                         <div className="w-full h-28 rounded-lg border-2 border-dashed border-border/60 flex flex-col items-center justify-center gap-1.5 text-muted-foreground bg-muted/20">
@@ -542,7 +586,7 @@ const AdminSettingsContent = () => {
                   </p>
                   <Button
                     onClick={handleSaveBrandAssets}
-                    disabled={savingBrand || (!logoFile && !faviconFile && !brandAssets.logo_url && !brandAssets.favicon_url)}
+                    disabled={savingBrand || (!logoFile && !faviconFile && brandAssets.logo_url === (settings?.brand?.logo_url ?? '') && brandAssets.favicon_url === (settings?.brand?.favicon_url ?? ''))}
                     className="gap-2 min-h-[44px] sm:min-h-0 flex-shrink-0"
                   >
                     {savingBrand ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
