@@ -1,111 +1,126 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
+import { useSyncExternalStore, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { authSubscribe, getAuthUser } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
-interface WishlistContextType {
+// ─── Module-level wishlist store ─────────────────────────────────────
+
+let wishlistIds = new Set<string>();
+let loading = false;
+const listeners = new Set<() => void>();
+let currentUserId: string | null = null;
+
+interface WishlistSnapshot {
   wishlistIds: Set<string>;
-  isWishlisted: (productId: string) => boolean;
-  toggleWishlist: (productId: string) => Promise<boolean>;
   loading: boolean;
-  refetch: () => Promise<void>;
 }
 
-const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
+let snapshot: WishlistSnapshot = { wishlistIds, loading };
 
-export const WishlistProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
-  const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(false);
+function emitChange() {
+  snapshot = { wishlistIds: new Set(wishlistIds), loading };
+  listeners.forEach(fn => fn());
+}
 
-  const fetchWishlist = useCallback(async () => {
-    if (!user) {
-      setWishlistIds(new Set());
-      return;
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
+}
+
+function getSnapshot(): WishlistSnapshot {
+  return snapshot;
+}
+
+async function fetchWishlist(userId: string) {
+  loading = true;
+  emitChange();
+  try {
+    const { data } = await supabase
+      .from('wishlists')
+      .select('product_id')
+      .eq('user_id', userId);
+    if (data) {
+      wishlistIds = new Set(data.map(w => w.product_id));
     }
-    setLoading(true);
-    try {
-      const { data } = await supabase
-        .from('wishlists')
-        .select('product_id')
-        .eq('user_id', user.id);
-      if (data) {
-        setWishlistIds(new Set(data.map(w => w.product_id)));
-      }
-    } catch {
-      toast.error('Failed to load wishlist');
-    } finally {
-      setLoading(false);
+  } catch {
+    toast.error('Failed to load wishlist');
+  } finally {
+    loading = false;
+    emitChange();
+  }
+}
+
+async function toggleWishlistAction(productId: string): Promise<boolean> {
+  const user = getAuthUser();
+  if (!user) return false;
+
+  const isCurrently = wishlistIds.has(productId);
+
+  // Optimistic update
+  if (isCurrently) wishlistIds.delete(productId);
+  else wishlistIds.add(productId);
+  emitChange();
+
+  try {
+    if (isCurrently) {
+      await supabase.from('wishlists').delete()
+        .eq('user_id', user.id).eq('product_id', productId);
+    } else {
+      await supabase.from('wishlists').insert({ user_id: user.id, product_id: productId });
     }
-  }, [user]);
+    return true;
+  } catch {
+    // Revert
+    if (isCurrently) wishlistIds.add(productId);
+    else wishlistIds.delete(productId);
+    emitChange();
+    toast.error('Failed to update wishlist');
+    return false;
+  }
+}
 
-  useEffect(() => {
-    if (!user) {
-      setWishlistIds(new Set());
-      return;
+// Subscribe to auth changes at module level
+authSubscribe(() => {
+  const user = getAuthUser();
+  const newUserId = user?.id ?? null;
+  if (newUserId !== currentUserId) {
+    currentUserId = newUserId;
+    if (newUserId) {
+      fetchWishlist(newUserId);
+    } else {
+      wishlistIds = new Set();
+      emitChange();
     }
-    fetchWishlist();
-  }, [user, fetchWishlist]);
+  }
+});
 
-  // Use ref to avoid stale closure — prevents re-creating toggleWishlist on every wishlistIds change
-  const wishlistIdsRef = useRef(wishlistIds);
-  wishlistIdsRef.current = wishlistIds;
+// ─── No-op Provider ──────────────────────────────────────────────────
 
-  const toggleWishlist = useCallback(async (productId: string) => {
-    if (!user) return false;
-    
-    const isCurrently = wishlistIdsRef.current.has(productId);
-    
-    // Optimistic update
-    setWishlistIds(prev => {
-      const next = new Set(prev);
-      if (isCurrently) next.delete(productId);
-      else next.add(productId);
-      return next;
-    });
-
-    try {
-      if (isCurrently) {
-        await supabase.from('wishlists').delete()
-          .eq('user_id', user.id).eq('product_id', productId);
-      } else {
-        await supabase.from('wishlists').insert({ user_id: user.id, product_id: productId });
-      }
-      return true;
-    } catch {
-      // Revert on error
-      setWishlistIds(prev => {
-        const next = new Set(prev);
-        if (isCurrently) next.add(productId);
-        else next.delete(productId);
-        return next;
-      });
-      toast.error('Failed to update wishlist');
-      return false;
-    }
-  }, [user]);
-
-  const isWishlisted = useCallback((productId: string) => wishlistIds.has(productId), [wishlistIds]);
-
-  const contextValue = useMemo(() => ({
-    wishlistIds,
-    isWishlisted,
-    toggleWishlist,
-    loading,
-    refetch: fetchWishlist,
-  }), [wishlistIds, isWishlisted, toggleWishlist, loading, fetchWishlist]);
-
-  return (
-    <WishlistContext.Provider value={contextValue}>
-      {children}
-    </WishlistContext.Provider>
-  );
+export const WishlistProvider = ({ children }: { children: React.ReactNode }) => {
+  return <>{children}</>;
 };
 
+// ─── Hook ────────────────────────────────────────────────────────────
+
 export const useWishlist = () => {
-  const context = useContext(WishlistContext);
-  if (context === undefined) {
-    throw new Error('useWishlist must be used within a WishlistProvider');
-  }
-  return context;
+  const state = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
+  const isWishlisted = useCallback((productId: string) => {
+    return state.wishlistIds.has(productId);
+  }, [state.wishlistIds]);
+
+  const toggleWishlist = useCallback(toggleWishlistAction, []);
+
+  const refetch = useCallback(async () => {
+    const user = getAuthUser();
+    if (user) await fetchWishlist(user.id);
+  }, []);
+
+  return {
+    wishlistIds: state.wishlistIds,
+    isWishlisted,
+    toggleWishlist,
+    loading: state.loading,
+    refetch,
+  };
 };

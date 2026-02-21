@@ -1,141 +1,151 @@
-import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
+import { useSyncExternalStore, useCallback } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
-import { QueryClient } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/react-query';
 
-interface AuthContextType {
+// ─── Module-level auth store ─────────────────────────────────────────
+
+interface AuthState {
   user: User | null;
   session: Session | null;
   loading: boolean;
   error: AuthError | null;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null; user: User | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signOut: () => Promise<void>;
-  refreshSession: () => Promise<void>;
-  clearError: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+let state: AuthState = { user: null, session: null, loading: true, error: null };
+let queryClientRef: QueryClient | null = null;
 
-export const AuthProvider = ({ children, queryClient }: { children: ReactNode; queryClient?: QueryClient }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<AuthError | null>(null);
+const listeners = new Set<() => void>();
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
-      if (event === 'SIGNED_OUT' && queryClient) {
-        queryClient.clear();
-      }
-      
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      setLoading(false);
-      setError(null);
+function emitChange() {
+  // Create a new state reference so useSyncExternalStore detects the change
+  state = { ...state };
+  listeners.forEach(fn => fn());
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
+}
+
+function getSnapshot(): AuthState {
+  return state;
+}
+
+// Also export for other stores (Wishlist, Pet) to subscribe to auth changes
+export const authSubscribe = subscribe;
+export function getAuthUser(): User | null { return state.user; }
+
+// Start the Supabase auth listener immediately at module load
+supabase.auth.onAuthStateChange((event, currentSession) => {
+  if (event === 'SIGNED_OUT' && queryClientRef) {
+    queryClientRef.clear();
+  }
+  state.session = currentSession;
+  state.user = currentSession?.user ?? null;
+  state.loading = false;
+  state.error = null;
+  emitChange();
+});
+
+// ─── Auth actions (pure functions) ───────────────────────────────────
+
+async function signUpAction(email: string, password: string, fullName: string) {
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: { full_name: fullName },
+      },
     });
-
-    return () => subscription.unsubscribe();
-  }, [queryClient]);
-
-  const signUp = useCallback(async (email: string, password: string, fullName: string) => {
-    try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: window.location.origin,
-          data: { full_name: fullName },
-        },
-      });
-      
-      if (signUpError) {
-        if (signUpError.message.includes('already registered')) {
-          return { 
-            error: new Error('This email is already registered. Please sign in instead.'), 
-            user: null 
-          };
-        }
-        return { error: signUpError, user: null };
+    if (error) {
+      if (error.message.includes('already registered')) {
+        return { error: new Error('This email is already registered. Please sign in instead.'), user: null };
       }
-      
-      return { error: null, user: data.user };
-    } catch (err) {
-      return { error: err as Error, user: null };
+      return { error, user: null };
     }
-  }, []);
+    return { error: null, user: data.user };
+  } catch (err) {
+    return { error: err as Error, user: null };
+  }
+}
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (signInError) {
-        if (signInError.message.includes('Invalid login credentials')) {
-          return { error: new Error('Invalid email or password. Please try again.') };
-        }
-        return { error: signInError };
+async function signInAction(email: string, password: string) {
+  try {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      if (error.message.includes('Invalid login credentials')) {
+        return { error: new Error('Invalid email or password. Please try again.') };
       }
-      
-      return { error: null };
-    } catch (err) {
-      return { error: err as Error };
+      return { error };
     }
-  }, []);
+    return { error: null };
+  } catch (err) {
+    return { error: err as Error };
+  }
+}
 
-  const signOut = useCallback(async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (err) {
-      logger.error('Error signing out:', err);
+async function signOutAction() {
+  try {
+    await supabase.auth.signOut();
+  } catch (err) {
+    logger.error('Error signing out:', err);
+  }
+}
+
+async function refreshSessionAction() {
+  try {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error) {
+      logger.error('Error refreshing session:', error);
+      state.error = error;
+      emitChange();
+    } else if (data.session) {
+      state.session = data.session;
+      state.user = data.session.user;
+      emitChange();
     }
-  }, []);
+  } catch (err) {
+    logger.error('Error refreshing session:', err);
+  }
+}
 
-  const refreshSession = useCallback(async () => {
-    try {
-      const { data, error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) {
-        logger.error('Error refreshing session:', refreshError);
-        setError(refreshError);
-      } else if (data.session) {
-        setSession(data.session);
-        setUser(data.session.user);
-      }
-    } catch (err) {
-      logger.error('Error refreshing session:', err);
-    }
-  }, []);
+function clearErrorAction() {
+  state.error = null;
+  emitChange();
+}
 
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
+// ─── No-op Provider (backward compatible) ────────────────────────────
 
-  const value = useMemo<AuthContextType>(() => ({
-    user,
-    session,
-    loading,
-    error,
+export const AuthProvider = ({ children, queryClient }: { children: React.ReactNode; queryClient?: QueryClient }) => {
+  // Register queryClient reference (no hooks, just assignment)
+  if (queryClient) queryClientRef = queryClient;
+  return <>{children}</>;
+};
+
+// ─── Hook ────────────────────────────────────────────────────────────
+
+export const useAuth = () => {
+  const authState = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
+  const signUp = useCallback(signUpAction, []);
+  const signIn = useCallback(signInAction, []);
+  const signOut = useCallback(signOutAction, []);
+  const refreshSession = useCallback(refreshSessionAction, []);
+  const clearError = useCallback(clearErrorAction, []);
+
+  return {
+    user: authState.user,
+    session: authState.session,
+    loading: authState.loading,
+    error: authState.error,
     signUp,
     signIn,
     signOut,
     refreshSession,
     clearError,
-  }), [user, session, loading, error, signUp, signIn, signOut, refreshSession, clearError]);
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  };
 };
