@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePublicDoctorById } from '@/hooks/usePublicDoctors';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { usePrefetch } from '@/hooks/usePrefetch';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import SEO from '@/components/SEO';
@@ -27,6 +28,10 @@ const DoctorDetailPage = () => {
   const [isFavorite, setIsFavorite] = useState(false);
 
   const { data: doctor, isLoading } = usePublicDoctorById(id);
+  
+  // Prefetch the booking wizard for the primary affiliated clinic
+  const primaryClinicId = doctor?.affiliations?.[0]?.clinic?.id;
+  const bookPrefetch = usePrefetch(primaryClinicId ? `/book-appointment/${primaryClinicId}` : '/doctors');
   
   useDocumentTitle(doctor?.name ? `Dr. ${doctor.name}` : 'Doctor Profile');
 
@@ -86,13 +91,13 @@ const DoctorDetailPage = () => {
         <div className="container mx-auto px-3 sm:px-4 py-6">
           <div className="max-w-4xl mx-auto space-y-6">
             <div className="flex items-center gap-4">
-              <Skeleton className="h-24 w-24 rounded-full" />
+              <Skeleton className="h-24 w-24 rounded-full animate-pulse-slow" />
               <div className="space-y-2">
-                <Skeleton className="h-6 w-48" />
-                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-6 w-48 animate-pulse-slow" />
+                <Skeleton className="h-4 w-32 animate-pulse-slow" />
               </div>
             </div>
-            <Skeleton className="h-64 w-full rounded-2xl" />
+            <Skeleton className="h-64 w-full rounded-2xl animate-pulse-slow" />
           </div>
         </div>
         <MobileNav />
@@ -122,7 +127,7 @@ const DoctorDetailPage = () => {
     .slice(0, 2) || 'DR';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50/30 via-background to-background pb-24 md:pb-0">
+    <div className="min-h-screen bg-gradient-to-b from-primary/5 via-background to-background pb-24 md:pb-0">
       {doctorSchema && (
         <SEO 
           title={`Dr. ${doctor.name}`}
@@ -136,7 +141,7 @@ const DoctorDetailPage = () => {
       <Navbar />
 
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-primary/10 via-blue-100/50 to-cyan-50 border-b border-border/50">
+      <div className="bg-gradient-to-r from-primary/10 via-accent/10 to-secondary border-b border-border/50">
         <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
           {/* Back + Favorite */}
           <div className="flex items-center justify-between mb-4">
@@ -170,7 +175,7 @@ const DoctorDetailPage = () => {
                 </AvatarFallback>
               </Avatar>
               {doctor.is_available && (
-                <div className="absolute bottom-1 right-1 h-6 w-6 sm:h-8 sm:w-8 bg-emerald-500 rounded-full border-3 border-white flex items-center justify-center">
+                <div className="absolute bottom-1 right-1 h-6 w-6 sm:h-8 sm:w-8 bg-accent rounded-full border-3 border-white flex items-center justify-center">
                   <div className="h-2 w-2 sm:h-3 sm:w-3 bg-white rounded-full" />
                 </div>
               )}
@@ -370,12 +375,14 @@ const DoctorDetailPage = () => {
                           )}
 
                           <Button 
-                            size="sm" 
+                            size="sm"
+                            variant="warm"
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate(`/book-appointment/${aff.clinic.id}?doctor=${doctor.id}`);
                             }}
                             className="mt-2"
+                            {...bookPrefetch}
                           >
                             Book Appointment
                           </Button>
