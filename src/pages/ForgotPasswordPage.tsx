@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Mail, Loader2, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,17 +9,23 @@ import Logo from '@/components/Logo';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { emailSchema } from '@/lib/validations';
 
 const ForgotPasswordPage = () => {
   useDocumentTitle('Forgot Password');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [emailError, setEmailError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) {
-      toast.error('Please enter your email address');
+    setEmailError('');
+
+    // Validate with Zod
+    const result = emailSchema.safeParse(email);
+    if (!result.success) {
+      setEmailError(result.error.errors[0]?.message || 'Invalid email');
       return;
     }
 
@@ -45,11 +51,11 @@ const ForgotPasswordPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [email]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-background p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md shadow-card rounded-xl">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <Logo size="lg" />
@@ -63,9 +69,9 @@ const ForgotPasswordPage = () => {
         </CardHeader>
         <CardContent>
           {sent ? (
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto">
-                <CheckCircle className="h-8 w-8 text-green-600" />
+            <div className="text-center space-y-4 bg-accent/5 rounded-xl p-6 shadow-card border border-accent/20">
+              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto">
+                <CheckCircle className="h-8 w-8 text-accent" />
               </div>
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">
@@ -77,7 +83,7 @@ const ForgotPasswordPage = () => {
                 Didn't receive the email? Check your spam folder or{' '}
                 <button 
                   onClick={() => setSent(false)}
-                  className="text-primary hover:underline"
+                  className="text-primary hover:underline min-h-[44px] inline-flex items-center"
                 >
                   try again
                 </button>
@@ -94,14 +100,20 @@ const ForgotPasswordPage = () => {
                     type="email"
                     placeholder="you@example.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
+                    onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
+                    className={`pl-10 min-h-[44px] ${emailError ? 'border-destructive' : ''}`}
                     required
+                    autoComplete="email"
+                    aria-invalid={!!emailError}
+                    aria-describedby={emailError ? 'email-error' : undefined}
                   />
                 </div>
+                {emailError && (
+                  <p id="email-error" className="text-xs text-destructive" role="alert">{emailError}</p>
+                )}
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full min-h-[44px]" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -117,7 +129,7 @@ const ForgotPasswordPage = () => {
           <div className="mt-6 text-center">
             <Link 
               to="/auth" 
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors min-h-[44px]"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Sign In
