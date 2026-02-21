@@ -22,7 +22,7 @@ export interface CompressedMedia {
 }
 
 export const COMPRESSION_PRESETS: Record<string, CompressionSettings> = {
-  feed: { maxWidth: 1920, maxHeight: 1920, quality: 0.8 },
+  feed: { maxWidth: 1920, maxHeight: 1920, quality: 0.85 },
   story: { maxWidth: 1080, maxHeight: 1920, quality: 0.75 },
   avatar: { maxWidth: 400, maxHeight: 400, quality: 0.85 },
   thumbnail: { maxWidth: 50, maxHeight: 50, quality: 0.6 },
