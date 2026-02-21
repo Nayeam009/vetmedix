@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Send, Image, Loader2, Check, CheckCheck } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow } from 'date-fns';
@@ -130,12 +130,13 @@ const ChatPage = () => {
     e.target.value = '';
   }, [sendMessage]);
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setNewMessage(e.target.value);
   }, []);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
       handleSend();
     }
   }, [handleSend]);
@@ -227,15 +228,16 @@ const ChatPage = () => {
           >
             <Image className="h-5 w-5" aria-hidden="true" />
           </Button>
-          <Input
+          <Textarea
             placeholder="Type a message..."
             value={newMessage}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             disabled={sending}
             maxLength={1000}
-            className="flex-1"
-            aria-label="Message input"
+            className="flex-1 min-h-[44px] max-h-32 resize-none text-base"
+            rows={1}
+            aria-label="Message input. Press Enter to send, Shift+Enter for new line."
           />
           <Button 
             onClick={handleSend} 
