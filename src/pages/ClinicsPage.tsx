@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, Loader2, MapPin, Filter, Star, 
@@ -30,7 +30,30 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { getDivisions, getDistricts, findNearestDivision } from '@/lib/bangladeshRegions';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { usePrefetch } from '@/hooks/usePrefetch';
 import SEO from '@/components/SEO';
+
+// Wrapper to apply route prefetch on hover/touch
+const ClinicCardWithPrefetch = memo(({ clinic, onBook, onViewDetails }: { clinic: any; onBook: () => void; onViewDetails: () => void }) => {
+  const prefetchHandlers = usePrefetch(`/clinic/${clinic.id}`);
+  return (
+    <div {...prefetchHandlers}>
+      <ClinicCard
+        id={clinic.id}
+        name={clinic.name}
+        rating={clinic.rating || 4.5}
+        distance={clinic.distance || '2 km'}
+        services={clinic.services || []}
+        image={clinic.image_url || 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=400'}
+        isOpen={clinic.is_open ?? true}
+        isVerified={clinic.is_verified ?? true}
+        onBook={onBook}
+        onViewDetails={onViewDetails}
+      />
+    </div>
+  );
+});
+ClinicCardWithPrefetch.displayName = 'ClinicCardWithPrefetch';
 
 const serviceFilters = [
   'All Services',
@@ -146,8 +169,8 @@ const ClinicsPage = () => {
     setLocationError(null);
   };
 
-  // Calculate location match score for clinic
-  const calculateLocationScore = (clinicAddress: string | null): number => {
+  // Calculate location match score for clinic — memoized to prevent re-computation on every render
+  const calculateLocationScore = useCallback((clinicAddress: string | null): number => {
     if (!clinicAddress) return 0;
     const address = clinicAddress.toLowerCase();
     
@@ -160,7 +183,7 @@ const ClinicsPage = () => {
       return 50;
     }
     return 0;
-  };
+  }, [userLocation.division, userLocation.district]);
 
   // React Query for clinics data
   const { data: clinicsData = [], isLoading: loading } = useQuery({
@@ -200,12 +223,12 @@ const ClinicsPage = () => {
 
   const clinics = clinicsData;
 
-  const filteredClinics = clinics
+  const filteredClinics = useMemo(() => clinics
     .map(clinic => ({
       ...clinic,
       locationScore: calculateLocationScore(clinic.address || clinic.name)
     }))
-    .filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter(c => c.name?.toLowerCase().includes(searchQuery.toLowerCase()))
     .filter(c => selectedService === 'All Services' || c.services?.includes(selectedService))
     .filter(c => !showOnlyOpen || c.is_open)
     .filter(c => !showOnlyVerified || c.is_verified)
@@ -223,7 +246,8 @@ const ClinicsPage = () => {
       if (aIsGopalganj && !bIsGopalganj) return -1;
       if (!aIsGopalganj && bIsGopalganj) return 1;
       return 0;
-    });
+    }),
+  [clinics, searchQuery, selectedService, showOnlyOpen, showOnlyVerified, sortBy, calculateLocationScore]);
 
   const activeFiltersCount = [
     selectedService !== 'All Services',
@@ -695,16 +719,9 @@ const ClinicsPage = () => {
         ) : (
           <div className="grid gap-3 sm:gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-2">
             {filteredClinics.map(clinic => (
-              <ClinicCard 
-                key={clinic.id} 
-                id={clinic.id} 
-                name={clinic.name}
-                rating={clinic.rating || 4.5} 
-                distance={clinic.distance || '2 km'}
-                services={clinic.services || []} 
-                image={clinic.image_url || 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=400'}
-                isOpen={clinic.is_open ?? true}
-                isVerified={clinic.is_verified ?? true}
+              <ClinicCardWithPrefetch
+                key={clinic.id}
+                clinic={clinic}
                 onBook={() => navigate(`/book-appointment/${clinic.id}`)}
                 onViewDetails={() => navigate(`/clinic/${clinic.id}`)}
               />

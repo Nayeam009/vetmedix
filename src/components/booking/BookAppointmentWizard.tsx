@@ -466,7 +466,7 @@ const BookAppointmentWizard = ({ onSubmit, isPending, doctors, onCancel, clinicN
                 Select Time <span className="text-destructive">*</span>
               </Label>
               {displaySlots.length === 0 ? (
-                <div className="text-center py-6 bg-destructive/5 rounded-xl border border-destructive/20">
+                <div className="text-center py-6 bg-destructive/5 rounded-xl border border-destructive/20" aria-busy="false">
                   <Clock className="h-8 w-8 text-destructive/60 mx-auto mb-2" />
                   <p className="text-sm text-destructive">
                     {availableSlots.length === 0 ? 'No available slots for this date' : 'All slots are booked'}

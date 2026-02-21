@@ -27,7 +27,18 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePublicDoctors } from '@/hooks/usePublicDoctors';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { usePrefetch } from '@/hooks/usePrefetch';
 import SEO from '@/components/SEO';
+
+// Wrapper to apply route prefetch on hover/touch
+const DoctorCardWithPrefetch = ({ doctor }: { doctor: any }) => {
+  const prefetchHandlers = usePrefetch(`/doctor/${doctor.id}`);
+  return (
+    <div {...prefetchHandlers}>
+      <DoctorCard {...doctor} />
+    </div>
+  );
+};
 
 const SPECIALIZATIONS = [
   'All Specializations',
@@ -361,9 +372,9 @@ const DoctorsPage = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredDoctors.map((doctor) => (
-              <DoctorCard
+              <DoctorCardWithPrefetch
                 key={`${doctor.id}-${doctor.clinic_id}`}
-                {...doctor}
+                doctor={doctor}
               />
             ))}
           </div>

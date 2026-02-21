@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, Ban, MapPin, Clock, Phone, Star, BadgeCheck } from 'lucide-react';
+import { ArrowLeft, Loader2, Ban, MapPin, Clock, Phone, Star, BadgeCheck, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -31,6 +31,8 @@ const BookAppointmentPage = () => {
   const { user } = useAuth();
   
   const [isPending, setIsPending] = useState(false);
+  const [waitlistPrompt, setWaitlistPrompt] = useState<{ date: string; time: string; petName: string; petType: string; doctorId: string; reason: string } | null>(null);
+  const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false);
 
   // Fetch clinic details - use clinics_public view for security
   const { data: clinic, isLoading: clinicLoading } = useQuery({
@@ -73,7 +75,16 @@ const BookAppointmentPage = () => {
       if (error) {
         // The DB function raises a friendly message on slot conflict
         if (error.message.includes('already booked')) {
-          toast.error('This time slot is already booked. Please choose a different time.');
+          // Surface waitlist option instead of just an error
+          setWaitlistPrompt({
+            date: formData.date,
+            time: formData.time,
+            petName: formData.petName,
+            petType: formData.petType,
+            doctorId: formData.doctorId || '',
+            reason: formData.reason || '',
+          });
+          toast.error('This time slot is already booked.', { description: 'You can join the waitlist to be notified if it opens up.' });
           setIsPending(false);
           return;
         }
@@ -229,6 +240,67 @@ const BookAppointmentPage = () => {
           </Card>
         )}
 
+        {/* Waitlist Prompt */}
+        {waitlistPrompt && (
+          <Card className="mb-4 sm:mb-6 border-warning bg-warning-light">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-warning-foreground mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-sm text-foreground">Slot Already Booked</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    The selected time slot ({waitlistPrompt.time} on {waitlistPrompt.date}) is already taken. 
+                    Join the waitlist to be notified if it becomes available.
+                  </p>
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      size="sm"
+                      variant="default"
+                      disabled={isJoiningWaitlist}
+                      onClick={async () => {
+                        if (!user || !clinicId) return;
+                        setIsJoiningWaitlist(true);
+                        try {
+                          const { error } = await supabase.from('appointment_waitlist').insert({
+                            user_id: user.id,
+                            clinic_id: clinicId,
+                            doctor_id: waitlistPrompt.doctorId || null,
+                            preferred_date: waitlistPrompt.date,
+                            preferred_time: waitlistPrompt.time,
+                            pet_name: waitlistPrompt.petName,
+                            pet_type: waitlistPrompt.petType,
+                            reason: waitlistPrompt.reason || null,
+                          });
+                          if (error) throw error;
+                          toast.success('You have been added to the waitlist!', { description: 'We will notify you when the slot opens up.' });
+                          setWaitlistPrompt(null);
+                        } catch (err: unknown) {
+                          const msg = err instanceof Error ? err.message : 'Unknown error';
+                          toast.error('Failed to join waitlist.', { description: msg });
+                        } finally {
+                          setIsJoiningWaitlist(false);
+                        }
+                      }}
+                      className="text-xs h-8"
+                    >
+                      {isJoiningWaitlist ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+                      Join Waitlist
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setWaitlistPrompt(null)}
+                      className="text-xs h-8"
+                    >
+                      Choose Different Time
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Booking Wizard */}
         <Card className="shadow-lg border-border/50">
           <CardHeader className="pb-2 sm:pb-4">
@@ -239,7 +311,7 @@ const BookAppointmentPage = () => {
           </CardHeader>
           <CardContent className="pt-2">
             {doctorsLoading ? (
-              <div className="flex items-center justify-center py-12">
+              <div className="flex items-center justify-center py-12" aria-busy="true">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : (
