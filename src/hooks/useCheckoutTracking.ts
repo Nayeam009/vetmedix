@@ -58,7 +58,7 @@ export const useCheckoutTracking = (
           .insert({
             user_id: user.id,
             customer_email: user.email || null,
-            items: items as any,
+            items: JSON.parse(JSON.stringify(items)),
             cart_total: totalAmount,
             completeness: 0,
             status: 'incomplete',
@@ -94,7 +94,7 @@ export const useCheckoutTracking = (
           division: debouncedDivision || null,
           completeness: debouncedCompleteness,
           cart_total: totalAmount,
-          items: items as any,
+          items: JSON.parse(JSON.stringify(items)),
         })
         .eq('id', incompleteOrderId.current);
     };

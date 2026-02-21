@@ -46,7 +46,7 @@ export const useStories = () => {
       // Group stories by pet
       const groupedMap = new Map<string, StoryGroup>();
       
-      for (const story of (data || []) as any[]) {
+      for (const story of (data || [])) {
         if (!story.pet) continue;
         
         const petId = story.pet_id;
