@@ -185,10 +185,22 @@ const ShopPage = () => {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  const [productType, setProductType] = useState('All');
-  const [sortBy, setSortBy] = useState('newest');
+  const [productType, setProductType] = useState(searchParams.get('type') || 'All');
+  const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'newest');
   const [gridCols, setGridCols] = useState<3 | 4 | 6>(4);
-  const [priceRange, setPriceRange] = useState<'all' | 'under500' | '500to1000' | 'over1000'>('all');
+  const [priceRange, setPriceRange] = useState<'all' | 'under500' | '500to1000' | 'over1000'>(
+    (searchParams.get('price') as 'all' | 'under500' | '500to1000' | 'over1000') || 'all'
+  );
+
+  // Sync filter state → URL search params for shareable views
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('search', searchQuery);
+    if (productType !== 'All') params.set('type', productType);
+    if (sortBy !== 'newest') params.set('sort', sortBy);
+    if (priceRange !== 'all') params.set('price', priceRange);
+    setSearchParams(params, { replace: true });
+  }, [searchQuery, productType, sortBy, priceRange, setSearchParams]);
 
   // ── Featured products query (separate, unchanged) ──────────────────────────
   const { data: featuredProducts = [] } = useQuery({

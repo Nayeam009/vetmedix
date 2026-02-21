@@ -247,10 +247,15 @@ const CheckoutPage = () => {
       if (error) {
         // Surface stock-related errors clearly
         if (error.message.includes('Insufficient stock')) {
-          toast.error(error.message);
+          toast.error(error.message, { description: 'Some items may have sold out. Please review your cart.' });
           return;
         }
-        throw error;
+        if (error.message.includes('Product not found')) {
+          toast.error('A product in your cart is no longer available.', { description: 'Please remove it and try again.' });
+          return;
+        }
+        toast.error('Failed to place order. Please try again.', { description: error.message });
+        return;
       }
 
       const orderData = { id: orderId };
@@ -278,7 +283,8 @@ const CheckoutPage = () => {
       setOrderPlaced(true);
       toast.success('Your order has been placed successfully!');
     } catch (error: unknown) {
-      toast.error('Failed to place order. Please try again.');
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Failed to place order.', { description: msg });
     }
   };
 
