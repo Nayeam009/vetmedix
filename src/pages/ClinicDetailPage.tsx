@@ -19,6 +19,7 @@ import BookAppointmentDialog from '@/components/clinic/BookAppointmentDialog';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import SEO from '@/components/SEO';
 import { useGeocode } from '@/hooks/useGeocode';
+import { usePrefetch } from '@/hooks/usePrefetch';
 
 // Clinic interface for clinics_public view (excludes sensitive fields like verification docs)
 interface Clinic {
@@ -49,6 +50,7 @@ const ClinicDetailPage = () => {
   const [showBookingDialog, setShowBookingDialog] = useState(false);
   const [directionsLoading, setDirectionsLoading] = useState(false);
   const isGopalganj = clinic?.name?.toLowerCase().includes('gopalganj');
+  const bookPrefetch = usePrefetch(`/book-appointment/${id}`);
   
   useDocumentTitle(clinic?.name || 'Clinic Details');
   
@@ -375,6 +377,7 @@ const ClinicDetailPage = () => {
                         size="lg" 
                         className="shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all" 
                         onClick={() => setShowBookingDialog(true)}
+                        {...bookPrefetch}
                       >
                         <Calendar className="h-4 w-4 mr-2" />
                         Book Appointment
@@ -571,6 +574,7 @@ const ClinicDetailPage = () => {
                   className="w-full shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all" 
                   size="lg"
                   onClick={() => setShowBookingDialog(true)}
+                  {...bookPrefetch}
                 >
                   <Calendar className="h-4 w-4 mr-2" />
                   Book Now
@@ -683,6 +687,7 @@ const ClinicDetailPage = () => {
         <Button 
           className="w-full min-h-[44px] shadow-lg shadow-primary/25"
           onClick={() => setShowBookingDialog(true)}
+          {...bookPrefetch}
         >
           <Calendar className="h-4 w-4 mr-2" />
           Book Appointment
