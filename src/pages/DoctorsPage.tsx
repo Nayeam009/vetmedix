@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Search, Loader2, Filter, ChevronDown, X,
   Stethoscope, Award, Clock, MapPin, Users
@@ -29,6 +29,7 @@ import { usePublicDoctors } from '@/hooks/usePublicDoctors';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { usePrefetch } from '@/hooks/usePrefetch';
 import SEO from '@/components/SEO';
+import { useDebounce } from '@/hooks/useDebounce';
 
 // Wrapper to apply route prefetch on hover/touch
 const DoctorCardWithPrefetch = ({ doctor }: { doctor: any }) => {
@@ -60,23 +61,41 @@ const SPECIALIZATIONS = [
 
 const DoctorsPage = () => {
   useDocumentTitle('Find Doctors');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSpecialization, setSelectedSpecialization] = useState('All Specializations');
-  const [sortBy, setSortBy] = useState('recommended');
-  const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
-  const [showOnlyVerified, setShowOnlyVerified] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  // Initialize state from URL params
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [selectedSpecialization, setSelectedSpecialization] = useState(searchParams.get('spec') || 'All Specializations');
+  const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'recommended');
+  const [showOnlyAvailable, setShowOnlyAvailable] = useState(searchParams.get('available') === 'true');
+  const [showOnlyVerified, setShowOnlyVerified] = useState(searchParams.get('verified') === 'true');
+
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
+  // Sync filter state to URL params
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set('q', debouncedSearch);
+    if (selectedSpecialization !== 'All Specializations') params.set('spec', selectedSpecialization);
+    if (sortBy !== 'recommended') params.set('sort', sortBy);
+    if (showOnlyAvailable) params.set('available', 'true');
+    if (showOnlyVerified) params.set('verified', 'true');
+    setSearchParams(params, { replace: true });
+  }, [debouncedSearch, selectedSpecialization, sortBy, showOnlyAvailable, showOnlyVerified, setSearchParams]);
 
   const { data: doctors, isLoading } = usePublicDoctors();
 
   const filteredDoctors = useMemo(() => {
     if (!doctors) return [];
 
+    const search = debouncedSearch.toLowerCase();
     return doctors
       .filter((d) => 
-        d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        d.specialization?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        d.clinic_name?.toLowerCase().includes(searchQuery.toLowerCase())
+        !search ||
+        d.name.toLowerCase().includes(search) ||
+        d.specialization?.toLowerCase().includes(search) ||
+        d.clinic_name?.toLowerCase().includes(search)
       )
       .filter((d) => 
         selectedSpecialization === 'All Specializations' || 
@@ -102,7 +121,7 @@ const DoctorsPage = () => {
         if (a.is_available !== b.is_available) return b.is_available ? 1 : -1;
         return 0;
       });
-  }, [doctors, searchQuery, selectedSpecialization, sortBy, showOnlyAvailable, showOnlyVerified]);
+  }, [doctors, debouncedSearch, selectedSpecialization, sortBy, showOnlyAvailable, showOnlyVerified]);
 
   const activeFiltersCount = [
     selectedSpecialization !== 'All Specializations',
@@ -340,19 +359,19 @@ const DoctorsPage = () => {
             {[...Array(6)].map((_, i) => (
               <div key={i} className="bg-card rounded-2xl border border-border p-5 space-y-4">
                 <div className="flex gap-4">
-                  <Skeleton className="h-20 w-20 rounded-full" />
+                  <Skeleton className="h-20 w-20 rounded-full animate-pulse-slow" />
                   <div className="flex-1 space-y-2">
-                    <Skeleton className="h-5 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                    <Skeleton className="h-4 w-1/3" />
+                    <Skeleton className="h-5 w-3/4 animate-pulse-slow" />
+                    <Skeleton className="h-4 w-1/2 animate-pulse-slow" />
+                    <Skeleton className="h-4 w-1/3 animate-pulse-slow" />
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Skeleton className="h-6 w-12 rounded-full" />
-                  <Skeleton className="h-6 w-12 rounded-full" />
-                  <Skeleton className="h-6 w-12 rounded-full" />
+                  <Skeleton className="h-6 w-12 rounded-full animate-pulse-slow" />
+                  <Skeleton className="h-6 w-12 rounded-full animate-pulse-slow" />
+                  <Skeleton className="h-6 w-12 rounded-full animate-pulse-slow" />
                 </div>
-                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full animate-pulse-slow" />
               </div>
             ))}
           </div>
