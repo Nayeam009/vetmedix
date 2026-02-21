@@ -28,7 +28,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import logo from '@/assets/logo.jpeg';
 import { notifyAdminsOfNewVerification } from '@/lib/notifications';
-import { removeStorageFiles } from '@/lib/storageUtils';
+import { removeStorageFiles, validateDocumentFile } from '@/lib/storageUtils';
 import { clinicVerificationSchema } from '@/lib/validations';
 import { ClinicVerificationSkeleton } from '@/components/clinic/ClinicVerificationSkeleton';
 
@@ -192,13 +192,9 @@ const ClinicVerificationPage = () => {
 
   const handleFileChange = (type: 'bvc' | 'trade_license', file: File | null) => {
     if (file) {
-      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
-      if (!allowedTypes.includes(file.type)) {
-        toast.error('Only PDF or image files are allowed');
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('File size must be less than 5MB');
+      const validationError = validateDocumentFile(file);
+      if (validationError) {
+        toast.error(validationError);
         return;
       }
     }
@@ -284,8 +280,15 @@ const ClinicVerificationPage = () => {
     );
   }
 
-  // Rejected status - show rejection reason and allow resubmission
-  const isRejected = clinic?.verification_status === 'rejected';
+  // Determine pipeline step
+  const verificationStatus = clinic?.verification_status || 'not_submitted';
+  const pipelineSteps = [
+    { key: 'not_submitted', label: 'Not Submitted', icon: FileText },
+    { key: 'pending', label: 'Pending Review', icon: Clock },
+    { key: 'approved', label: 'Approved', icon: CheckCircle },
+  ];
+  const isRejected = verificationStatus === 'rejected';
+  const currentStepIndex = isRejected ? 1 : pipelineSteps.findIndex(s => s.key === verificationStatus);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 py-8 px-4">
@@ -304,6 +307,50 @@ const ClinicVerificationPage = () => {
           <p className="text-muted-foreground mt-1">
             Complete your clinic verification to access the clinic management system
           </p>
+        </div>
+
+        {/* Status Pipeline Tracker */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            {pipelineSteps.map((step, index) => {
+              const isActive = index <= currentStepIndex && !isRejected;
+              const isCurrent = index === currentStepIndex;
+              const isRejectedStep = isRejected && index === 1;
+              const StepIcon = isRejectedStep ? XCircle : step.icon;
+
+              return (
+                <div key={step.key} className="flex items-center flex-1">
+                  <div className="flex flex-col items-center flex-1">
+                    <div className={`flex items-center justify-center h-10 w-10 rounded-full border-2 transition-colors ${
+                      isRejectedStep
+                        ? 'border-destructive bg-destructive/10 text-destructive'
+                        : isActive || isCurrent
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-muted-foreground/30 bg-muted/50 text-muted-foreground'
+                    }`}>
+                      <StepIcon className="h-5 w-5" />
+                    </div>
+                    <span className={`text-xs mt-1.5 font-medium text-center ${
+                      isRejectedStep
+                        ? 'text-destructive'
+                        : isActive || isCurrent
+                          ? 'text-primary'
+                          : 'text-muted-foreground'
+                    }`}>
+                      {isRejectedStep ? 'Rejected' : step.label}
+                    </span>
+                  </div>
+                  {index < pipelineSteps.length - 1 && (
+                    <div className={`h-0.5 w-full mx-1 -mt-5 ${
+                      index < currentStepIndex && !isRejected
+                        ? 'bg-primary'
+                        : 'bg-muted-foreground/20'
+                    }`} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {isRejected && (
@@ -346,7 +393,7 @@ const ClinicVerificationPage = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="ownerNid">NID Number</Label>
+                    <Label htmlFor="ownerNid">NID Number *</Label>
                     <Input
                       id="ownerNid"
                       value={formData.ownerNid}
