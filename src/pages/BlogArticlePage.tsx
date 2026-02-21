@@ -27,11 +27,11 @@ const BlogArticlePage = () => {
       <>
         <Navbar />
         <main className="container mx-auto px-4 py-8 max-w-3xl">
-          <Skeleton className="h-8 w-3/4 mb-4" />
-          <Skeleton className="h-4 w-1/3 mb-6" />
-          <Skeleton className="aspect-video rounded-lg mb-6" />
+          <Skeleton className="h-8 w-3/4 mb-4 animate-pulse-slow" />
+          <Skeleton className="h-4 w-1/3 mb-6 animate-pulse-slow" />
+          <Skeleton className="aspect-video rounded-lg mb-6 animate-pulse-slow" />
           <div className="space-y-3">
-            {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-4 w-full" />)}
+            {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-4 w-full animate-pulse-slow" />)}
           </div>
         </main>
       </>
@@ -53,12 +53,18 @@ const BlogArticlePage = () => {
   }
 
   const date = article.published_at || article.created_at;
+  const sanitizedContent = DOMPurify.sanitize(article.content || '');
 
   return (
     <>
-      <SEO title={article.title} description={article.excerpt || article.title} canonicalUrl={`https://vetmedix.lovable.app/blog/${slug}`} />
+      <SEO
+        title={article.title}
+        description={article.excerpt || article.title}
+        canonicalUrl={`https://vetmedix.lovable.app/blog/${slug}`}
+        image={article.featured_image || undefined}
+      />
       <Navbar />
-      <main id="main-content" className="container mx-auto px-4 py-6 sm:py-8 max-w-3xl">
+      <main id="main-content" className="container mx-auto px-4 py-6 sm:py-8 max-w-3xl font-nunito">
         {/* Back */}
         <Link to="/blog" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary mb-4 transition-colors">
           <ArrowLeft className="h-3.5 w-3.5" /> Back to Blog
@@ -73,7 +79,7 @@ const BlogArticlePage = () => {
           </span>
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-bold mb-4">{article.title}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 font-fredoka leading-tight">{article.title}</h1>
 
         {article.excerpt && (
           <p className="text-muted-foreground text-sm mb-6 leading-relaxed">{article.excerpt}</p>
@@ -93,8 +99,8 @@ const BlogArticlePage = () => {
         )}
 
         {/* Content */}
-        <article className="prose prose-sm sm:prose dark:prose-invert max-w-none mb-8">
-          <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(article.content || '') }} />
+        <article className="prose prose-sm sm:prose dark:prose-invert max-w-none mb-8 leading-relaxed">
+          <div dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
         </article>
 
         {/* Tags */}

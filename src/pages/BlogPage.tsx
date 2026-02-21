@@ -25,7 +25,7 @@ const BlogPage = () => {
       <Navbar />
       <main id="main-content" className="container mx-auto px-4 py-8 min-h-[60vh]">
         <div className="text-center mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold flex items-center justify-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-bold font-fredoka flex items-center justify-center gap-2">
             <FileText className="h-6 w-6 text-primary" />
             Blog & Resources
           </h1>
