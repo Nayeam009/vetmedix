@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Camera, Loader2, ArrowLeft, Trash2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -16,6 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +45,8 @@ import { compressImage, getCompressionMessage } from '@/lib/mediaCompression';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { removeStorageFiles, validateImageFile } from '@/lib/storageUtils';
 import { logger } from '@/lib/logger';
+import { petFormSchema, type PetFormData } from '@/lib/validations';
+import { safeMutation } from '@/lib/supabaseService';
 
 const speciesOptions = [
   'Dog', 'Cat', 'Bird', 'Fish', 'Rabbit', 'Hamster', 
@@ -53,17 +64,23 @@ const EditPetPage = () => {
   
   const [pet, setPet] = useState<Pet | null>(null);
   const [loading, setLoading] = useState(true);
-  const [name, setName] = useState('');
-  const [species, setSpecies] = useState('');
-  const [breed, setBreed] = useState('');
-  const [age, setAge] = useState('');
-  const [bio, setBio] = useState('');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string>('');
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const form = useForm<PetFormData>({
+    resolver: zodResolver(petFormSchema),
+    defaultValues: {
+      name: '',
+      species: '',
+      breed: '',
+      age: '',
+      bio: '',
+    },
+  });
 
   useEffect(() => {
     const fetchPet = async () => {
@@ -80,7 +97,6 @@ const EditPetPage = () => {
         
         const petData = data as Pet;
         
-        // Check ownership
         if (petData.user_id !== user?.id) {
           toast.error('You can only edit your own pets');
           navigate('/feed');
@@ -88,11 +104,13 @@ const EditPetPage = () => {
         }
 
         setPet(petData);
-        setName(petData.name);
-        setSpecies(petData.species);
-        setBreed(petData.breed || '');
-        setAge(petData.age || '');
-        setBio(petData.bio || '');
+        form.reset({
+          name: petData.name,
+          species: petData.species,
+          breed: petData.breed || '',
+          age: petData.age || '',
+          bio: petData.bio || '',
+        });
         setAvatarPreview(petData.avatar_url || '');
         setCoverPreview(petData.cover_photo_url || '');
       } catch (error) {
@@ -107,7 +125,7 @@ const EditPetPage = () => {
     };
 
     fetchPet();
-  }, [id, user, navigate]);
+  }, [id, user, navigate, form]);
 
   // Revoke blob URLs on unmount
   useEffect(() => {
@@ -146,94 +164,75 @@ const EditPetPage = () => {
     setCoverPreview(URL.createObjectURL(file));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (values: PetFormData) => {
     if (!user || !pet) return;
-
-    if (!name.trim() || !species) {
-      toast.error('Please fill in required fields');
-      return;
-    }
 
     setSubmitting(true);
     try {
       let avatarUrl = pet.avatar_url;
       let coverUrl = pet.cover_photo_url;
 
-      // Upload new avatar if provided
       if (avatarFile) {
-        // Clean up old avatar
         if (pet.avatar_url) {
           await removeStorageFiles([pet.avatar_url], 'pet-media');
         }
-
         const compressed = await compressImage(avatarFile, 'avatar');
         if (compressed.compressionRatio > 1) {
           toast.success(getCompressionMessage(compressed.originalSize, compressed.compressedSize));
         }
-
         const fileExt = compressed.file.name.split('.').pop();
         const fileName = `${user.id}/avatars/${Date.now()}.${fileExt}`;
-        
         const { error: uploadError } = await supabase.storage
           .from('pet-media')
           .upload(fileName, compressed.file);
-
         if (uploadError) throw uploadError;
-
         const { data: { publicUrl } } = supabase.storage
           .from('pet-media')
           .getPublicUrl(fileName);
-
         avatarUrl = publicUrl;
       }
 
-      // Upload new cover if provided
       if (coverFile) {
-        // Clean up old cover
         if (pet.cover_photo_url) {
           await removeStorageFiles([pet.cover_photo_url], 'pet-media');
         }
-
         const compressed = await compressImage(coverFile, 'feed');
         if (compressed.compressionRatio > 1) {
           toast.success(getCompressionMessage(compressed.originalSize, compressed.compressedSize));
         }
-
         const fileExt = compressed.file.name.split('.').pop();
         const fileName = `${user.id}/covers/${Date.now()}.${fileExt}`;
-        
         const { error: uploadError } = await supabase.storage
           .from('pet-media')
           .upload(fileName, compressed.file);
-
         if (uploadError) throw uploadError;
-
         const { data: { publicUrl } } = supabase.storage
           .from('pet-media')
           .getPublicUrl(fileName);
-
         coverUrl = publicUrl;
       }
 
-      // Update pet profile
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('pets')
         .update({
-          name: name.trim(),
-          species,
-          breed: breed.trim() || null,
-          age: age.trim() || null,
-          bio: bio.trim() || null,
+          name: values.name.trim(),
+          species: values.species,
+          breed: values.breed?.trim() || null,
+          age: values.age?.trim() || null,
+          bio: values.bio?.trim() || null,
           avatar_url: avatarUrl,
           cover_photo_url: coverUrl,
         })
         .eq('id', pet.id);
 
-      if (error) throw error;
+      if (updateError) {
+        toast.error('Failed to update pet profile');
+        if (import.meta.env.DEV) console.error('Error updating pet:', updateError);
+        return;
+      }
 
-      await refreshPets();
       toast.success('Pet profile updated!');
+      await refreshPets();
       navigate(`/pet/${pet.id}`);
     } catch (error) {
       if (import.meta.env.DEV) {
@@ -250,12 +249,10 @@ const EditPetPage = () => {
 
     setDeleting(true);
     try {
-      // Collect all storage URLs to clean up (pet avatar, cover, and all post media)
       const urlsToRemove: string[] = [];
       if (pet.avatar_url) urlsToRemove.push(pet.avatar_url);
       if (pet.cover_photo_url) urlsToRemove.push(pet.cover_photo_url);
 
-      // Fetch post media URLs before cascade deletes them
       const { data: posts } = await supabase
         .from('posts')
         .select('media_urls')
@@ -269,7 +266,6 @@ const EditPetPage = () => {
         }
       }
 
-      // Delete DB row (cascades to posts, likes, comments, follows, stories)
       const { error } = await supabase
         .from('pets')
         .delete()
@@ -277,7 +273,6 @@ const EditPetPage = () => {
 
       if (error) throw error;
 
-      // Clean up storage files after successful DB deletion
       if (urlsToRemove.length > 0) {
         await removeStorageFiles(urlsToRemove);
       }
@@ -350,129 +345,150 @@ const EditPetPage = () => {
             </AlertDialog>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Cover Photo */}
-              <div 
-                className="relative h-32 bg-gradient-to-r from-primary/30 to-accent/30 rounded-lg overflow-hidden cursor-pointer"
-                onClick={() => coverInputRef.current?.click()}
-              >
-                {coverPreview && (
-                  <img src={coverPreview} alt="" className="w-full h-full object-cover" decoding="async" />
-                )}
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
-                  <Camera className="h-6 w-6 text-white" />
-                  <span className="ml-2 text-white">Change Cover</span>
-                </div>
-              </div>
-              <input
-                ref={coverInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleCoverChange}
-              />
-
-              {/* Avatar */}
-              <div className="flex justify-center -mt-16">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Cover Photo */}
                 <div 
-                  className="relative cursor-pointer group"
-                  onClick={() => avatarInputRef.current?.click()}
+                  className="relative h-32 bg-gradient-to-r from-primary/30 to-accent/30 rounded-lg overflow-hidden cursor-pointer"
+                  onClick={() => coverInputRef.current?.click()}
                 >
-                  <Avatar className="h-24 w-24 border-4 border-background">
-                    <AvatarImage src={avatarPreview} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-2xl">
-                      {name.charAt(0) || '🐾'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                  {coverPreview && (
+                    <img src={coverPreview} alt="" className="w-full h-full object-cover" decoding="async" />
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
                     <Camera className="h-6 w-6 text-white" />
+                    <span className="ml-2 text-white">Change Cover</span>
                   </div>
                 </div>
                 <input
-                  ref={avatarInputRef}
+                  ref={coverInputRef}
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={handleAvatarChange}
+                  onChange={handleCoverChange}
                 />
-              </div>
 
-              {/* Name */}
-              <div className="space-y-2">
-                <Label htmlFor="name">Pet Name *</Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter your pet's name"
-                  maxLength={50}
-                  required
+                {/* Avatar */}
+                <div className="flex justify-center -mt-16">
+                  <div 
+                    className="relative cursor-pointer group"
+                    onClick={() => avatarInputRef.current?.click()}
+                  >
+                    <Avatar className="h-24 w-24 border-4 border-background">
+                      <AvatarImage src={avatarPreview} />
+                      <AvatarFallback className="bg-primary/10 text-primary text-2xl">
+                        {form.watch('name')?.charAt(0) || '🐾'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Camera className="h-6 w-6 text-white" />
+                    </div>
+                  </div>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+                </div>
+
+                {/* Name */}
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pet Name *</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Enter your pet's name" maxLength={50} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              {/* Species */}
-              <div className="space-y-2">
-                <Label htmlFor="species">Species *</Label>
-                <Select value={species} onValueChange={setSpecies} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select species" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {speciesOptions.map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Breed */}
-              <div className="space-y-2">
-                <Label htmlFor="breed">Breed</Label>
-                <Input
-                  id="breed"
-                  value={breed}
-                  onChange={(e) => setBreed(e.target.value)}
-                  placeholder="e.g., Golden Retriever, Persian"
-                  maxLength={50}
+                {/* Species */}
+                <FormField
+                  control={form.control}
+                  name="species"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Species *</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select species" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {speciesOptions.map((s) => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              {/* Age */}
-              <div className="space-y-2">
-                <Label htmlFor="age">Age</Label>
-                <Input
-                  id="age"
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                  placeholder="e.g., 2 years, 6 months"
-                  maxLength={30}
+                {/* Breed */}
+                <FormField
+                  control={form.control}
+                  name="breed"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Breed</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., Golden Retriever, Persian" maxLength={50} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              {/* Bio */}
-              <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
-                <Textarea
-                  id="bio"
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  placeholder="Tell us about your pet..."
-                  maxLength={300}
-                  rows={3}
+                {/* Age */}
+                <FormField
+                  control={form.control}
+                  name="age"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Age</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., 2 years, 6 months" maxLength={30} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              <Button type="submit" className="w-full" disabled={submitting}>
-                {submitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Changes'
-                )}
-              </Button>
-            </form>
+                {/* Bio */}
+                <FormField
+                  control={form.control}
+                  name="bio"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bio</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} placeholder="Tell us about your pet..." maxLength={300} rows={3} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button type="submit" className="w-full" disabled={submitting}>
+                  {submitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </Button>
+              </form>
+            </Form>
           </CardContent>
         </Card>
       </main>

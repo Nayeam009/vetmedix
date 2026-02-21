@@ -379,3 +379,36 @@ export const doctorVerificationSchema = z.object({
 });
 
 export type DoctorVerificationFormData = z.infer<typeof doctorVerificationSchema>;
+
+// ========== Pet Form Validation Schema ==========
+
+export const petFormSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Pet name is required')
+    .max(50, 'Name must be less than 50 characters')
+    .regex(noXSSRegex, 'Name cannot contain < or > characters'),
+  species: z
+    .string()
+    .min(1, 'Species is required'),
+  breed: z
+    .string()
+    .max(50, 'Breed must be less than 50 characters')
+    .regex(noXSSRegex, 'Breed cannot contain < or > characters')
+    .optional()
+    .or(z.literal('')),
+  age: z
+    .string()
+    .max(30, 'Age must be less than 30 characters')
+    .regex(noXSSRegex, 'Age cannot contain < or > characters')
+    .optional()
+    .or(z.literal('')),
+  bio: z
+    .string()
+    .max(300, 'Bio must be less than 300 characters')
+    .regex(noXSSRegex, 'Bio cannot contain < or > characters')
+    .optional()
+    .or(z.literal('')),
+});
+
+export type PetFormData = z.infer<typeof petFormSchema>;
