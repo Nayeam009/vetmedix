@@ -1,7 +1,7 @@
-import { forwardRef } from 'react';
+import { forwardRef, memo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export const PostCardSkeleton = forwardRef<HTMLElement>((_, ref) => (
+export const PostCardSkeleton = memo(forwardRef<HTMLElement>((_, ref) => (
   <article ref={ref} className="bg-card rounded-xl sm:rounded-2xl shadow-sm border border-border/50 overflow-hidden">
     {/* Header */}
     <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 pb-2 sm:pb-3">
@@ -31,7 +31,7 @@ export const PostCardSkeleton = forwardRef<HTMLElement>((_, ref) => (
       <Skeleton className="h-2.5 w-24 mt-2 rounded" />
     </div>
   </article>
-));
+)));
 
 PostCardSkeleton.displayName = 'PostCardSkeleton';
 

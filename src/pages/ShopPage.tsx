@@ -484,7 +484,7 @@ const ShopPage = () => {
                         {priceRangeOptions.map(option => (
                           <button 
                             key={option.value} 
-                            onClick={() => setPriceRange(option.value as any)}
+                            onClick={() => setPriceRange(option.value as typeof priceRange)}
                             className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${
                               priceRange === option.value 
                                 ? 'bg-primary text-primary-foreground' 
@@ -544,7 +544,7 @@ const ShopPage = () => {
                   </SelectContent>
                 </Select>
 
-                <Select value={priceRange} onValueChange={(v: any) => setPriceRange(v)}>
+                <Select value={priceRange} onValueChange={(v: string) => setPriceRange(v as typeof priceRange)}>
                   <SelectTrigger className="w-[150px] h-10 rounded-lg" aria-label="Price range filter">
                     <SelectValue placeholder="Price Range" />
                   </SelectTrigger>
