@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, Loader2, MapPin, Filter, Star, 
@@ -223,12 +224,14 @@ const ClinicsPage = () => {
 
   const clinics = clinicsData;
 
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
   const filteredClinics = useMemo(() => clinics
     .map(clinic => ({
       ...clinic,
       locationScore: calculateLocationScore(clinic.address || clinic.name)
     }))
-    .filter(c => c.name?.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter(c => c.name?.toLowerCase().includes(debouncedSearch.toLowerCase()))
     .filter(c => selectedService === 'All Services' || c.services?.includes(selectedService))
     .filter(c => !showOnlyOpen || c.is_open)
     .filter(c => !showOnlyVerified || c.is_verified)
@@ -247,7 +250,7 @@ const ClinicsPage = () => {
       if (!aIsGopalganj && bIsGopalganj) return 1;
       return 0;
     }),
-  [clinics, searchQuery, selectedService, showOnlyOpen, showOnlyVerified, sortBy, calculateLocationScore]);
+  [clinics, debouncedSearch, selectedService, showOnlyOpen, showOnlyVerified, sortBy, calculateLocationScore]);
 
   const activeFiltersCount = [
     selectedService !== 'All Services',
@@ -686,17 +689,17 @@ const ClinicsPage = () => {
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="bg-white rounded-xl sm:rounded-2xl border border-border p-3 sm:p-4">
                 <div className="flex gap-3 sm:gap-4">
-                  <Skeleton className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg sm:rounded-xl flex-shrink-0" />
+                  <Skeleton className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg sm:rounded-xl flex-shrink-0 animate-pulse-slow" />
                   <div className="flex-1 space-y-2 sm:space-y-3">
-                    <Skeleton className="h-5 sm:h-6 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-5 sm:h-6 w-3/4 animate-pulse-slow" />
+                    <Skeleton className="h-4 w-1/2 animate-pulse-slow" />
                     <div className="flex gap-1.5 sm:gap-2">
-                      <Skeleton className="h-5 sm:h-6 w-16 sm:w-20" />
-                      <Skeleton className="h-5 sm:h-6 w-16 sm:w-20" />
+                      <Skeleton className="h-5 sm:h-6 w-16 sm:w-20 animate-pulse-slow" />
+                      <Skeleton className="h-5 sm:h-6 w-16 sm:w-20 animate-pulse-slow" />
                     </div>
                     <div className="flex gap-2 pt-1 sm:pt-2">
-                      <Skeleton className="h-8 sm:h-10 flex-1" />
-                      <Skeleton className="h-8 sm:h-10 flex-1" />
+                      <Skeleton className="h-8 sm:h-10 flex-1 animate-pulse-slow" />
+                      <Skeleton className="h-8 sm:h-10 flex-1 animate-pulse-slow" />
                     </div>
                   </div>
                 </div>
