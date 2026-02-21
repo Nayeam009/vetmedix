@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 import type { QueryClient } from '@tanstack/react-query';
 
-// ─── Module-level auth store ─────────────────────────────────────────
+// ─── Module-level auth store (external store pattern) ────────────────
 
 interface AuthState {
   user: User | null;
