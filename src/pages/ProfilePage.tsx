@@ -119,7 +119,7 @@ const ProfilePage = () => {
         .order('created_at', { ascending: false });
       return (data || []) as Order[];
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && activeTab === 'orders',
     staleTime: 1000 * 60 * 2,
   });
 
@@ -136,14 +136,14 @@ const ProfilePage = () => {
         .order('appointment_date', { ascending: true });
       return (data || []) as Appointment[];
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && activeTab === 'appointments',
     staleTime: 1000 * 60 * 2,
   });
 
   const profile = profileData || null;
   const orders = ordersData || [];
   const appointments = appointmentsData || [];
-  const loading = profileLoading || ordersLoading || appointmentsLoading;
+  const loading = profileLoading;
 
   // Sync form data when profile loads
   useEffect(() => {
@@ -165,12 +165,12 @@ const ProfilePage = () => {
     }
   }, [user, authLoading, navigate]);
 
-  // Real-time order & appointment status updates
+  // Real-time order status updates
   useEffect(() => {
     if (!user) return;
 
-    const channel = supabase
-      .channel('user-profile-realtime')
+    const ordersChannel = supabase
+      .channel(`user-orders-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -187,6 +187,10 @@ const ProfilePage = () => {
           );
         }
       )
+      .subscribe();
+
+    const appointmentsChannel = supabase
+      .channel(`user-appointments-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -202,7 +206,8 @@ const ProfilePage = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(ordersChannel);
+      supabase.removeChannel(appointmentsChannel);
     };
   }, [user, queryClient]);
 
@@ -504,7 +509,11 @@ const ProfilePage = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 sm:p-6">
-                {orders.length === 0 ? (
+                {ordersLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary transform-gpu" />
+                  </div>
+                ) : orders.length === 0 ? (
                   <div className="text-center py-12">
                     <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
                       <ShoppingBag className="h-8 w-8 text-muted-foreground/50" />
@@ -555,7 +564,11 @@ const ProfilePage = () => {
                 </div>
               </CardHeader>
               <CardContent className="p-4 sm:p-6">
-                {appointments.length === 0 ? (
+                {appointmentsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary transform-gpu" />
+                  </div>
+                ) : appointments.length === 0 ? (
                   <div className="text-center py-12">
                     <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
                       <Calendar className="h-8 w-8 text-muted-foreground/50" />
