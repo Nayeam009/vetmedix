@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { logger } from '@/lib/logger';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,7 +26,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { compressImage, getCompressionMessage } from '@/lib/mediaCompression';
-import { getSignedUrl } from '@/lib/storageUtils';
+import { getSignedUrl, validateImageFile } from '@/lib/storageUtils';
+import { getDivisions, getDistricts, getThanas } from '@/lib/bangladeshRegions';
 
 const serviceCategories = [
   'General Checkup',
@@ -128,10 +130,37 @@ const ClinicProfile = () => {
     distance: '',
     image_url: '',
     cover_photo_url: '',
+    division: '',
+    district: '',
+    thana: '',
   });
 
+  // Parse existing address to extract division/district/thana
   useEffect(() => {
     if (ownedClinic) {
+      // Try to parse structured location from distance field (format: "Thana, District, Division")
+      let division = '';
+      let district = '';
+      let thana = '';
+      
+      if (ownedClinic.distance) {
+        const parts = ownedClinic.distance.split(',').map(p => p.trim());
+        if (parts.length >= 3) {
+          thana = parts[0];
+          district = parts[1];
+          division = parts[2];
+        } else if (parts.length === 2) {
+          district = parts[0];
+          division = parts[1];
+        } else if (parts.length === 1) {
+          // Check if it's a known division
+          const allDivisions = getDivisions();
+          if (allDivisions.includes(parts[0])) {
+            division = parts[0];
+          }
+        }
+      }
+      
       setFormData({
         name: ownedClinic.name || '',
         address: ownedClinic.address || '',
@@ -144,18 +173,22 @@ const ClinicProfile = () => {
         distance: ownedClinic.distance || '',
         image_url: ownedClinic.image_url || '',
         cover_photo_url: ownedClinic.cover_photo_url || '',
+        division,
+        district,
+        thana,
       });
     }
   }, [ownedClinic]);
 
-  const uploadImage = async (file: File, type: 'avatar' | 'cover') => {
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
-      return;
-    }
+  // Cascading location data
+  const availableDivisions = useMemo(() => getDivisions(), []);
+  const availableDistricts = useMemo(() => formData.division ? getDistricts(formData.division) : [], [formData.division]);
+  const availableThanas = useMemo(() => (formData.division && formData.district) ? getThanas(formData.division, formData.district) : [], [formData.division, formData.district]);
 
-    if (file.size > 20 * 1024 * 1024) {
-      toast.error('Image size must be less than 20MB');
+  const uploadImage = async (file: File, type: 'avatar' | 'cover') => {
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
 
@@ -227,6 +260,10 @@ const ClinicProfile = () => {
       return;
     }
 
+    // Build structured distance from cascading selects
+    const locationParts = [formData.thana, formData.district, formData.division].filter(Boolean);
+    const structuredDistance = locationParts.length > 0 ? locationParts.join(', ') : formData.distance;
+
     updateClinic.mutate({
       name: formData.name,
       address: formData.address || null,
@@ -236,7 +273,7 @@ const ClinicProfile = () => {
       opening_hours: formData.opening_hours || null,
       is_open: formData.is_open,
       services: formData.services.length > 0 ? formData.services : null,
-      distance: formData.distance || null,
+      distance: structuredDistance || null,
       image_url: formData.image_url || null,
       cover_photo_url: formData.cover_photo_url || null,
     });
@@ -630,27 +667,71 @@ const ClinicProfile = () => {
               <CardDescription className="text-xs sm:text-sm">How pet owners can reach and find your clinic</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 px-4 sm:px-6 pb-4 sm:pb-6 pt-0">
+              {/* Cascading Location Selects */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Division</Label>
+                  <Select
+                    value={formData.division}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, division: value, district: '', thana: '' }))}
+                  >
+                    <SelectTrigger className="rounded-xl h-11 sm:h-10 text-base sm:text-sm">
+                      <SelectValue placeholder="Select Division" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableDivisions.map(d => (
+                        <SelectItem key={d} value={d}>{d}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">District</Label>
+                  <Select
+                    value={formData.district}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, district: value, thana: '' }))}
+                    disabled={!formData.division}
+                  >
+                    <SelectTrigger className="rounded-xl h-11 sm:h-10 text-base sm:text-sm">
+                      <SelectValue placeholder="Select District" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableDistricts.map(d => (
+                        <SelectItem key={d} value={d}>{d}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Thana</Label>
+                  <Select
+                    value={formData.thana}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, thana: value }))}
+                    disabled={!formData.district}
+                  >
+                    <SelectTrigger className="rounded-xl h-11 sm:h-10 text-base sm:text-sm">
+                      <SelectValue placeholder="Select Thana" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableThanas.map(t => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="address" className="text-sm font-medium">Full Address</Label>
+                <Label htmlFor="address" className="text-sm font-medium">Detailed Address</Label>
                 <Textarea
                   id="address"
-                  placeholder="House #, Road #, Area, City, Division"
+                  placeholder="House #, Road #, Area/Landmark"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   rows={2}
                   className="rounded-xl resize-none text-base sm:text-sm"
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="distance" className="text-sm font-medium">Location Area (for search)</Label>
-                <Input
-                  id="distance"
-                  placeholder="e.g., Dhanmondi, Dhaka"
-                  value={formData.distance}
-                  onChange={(e) => setFormData({ ...formData, distance: e.target.value })}
-                  className="rounded-xl h-11 sm:h-10 text-base sm:text-sm"
-                />
+                <p className="text-xs text-muted-foreground">Street address, house number, or nearby landmarks</p>
               </div>
 
               <Separator className="my-2" />
