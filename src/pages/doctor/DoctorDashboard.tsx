@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { 
@@ -20,7 +20,9 @@ import { useDoctor } from '@/hooks/useDoctor';
 import { useUserRole } from '@/hooks/useUserRole';
 import { ClinicBrowser } from '@/components/doctor/ClinicBrowser';
 import { DoctorInvitationsTab } from '@/components/doctor/DoctorInvitationsTab';
-import { DoctorScheduleManager } from '@/components/doctor/DoctorScheduleManager';
+import { StatCard } from '@/components/admin/StatCard';
+
+const DoctorScheduleManager = lazy(() => import('@/components/doctor/DoctorScheduleManager').then(m => ({ default: m.DoctorScheduleManager })));
 import { useDoctorJoinRequests } from '@/hooks/useDoctorJoinRequests';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,7 +53,7 @@ const DoctorDashboard = () => {
     if (!doctorProfile?.id) return;
 
     const channel = supabase
-      .channel('doctor-appointments-realtime')
+      .channel(`doctor-appointments-${doctorProfile.id}`)
       .on(
         'postgres_changes',
         {
@@ -236,22 +238,15 @@ const DoctorDashboard = () => {
           {statCards.map((stat) => {
             const Icon = stat.icon;
             return (
-              <Card
+              <StatCard
                 key={stat.label}
-                className={cn(
-                  "cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-border/50 bg-white active:scale-[0.98]",
-                  activeTab === stat.tab && "ring-2 ring-primary shadow-xl"
-                )}
+                title={stat.label}
+                value={stat.value}
+                icon={<Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.colorClass.split(' ')[1]}`} />}
+                iconClassName={stat.colorClass.split(' ')[0]}
                 onClick={() => setActiveTab(stat.tab)}
-              >
-                <CardContent className="p-3 sm:p-4 lg:p-6">
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center mb-2 sm:mb-3 ${stat.colorClass.split(' ')[0]}`}>
-                    <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.colorClass.split(' ')[1]}`} />
-                  </div>
-                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold">{stat.value}</p>
-                  <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground mt-0.5">{stat.label}</p>
-                </CardContent>
-              </Card>
+                active={activeTab === stat.tab}
+              />
             );
           })}
         </div>
@@ -458,10 +453,12 @@ const DoctorDashboard = () => {
           {/* Schedule Tab */}
           <TabsContent value="schedule" className="space-y-4">
             {doctorProfile?.id && clinicAffiliations ? (
-              <DoctorScheduleManager 
-                doctorId={doctorProfile.id} 
-                clinicAffiliations={clinicAffiliations} 
-              />
+              <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+                <DoctorScheduleManager 
+                  doctorId={doctorProfile.id} 
+                  clinicAffiliations={clinicAffiliations} 
+                />
+              </Suspense>
             ) : (
               <Card>
                 <CardContent className="py-12 text-center">
