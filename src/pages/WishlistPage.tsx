@@ -14,6 +14,7 @@ import { useWishlist } from '@/contexts/WishlistContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { toast } from 'sonner';
+import type { FavoriteClinicRow, FavoriteDoctorRow } from '@/types/database';
 
 interface WishlistProduct {
   id: string;
@@ -26,37 +27,6 @@ interface WishlistProduct {
   stock: number | null;
 }
 
-interface FavoriteClinic {
-  id: string;
-  clinic_id: string;
-  clinic: {
-    id: string;
-    name: string;
-    rating: number | null;
-    distance: string | null;
-    services: string[] | null;
-    image_url: string | null;
-    is_open: boolean | null;
-    is_verified: boolean | null;
-  };
-}
-
-interface FavoriteDoctor {
-  id: string;
-  doctor_id: string;
-  doctor: {
-    id: string;
-    name: string;
-    specialization: string | null;
-    qualifications: string[] | null;
-    experience_years: number | null;
-    consultation_fee: number | null;
-    is_available: boolean | null;
-    is_verified: boolean | null;
-    avatar_url: string | null;
-  };
-}
-
 const WishlistPage = () => {
   useDocumentTitle('My Wishlist');
   const { user, loading: authLoading } = useAuth();
@@ -64,8 +34,8 @@ const WishlistPage = () => {
   
   const { wishlistIds, loading: wishlistLoading } = useWishlist();
   const [products, setProducts] = useState<WishlistProduct[]>([]);
-  const [favoriteClinics, setFavoriteClinics] = useState<FavoriteClinic[]>([]);
-  const [favoriteDoctors, setFavoriteDoctors] = useState<FavoriteDoctor[]>([]);
+  const [favoriteClinics, setFavoriteClinics] = useState<FavoriteClinicRow[]>([]);
+  const [favoriteDoctors, setFavoriteDoctors] = useState<FavoriteDoctorRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [clinicsLoading, setClinicsLoading] = useState(true);
   const [doctorsLoading, setDoctorsLoading] = useState(true);
@@ -111,7 +81,7 @@ const WishlistPage = () => {
         .from('clinic_favorites')
         .select('id, clinic_id, clinic:clinics(id, name, rating, distance, services, image_url, is_open, is_verified)')
         .eq('user_id', user.id);
-      if (data) setFavoriteClinics(data as any);
+      if (data) setFavoriteClinics(data as unknown as FavoriteClinicRow[]);
     } catch {
       // silently fail
     } finally {
@@ -128,7 +98,7 @@ const WishlistPage = () => {
         .from('doctor_favorites')
         .select('id, doctor_id, doctor:doctors(id, name, specialization, qualifications, experience_years, consultation_fee, is_available, is_verified, avatar_url)')
         .eq('user_id', user.id);
-      if (data) setFavoriteDoctors(data as any);
+      if (data) setFavoriteDoctors(data as unknown as FavoriteDoctorRow[]);
     } catch {
       // silently fail
     } finally {

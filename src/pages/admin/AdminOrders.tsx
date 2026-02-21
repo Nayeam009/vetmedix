@@ -54,6 +54,7 @@ import {
 } from '@/components/ui/dialog';
 import { useAdmin, useAdminOrders } from '@/hooks/useAdmin';
 import { RequireAdmin } from '@/components/admin/RequireAdmin';
+import type { AdminOrder, OrderItem } from '@/types/database';
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
 import { supabase } from '@/integrations/supabase/client';
@@ -90,18 +91,18 @@ const AdminOrders = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [isViewOpen, setIsViewOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [isAcceptOpen, setIsAcceptOpen] = useState(false);
   const [isRejectOpen, setIsRejectOpen] = useState(false);
-  const [orderForAction, setOrderForAction] = useState<any>(null);
+  const [orderForAction, setOrderForAction] = useState<AdminOrder | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkShipping, setIsBulkShipping] = useState(false);
   const [trashDialog, setTrashDialog] = useState<string | null>(null);
   const [permanentDeleteDialog, setPermanentDeleteDialog] = useState<string | null>(null);
 
   // Split active vs trashed
-  const activeOrders = useMemo(() => orders?.filter(o => !(o as any).trashed_at) || [], [orders]);
-  const trashedOrders = useMemo(() => orders?.filter(o => !!(o as any).trashed_at) || [], [orders]);
+  const activeOrders = useMemo(() => orders?.filter(o => !o.trashed_at) || [], [orders]);
+  const trashedOrders = useMemo(() => orders?.filter(o => !!o.trashed_at) || [], [orders]);
 
   // Time-filtered orders (only from active)
   const timeFilteredOrders = useMemo(() => {
@@ -123,7 +124,7 @@ const AdminOrders = () => {
       ordersByUser.get(userId)!.push(order);
     }
     for (const order of orders) {
-      const profile = (order as any).profile || null;
+      const profile = order.profile || null;
       const userOrders = ordersByUser.get(order.user_id) || [];
       map.set(order.id, analyzeFraudRisk(order, profile, userOrders));
     }
@@ -182,7 +183,7 @@ const AdminOrders = () => {
         const customerName = order.profile?.full_name || parsed?.name || 'Unknown';
         const customerPhone = order.profile?.phone || parsed?.phone || '';
         const customerAddress = parsed?.addressParts?.join(', ') || order.shipping_address || '';
-        const codAmount = (order as any).payment_method === 'cod' ? order.total_amount : 0;
+        const codAmount = order.payment_method === 'cod' ? order.total_amount : 0;
 
         if (!customerPhone) {
           failCount++;
@@ -240,7 +241,7 @@ const AdminOrders = () => {
       const { error } = await supabase.from('orders').update({ status }).eq('id', orderId);
       if (error) throw error;
       if (order && ['processing', 'shipped', 'delivered', 'cancelled'].includes(status)) {
-        await createOrderNotification({ userId: order.user_id, orderId, status: status as any, orderTotal: order.total_amount });
+        await createOrderNotification({ userId: order.user_id, orderId, status: status as 'processing' | 'shipped' | 'delivered' | 'cancelled', orderTotal: order.total_amount });
       }
       toast.success(`Order status updated to ${status}`);
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
@@ -252,7 +253,7 @@ const AdminOrders = () => {
 
   const trashOrder = async (orderId: string) => {
     try {
-      const { error } = await supabase.from('orders').update({ trashed_at: new Date().toISOString() } as any).eq('id', orderId);
+      const { error } = await supabase.from('orders').update({ trashed_at: new Date().toISOString() }).eq('id', orderId);
       if (error) throw error;
       toast.success('Moved to trash');
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
@@ -266,7 +267,7 @@ const AdminOrders = () => {
 
   const restoreOrder = async (orderId: string) => {
     try {
-      const { error } = await supabase.from('orders').update({ trashed_at: null } as any).eq('id', orderId);
+      const { error } = await supabase.from('orders').update({ trashed_at: null }).eq('id', orderId);
       if (error) throw error;
       toast.success('Restored from trash');
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
@@ -317,7 +318,7 @@ const AdminOrders = () => {
     }
   };
 
-  const getCustomerName = (order: any): string => {
+  const getCustomerName = (order: AdminOrder): string => {
     if (order.profile?.full_name) return order.profile.full_name;
     if (order.shipping_address) {
       const parsed = parseShippingAddress(order.shipping_address);
@@ -326,7 +327,7 @@ const AdminOrders = () => {
     return 'Unknown';
   };
 
-  const getCustomerPhone = (order: any): string => {
+  const getCustomerPhone = (order: AdminOrder): string => {
     if (order.profile?.phone) return order.profile.phone;
     if (order.shipping_address) {
       const parsed = parseShippingAddress(order.shipping_address);
@@ -348,7 +349,7 @@ const AdminOrders = () => {
         order.id.toLowerCase().includes(lowerQuery) ||
         order.shipping_address?.toLowerCase().includes(lowerQuery) ||
         customerName.includes(lowerQuery) ||
-        (order as any).tracking_id?.toLowerCase().includes(lowerQuery);
+        (order.tracking_id)?.toLowerCase().includes(lowerQuery);
       
       if (statusFilter === 'trashed') return matchesSearch;
       if (statusFilter === 'flagged') {
@@ -392,9 +393,9 @@ const AdminOrders = () => {
         `"${getCustomerName(order)}"`,
         getCustomerPhone(order),
         Array.isArray(order.items) ? order.items.length : 0,
-        (order as any).payment_method || 'COD',
-        (order as any).payment_status || 'unpaid',
-        (order as any).tracking_id || '',
+        order.payment_method || 'COD',
+        order.payment_status || 'unpaid',
+        order.tracking_id || '',
         order.total_amount,
         order.status,
         analysis?.level || 'unknown',
@@ -578,21 +579,21 @@ const AdminOrders = () => {
                         <span>{Array.isArray(order.items) ? order.items.length : 0} items</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        {getPaymentMethodBadge((order as any).payment_method || 'cod')}
-                        {getPaymentStatusBadge((order as any).payment_status)}
+                        {getPaymentMethodBadge(order.payment_method || 'cod')}
+                        {getPaymentStatusBadge(order.payment_status)}
                       </div>
                     </div>
 
                     {/* Courier / Tracking row */}
-                    {((order as any).tracking_id || (order as any).consignment_id) && (
+                    {(order.tracking_id || order.consignment_id) && (
                       <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
                         <code className="text-xs bg-secondary px-2 py-1 rounded truncate max-w-[60%]">
-                          🚚 {(order as any).tracking_id || (order as any).consignment_id}
+                          🚚 {order.tracking_id || order.consignment_id}
                         </code>
                         <OrderTrackingTimeline
                           orderId={order.id}
-                          trackingId={(order as any).tracking_id}
-                          consignmentId={(order as any).consignment_id}
+                          trackingId={order.tracking_id}
+                          consignmentId={order.consignment_id}
                           orderStatus={order.status || 'pending'}
                           compact
                         />
@@ -715,20 +716,20 @@ const AdminOrders = () => {
                         <TableCell className="text-xs">{Array.isArray(order.items) ? order.items.length : 0}</TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            {getPaymentMethodBadge((order as any).payment_method || 'cod')}
-                            {getPaymentStatusBadge((order as any).payment_status)}
+                            {getPaymentMethodBadge(order.payment_method || 'cod')}
+                            {getPaymentStatusBadge(order.payment_status)}
                           </div>
                         </TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
-                          {(order as any).tracking_id ? (
+                          {order.tracking_id ? (
                             <div className="space-y-1">
                               <code className="text-[11px] bg-secondary px-1.5 py-0.5 rounded block truncate max-w-[120px]">
-                                {(order as any).tracking_id}
+                                {order.tracking_id}
                               </code>
                               <OrderTrackingTimeline
                                 orderId={order.id}
-                                trackingId={(order as any).tracking_id}
-                                consignmentId={(order as any).consignment_id}
+                                trackingId={order.tracking_id}
+                                consignmentId={order.consignment_id}
                                 orderStatus={order.status || 'pending'}
                                 compact
                               />
@@ -830,7 +831,7 @@ const AdminOrders = () => {
                 <Badge className={getStatusColor(selectedOrder.status)}>{selectedOrder.status}</Badge>
                 <div className="flex items-center gap-2">
                   {getPaymentMethodBadge(selectedOrder.payment_method || 'cod')}
-                  {getPaymentStatusBadge((selectedOrder as any).payment_status)}
+                  {getPaymentStatusBadge(selectedOrder.payment_status)}
                 </div>
               </div>
 
@@ -911,7 +912,7 @@ const AdminOrders = () => {
               <div>
                 <h4 className="font-medium text-sm mb-2">Order Items</h4>
                 <div className="space-y-2">
-                  {Array.isArray(selectedOrder.items) && selectedOrder.items.map((item: any, idx: number) => (
+                  {Array.isArray(selectedOrder.items) && (selectedOrder.items as OrderItem[]).map((item, idx: number) => (
                     <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-secondary/50">
                       <div className="flex items-center gap-3 min-w-0">
                         {item.image && (

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { Database } from '@/integrations/supabase/types';
 
 export interface CMSArticle {
   id: string;
@@ -105,13 +106,14 @@ export const useCreateArticle = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (article: Partial<CMSArticle>) => {
+      const { id, created_at, updated_at, ...rest } = article;
       const payload = {
-        ...article,
+        ...rest,
         published_at: article.status === 'published' ? new Date().toISOString() : null,
-      };
+      } as Database['public']['Tables']['cms_articles']['Insert'];
       const { data, error } = await supabase
         .from('cms_articles')
-        .insert(payload as any)
+        .insert(payload)
         .select('id')
         .single();
       if (error) throw error;
@@ -134,9 +136,10 @@ export const useUpdateArticle = () => {
       if (updates.status === 'published' && !updates.published_at) {
         updates.published_at = new Date().toISOString();
       }
+      const { created_at, updated_at, ...safeUpdates } = updates;
       const { error } = await supabase
         .from('cms_articles')
-        .update(updates as any)
+        .update(safeUpdates)
         .eq('id', id);
       if (error) throw error;
     },

@@ -26,7 +26,8 @@ interface SendToCourierDialogProps {
     user_id: string;
     total_amount: number;
     shipping_address: string | null;
-    payment_method?: string;
+    items?: unknown;
+    payment_method?: string | null;
     profile?: { full_name: string | null; phone: string | null } | null;
   } | null;
 }
@@ -61,7 +62,7 @@ export const SendToCourierDialog = ({ isOpen, onClose, order }: SendToCourierDia
           recipient_phone: customerPhone,
           recipient_address: customerAddress,
           cod_amount: codAmount,
-          note: `Order #${order.id.slice(0, 8)} - ${Array.isArray((order as any).items) ? (order as any).items.length : 0} items`,
+          note: `Order #${order.id.slice(0, 8)} - ${Array.isArray(order.items) ? order.items.length : 0} items`,
         },
       });
 
