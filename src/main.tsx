@@ -1,6 +1,5 @@
-// Force React to be resolved first as a single instance
-import React from "react";
-import ReactDOM from "react-dom/client";
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { initWebVitals } from "./lib/analytics";
@@ -15,9 +14,8 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-const root = ReactDOM.createRoot(document.getElementById("root")!);
-root.render(
-  <React.StrictMode>
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
     <App />
-  </React.StrictMode>
+  </StrictMode>
 );

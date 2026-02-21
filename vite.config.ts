@@ -24,7 +24,6 @@ export default defineConfig(({ mode }) => ({
     ],
   },
   optimizeDeps: {
-    force: true,
     include: [
       "react",
       "react-dom",
@@ -34,6 +33,10 @@ export default defineConfig(({ mode }) => ({
       "@tanstack/react-query",
       "@supabase/supabase-js",
       "react-router-dom",
+      "sonner",
+      "class-variance-authority",
+      "clsx",
+      "tailwind-merge",
     ],
   },
   build: {

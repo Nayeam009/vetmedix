@@ -1,4 +1,4 @@
-import React from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
@@ -16,22 +16,22 @@ interface AuthContextType {
   clearError: () => void;
 }
 
-const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children, queryClient }: { children: React.ReactNode; queryClient?: QueryClient }) => {
-  const [user, setUser] = React.useState<User | null>(null);
-  const [session, setSession] = React.useState<Session | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<AuthError | null>(null);
+export const AuthProvider = ({ children, queryClient }: { children: ReactNode; queryClient?: QueryClient }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<AuthError | null>(null);
 
-  React.useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
       if (event === 'SIGNED_OUT' && queryClient) {
         queryClient.clear();
       }
       
-      setSession(session);
-      setUser(session?.user ?? null);
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
       setLoading(false);
       setError(null);
     });
@@ -39,9 +39,9 @@ export const AuthProvider = ({ children, queryClient }: { children: React.ReactN
     return () => subscription.unsubscribe();
   }, [queryClient]);
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = useCallback(async (email: string, password: string, fullName: string) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -50,56 +50,56 @@ export const AuthProvider = ({ children, queryClient }: { children: React.ReactN
         },
       });
       
-      if (error) {
-        if (error.message.includes('already registered')) {
+      if (signUpError) {
+        if (signUpError.message.includes('already registered')) {
           return { 
             error: new Error('This email is already registered. Please sign in instead.'), 
             user: null 
           };
         }
-        return { error, user: null };
+        return { error: signUpError, user: null };
       }
       
       return { error: null, user: data.user };
     } catch (err) {
       return { error: err as Error, user: null };
     }
-  };
+  }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
-      if (error) {
-        if (error.message.includes('Invalid login credentials')) {
+      if (signInError) {
+        if (signInError.message.includes('Invalid login credentials')) {
           return { error: new Error('Invalid email or password. Please try again.') };
         }
-        return { error };
+        return { error: signInError };
       }
       
       return { error: null };
     } catch (err) {
       return { error: err as Error };
     }
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       await supabase.auth.signOut();
     } catch (err) {
       logger.error('Error signing out:', err);
     }
-  };
+  }, []);
 
-  const refreshSession = React.useCallback(async () => {
+  const refreshSession = useCallback(async () => {
     try {
-      const { data, error } = await supabase.auth.refreshSession();
-      if (error) {
-        logger.error('Error refreshing session:', error);
-        setError(error);
+      const { data, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        logger.error('Error refreshing session:', refreshError);
+        setError(refreshError);
       } else if (data.session) {
         setSession(data.session);
         setUser(data.session.user);
@@ -109,11 +109,11 @@ export const AuthProvider = ({ children, queryClient }: { children: React.ReactN
     }
   }, []);
 
-  const clearError = React.useCallback(() => {
+  const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  const value = React.useMemo<AuthContextType>(() => ({
+  const value = useMemo<AuthContextType>(() => ({
     user,
     session,
     loading,
@@ -123,7 +123,7 @@ export const AuthProvider = ({ children, queryClient }: { children: React.ReactN
     signOut,
     refreshSession,
     clearError,
-  }), [user, session, loading, error, refreshSession, clearError]);
+  }), [user, session, loading, error, signUp, signIn, signOut, refreshSession, clearError]);
 
   return (
     <AuthContext.Provider value={value}>
@@ -133,7 +133,7 @@ export const AuthProvider = ({ children, queryClient }: { children: React.ReactN
 };
 
 export const useAuth = () => {
-  const context = React.useContext(AuthContext);
+  const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
