@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useCart } from '@/contexts/CartContext';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
-import ProductCard from '@/components/ProductCard';
+const ProductCard = lazy(() => import('@/components/ProductCard'));
 import ProductReviewForm from '@/components/ProductReviewForm';
 import { 
   ArrowLeft, 
@@ -526,7 +526,7 @@ const ProductDetailPage = () => {
               {/* Buy Now Button */}
               {(product.stock === null || product.stock > 0) && (
                 <Button 
-                  variant="outline"
+                  variant="warm"
                   className="w-full h-12 text-base font-semibold rounded-xl"
                   onClick={() => {
                     handleAddToCart();
@@ -626,7 +626,7 @@ const ProductDetailPage = () => {
                 </Button>
                 {(product.stock === null || product.stock > 0) && (
                   <Button 
-                    variant="outline"
+                    variant="warm"
                     className="flex-1 h-11 text-sm font-semibold rounded-xl"
                     onClick={() => { handleAddToCart(); navigate('/checkout'); }}
                   >
@@ -747,20 +747,26 @@ const ProductDetailPage = () => {
                 </Link>
               </Button>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-              {relatedProducts.map((p) => (
-                <ProductCard
-                  key={p.id}
-                  id={p.id}
-                  name={p.name}
-                  price={p.price}
-                  category={p.category as 'Pet' | 'Farm'}
-                  image={p.image_url || ''}
-                  badge={p.badge || undefined}
-                  discount={p.discount || undefined}
-                />
-              ))}
-            </div>
+            <Suspense fallback={
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                {[1,2,3,4].map(i => <div key={i} className="aspect-[3/4] bg-muted animate-pulse rounded-xl" />)}
+              </div>
+            }>
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                {relatedProducts.map((p) => (
+                  <ProductCard
+                    key={p.id}
+                    id={p.id}
+                    name={p.name}
+                    price={p.price}
+                    category={p.category as 'Pet' | 'Farm'}
+                    image={p.image_url || ''}
+                    badge={p.badge || undefined}
+                    discount={p.discount || undefined}
+                  />
+                ))}
+              </div>
+            </Suspense>
           </div>
         )}
       </main>
