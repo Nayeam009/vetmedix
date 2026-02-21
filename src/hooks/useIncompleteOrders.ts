@@ -117,28 +117,26 @@ export const useIncompleteOrders = () => {
       ].filter(Boolean).join(', ');
 
       const totalAmount = grandTotal ?? ((order.cart_total || 0) + deliveryCharge);
+      const userId = order.user_id || '00000000-0000-0000-0000-000000000000';
 
-      const { data: newOrder, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          user_id: order.user_id || '00000000-0000-0000-0000-000000000000',
-          items: order.items,
-          total_amount: totalAmount,
-          shipping_address: shippingAddress,
-          payment_method: 'cod',
-          status: 'pending',
-        })
-        .select('id')
-        .single();
+      // Use atomic RPC to ensure stock is validated and decremented with FOR UPDATE row locks
+      const { data: newOrderId, error: orderError } = await supabase
+        .rpc('create_order_with_stock', {
+          p_user_id: userId,
+          p_items: order.items,
+          p_total_amount: totalAmount,
+          p_shipping_address: shippingAddress,
+          p_payment_method: 'cod',
+        });
 
       if (orderError) throw orderError;
 
       await supabase
         .from('incomplete_orders')
-        .update({ status: 'recovered', recovered_order_id: newOrder.id })
+        .update({ status: 'recovered', recovered_order_id: newOrderId })
         .eq('id', order.id);
 
-      return newOrder;
+      return { id: newOrderId };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-incomplete-orders'] });
