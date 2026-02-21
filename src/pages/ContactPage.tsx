@@ -8,105 +8,97 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import Footer from '@/components/Footer';
-import { toast } from 'sonner';
-import { logger } from '@/lib/logger';
+import SEO from '@/components/SEO';
 import { supabase } from '@/integrations/supabase/client';
-import { contactSchema } from '@/lib/validations';
-import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { contactSchema, type ContactFormData } from '@/lib/validations';
+import { safeMutation } from '@/lib/supabaseService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const COOLDOWN_SECONDS = 3;
 
+const contactInfo = [
+  {
+    icon: <Mail className="h-5 w-5" />,
+    label: 'Email',
+    value: 'vetmedix.25@gmail.com',
+    href: 'mailto:vetmedix.25@gmail.com',
+  },
+  {
+    icon: <Phone className="h-5 w-5" />,
+    label: 'Phone',
+    value: '01349219441',
+    href: 'tel:+8801349219441',
+  },
+  {
+    icon: <MapPin className="h-5 w-5" />,
+    label: 'Location',
+    value: 'Framgate, Dhaka, 1205',
+    href: null,
+  },
+];
+
 const ContactPage = () => {
-  useDocumentTitle('Contact Us');
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: '',
-  });
-  const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
-  // Cooldown timer after successful submission
+  const form = useForm<ContactFormData>({
+    resolver: zodResolver(contactSchema),
+    defaultValues: { name: '', email: '', subject: '', message: '' },
+  });
+
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = setTimeout(() => setCooldown(c => c - 1), 1000);
     return () => clearTimeout(timer);
   }, [cooldown]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const onSubmit = async (data: ContactFormData) => {
     if (cooldown > 0) return;
 
-    const result = contactSchema.safeParse(formData);
-    if (!result.success) {
-      const firstError = result.error.errors[0]?.message || 'Please fill in all required fields';
-      toast.error(firstError);
-      return;
-    }
+    const insertPromise = Promise.resolve(
+      supabase.from('contact_messages').insert({
+        name: data.name.trim(),
+        email: data.email.trim(),
+        subject: data.subject?.trim() || null,
+        message: data.message.trim(),
+      }).select()
+    );
 
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('contact_messages')
-        .insert({
-          name: formData.name.trim(),
-          email: formData.email.trim(),
-          subject: formData.subject.trim() || null,
-          message: formData.message.trim(),
-        });
+    const result = await safeMutation(insertPromise, {
+        successMsg: "Message sent successfully! We'll get back to you soon.",
+        errorMsg: 'Failed to send message. Please try again.',
+      }
+    );
 
-      if (error) throw error;
-      
+    if (!result.error) {
       setSubmitted(true);
       setCooldown(COOLDOWN_SECONDS);
-      toast.success('Message sent successfully! We\'ll get back to you soon.');
-    } catch (error) {
-      logger.error('Error submitting contact form:', error);
-      toast.error('Failed to send message. Please try again.');
-    } finally {
-      setLoading(false);
+      form.reset();
     }
   };
 
   const handleSendAnother = useCallback(() => {
     if (cooldown > 0) return;
     setSubmitted(false);
-    setFormData({ name: '', email: '', subject: '', message: '' });
-  }, [cooldown]);
-
-  const contactInfo = [
-    {
-      icon: <Mail className="h-5 w-5" />,
-      label: 'Email',
-      value: 'vetmedix.25@gmail.com',
-      href: 'mailto:vetmedix.25@gmail.com',
-    },
-    {
-      icon: <Phone className="h-5 w-5" />,
-      label: 'Phone',
-      value: '01349219441',
-      href: 'tel:+8801349219441',
-    },
-    {
-      icon: <MapPin className="h-5 w-5" />,
-      label: 'Location',
-      value: 'Framgate, Dhaka, 1205',
-      href: null,
-    },
-  ];
+    form.reset();
+  }, [cooldown, form]);
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
+      <SEO
+        title="Contact Us"
+        description="Have questions about VetMedix? Get in touch with our team for support, feedback, or partnership inquiries."
+        canonicalUrl="https://vetmedix.lovable.app/contact"
+      />
       <Navbar />
       
-      <main id="main-content" className="container mx-auto px-4 py-8 sm:py-12">
+      <main id="main-content" className="container mx-auto px-4 py-8 sm:py-12 animate-page-enter">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="text-center mb-12">
@@ -120,7 +112,7 @@ const ContactPage = () => {
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8">
-            {/* Contact Info */}
+            {/* Contact Info - Left */}
             <div className="space-y-6">
               <Card>
                 <CardHeader>
@@ -136,10 +128,7 @@ const ContactPage = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">{item.label}</p>
                         {item.href ? (
-                          <a 
-                            href={item.href} 
-                            className="font-medium hover:text-primary transition-colors"
-                          >
+                          <a href={item.href} className="font-medium hover:text-primary transition-colors">
                             {item.value}
                           </a>
                         ) : (
@@ -162,7 +151,7 @@ const ContactPage = () => {
               </Card>
             </div>
 
-            {/* Contact Form */}
+            {/* Contact Form - Right */}
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>
@@ -179,7 +168,7 @@ const ContactPage = () => {
                       <p className="text-muted-foreground mb-4">
                         Please sign in to send us a message. This helps us prevent spam and respond to you faster.
                       </p>
-                      <Button onClick={() => navigate('/auth')}>
+                      <Button onClick={() => navigate('/auth')} className="min-h-[44px]">
                         <LogIn className="h-4 w-4 mr-2" />
                         Sign In to Contact Us
                       </Button>
@@ -197,77 +186,111 @@ const ContactPage = () => {
                         variant="outline" 
                         onClick={handleSendAnother}
                         disabled={cooldown > 0}
+                        className="min-h-[44px]"
                       >
                         {cooldown > 0 ? `Wait ${cooldown}s...` : 'Send Another Message'}
                       </Button>
                     </div>
                   ) : (
-                    <form onSubmit={handleSubmit} className="space-y-4" aria-label="Contact form">
-                      <div className="grid sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="name">Name <span aria-hidden="true">*</span></Label>
-                          <Input
-                            id="name"
-                            placeholder="Your name"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            required
-                            aria-required="true"
-                            maxLength={100}
+                    <Form {...form}>
+                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" aria-label="Contact form">
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="name"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Name <span aria-hidden="true">*</span></FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder="Your name"
+                                    className="min-h-[44px] text-base"
+                                    maxLength={100}
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Email <span aria-hidden="true">*</span></FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="email"
+                                    placeholder="you@example.com"
+                                    className="min-h-[44px] text-base"
+                                    maxLength={255}
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="email">Email <span aria-hidden="true">*</span></Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            placeholder="you@example.com"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            required
-                            aria-required="true"
-                            maxLength={255}
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="subject">Subject</Label>
-                        <Input
-                          id="subject"
-                          placeholder="How can we help?"
-                          value={formData.subject}
-                          onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                        
+                        <FormField
+                          control={form.control}
+                          name="subject"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Subject</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="How can we help?"
+                                  className="min-h-[44px] text-base"
+                                  maxLength={200}
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="message">Message <span aria-hidden="true">*</span></Label>
-                        <Textarea
-                          id="message"
-                          placeholder="Tell us more about your inquiry..."
-                          rows={5}
-                          value={formData.message}
-                          onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                          required
-                          aria-required="true"
+                        
+                        <FormField
+                          control={form.control}
+                          name="message"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Message <span aria-hidden="true">*</span></FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Tell us more about your inquiry..."
+                                  rows={5}
+                                  className="min-h-[44px] text-base"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
-                      </div>
-                      
-                      <Button type="submit" className="w-full sm:w-auto min-h-[44px]" disabled={loading || cooldown > 0}>
-                        {loading ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
-                            <span>Sending...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Send className="h-4 w-4 mr-2" aria-hidden="true" />
-                            <span>Send Message</span>
-                          </>
-                        )}
-                      </Button>
-                    </form>
+                        
+                        <Button
+                          type="submit"
+                          className="w-full sm:w-auto min-h-[44px]"
+                          disabled={form.formState.isSubmitting || cooldown > 0}
+                        >
+                          {form.formState.isSubmitting ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
+                              <span>Sending...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Send className="h-4 w-4 mr-2" aria-hidden="true" />
+                              <span>Send Message</span>
+                            </>
+                          )}
+                        </Button>
+                      </form>
+                    </Form>
                   )}
                 </CardContent>
               </Card>
