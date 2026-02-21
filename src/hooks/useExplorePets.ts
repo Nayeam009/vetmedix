@@ -13,12 +13,16 @@ export interface PetFollowData {
  * Optimized hook for Explore page: fetches pets + batch follow data in 2-3 queries total
  * instead of N*3 queries (one per pet card).
  */
+const PAGE_SIZE = 20;
+
 export const useExplorePets = () => {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [pets, setPets] = useState<Pet[]>([]);
   const [followDataMap, setFollowDataMap] = useState<Record<string, PetFollowData>>({});
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [species, setSpecies] = useState(searchParams.get('species') || 'All');
   const [location, setLocation] = useState(searchParams.get('location') || '');
@@ -27,14 +31,21 @@ export const useExplorePets = () => {
   const fetchPets = useCallback(async (
     overrideQuery?: string,
     overrideSpecies?: string,
-    overrideLocation?: string
+    overrideLocation?: string,
+    cursor?: string
   ) => {
     // Cancel any in-flight request
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
 
-    setLoading(true);
+    const isLoadMore = !!cursor;
+    if (isLoadMore) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
+
     try {
       const q = overrideQuery ?? searchQuery;
       const s = overrideSpecies ?? species;
@@ -44,8 +55,11 @@ export const useExplorePets = () => {
         .from('pets')
         .select('id, user_id, name, species, breed, age, avatar_url, location, created_at')
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(PAGE_SIZE);
 
+      if (cursor) {
+        query = query.lt('created_at', cursor);
+      }
       if (q) {
         query = query.or(`name.ilike.%${q}%,breed.ilike.%${q}%`);
       }
@@ -61,12 +75,22 @@ export const useExplorePets = () => {
       if (controller.signal.aborted) return;
 
       const petsData = (data || []) as Pet[];
-      setPets(petsData);
+      setHasMore(petsData.length === PAGE_SIZE);
 
-      // Batch fetch follow data for all pets at once
-      if (petsData.length > 0) {
-        await fetchBatchFollowData(petsData, controller.signal);
+      if (isLoadMore) {
+        setPets(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const unique = petsData.filter(p => !existingIds.has(p.id));
+          return [...prev, ...unique];
+        });
       } else {
+        setPets(petsData);
+      }
+
+      // Batch fetch follow data for new pets
+      if (petsData.length > 0) {
+        await fetchBatchFollowData(petsData, controller.signal, isLoadMore);
+      } else if (!isLoadMore) {
         setFollowDataMap({});
       }
     } catch (error) {
@@ -77,11 +101,12 @@ export const useExplorePets = () => {
     } finally {
       if (!controller.signal.aborted) {
         setLoading(false);
+        setLoadingMore(false);
       }
     }
   }, [searchQuery, species, location]);
 
-  const fetchBatchFollowData = async (petsData: Pet[], signal: AbortSignal) => {
+  const fetchBatchFollowData = async (petsData: Pet[], signal: AbortSignal, merge = false) => {
     const petIds = petsData.map(p => p.id);
 
     try {
@@ -124,7 +149,11 @@ export const useExplorePets = () => {
         };
       });
 
-      setFollowDataMap(newMap);
+      if (merge) {
+        setFollowDataMap(prev => ({ ...prev, ...newMap }));
+      } else {
+        setFollowDataMap(newMap);
+      }
     } catch (error) {
       if (signal.aborted) return;
       if (import.meta.env.DEV) {
@@ -133,10 +162,18 @@ export const useExplorePets = () => {
     }
   };
 
-  // Initial fetch and species change
+  // Initial fetch and species change — reset pagination
   useEffect(() => {
+    setPets([]);
+    setHasMore(true);
     fetchPets();
   }, [species]);
+
+  const loadMore = useCallback(() => {
+    if (loadingMore || !hasMore || pets.length === 0) return;
+    const lastPet = pets[pets.length - 1];
+    fetchPets(undefined, undefined, undefined, lastPet.created_at);
+  }, [loadingMore, hasMore, pets, fetchPets]);
 
   const handleSearch = useCallback(() => {
     setSearchParams({
@@ -241,6 +278,8 @@ export const useExplorePets = () => {
     pets,
     followDataMap,
     loading,
+    loadingMore,
+    hasMore,
     searchQuery,
     setSearchQuery,
     species,
@@ -252,5 +291,6 @@ export const useExplorePets = () => {
     hasActiveFilters,
     optimisticFollow,
     optimisticUnfollow,
+    loadMore,
   };
 };
