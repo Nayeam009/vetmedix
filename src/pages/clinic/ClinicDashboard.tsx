@@ -93,7 +93,7 @@ const ClinicDashboard = () => {
     if (!ownedClinic?.id) return;
 
     const channel = supabase
-      .channel('clinic-dashboard-realtime')
+      .channel(`clinic-appointments-${ownedClinic.id}`)
       .on(
         'postgres_changes',
         {
@@ -321,17 +321,17 @@ const ClinicDashboard = () => {
               {/* Add Appointment - Primary CTA */}
               <Button
                 onClick={() => setIsAddAppointmentOpen(true)}
-                className="rounded-lg sm:rounded-xl h-11 sm:h-10 px-4 gap-2 shadow-lg shadow-primary/25 active:scale-95 transition-transform flex-1 sm:flex-none order-1"
+                className="rounded-lg sm:rounded-xl min-h-[44px] h-11 sm:h-10 px-4 gap-2 shadow-lg shadow-primary/25 active:scale-95 transition-transform flex-1 sm:flex-none order-1"
               >
                 <Plus className="h-4 w-4" />
-                <span>Add Appointment</span>
+                <span>Add Walk-in</span>
               </Button>
               
               <div className="flex gap-2 sm:gap-3 order-2">
                 {/* View Public Profile Button */}
                 <Button
                   variant="outline"
-                  className="rounded-lg sm:rounded-xl h-11 sm:h-10 px-3 sm:px-4 active:scale-95 transition-transform flex-1 sm:flex-none"
+                  className="rounded-lg sm:rounded-xl min-h-[44px] h-11 sm:h-10 px-3 sm:px-4 active:scale-95 transition-transform flex-1 sm:flex-none"
                   onClick={() => ownedClinic?.id && navigate(`/clinic/${ownedClinic.id}`)}
                   disabled={!ownedClinic?.id}
                 >
@@ -342,7 +342,7 @@ const ClinicDashboard = () => {
                 <Button 
                   asChild 
                   variant="secondary"
-                  className="rounded-lg sm:rounded-xl h-11 sm:h-10 px-3 sm:px-4 active:scale-95 transition-transform flex-1 sm:flex-none"
+                  className="rounded-lg sm:rounded-xl min-h-[44px] h-11 sm:h-10 px-3 sm:px-4 active:scale-95 transition-transform flex-1 sm:flex-none"
                 >
                   <Link to="/clinic/profile">
                     <Edit className="h-4 w-4 sm:mr-2" />
