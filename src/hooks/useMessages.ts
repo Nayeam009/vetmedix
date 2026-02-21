@@ -170,19 +170,29 @@ export const useMessages = (conversationId: string) => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      // Guard against state update after unmount
-      if (isMountedRef.current) {
-        setMessages((data || []) as Message[]);
-      }
-
-      // Mark messages as read
+      const fetchedMessages = (data || []) as Message[];
+      
+      // Optimistic is_read: mark unread messages as read in local state immediately
       if (user) {
-        await supabase
+        const optimisticMessages = fetchedMessages.map(msg =>
+          msg.sender_id !== user.id && !msg.is_read
+            ? { ...msg, is_read: true }
+            : msg
+        );
+        if (isMountedRef.current) {
+          setMessages(optimisticMessages);
+        }
+
+        // Then persist to DB (fire-and-forget, no UI delay)
+        supabase
           .from('messages')
           .update({ is_read: true })
           .eq('conversation_id', conversationId)
           .neq('sender_id', user.id)
-          .eq('is_read', false);
+          .eq('is_read', false)
+          .then(); // silent
+      } else if (isMountedRef.current) {
+        setMessages(fetchedMessages);
       }
     } catch (error) {
       if (import.meta.env.DEV) {
