@@ -1,16 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Package, 
-  Truck, 
-  CheckCircle, 
-  Clock, 
-  XCircle, 
   Loader2,
-  MapPin,
   ArrowLeft,
-  RefreshCw,
-  LogIn
+  Search,
+  LogIn,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,17 +15,16 @@ import { Input } from '@/components/ui/input';
 import Navbar from '@/components/Navbar';
 import MobileNav from '@/components/MobileNav';
 import Footer from '@/components/Footer';
+import { OrderTrackingTimeline } from '@/components/admin/OrderTrackingTimeline';
+import { getStatusColor } from '@/lib/statusColors';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDebounce } from '@/hooks/useDebounce';
 import { format } from 'date-fns';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-
-interface TrackingStatus {
-  status: number;
-  delivery_status: string;
-}
+import { MapPin } from 'lucide-react';
 
 interface OrderDetails {
   id: string;
@@ -51,38 +46,38 @@ const TrackOrderPage = () => {
   const { user, loading: authLoading } = useAuth();
   
   const orderId = searchParams.get('id');
-  const [trackingCode, setTrackingCode] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebounce(searchInput, 500);
   const [order, setOrder] = useState<OrderDetails | null>(null);
-  const [trackingStatus, setTrackingStatus] = useState<TrackingStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isTracking, setIsTracking] = useState(false);
+  const [searchAttempted, setSearchAttempted] = useState(false);
 
+  // Auto-load order from URL param
   useEffect(() => {
     if (orderId && user) {
+      setSearchInput(orderId);
       fetchOrder(orderId);
     }
   }, [orderId, user]);
 
-  // Real-time order status updates on tracking page
+  // Real-time order status updates
   useEffect(() => {
-    if (!orderId || !user) return;
+    const activeId = order?.id;
+    if (!activeId || !user) return;
 
     const channel = supabase
-      .channel(`track-order-${orderId}`)
+      .channel(`track-order-${activeId}`)
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
           table: 'orders',
-          filter: `id=eq.${orderId}`,
+          filter: `id=eq.${activeId}`,
         },
         (payload) => {
           const updated = payload.new as unknown as OrderDetails;
           setOrder((prev) => (prev ? { ...prev, ...updated } : prev));
-          if (updated.tracking_id && updated.tracking_id !== order?.tracking_id) {
-            setTrackingCode(updated.tracking_id);
-          }
         }
       )
       .subscribe();
@@ -90,130 +85,60 @@ const TrackOrderPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [orderId, user]);
+  }, [order?.id, user]);
 
-  const fetchOrder = async (id: string) => {
+  const fetchOrder = useCallback(async (id: string) => {
+    if (!id.trim()) return;
     setIsLoading(true);
+    setSearchAttempted(true);
     try {
-      const { data, error } = await supabase
+      // Try by order ID first
+      let { data, error } = await supabase
         .from('orders')
-        .select('*')
-        .eq('id', id)
-        .single();
+        .select('id, status, tracking_id, consignment_id, rejection_reason, created_at, total_amount, shipping_address, items')
+        .eq('id', id.trim())
+        .maybeSingle();
 
-      if (error) throw error;
-      
-      setOrder(data as unknown as OrderDetails);
-      
-      if (data.tracking_id) {
-        setTrackingCode(data.tracking_id);
-        await fetchTrackingStatus(data.tracking_id);
+      // If not found by ID, try by tracking_id
+      if (!data && !error) {
+        const result = await supabase
+          .from('orders')
+          .select('id, status, tracking_id, consignment_id, rejection_reason, created_at, total_amount, shipping_address, items')
+          .eq('tracking_id', id.trim())
+          .maybeSingle();
+        data = result.data;
+        error = result.error;
       }
+
+      if (error) {
+        logger.error('Error fetching order:', error);
+        toast.error('Could not fetch order details');
+        setOrder(null);
+        return;
+      }
+      
+      setOrder(data as unknown as OrderDetails | null);
     } catch (error) {
       logger.error('Error fetching order:', error);
       toast.error('Could not fetch order details');
+      setOrder(null);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const fetchTrackingStatus = async (code: string) => {
-    if (!code) return;
-    
-    if (!user) {
-      toast.error('Please log in to track your order');
+  const handleSearch = useCallback(() => {
+    if (!searchInput.trim()) {
+      toast.error('Please enter an Order ID or Tracking ID');
       return;
     }
-    
-    setIsTracking(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('steadfast', {
-        body: {
-          action: 'track_by_tracking_code',
-          tracking_code: code,
-        },
-      });
-
-      if (error) {
-        // Handle specific error messages from the edge function
-        if (error.message?.includes('Unauthorized') || error.message?.includes('403')) {
-          toast.error('You can only track your own orders');
-        } else if (error.message?.includes('not found') || error.message?.includes('404')) {
-          toast.error('No order found with this tracking code');
-        }
-        throw error;
-      }
-      setTrackingStatus(data);
-    } catch (error) {
-      logger.error('Error tracking order:', error);
-    } finally {
-      setIsTracking(false);
-    }
-  };
-
-  const handleTrackByCode = async () => {
-    if (!trackingCode.trim()) {
-      toast.error('Please enter a tracking code');
-      return;
-    }
-    await fetchTrackingStatus(trackingCode.trim());
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'delivered':
-        return <CheckCircle className="h-6 w-6 text-green-600" />;
-      case 'shipped':
-      case 'in_transit':
-        return <Truck className="h-6 w-6 text-blue-600" />;
-      case 'processing':
-        return <Package className="h-6 w-6 text-purple-600" />;
-      case 'cancelled':
-        return <XCircle className="h-6 w-6 text-destructive" />;
-      default:
-        return <Clock className="h-6 w-6 text-yellow-600" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'delivered':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'shipped':
-      case 'in_transit':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-      case 'processing':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-      default:
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-    }
-  };
-
-  const getDeliveryStatusLabel = (status: string) => {
-    switch (status) {
-      case 'in_review':
-        return 'In Review';
-      case 'pending':
-        return 'Pending Pickup';
-      case 'delivered_approval_pending':
-        return 'Delivered (Pending Approval)';
-      case 'partial_delivered_approval_pending':
-        return 'Partially Delivered';
-      case 'cancelled_approval_pending':
-        return 'Cancelled (Pending)';
-      case 'delivered':
-        return 'Delivered';
-      default:
-        return status?.replace(/_/g, ' ') || 'Unknown';
-    }
-  };
+    fetchOrder(searchInput.trim());
+  }, [searchInput, fetchOrder]);
 
   // Show login prompt if not authenticated
   if (!authLoading && !user) {
     return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0">
+      <div className="min-h-screen bg-background pb-20 md:pb-0">
         <Navbar />
         <main id="main-content" className="container mx-auto px-4 py-6 sm:py-8">
           <div className="max-w-md mx-auto">
@@ -257,6 +182,7 @@ const TrackOrderPage = () => {
         </Button>
 
         <div className="max-w-2xl mx-auto space-y-6">
+          {/* Search Card */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -264,23 +190,28 @@ const TrackOrderPage = () => {
                 Track Your Order
               </CardTitle>
               <CardDescription>
-                Enter your tracking code or view order details
+                Enter your Order ID or Tracking ID to view status
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex gap-2">
                 <Input
-                  placeholder="Enter tracking code"
-                  value={trackingCode}
-                  onChange={(e) => setTrackingCode(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleTrackByCode()}
+                  placeholder="Order ID or Tracking ID"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   disabled={!user}
+                  className="min-h-[44px] text-base"
                 />
-                <Button onClick={handleTrackByCode} disabled={isTracking || !user}>
-                  {isTracking ? (
+                <Button 
+                  onClick={handleSearch} 
+                  disabled={isLoading || !user || !searchInput.trim()}
+                  className="min-h-[44px]"
+                >
+                  {isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <RefreshCw className="h-4 w-4" />
+                    <Search className="h-4 w-4" />
                   )}
                 </Button>
               </div>
@@ -311,23 +242,23 @@ const TrackOrderPage = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    {getStatusIcon(order.status)}
-                    <div>
-                      <p className="font-medium">
-                        {order.status === 'pending' && 'Waiting for admin approval'}
-                        {order.status === 'processing' && 'Order is being processed'}
-                        {order.status === 'shipped' && 'Order is on the way'}
-                        {order.status === 'delivered' && 'Order has been delivered'}
-                        {order.status === 'cancelled' && 'Order was cancelled'}
-                      </p>
-                      {order.rejection_reason && (
-                        <p className="text-sm text-destructive mt-1">
-                          Reason: {order.rejection_reason}
-                        </p>
-                      )}
+                  {/* Order Tracking Timeline */}
+                  <OrderTrackingTimeline
+                    orderId={order.id}
+                    trackingId={order.tracking_id}
+                    consignmentId={order.consignment_id}
+                    orderStatus={order.status}
+                  />
+
+                  {order.rejection_reason && (
+                    <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-destructive">Order Rejected</p>
+                        <p className="text-sm text-destructive/80">{order.rejection_reason}</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {order.tracking_id && (
                     <div className="p-4 bg-secondary/50 rounded-lg">
@@ -352,28 +283,6 @@ const TrackOrderPage = () => {
                   )}
                 </CardContent>
               </Card>
-
-              {/* Delivery Tracking Card */}
-              {trackingStatus && trackingStatus.status === 200 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Truck className="h-5 w-5" />
-                      Delivery Status (Steadfast)
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center gap-4">
-                      {getStatusIcon(trackingStatus.delivery_status)}
-                      <div>
-                        <Badge className={getStatusColor(trackingStatus.delivery_status)}>
-                          {getDeliveryStatusLabel(trackingStatus.delivery_status)}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
 
               {/* Order Items Card */}
               <Card>
@@ -412,12 +321,25 @@ const TrackOrderPage = () => {
                 </CardContent>
               </Card>
             </>
+          ) : searchAttempted ? (
+            /* Order not found empty state */
+            <Card>
+              <CardContent className="py-12 text-center">
+                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                  <AlertCircle className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="font-semibold text-foreground mb-1">Order not found</h3>
+                <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                  Please check your Order ID or Tracking ID and try again.
+                </p>
+              </CardContent>
+            </Card>
           ) : (
             <Card>
               <CardContent className="py-12 text-center">
                 <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">
-                  Enter a tracking code above to track your order
+                  Enter an Order ID or Tracking ID above to track your order
                 </p>
               </CardContent>
             </Card>
