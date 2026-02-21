@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import type { AdminOrder } from '@/types/database';
 
 export type AppRole = 'admin' | 'user' | 'doctor' | 'clinic_owner';
 
@@ -105,8 +106,9 @@ export const useAdminOrders = (page = 0, pageSize = 50) => {
       );
 
       return {
-        orders: (ordersData || []).map(order => ({
+        orders: (ordersData || []).map((order): AdminOrder => ({
           ...order,
+          items: Array.isArray(order.items) ? order.items : [],
           profile: profileMap.get(order.user_id) || null,
         })),
         totalCount: count || 0,

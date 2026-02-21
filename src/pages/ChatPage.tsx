@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMessages } from '@/hooks/useMessages';
 import { supabase } from '@/integrations/supabase/client';
 import type { Pet } from '@/types/social';
+import type { ConversationRow } from '@/types/database';
 
 // Memoized message bubble component
 const MessageBubble = memo(({ message, isOwn }: { message: any; isOwn: boolean }) => (
@@ -77,15 +78,16 @@ const ChatPage = () => {
       if (!conversationId || !user) return;
 
       const { data: conv } = await supabase
-        .from('conversations' as any)
-        .select('*')
+        .from('conversations')
+        .select('id, participant_1_id, participant_2_id, last_message_at, created_at')
         .eq('id', conversationId)
         .single();
 
       if (conv) {
-        const otherUserId = (conv as any).participant_1_id === user.id 
-          ? (conv as any).participant_2_id 
-          : (conv as any).participant_1_id;
+        const typedConv = conv as ConversationRow;
+        const otherUserId = typedConv.participant_1_id === user.id 
+          ? typedConv.participant_2_id 
+          : typedConv.participant_1_id;
 
         const { data: pets } = await supabase
           .from('pets')

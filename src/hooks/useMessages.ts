@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Conversation, Message, Pet } from '@/types/social';
+import type { ConversationRow } from '@/types/database';
 import { compressImage } from '@/lib/mediaCompression';
 
 // H-1 + L-2 Fix: Migrate useConversations to React Query.
@@ -31,7 +32,7 @@ export const useConversations = () => {
       const convList = data || [];
       if (convList.length === 0) return [] as Conversation[];
 
-      const allOtherUserIds = convList.map((conv: any) =>
+      const allOtherUserIds = convList.map((conv: ConversationRow) =>
         conv.participant_1_id === user.id ? conv.participant_2_id : conv.participant_1_id
       );
 
@@ -49,7 +50,7 @@ export const useConversations = () => {
         petsByUserId.set(pet.user_id, list);
       }
 
-      const convIds = convList.map((c: any) => c.id);
+      const convIds = convList.map((c: ConversationRow) => c.id);
 
       // Batch query 2: get last message per conversation
       const { data: lastMessages } = await supabase
@@ -59,7 +60,7 @@ export const useConversations = () => {
         .order('created_at', { ascending: false });
 
       const lastMessageByConv = new Map<string, Message>();
-      for (const msg of (lastMessages || []) as any[]) {
+      for (const msg of (lastMessages || []) as Message[]) {
         if (!lastMessageByConv.has(msg.conversation_id)) {
           lastMessageByConv.set(msg.conversation_id, msg as Message);
         }
@@ -82,7 +83,7 @@ export const useConversations = () => {
       }
 
       // Assemble enriched conversations
-      return convList.map((conv: any) => {
+      return convList.map((conv: ConversationRow) => {
         const otherUserId = conv.participant_1_id === user.id
           ? conv.participant_2_id
           : conv.participant_1_id;
@@ -171,7 +172,7 @@ export const useMessages = (conversationId: string) => {
       if (error) throw error;
       // Guard against state update after unmount
       if (isMountedRef.current) {
-        setMessages((data || []) as unknown as Message[]);
+        setMessages((data || []) as Message[]);
       }
 
       // Mark messages as read
