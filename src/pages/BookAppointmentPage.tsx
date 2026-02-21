@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, Ban, MapPin, Clock, Phone, Star, BadgeCheck, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -60,7 +60,8 @@ const BookAppointmentPage = () => {
     
     setIsPending(true);
     try {
-      // Atomic booking via DB function — prevents race conditions
+      // CRITICAL: Use book_appointment_atomic RPC — prevents race conditions & double-booking
+      // This is a SECURITY DEFINER function with unique index enforcement, NOT a standard .insert()
       const { data: appointmentId, error } = await supabase.rpc('book_appointment_atomic', {
         p_user_id: user.id,
         p_clinic_id: clinicId,
@@ -73,9 +74,9 @@ const BookAppointmentPage = () => {
       });
 
       if (error) {
-        // The DB function raises a friendly message on slot conflict
-        if (error.message.includes('already booked')) {
-          // Surface waitlist option instead of just an error
+        const msg = error.message || '';
+        // Handle unique index violation / slot conflict — surface waitlist option
+        if (msg.includes('already booked') || msg.includes('unique_violation') || error.code === '23505') {
           setWaitlistPrompt({
             date: formData.date,
             time: formData.time,
@@ -88,12 +89,10 @@ const BookAppointmentPage = () => {
           setIsPending(false);
           return;
         }
-        throw error;
+        toast.error(msg || 'Failed to book appointment. Please try again.');
+        setIsPending(false);
+        return;
       }
-
-      const appointmentData = { id: appointmentId };
-      
-      if (error) throw error;
 
       // Format date for notifications
       const formattedDate = format(new Date(formData.date), 'MMM d, yyyy');
@@ -101,10 +100,10 @@ const BookAppointmentPage = () => {
       // Notify clinic owner about new appointment
       if (clinic && clinicId) {
         const clinicOwnerId = await getClinicOwnerUserId(clinicId);
-        if (clinicOwnerId && appointmentData) {
+        if (clinicOwnerId && appointmentId) {
           await createNewAppointmentNotification({
             clinicOwnerId,
-            appointmentId: appointmentData.id,
+            appointmentId,
             clinicId: clinicId,
             clinicName: clinic.name,
             petName: formData.petName,
@@ -115,10 +114,10 @@ const BookAppointmentPage = () => {
         }
 
         // Send confirmation notification to pet parent
-        if (appointmentData) {
+        if (appointmentId) {
           await createAppointmentConfirmationNotification({
             userId: user.id,
-            appointmentId: appointmentData.id,
+            appointmentId,
             clinicName: clinic.name,
             appointmentDate: formattedDate,
             appointmentTime: formData.time,
