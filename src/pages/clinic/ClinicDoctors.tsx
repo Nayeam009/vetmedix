@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   Plus, Loader2, Stethoscope, Mail, Phone, Edit, Trash2, 
   GraduationCap, BadgeDollarSign, ChevronLeft,
-  UserPlus, X
+  UserPlus, X, Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,6 +59,9 @@ import AddDoctorWizard from '@/components/clinic/AddDoctorWizard';
 import { JoinRequestsTab } from '@/components/clinic/JoinRequestsTab';
 import { InviteDoctorDialog } from '@/components/clinic/InviteDoctorDialog';
 import { cn } from '@/lib/utils';
+
+// Lazy-load DoctorScheduleManager to avoid blocking initial render
+const DoctorScheduleManager = lazy(() => import('@/components/clinic/DoctorScheduleManager'));
 
 // Skeleton loader for doctor cards
 const DoctorCardSkeleton = () => (
@@ -143,6 +146,13 @@ const ClinicDoctors = () => {
 
   // Get existing doctor IDs to filter out from invite list
   const existingDoctorIds = clinicDoctors?.map(cd => cd.doctor_id) || [];
+
+  // Memoize doctor list for DoctorScheduleManager to prevent re-renders
+  const scheduleDoctors = useMemo(() => {
+    return (clinicDoctors || [])
+      .filter(cd => cd.status === 'active' && cd.doctor)
+      .map(cd => ({ id: cd.doctor_id, name: cd.doctor!.name }));
+  }, [clinicDoctors]);
 
   const handleInputChange = (field: keyof DoctorFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -460,14 +470,18 @@ const ClinicDoctors = () => {
 
         {/* Tabs for Doctors and Join Requests */}
         <Tabs defaultValue="doctors" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="doctors" className="gap-2">
               <Stethoscope className="h-4 w-4" />
               My Doctors
             </TabsTrigger>
+            <TabsTrigger value="schedules" className="gap-2">
+              <Clock className="h-4 w-4" />
+              Schedules
+            </TabsTrigger>
             <TabsTrigger value="requests" className="gap-2">
               <UserPlus className="h-4 w-4" />
-              Join Requests
+              Requests
             </TabsTrigger>
           </TabsList>
 
@@ -622,6 +636,33 @@ const ClinicDoctors = () => {
             </CardContent>
           </Card>
         )}
+          </TabsContent>
+
+          {/* Schedules Tab */}
+          <TabsContent value="schedules">
+            {ownedClinic?.id && scheduleDoctors.length > 0 ? (
+              <Suspense fallback={
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              }>
+                <DoctorScheduleManager 
+                  clinicId={ownedClinic.id} 
+                  doctors={scheduleDoctors} 
+                />
+              </Suspense>
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                  <p className="text-muted-foreground">
+                    {scheduleDoctors.length === 0 
+                      ? 'Add active doctors first to manage schedules' 
+                      : 'Select a doctor to manage their schedule'}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Join Requests Tab */}
